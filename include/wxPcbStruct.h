@@ -635,6 +635,8 @@ public:
      */
     void ShowDesignRulesEditor( wxCommandEvent& event );
 
+    void ShowTeardropsWnd( wxCommandEvent& event );
+
     /* toolbars update UI functions: */
 
     void PrepareLayerIndicator();

@@ -1,4 +1,6 @@
 #include "class_teardrop.h"
+#include "class_board.h"
+#include "class_board_item.h"
 
 TEARDROP::TEARDROP(BOARD_ITEM *aParent) :
     TRACK(aParent, PCB_TRACE_T)
@@ -6,9 +8,28 @@ TEARDROP::TEARDROP(BOARD_ITEM *aParent) :
     m_type = TEARDROP_NONE;
 }
 
-bool TEARDROP::Create(TRACK &aTrack)
+bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = TEARDROP_STRAIGHT)
 {
+    std::vector<VECTOR2I> upperSegment;
+    std::vector<VECTOR2I> lowerSegment;
+    bool result = false;
 
+    VIA *aVia = GetViaOnEnd(aTrack, endPoint);
+    if (aVia == NULL) {
+        return false;
+    }
+
+    if (type == TEARDROP_STRAIGHT) {
+        result = StraightSegments(aTrack, *aVia, upperSegment, lowerSegment, 100);
+    }
+    else if (type == TEARDROP_CURVED) {
+        result = CurvedSegments(aTrack, *aVia, upperSegment, lowerSegment);
+    }
+    if (result == true) {
+        result = BuildTracks(aTrack, upperSegment, lowerSegment);
+    }
+
+    return result;
 }
 
 bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, VECTOR2I &endPoint)
@@ -103,6 +124,66 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
     upperSegment.push_back(upperPoint);
     lowerSegment.push_back(linePoint);
     lowerSegment.push_back(lowerPoint);
+
+    return true;
+}
+
+// TODO: m_TracksConnected member is considered a temporary storage. Find another way to get an object
+VIA *TEARDROP::GetViaOnEnd(TRACK &aTrack, ENDPOINT_T endPoint)
+{
+    wxPoint trackPoint;
+    std::vector<TRACK *>::const_iterator iter;
+
+    if (endPoint == ENDPOINT_START) {
+        trackPoint = aTrack.GetStart();
+    }
+    else {
+        trackPoint = aTrack.GetEnd();
+    }
+
+    for (iter = aTrack.m_TracksConnected.begin(); iter != aTrack.m_TracksConnected.end(); ++iter) {
+        KICAD_T type = (*iter)->Type();
+        bool hitTest = (*iter)->HitTest(trackPoint);
+        if (type == PCB_VIA_T && hitTest == true) {
+            return static_cast<VIA *>(*iter);
+        }
+    }
+    return NULL;
+}
+
+bool TEARDROP::BuildTracks(TRACK &aTrack, std::vector<VECTOR2I> upperSegments, std::vector<VECTOR2I> lowerSegments)
+{
+    BOARD *board = aTrack.GetBoard();
+    wxPoint currentPoint(0, 0);
+    wxPoint prevPoint(upperSegments[0].x, upperSegments[0].y);
+    for (size_t i = 0; i < upperSegments.size(); i++) {
+        TRACK *track = new TRACK(board);
+        track->SetWidth(aTrack.GetWidth());
+        track->SetLayer(aTrack.GetLayer());
+        track->SetNetCode(aTrack.GetNetCode());
+        currentPoint.x = upperSegments[i].x;
+        currentPoint.y = upperSegments[i].y;
+        track->SetStart(prevPoint);
+        track->SetEnd(currentPoint);
+        board->Add(track);
+        m_upperSegment.push_back(track);
+        prevPoint = currentPoint;
+    }
+    currentPoint = wxPoint(0, 0);
+    prevPoint = wxPoint(lowerSegments[0].x, lowerSegments[0].y);
+    for (size_t i = 0; i < lowerSegments.size(); i++) {
+        TRACK *track = new TRACK(board);
+        track->SetWidth(aTrack.GetWidth());
+        track->SetLayer(aTrack.GetLayer());
+        track->SetNetCode(aTrack.GetNetCode());
+        currentPoint.x = lowerSegments[i].x;
+        currentPoint.y = lowerSegments[i].y;
+        track->SetStart(prevPoint);
+        track->SetEnd(currentPoint);
+        board->Add(track);
+        m_lowerSegment.push_back(track);
+        prevPoint = currentPoint;
+    }
 
     return true;
 }

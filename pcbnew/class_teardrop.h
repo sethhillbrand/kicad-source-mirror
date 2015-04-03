@@ -36,9 +36,9 @@ public:
      * @brief Defines the type of a teardrop.
      */
     typedef enum {
-        TEARDROP_NONE,		/// The type is undefined
-        TEARDROP_STRAIGHT,	/// The teardrop is created by two straight segments
-        TEARDROP_CURVED		/// The teardrop is created by several segments approximating deltoid
+        TEARDROP_NONE,		///< The type is undefined
+        TEARDROP_STRAIGHT,	///< The teardrop is created by two straight segments
+        TEARDROP_CURVED		///< The teardrop is created by several segments approximating deltoid
     } TEARDROP_TYPE;
 
     /**
@@ -52,14 +52,14 @@ public:
      * @param aTrack
      * @return \a true in case the teardrops were successfully built and \a false otherwise
      */
-    bool Create(TRACK &aTrack);
+    bool Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type);
 
 private:
     ///> Contains the type of teardrop
     TEARDROP_TYPE m_type;
-    ///> \a m_upperSegment and \a m_lowerSegment contain actual segments composing a teardrop
-    std::vector<TRACK> m_upperSegment;
-    std::vector<TRACK> m_lowerSegment;
+    ///> \a m_upperSegment and \a m_lowerSegment contain pointers to actual segments composing a teardrop
+    std::vector<TRACK *> m_upperSegment;
+    std::vector<TRACK *> m_lowerSegment;
 
     /**
      * @brief Function \a CurvedSegments computes several points on deltoid curve and moves
@@ -96,6 +96,9 @@ private:
      * @return \a true in case the vector is created successfully and \a false otherwise
      */
     bool SetVector(TRACK &aTrack, const VIA &aVia, VECTOR2I &startPoint, VECTOR2I &endPoint);
+
+    VIA* GetViaOnEnd(TRACK &aTrack, ENDPOINT_T endPoint);
+    bool BuildTracks(TRACK &aTrack, std::vector<VECTOR2I> upperSegments, std::vector<VECTOR2I> lowerSegments);
 };
 
 #endif // CLASS_TEARDROP_H

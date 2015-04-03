@@ -335,6 +335,7 @@ set( PCB_COMMON_SRCS
     ../pcbnew/class_track.cpp
     ../pcbnew/class_zone.cpp
     ../pcbnew/class_zone_settings.cpp
+    ../pcbnew/class_teardrop.cpp
     ../pcbnew/classpcb.cpp
     ../pcbnew/ratsnest_data.cpp
     ../pcbnew/ratsnest_viewitem.cpp

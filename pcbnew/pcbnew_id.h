@@ -329,6 +329,7 @@ enum pcbnew_ids
     ID_POPUP_PCB_DELETE_TRACKSEG,
     ID_TOOLBARH_PCB_SELECT_LAYER,
     ID_PCB_DISPLAY_OPTIONS_SETUP,
+    ID_TEARDROPS_WINDOW,
 
     // Module editor right vertical tool bar commands.
     ID_MODEDIT_PAD_TOOL,
