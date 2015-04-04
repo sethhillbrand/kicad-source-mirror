@@ -38,7 +38,7 @@ public:
     typedef enum {
         TEARDROP_NONE,		///< The type is undefined
         TEARDROP_STRAIGHT,	///< The teardrop is created by two straight segments
-        TEARDROP_CURVED		///< The teardrop is created by several segments approximating deltoid
+        TEARDROP_CURVED		///< The teardrop is created by several segments approximating a curve
     } TEARDROP_TYPE;
 
     /**
