@@ -62,7 +62,7 @@
 #include <class_track.h>
 #include <class_board.h>
 #include <class_module.h>
-#include <class_teardrop.h>
+//#include <class_teardrop.h>
 #include <worksheet_viewitem.h>
 #include <ratsnest_data.h>
 #include <ratsnest_viewitem.h>
@@ -72,6 +72,8 @@
 #include <tools/common_actions.h>
 
 #include <wildcards_and_files_ext.h>
+
+#include "dialog_teardrops.h"
 
 #if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_WXPYTHON)
 #include <python_scripting.h>
@@ -209,7 +211,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_MODULE, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_TRACKS, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_FREEROUTE_ACCESS, PCB_EDIT_FRAME::Access_to_External_Tool )
-    EVT_TOOL( ID_TEARDROPS_WINDOW, PCB_EDIT_FRAME::ShowTeardropsWnd )
+    EVT_TOOL( ID_TEARDROPS_WINDOW, PCB_EDIT_FRAME::ShowTeardropsEditor )
 
 
 #if defined( KICAD_SCRIPTING_WXPYTHON )
@@ -730,16 +732,24 @@ void PCB_EDIT_FRAME::ShowDesignRulesEditor( wxCommandEvent& event )
         OnModify();
     }
 }
-void  PCB_EDIT_FRAME::ShowTeardropsWnd( wxCommandEvent& event )
+void  PCB_EDIT_FRAME::ShowTeardropsEditor( wxCommandEvent& event )
 {
-    BOARD_ITEM *item = GetScreen()->GetCurItem();
-    if ((item != NULL) && (item->Type() == PCB_TRACE_T)) {
-        TEARDROP *td = new TEARDROP(item);
-        TRACK *track = static_cast<TRACK *>(item);
-        td->Create(*track, ENDPOINT_START, TEARDROP::TEARDROP_CURVED);
-        td->Create(*track, ENDPOINT_END, TEARDROP::TEARDROP_CURVED);
+    DIALOG_TEARDROPS::TEARDROPS_SETTINGS settings;
+    DIALOG_TEARDROPS *dlg_teardrops = new DIALOG_TEARDROPS(this, &settings);
+    int retVal = dlg_teardrops->ShowModal();
+
+    if (retVal == wxID_OK) {
+
     }
-    m_canvas->Refresh();
+
+//    BOARD_ITEM *item = GetScreen()->GetCurItem();
+//    if ((item != NULL) && (item->Type() == PCB_TRACE_T)) {
+//        TEARDROP *td = new TEARDROP(item);
+//        TRACK *track = static_cast<TRACK *>(item);
+//        td->Create(*track, ENDPOINT_START, TEARDROP::TEARDROP_CURVED);
+//        td->Create(*track, ENDPOINT_END, TEARDROP::TEARDROP_CURVED);
+//    }
+//    m_canvas->Refresh();
 }
 
 void PCB_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )

@@ -635,7 +635,11 @@ public:
      */
     void ShowDesignRulesEditor( wxCommandEvent& event );
 
-    void ShowTeardropsWnd( wxCommandEvent& event );
+    /**
+     * @brief ShowTeardropsEditor displays the teardrops editor window.
+     * @param [in] event contains information about command events
+     */
+    void ShowTeardropsEditor( wxCommandEvent& event );
 
     /* toolbars update UI functions: */
 

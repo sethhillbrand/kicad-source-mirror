@@ -1,6 +1,7 @@
 #include "class_teardrop.h"
 #include "class_board.h"
 #include "class_board_item.h"
+#include "class_undoredo_container.h"
 
 TEARDROP::TEARDROP(BOARD_ITEM *aParent) :
     TRACK(aParent, PCB_TRACE_T)
@@ -26,7 +27,8 @@ bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = T
         result = CurvedSegments(aTrack, *aVia, upperSegment, lowerSegment);
     }
     if (result == true) {
-        result = BuildTracks(aTrack, upperSegment, lowerSegment);
+        result = BuildTracks(aTrack, upperSegment, m_upperSegment);
+        result = BuildTracks(aTrack, lowerSegment, m_lowerSegment);
     }
 
     return result;
@@ -151,37 +153,22 @@ VIA *TEARDROP::GetViaOnEnd(TRACK &aTrack, ENDPOINT_T endPoint)
     return NULL;
 }
 
-bool TEARDROP::BuildTracks(TRACK &aTrack, std::vector<VECTOR2I> upperSegments, std::vector<VECTOR2I> lowerSegments)
+bool TEARDROP::BuildTracks(TRACK &aTrack, std::vector<VECTOR2I> points, std::vector<TRACK *> tracks)
 {
     BOARD *board = aTrack.GetBoard();
     wxPoint currentPoint(0, 0);
-    wxPoint prevPoint(upperSegments[0].x, upperSegments[0].y);
-    for (size_t i = 0; i < upperSegments.size(); i++) {
-        TRACK *track = new TRACK(board);
+    wxPoint prevPoint(points[0].x, points[0].y);
+    for (size_t i = 1; i < points.size(); i++) {
+        TRACK *track = new TRACK(aTrack);
         track->SetWidth(aTrack.GetWidth());
         track->SetLayer(aTrack.GetLayer());
         track->SetNetCode(aTrack.GetNetCode());
-        currentPoint.x = upperSegments[i].x;
-        currentPoint.y = upperSegments[i].y;
+        currentPoint.x = points[i].x;
+        currentPoint.y = points[i].y;
         track->SetStart(prevPoint);
         track->SetEnd(currentPoint);
         board->Add(track);
-        m_upperSegment.push_back(track);
-        prevPoint = currentPoint;
-    }
-    currentPoint = wxPoint(0, 0);
-    prevPoint = wxPoint(lowerSegments[0].x, lowerSegments[0].y);
-    for (size_t i = 0; i < lowerSegments.size(); i++) {
-        TRACK *track = new TRACK(board);
-        track->SetWidth(aTrack.GetWidth());
-        track->SetLayer(aTrack.GetLayer());
-        track->SetNetCode(aTrack.GetNetCode());
-        currentPoint.x = lowerSegments[i].x;
-        currentPoint.y = lowerSegments[i].y;
-        track->SetStart(prevPoint);
-        track->SetEnd(currentPoint);
-        board->Add(track);
-        m_lowerSegment.push_back(track);
+        tracks.push_back(track);
         prevPoint = currentPoint;
     }
 

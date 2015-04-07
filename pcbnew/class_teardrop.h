@@ -98,7 +98,7 @@ private:
     bool SetVector(TRACK &aTrack, const VIA &aVia, VECTOR2I &startPoint, VECTOR2I &endPoint);
 
     VIA* GetViaOnEnd(TRACK &aTrack, ENDPOINT_T endPoint);
-    bool BuildTracks(TRACK &aTrack, std::vector<VECTOR2I> upperSegments, std::vector<VECTOR2I> lowerSegments);
+    bool BuildTracks(TRACK &aTrack, const std::vector<VECTOR2I> points, std::vector<TRACK *> tracks);
 };
 
 #endif // CLASS_TEARDROP_H
