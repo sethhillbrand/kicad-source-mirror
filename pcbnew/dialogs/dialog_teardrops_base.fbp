@@ -370,10 +370,10 @@
                                                 <property name="bg"></property>
                                                 <property name="checked">1</property>
                                                 <property name="context_help"></property>
-                                                <property name="enabled">1</property>
+                                                <property name="enabled">0</property>
                                                 <property name="fg"></property>
                                                 <property name="font"></property>
-                                                <property name="hidden">1</property>
+                                                <property name="hidden">0</property>
                                                 <property name="id">wxID_ANY</property>
                                                 <property name="label">Ignore DRC</property>
                                                 <property name="maximum_size"></property>
@@ -393,7 +393,7 @@
                                                 <property name="window_name"></property>
                                                 <property name="window_style"></property>
                                                 <event name="OnChar"></event>
-                                                <event name="OnCheckBox"></event>
+                                                <event name="OnCheckBox">OnIgnoreDrc</event>
                                                 <event name="OnEnterWindow"></event>
                                                 <event name="OnEraseBackground"></event>
                                                 <event name="OnKeyDown"></event>

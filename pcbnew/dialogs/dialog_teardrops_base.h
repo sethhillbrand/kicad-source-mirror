@@ -58,6 +58,7 @@ class DIALOG_TEARDROPS_BASE : public DIALOG_SHIM
 		virtual void OnModeRemove( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnTracksAll( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnTracksSelected( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnIgnoreDrc( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnClearSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnStyleChanged( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnScopeVias( wxCommandEvent& event ) { event.Skip(); }

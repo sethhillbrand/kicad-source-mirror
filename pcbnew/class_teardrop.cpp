@@ -36,7 +36,7 @@ void TEARDROP::GetCoordinates(std::vector<VECTOR2I> &points)
 bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, VECTOR2I &endPoint)
 {
     // Decide which end of the track is inside via and set this point as end of vector
-    STATUS_FLAGS status = aTrack.IsPointOnEnds(wxPoint(aVia.GetPosition().x, aVia.GetPosition().y), aVia.GetWidth() / 2);
+    STATUS_FLAGS status = aTrack.IsPointOnEnds(aVia.GetPosition(), aVia.GetWidth() / 2);
     if (status == STARTPOINT) {
         startPoint = aTrack.GetEnd();
         endPoint = aTrack.GetStart();
@@ -105,7 +105,7 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
 
     // Check that the track is not too short
     double segOutsideVia = aTrack.GetLength() - (aVia.GetWidth() / 2);
-    double minLength = (distance * aVia.GetWidth()) / 100;
+    double minLength = (distance * aVia.GetWidth() / 2) / 100;
     if (segOutsideVia < minLength) {
         return false;
     }

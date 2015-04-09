@@ -16,6 +16,7 @@ private:
     PCB_EDIT_FRAME *m_frame;
     KIGFX::VIEW *m_view;
     TEARDROP::TEARDROP_TYPE m_type;
+    PICKED_ITEMS_LIST m_undoListPicker;
 
     void FilterSelection(SELECTION &selection);
     bool AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);

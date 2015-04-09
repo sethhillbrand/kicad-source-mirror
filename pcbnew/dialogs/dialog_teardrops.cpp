@@ -38,12 +38,8 @@ void DIALOG_TEARDROPS::InitDialogSettings()
     if (m_scopeTracks->IsChecked() == true) {
         m_settings->m_scope = static_cast<TEARDROPS_SCOPE>(m_settings->m_scope | TEARDROPS_SCOPE_TRACKS);
     }
-    if (m_checkClear->IsChecked() == true) {
-        m_settings->m_clearSelection = true;
-    }
-    else {
-        m_settings->m_clearSelection = false;
-    }
+    m_settings->m_clearSelection = m_checkClear->IsChecked();
+    m_settings->m_ignoreDrc = m_checkIgnore->IsChecked();
 }
 
 void DIALOG_TEARDROPS::OnModeAdd(wxCommandEvent &event)
@@ -56,7 +52,7 @@ void DIALOG_TEARDROPS::OnModeAdd(wxCommandEvent &event)
 void DIALOG_TEARDROPS::OnModeRemove(wxCommandEvent &event)
 {
     if (m_settings != NULL) {
-    m_settings->m_mode = TEARDROPS_MODE_REMOVE;
+        m_settings->m_mode = TEARDROPS_MODE_REMOVE;
     }
 }
 
@@ -106,10 +102,16 @@ void DIALOG_TEARDROPS::OnStyleChanged(wxCommandEvent &event)
 
 void DIALOG_TEARDROPS::OnClearSelection(wxCommandEvent &event)
 {
-    if (m_checkClear->IsChecked() == true) {
-        m_settings->m_clearSelection = true;
+    event.Skip();
+    if (m_settings != NULL) {
+        m_settings->m_clearSelection = m_checkClear->IsChecked();
     }
-    else {
-        m_settings->m_clearSelection = false;
+}
+
+void DIALOG_TEARDROPS::OnIgnoreDrc(wxCommandEvent &event)
+{
+    event.Skip();
+    if (m_settings != NULL) {
+        m_settings->m_ignoreDrc = m_checkIgnore->IsChecked();
     }
 }
