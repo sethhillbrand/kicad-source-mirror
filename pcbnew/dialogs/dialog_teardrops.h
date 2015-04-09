@@ -32,6 +32,7 @@ public:
         TEARDROPS_TRACKS m_track;
         TEARDROPS_SCOPE m_scope;
         TEARDROPS_TYPE m_type;
+        bool m_clearSelection;
     } TEARDROPS_SETTINGS;
     DIALOG_TEARDROPS(PCB_EDIT_FRAME *aParent, TEARDROPS_SETTINGS *settings);
 
@@ -40,6 +41,7 @@ public:
     void OnTracksAll(wxCommandEvent &event);
     void OnTracksSelected(wxCommandEvent &event);
     void OnStyleChanged(wxCommandEvent &event);
+    void OnClearSelection(wxCommandEvent &event);
     void OnScopeVias(wxCommandEvent &event);
 
 private:

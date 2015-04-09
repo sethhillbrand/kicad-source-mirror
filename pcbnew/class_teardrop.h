@@ -27,10 +27,10 @@
 
 #include "class_track.h"
 
-class TEARDROP : public TRACK
+class TEARDROP
 {
 public:
-    TEARDROP(BOARD_ITEM *aParent);
+    TEARDROP();
 
     /**
      * @brief Defines the type of a teardrop.
@@ -54,12 +54,14 @@ public:
      */
     bool Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type);
 
+    void GetCoordinates(std::vector<VECTOR2I> &points);
+
 private:
     ///> Contains the type of teardrop
     TEARDROP_TYPE m_type;
-    ///> \a m_upperSegment and \a m_lowerSegment contain pointers to actual segments composing a teardrop
-    std::vector<TRACK *> m_upperSegment;
-    std::vector<TRACK *> m_lowerSegment;
+    ///> \a m_upperSegment and \a m_lowerSegment contain coordinates of segments composing a teardrop
+    std::vector<VECTOR2I> m_upperSegment;
+    std::vector<VECTOR2I> m_lowerSegment;
 
     /**
      * @brief Function \a CurvedSegments computes several points on deltoid curve and moves

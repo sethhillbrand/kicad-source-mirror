@@ -66,10 +66,12 @@
 #include <worksheet_viewitem.h>
 #include <ratsnest_data.h>
 #include <ratsnest_viewitem.h>
+#include <edit_teardrops.h>
 
 #include <tool/tool_manager.h>
 #include <tool/tool_dispatcher.h>
 #include <tools/common_actions.h>
+#include <tools/selection_tool.h>
 
 #include <wildcards_and_files_ext.h>
 
@@ -736,20 +738,13 @@ void  PCB_EDIT_FRAME::ShowTeardropsEditor( wxCommandEvent& event )
 {
     DIALOG_TEARDROPS::TEARDROPS_SETTINGS settings;
     DIALOG_TEARDROPS *dlg_teardrops = new DIALOG_TEARDROPS(this, &settings);
+
     int retVal = dlg_teardrops->ShowModal();
-
     if (retVal == wxID_OK) {
-
+        SELECTION selection = m_toolManager->GetTool<SELECTION_TOOL>()->GetSelection();
+        TEARDROPS_EDITOR editor(this, GetGalCanvas()->GetView());
+        editor.EditTeardrops(selection, settings);
     }
-
-//    BOARD_ITEM *item = GetScreen()->GetCurItem();
-//    if ((item != NULL) && (item->Type() == PCB_TRACE_T)) {
-//        TEARDROP *td = new TEARDROP(item);
-//        TRACK *track = static_cast<TRACK *>(item);
-//        td->Create(*track, ENDPOINT_START, TEARDROP::TEARDROP_CURVED);
-//        td->Create(*track, ENDPOINT_END, TEARDROP::TEARDROP_CURVED);
-//    }
-//    m_canvas->Refresh();
 }
 
 void PCB_EDIT_FRAME::LoadSettings( wxConfigBase* aCfg )

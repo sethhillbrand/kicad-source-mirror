@@ -3,16 +3,13 @@
 #include "class_board_item.h"
 #include "class_undoredo_container.h"
 
-TEARDROP::TEARDROP(BOARD_ITEM *aParent) :
-    TRACK(aParent, PCB_TRACE_T)
+TEARDROP::TEARDROP()
 {
     m_type = TEARDROP_NONE;
 }
 
 bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = TEARDROP_STRAIGHT)
 {
-    std::vector<VECTOR2I> upperSegment;
-    std::vector<VECTOR2I> lowerSegment;
     bool result = false;
 
     VIA *aVia = GetViaOnEnd(aTrack, endPoint);
@@ -21,17 +18,19 @@ bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = T
     }
 
     if (type == TEARDROP_STRAIGHT) {
-        result = StraightSegments(aTrack, *aVia, upperSegment, lowerSegment, 100);
+        result = StraightSegments(aTrack, *aVia, m_upperSegment, m_lowerSegment, 100);
     }
     else if (type == TEARDROP_CURVED) {
-        result = CurvedSegments(aTrack, *aVia, upperSegment, lowerSegment);
-    }
-    if (result == true) {
-        result = BuildTracks(aTrack, upperSegment, m_upperSegment);
-        result = BuildTracks(aTrack, lowerSegment, m_lowerSegment);
+        result = CurvedSegments(aTrack, *aVia, m_upperSegment, m_lowerSegment);
     }
 
     return result;
+}
+
+void TEARDROP::GetCoordinates(std::vector<VECTOR2I> &points)
+{
+    points.insert(points.end(), m_upperSegment.begin(), m_upperSegment.end());
+    points.insert(points.end(), m_lowerSegment.begin(), m_lowerSegment.end());
 }
 
 bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, VECTOR2I &endPoint)
@@ -60,6 +59,13 @@ bool TEARDROP::CurvedSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR
     VECTOR2I endPoint(0, 0);
 
     if ( !SetVector(aTrack, aVia, startPoint, endPoint) ) {
+        return false;
+    }
+
+    // Check that the track is not too short
+    double segOutsideVia = aTrack.GetLength() - (aVia.GetWidth() / 2);
+    double minLength = (90 * aVia.GetWidth()) / 100;
+    if (segOutsideVia < minLength) {
         return false;
     }
 
@@ -97,6 +103,13 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
         return false;
     }
 
+    // Check that the track is not too short
+    double segOutsideVia = aTrack.GetLength() - (aVia.GetWidth() / 2);
+    double minLength = (distance * aVia.GetWidth()) / 100;
+    if (segOutsideVia < minLength) {
+        return false;
+    }
+
     // Equation coefficients
     double r = (aVia.GetWidth() / 2) + ((distance * aVia.GetWidth()) / (2 *100));
     double a = pow((endPoint.x - startPoint.x), 2) + pow((endPoint.y - startPoint.y), 2);
@@ -124,8 +137,8 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
 
     upperSegment.push_back(linePoint);
     upperSegment.push_back(upperPoint);
-    lowerSegment.push_back(linePoint);
     lowerSegment.push_back(lowerPoint);
+    lowerSegment.push_back(linePoint);
 
     return true;
 }

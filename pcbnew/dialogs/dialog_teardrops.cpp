@@ -38,6 +38,12 @@ void DIALOG_TEARDROPS::InitDialogSettings()
     if (m_scopeTracks->IsChecked() == true) {
         m_settings->m_scope = static_cast<TEARDROPS_SCOPE>(m_settings->m_scope | TEARDROPS_SCOPE_TRACKS);
     }
+    if (m_checkClear->IsChecked() == true) {
+        m_settings->m_clearSelection = true;
+    }
+    else {
+        m_settings->m_clearSelection = false;
+    }
 }
 
 void DIALOG_TEARDROPS::OnModeAdd(wxCommandEvent &event)
@@ -59,7 +65,7 @@ void DIALOG_TEARDROPS::OnTracksAll(wxCommandEvent &event)
     if (m_settings != NULL) {
         m_settings->m_track = TEARDROPS_TRACKS_ALL;
     }
-
+    m_checkClear->Enable(false);
 }
 
 void DIALOG_TEARDROPS::OnTracksSelected(wxCommandEvent &event)
@@ -67,6 +73,7 @@ void DIALOG_TEARDROPS::OnTracksSelected(wxCommandEvent &event)
     if (m_settings != NULL)	 {
         m_settings->m_track = TEARDROPS_TRACKS_SELECTED;
     }
+    m_checkClear->Enable(true);
 }
 
 void DIALOG_TEARDROPS::OnScopeVias(wxCommandEvent &event)
@@ -94,5 +101,15 @@ void DIALOG_TEARDROPS::OnStyleChanged(wxCommandEvent &event)
 //        else {
 //            m_settings->m_type = TEARDROPS_TYPE_NONE;
 //        }
+    }
+}
+
+void DIALOG_TEARDROPS::OnClearSelection(wxCommandEvent &event)
+{
+    if (m_checkClear->IsChecked() == true) {
+        m_settings->m_clearSelection = true;
+    }
+    else {
+        m_settings->m_clearSelection = false;
     }
 }

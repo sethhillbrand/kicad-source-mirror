@@ -42,6 +42,7 @@ class DIALOG_TEARDROPS_BASE : public DIALOG_SHIM
 		wxRadioButton* m_tracksAll;
 		wxRadioButton* m_tracksSelected;
 		wxCheckBox* m_checkIgnore;
+		wxCheckBox* m_checkClear;
 		wxStaticText* m_staticStyle;
 		wxChoice* m_choiceStyle;
 		wxCheckBox* m_scopeVias;
@@ -57,6 +58,7 @@ class DIALOG_TEARDROPS_BASE : public DIALOG_SHIM
 		virtual void OnModeRemove( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnTracksAll( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnTracksSelected( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnClearSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnStyleChanged( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnScopeVias( wxCommandEvent& event ) { event.Skip(); }
 		
