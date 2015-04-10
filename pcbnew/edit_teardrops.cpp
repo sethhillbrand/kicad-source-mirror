@@ -1,5 +1,6 @@
 #include "edit_teardrops.h"
 #include "class_board.h"
+#include "class_module.h"
 
 TEARDROPS_EDITOR::TEARDROPS_EDITOR(PCB_EDIT_FRAME *frame, KIGFX::VIEW *view)
 {
@@ -50,6 +51,7 @@ bool TEARDROPS_EDITOR::AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &sett
     bool retVal = false;
     bool added = false;
 
+    // Iterate through all vias and add teardrops to connected tracks
     if ((settings.m_scope & DIALOG_TEARDROPS::TEARDROPS_SCOPE_VIAS) == DIALOG_TEARDROPS::TEARDROPS_SCOPE_VIAS) {
         for (VIA *via = GetFirstVia(m_frame->GetBoard()->m_Track); via != NULL;
              via = GetFirstVia(via->Next())) {
@@ -66,6 +68,13 @@ bool TEARDROPS_EDITOR::AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &sett
                     }
                 }
             }
+        }
+    }
+
+    // Iterate through all modules and add teardrops to tracks connected to their pads
+    if ((settings.m_scope & DIALOG_TEARDROPS::TEARDROPS_SCOPE_PADS) == DIALOG_TEARDROPS::TEARDROPS_SCOPE_PADS) {
+        for (MODULE *module = m_frame->GetBoard()->m_Modules.GetFirst(); module != NULL; module = module->Next()) {
+
         }
     }
 

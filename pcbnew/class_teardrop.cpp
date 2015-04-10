@@ -12,9 +12,25 @@ bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = T
 {
     bool result = false;
 
-    VIA *aVia = GetViaOnEnd(aTrack, endPoint);
-    if (aVia == NULL) {
+    BOARD_CONNECTED_ITEM *anObject = GetObjectOnEnd(aTrack, endPoint);
+    VIA *aVia = NULL;
+    if (anObject == NULL) {
         return false;
+    }
+    else {
+        switch (anObject->Type()) {
+        case PCB_VIA_T:
+            aVia = dynamic_cast<VIA *>(anObject);
+            break;
+        case PCB_PAD_T:
+            aVia = new VIA(NULL);
+            aVia->SetLayer(anObject->GetLayer());
+            aVia->SetPosition(anObject->GetPosition());
+            aVia->SetWidth(2 * dynamic_cast<D_PAD *>(anObject)->GetBoundingRadius());
+            break;
+        default:
+            break;
+        }
     }
 
     if (type == TEARDROP_STRAIGHT) {
@@ -144,9 +160,10 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
 }
 
 // TODO: m_TracksConnected member is considered a temporary storage. Find another way to get an object
-VIA *TEARDROP::GetViaOnEnd(TRACK &aTrack, ENDPOINT_T endPoint)
+BOARD_CONNECTED_ITEM* TEARDROP::GetObjectOnEnd(TRACK &aTrack, ENDPOINT_T endPoint)
 {
     wxPoint trackPoint;
+    BOARD_CONNECTED_ITEM *item = NULL;
     std::vector<TRACK *>::const_iterator iter;
 
     if (endPoint == ENDPOINT_START) {
@@ -156,34 +173,25 @@ VIA *TEARDROP::GetViaOnEnd(TRACK &aTrack, ENDPOINT_T endPoint)
         trackPoint = aTrack.GetEnd();
     }
 
+    // Check for vias first
     for (iter = aTrack.m_TracksConnected.begin(); iter != aTrack.m_TracksConnected.end(); ++iter) {
         KICAD_T type = (*iter)->Type();
         bool hitTest = (*iter)->HitTest(trackPoint);
         if (type == PCB_VIA_T && hitTest == true) {
-            return static_cast<VIA *>(*iter);
+            item = *iter;
         }
     }
-    return NULL;
-}
-
-bool TEARDROP::BuildTracks(TRACK &aTrack, std::vector<VECTOR2I> points, std::vector<TRACK *> tracks)
-{
-    BOARD *board = aTrack.GetBoard();
-    wxPoint currentPoint(0, 0);
-    wxPoint prevPoint(points[0].x, points[0].y);
-    for (size_t i = 1; i < points.size(); i++) {
-        TRACK *track = new TRACK(aTrack);
-        track->SetWidth(aTrack.GetWidth());
-        track->SetLayer(aTrack.GetLayer());
-        track->SetNetCode(aTrack.GetNetCode());
-        currentPoint.x = points[i].x;
-        currentPoint.y = points[i].y;
-        track->SetStart(prevPoint);
-        track->SetEnd(currentPoint);
-        board->Add(track);
-        tracks.push_back(track);
-        prevPoint = currentPoint;
+    // Check for pads if via was not found on this end of the track
+    if (item == NULL) {
+        for (std::vector<D_PAD *>::iterator iter = aTrack.m_PadsConnected.begin(); iter != aTrack.m_PadsConnected.end(); ++iter) {
+            PAD_SHAPE_T shape = (*iter)->GetShape();
+            bool hitTest = (*iter)->HitTest(trackPoint);
+            if (shape == PAD_CIRCLE && hitTest == true) {
+                item = *iter;
+                printf("found circle pad\n");
+            }
+        }
     }
 
-    return true;
+    return item;
 }
