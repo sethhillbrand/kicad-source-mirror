@@ -46,13 +46,16 @@ void DIALOG_TEARDROPS::OnModeAdd(wxCommandEvent &event)
 {
     if (m_settings != NULL) {
         m_settings->m_mode = TEARDROPS_MODE_ADD;
+        LockOptionsControls(false);
     }
 }
 
 void DIALOG_TEARDROPS::OnModeRemove(wxCommandEvent &event)
 {
+    event.Skip();
     if (m_settings != NULL) {
         m_settings->m_mode = TEARDROPS_MODE_REMOVE;
+        LockOptionsControls(true);
     }
 }
 
@@ -113,5 +116,24 @@ void DIALOG_TEARDROPS::OnIgnoreDrc(wxCommandEvent &event)
     event.Skip();
     if (m_settings != NULL) {
         m_settings->m_ignoreDrc = m_checkIgnore->IsChecked();
+    }
+}
+
+void DIALOG_TEARDROPS::LockOptionsControls(bool state)
+{
+    if (state == true) {
+        if (m_tracksSelected->GetValue() == false) {
+            m_checkClear->Enable(false);
+        }
+        m_checkIgnore->Enable(false);
+        m_choiceStyle->Enable(false);
+    }
+    else {
+        if (m_tracksSelected->GetValue() == true) {
+            m_checkClear->Enable(true);
+        }
+        // The line below is intentionally commented out unless DRC is taken into consideration
+        //m_checkIgnore->Enable(true);
+        m_choiceStyle->Enable(true);
     }
 }

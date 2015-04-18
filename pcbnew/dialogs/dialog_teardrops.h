@@ -51,6 +51,7 @@ private:
     TEARDROPS_SETTINGS *m_settings;
 
     void InitDialogSettings();
+    void LockOptionsControls(bool state);
 };
 
 #endif // DIALOG_TEARDROPS_H

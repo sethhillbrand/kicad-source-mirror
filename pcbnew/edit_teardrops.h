@@ -21,6 +21,17 @@ private:
     void FilterSelection(SELECTION &selection);
     bool AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);
     bool AddToSelected(SELECTION &selection, const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);
+
+    /**
+     * @brief RemoveAll removes all teardrops form board.
+     */
+    void RemoveAll();
+
+    /**
+     * @brief RemoveSelected removes teardrops from selected tracks
+     * @param selection contains a list of track to work on
+     */
+    void RemoveSelected(SELECTION &selection);
     void DrawSegments(TEARDROP &teardrop, TRACK &track);
 };
 

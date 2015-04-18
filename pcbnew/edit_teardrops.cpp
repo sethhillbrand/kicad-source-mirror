@@ -1,6 +1,8 @@
 #include "edit_teardrops.h"
 #include "class_board.h"
 #include "class_module.h"
+#include "ratsnest_data.h"
+#include "view/view.h"
 
 TEARDROPS_EDITOR::TEARDROPS_EDITOR(PCB_EDIT_FRAME *frame, KIGFX::VIEW *view)
 {
@@ -41,7 +43,13 @@ bool TEARDROPS_EDITOR::EditTeardrops(SELECTION &selection, const DIALOG_TEARDROP
         }
     }
     else if (settings.m_mode == DIALOG_TEARDROPS::TEARDROPS_MODE_REMOVE) {
-        // TODO: consider using TRACKS_CLEARNER to remove teardrops
+        if (settings.m_track == DIALOG_TEARDROPS::TEARDROPS_TRACKS_SELECTED) {
+            RemoveSelected(selection);
+        }
+        else if (settings.m_track == DIALOG_TEARDROPS::TEARDROPS_TRACKS_ALL) {
+            RemoveAll();
+        }
+        retVal = true;
     }
     return retVal;
 }
@@ -114,9 +122,57 @@ bool TEARDROPS_EDITOR::AddToSelected(SELECTION &selection, const DIALOG_TEARDROP
     return added;
 }
 
+void TEARDROPS_EDITOR::RemoveAll()
+{
+    TRACK *nextTrack = NULL;
+
+    for (TRACK *track = m_frame->GetBoard()->m_Track.begin(); track != NULL; ) {
+        nextTrack = track->Next();
+        if (track->GetState(FLAG1) == FLAG1) {
+            m_view->Remove(track);
+            m_frame->GetBoard()->Remove(track);
+        }
+        track = nextTrack;
+    }
+    m_frame->GetBoard()->GetRatsnest()->Recalculate();
+}
+
+void TEARDROPS_EDITOR::RemoveSelected(SELECTION &selection)
+{
+    EDA_ITEM *selectedItem = NULL;
+
+    for (size_t i = 0; i < selection.items.GetCount(); i++) {
+        selectedItem = selection.items.GetPickedItem(i);
+        std::vector<KIGFX::VIEW::LAYER_ITEM_PAIR> result;
+        EDA_RECT rect = selectedItem->GetBoundingBox();
+        VECTOR2I vect = VECTOR2I(rect.GetX(), rect.GetY());
+        VECTOR2I sz = VECTOR2I(rect.GetWidth(), rect.GetHeight());
+        BOX2I bbox = BOX2I(vect, sz);
+
+        printf("Bounding box origin: %d, %d\n", bbox.GetX(), bbox.GetY());
+        printf("bounding box dimentions: %d, %d\n", bbox.GetWidth(), bbox.GetHeight());
+
+        m_view->Query(bbox, result);
+        std::vector<KIGFX::VIEW::LAYER_ITEM_PAIR>::iterator iter;
+        BOX2I container;
+        for (iter = result.begin(); iter != result.end(); ++iter) {
+            BOARD_ITEM *item = static_cast<BOARD_ITEM *>(iter->first);
+            if (item->GetState(FLAG1) == FLAG1) {
+            rect = item->GetBoundingBox();
+            vect = VECTOR2I(rect.GetX(), rect.GetY());
+            sz = VECTOR2I(rect.GetWidth(), rect.GetHeight());
+            BOX2I nearBBox = BOX2I(vect, sz);
+            container.Merge(nearBox);
+//                m_view->Remove(item);
+//                m_frame->GetBoard()->Remove(item);
+            }
+        }
+    }
+    m_frame->GetBoard()->GetRatsnest()->Recalculate();
+}
+
 void TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
 {
-    PICKED_ITEMS_LIST undoListPicker;
     ITEM_PICKER picker(NULL, UR_NEW);
 
     std::vector<VECTOR2I> coordinates;
@@ -126,6 +182,7 @@ void TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
     wxPoint prevPoint(coordinates[0].x, coordinates[0].y);
     for (size_t i = 1; i < coordinates.size(); i++) {
         TRACK *track = new TRACK(aTrack);
+//        TRACK *track = static_cast<TRACK *>(aTrack.Clone());
         track->SetWidth(aTrack.GetWidth());
         track->SetLayer(aTrack.GetLayer());
         track->SetNetCode(aTrack.GetNetCode());
@@ -134,6 +191,7 @@ void TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
         track->SetStart(prevPoint);
         track->SetEnd(currentPoint);
         track->ClearFlags();
+        track->SetState(FLAG1, true);
         board->Add(track);
         m_view->Add(track);
         prevPoint = currentPoint;

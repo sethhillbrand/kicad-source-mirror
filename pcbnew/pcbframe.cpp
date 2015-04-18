@@ -744,6 +744,7 @@ void  PCB_EDIT_FRAME::ShowTeardropsEditor( wxCommandEvent& event )
         SELECTION selection = m_toolManager->GetTool<SELECTION_TOOL>()->GetSelection();
         TEARDROPS_EDITOR editor(this, GetGalCanvas()->GetView());
         editor.EditTeardrops(selection, settings);
+        OnModify();
     }
 }
 
