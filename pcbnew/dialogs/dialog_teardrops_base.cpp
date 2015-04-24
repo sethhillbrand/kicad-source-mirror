@@ -86,19 +86,17 @@ DIALOG_TEARDROPS_BASE::DIALOG_TEARDROPS_BASE( wxWindow* parent, wxWindowID id, c
 	
 	m_scopeVias = new wxCheckBox( this, wxID_ANY, wxT("Vias"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_scopeVias->SetValue(true); 
-	sbSizer16->Add( m_scopeVias, 0, wxALL, 5 );
+	sbSizer16->Add( m_scopeVias, 0, 0, 5 );
 	
 	m_scopePads = new wxCheckBox( this, wxID_ANY, wxT("Pads"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_scopePads->Enable( false );
-	m_scopePads->Hide();
-	
-	sbSizer16->Add( m_scopePads, 0, wxALL, 5 );
+	m_scopePads->SetValue(true); 
+	sbSizer16->Add( m_scopePads, 0, 0, 5 );
 	
 	m_scopeTracks = new wxCheckBox( this, wxID_ANY, wxT("Tracks"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_scopeTracks->Enable( false );
 	m_scopeTracks->Hide();
 	
-	sbSizer16->Add( m_scopeTracks, 0, wxALL, 5 );
+	sbSizer16->Add( m_scopeTracks, 0, 0, 5 );
 	
 	m_scopeSizer->Add( sbSizer16, 1, wxEXPAND, 5 );
 	
@@ -131,6 +129,7 @@ DIALOG_TEARDROPS_BASE::DIALOG_TEARDROPS_BASE( wxWindow* parent, wxWindowID id, c
 	m_checkClear->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnClearSelection ), NULL, this );
 	m_choiceStyle->Connect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnStyleChanged ), NULL, this );
 	m_scopeVias->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnScopeVias ), NULL, this );
+	m_scopePads->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnScopePads ), NULL, this );
 }
 
 DIALOG_TEARDROPS_BASE::~DIALOG_TEARDROPS_BASE()
@@ -144,4 +143,5 @@ DIALOG_TEARDROPS_BASE::~DIALOG_TEARDROPS_BASE()
 	m_checkClear->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnClearSelection ), NULL, this );
 	m_choiceStyle->Disconnect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnStyleChanged ), NULL, this );
 	m_scopeVias->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnScopeVias ), NULL, this );
+	m_scopePads->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_TEARDROPS_BASE::OnScopePads ), NULL, this );
 }

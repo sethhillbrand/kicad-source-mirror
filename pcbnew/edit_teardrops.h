@@ -18,7 +18,19 @@ private:
     TEARDROP::TEARDROP_TYPE m_type;
     PICKED_ITEMS_LIST m_undoListPicker;
 
+    /**
+     * @brief FilterSelection filters selected objects and removes all objects except tracks.
+     * @param selection contains the list of currently selected objects
+     */
     void FilterSelection(SELECTION &selection);
+
+    /**
+     * @brief IterateTracks creates teardrop for all tracks connected to \a aObject
+     * @param aObject is a board object a which teardrops should be created. Currently such an object can
+     * be via or circular pad.
+     * @return \a true if at least one teardrop was successfully added and \a false otherwise
+     */
+    bool IterateTracks(const BOARD_CONNECTED_ITEM *aObject);
     bool AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);
     bool AddToSelected(SELECTION &selection, const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);
 
@@ -27,11 +39,6 @@ private:
      */
     void RemoveAll();
 
-    /**
-     * @brief RemoveSelected removes teardrops from selected tracks
-     * @param selection contains a list of track to work on
-     */
-    void RemoveSelected(SELECTION &selection);
     void DrawSegments(TEARDROP &teardrop, TRACK &track);
 };
 

@@ -3,6 +3,7 @@
 #include "class_module.h"
 #include "ratsnest_data.h"
 #include "view/view.h"
+#include "router/pns_utils.h"
 
 TEARDROPS_EDITOR::TEARDROPS_EDITOR(PCB_EDIT_FRAME *frame, KIGFX::VIEW *view)
 {
@@ -43,12 +44,7 @@ bool TEARDROPS_EDITOR::EditTeardrops(SELECTION &selection, const DIALOG_TEARDROP
         }
     }
     else if (settings.m_mode == DIALOG_TEARDROPS::TEARDROPS_MODE_REMOVE) {
-        if (settings.m_track == DIALOG_TEARDROPS::TEARDROPS_TRACKS_SELECTED) {
-            RemoveSelected(selection);
-        }
-        else if (settings.m_track == DIALOG_TEARDROPS::TEARDROPS_TRACKS_ALL) {
-            RemoveAll();
-        }
+        RemoveAll();
         retVal = true;
     }
     return retVal;
@@ -56,25 +52,14 @@ bool TEARDROPS_EDITOR::EditTeardrops(SELECTION &selection, const DIALOG_TEARDROP
 
 bool TEARDROPS_EDITOR::AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings)
 {
-    bool retVal = false;
     bool added = false;
 
     // Iterate through all vias and add teardrops to connected tracks
     if ((settings.m_scope & DIALOG_TEARDROPS::TEARDROPS_SCOPE_VIAS) == DIALOG_TEARDROPS::TEARDROPS_SCOPE_VIAS) {
         for (VIA *via = GetFirstVia(m_frame->GetBoard()->m_Track); via != NULL;
              via = GetFirstVia(via->Next())) {
-            for (size_t i = 0; i < via->m_TracksConnected.size(); i++) {
-                TRACK *track = via->m_TracksConnected[i];
-                STATUS_FLAGS viaPosition = track->IsPointOnEnds(via->GetPosition());
-                if (viaPosition == STARTPOINT || viaPosition == ENDPOINT) {
-                    ENDPOINT_T endpoint = viaPosition == STARTPOINT ? ENDPOINT_START : ENDPOINT_END;
-                    TEARDROP teardrop;
-                    retVal = teardrop.Create(*track, endpoint, m_type);
-                    if (retVal == true) {
-                        DrawSegments(teardrop, *track);
-                        added = true;
-                    }
-                }
+            if (IterateTracks(via) == true) {
+                added = true;
             }
         }
     }
@@ -82,12 +67,19 @@ bool TEARDROPS_EDITOR::AddToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &sett
     // Iterate through all modules and add teardrops to tracks connected to their pads
     if ((settings.m_scope & DIALOG_TEARDROPS::TEARDROPS_SCOPE_PADS) == DIALOG_TEARDROPS::TEARDROPS_SCOPE_PADS) {
         for (MODULE *module = m_frame->GetBoard()->m_Modules.GetFirst(); module != NULL; module = module->Next()) {
-
+           D_PAD *pad = module->Pads();
+           while (pad != NULL) {
+               if ((pad->GetShape() == PAD_CIRCLE) && IterateTracks(pad) == true) {
+                   added = true;
+               }
+               pad = pad->Next();
+           }
         }
     }
 
     if (added == true) {
         m_frame->SaveCopyInUndoList(m_undoListPicker, UR_NEW);
+        m_undoListPicker.ClearItemsList();
     }
     return added;
 }
@@ -118,57 +110,56 @@ bool TEARDROPS_EDITOR::AddToSelected(SELECTION &selection, const DIALOG_TEARDROP
 
     if (added == true) {
         m_frame->SaveCopyInUndoList(m_undoListPicker, UR_NEW);
+        m_undoListPicker.ClearItemsList();
+    }
+    return added;
+}
+
+bool TEARDROPS_EDITOR::IterateTracks(const BOARD_CONNECTED_ITEM *aObject)
+{
+    assert(aObject);
+
+    bool retVal = false;
+    bool added = false;
+
+    for (size_t i = 0; i < aObject->m_TracksConnected.size(); i++) {
+        TRACK *track = aObject->m_TracksConnected[i];
+        STATUS_FLAGS objPosition = track->IsPointOnEnds(aObject->GetPosition());
+        if (objPosition == STARTPOINT || objPosition == ENDPOINT) {
+            ENDPOINT_T endpoint = (objPosition == STARTPOINT ? ENDPOINT_START : ENDPOINT_END);
+            TEARDROP teardrop;
+            retVal = teardrop.Create(*track, endpoint, m_type);
+            if (retVal == true) {
+                DrawSegments(teardrop, *track);
+                added = true;
+            }
+        }
     }
     return added;
 }
 
 void TEARDROPS_EDITOR::RemoveAll()
 {
+    ITEM_PICKER picker(NULL, UR_DELETED);
     TRACK *nextTrack = NULL;
+    bool removed = false;
 
     for (TRACK *track = m_frame->GetBoard()->m_Track.begin(); track != NULL; ) {
         nextTrack = track->Next();
         if (track->GetState(FLAG1) == FLAG1) {
+            picker.SetItem(track);
+            m_undoListPicker.PushItem(picker);
+            removed = true;
             m_view->Remove(track);
             m_frame->GetBoard()->Remove(track);
         }
         track = nextTrack;
     }
     m_frame->GetBoard()->GetRatsnest()->Recalculate();
-}
-
-void TEARDROPS_EDITOR::RemoveSelected(SELECTION &selection)
-{
-    EDA_ITEM *selectedItem = NULL;
-
-    for (size_t i = 0; i < selection.items.GetCount(); i++) {
-        selectedItem = selection.items.GetPickedItem(i);
-        std::vector<KIGFX::VIEW::LAYER_ITEM_PAIR> result;
-        EDA_RECT rect = selectedItem->GetBoundingBox();
-        VECTOR2I vect = VECTOR2I(rect.GetX(), rect.GetY());
-        VECTOR2I sz = VECTOR2I(rect.GetWidth(), rect.GetHeight());
-        BOX2I bbox = BOX2I(vect, sz);
-
-        printf("Bounding box origin: %d, %d\n", bbox.GetX(), bbox.GetY());
-        printf("bounding box dimentions: %d, %d\n", bbox.GetWidth(), bbox.GetHeight());
-
-        m_view->Query(bbox, result);
-        std::vector<KIGFX::VIEW::LAYER_ITEM_PAIR>::iterator iter;
-        BOX2I container;
-        for (iter = result.begin(); iter != result.end(); ++iter) {
-            BOARD_ITEM *item = static_cast<BOARD_ITEM *>(iter->first);
-            if (item->GetState(FLAG1) == FLAG1) {
-            rect = item->GetBoundingBox();
-            vect = VECTOR2I(rect.GetX(), rect.GetY());
-            sz = VECTOR2I(rect.GetWidth(), rect.GetHeight());
-            BOX2I nearBBox = BOX2I(vect, sz);
-            container.Merge(nearBox);
-//                m_view->Remove(item);
-//                m_frame->GetBoard()->Remove(item);
-            }
-        }
+    if (removed == true) {
+        m_frame->SaveCopyInUndoList(m_undoListPicker, UR_DELETED);
+        m_undoListPicker.ClearItemsList();
     }
-    m_frame->GetBoard()->GetRatsnest()->Recalculate();
 }
 
 void TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
@@ -182,7 +173,6 @@ void TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
     wxPoint prevPoint(coordinates[0].x, coordinates[0].y);
     for (size_t i = 1; i < coordinates.size(); i++) {
         TRACK *track = new TRACK(aTrack);
-//        TRACK *track = static_cast<TRACK *>(aTrack.Clone());
         track->SetWidth(aTrack.GetWidth());
         track->SetLayer(aTrack.GetLayer());
         track->SetNetCode(aTrack.GetNetCode());

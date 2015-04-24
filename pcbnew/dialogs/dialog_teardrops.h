@@ -45,6 +45,7 @@ public:
     void OnClearSelection(wxCommandEvent &event);
     void OnIgnoreDrc(wxCommandEvent &event);
     void OnScopeVias(wxCommandEvent &event);
+    void OnScopePads(wxCommandEvent &event);
 
 private:
     PCB_EDIT_FRAME *m_parent;
@@ -52,6 +53,8 @@ private:
 
     void InitDialogSettings();
     void LockOptionsControls(bool state);
+    void LockTracksControls(bool state);
+    void LockScopeControls(bool state);
 };
 
 #endif // DIALOG_TEARDROPS_H

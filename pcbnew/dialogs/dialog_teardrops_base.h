@@ -62,6 +62,7 @@ class DIALOG_TEARDROPS_BASE : public DIALOG_SHIM
 		virtual void OnClearSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnStyleChanged( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnScopeVias( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnScopePads( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:

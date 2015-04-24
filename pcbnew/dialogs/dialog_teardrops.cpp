@@ -44,9 +44,12 @@ void DIALOG_TEARDROPS::InitDialogSettings()
 
 void DIALOG_TEARDROPS::OnModeAdd(wxCommandEvent &event)
 {
+    event.Skip();
     if (m_settings != NULL) {
         m_settings->m_mode = TEARDROPS_MODE_ADD;
         LockOptionsControls(false);
+        LockTracksControls(false);
+        LockScopeControls(false);
     }
 }
 
@@ -56,11 +59,14 @@ void DIALOG_TEARDROPS::OnModeRemove(wxCommandEvent &event)
     if (m_settings != NULL) {
         m_settings->m_mode = TEARDROPS_MODE_REMOVE;
         LockOptionsControls(true);
+        LockTracksControls(true);
+        LockScopeControls(true);
     }
 }
 
 void DIALOG_TEARDROPS::OnTracksAll(wxCommandEvent &event)
 {
+    event.Skip();
     if (m_settings != NULL) {
         m_settings->m_track = TEARDROPS_TRACKS_ALL;
     }
@@ -69,6 +75,7 @@ void DIALOG_TEARDROPS::OnTracksAll(wxCommandEvent &event)
 
 void DIALOG_TEARDROPS::OnTracksSelected(wxCommandEvent &event)
 {
+    event.Skip();
     if (m_settings != NULL)	 {
         m_settings->m_track = TEARDROPS_TRACKS_SELECTED;
     }
@@ -77,6 +84,7 @@ void DIALOG_TEARDROPS::OnTracksSelected(wxCommandEvent &event)
 
 void DIALOG_TEARDROPS::OnScopeVias(wxCommandEvent &event)
 {
+    event.Skip();
     if (m_settings != NULL) {
         if (m_scopeVias->IsChecked()) {
             m_settings->m_scope = static_cast<TEARDROPS_SCOPE>(m_settings->m_scope | TEARDROPS_SCOPE_VIAS);
@@ -87,19 +95,24 @@ void DIALOG_TEARDROPS::OnScopeVias(wxCommandEvent &event)
     }
 }
 
+void DIALOG_TEARDROPS::OnScopePads(wxCommandEvent &event)
+{
+    event.Skip();
+    if (m_settings != NULL) {
+        if (m_scopePads->IsChecked()) {
+            m_settings->m_scope = static_cast<TEARDROPS_SCOPE>(m_settings->m_scope | TEARDROPS_SCOPE_PADS);
+        }
+        else {
+            m_settings->m_scope = static_cast<TEARDROPS_SCOPE>(m_settings->m_scope & (~TEARDROPS_SCOPE_PADS));
+        }
+    }
+}
+
 void DIALOG_TEARDROPS::OnStyleChanged(wxCommandEvent &event)
 {
+    event.Skip();
     if (m_settings != NULL) {
         m_settings->m_type = static_cast<TEARDROPS_TYPE>(m_choiceStyle->GetSelection());
-//        if (selection == TEARDROPS_TYPE_STRAIGHT) {
-//            m_settings->m_type= TEARDROPS_TYPE_STRAIGHT;
-//        }
-//        else if (selection == TEARDROPS_TYPE_CURVED) {
-//            m_settings->m_type = TEARDROPS_TYPE_CURVED;
-//        }
-//        else {
-//            m_settings->m_type = TEARDROPS_TYPE_NONE;
-//        }
     }
 }
 
@@ -135,5 +148,29 @@ void DIALOG_TEARDROPS::LockOptionsControls(bool state)
         // The line below is intentionally commented out unless DRC is taken into consideration
         //m_checkIgnore->Enable(true);
         m_choiceStyle->Enable(true);
+    }
+}
+
+void DIALOG_TEARDROPS::LockTracksControls(bool state)
+{
+    if (state == true) {
+        m_tracksAll->Enable(false);
+        m_tracksSelected->Enable(false);
+    }
+    else {
+        m_tracksAll->Enable(true);
+        m_tracksSelected->Enable(true);
+    }
+}
+
+void DIALOG_TEARDROPS::LockScopeControls(bool state)
+{
+    if (state == true) {
+        m_scopePads->Enable(false);
+        m_scopeVias->Enable(false);
+    }
+    else {
+        m_scopePads->Enable(true);
+        m_scopeVias->Enable(true);
     }
 }

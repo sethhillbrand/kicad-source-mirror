@@ -62,7 +62,7 @@ bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, 
         endPoint = aTrack.GetEnd();
     }
     else {
-        // The via is too far from any ends or the track is too short
+        // The via is too far from any end or the track is too short
         return false;
     }
 
@@ -80,7 +80,7 @@ bool TEARDROP::CurvedSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR
 
     // Check that the track is not too short
     double segOutsideVia = aTrack.GetLength() - (aVia.GetWidth() / 2);
-    double minLength = (90 * aVia.GetWidth()) / 100;
+    double minLength = (90 * aVia.GetWidth() / 2) / 100;
     if (segOutsideVia < minLength) {
         return false;
     }
@@ -188,7 +188,6 @@ BOARD_CONNECTED_ITEM* TEARDROP::GetObjectOnEnd(TRACK &aTrack, ENDPOINT_T endPoin
             bool hitTest = (*iter)->HitTest(trackPoint);
             if (shape == PAD_CIRCLE && hitTest == true) {
                 item = *iter;
-                printf("found circle pad\n");
             }
         }
     }
