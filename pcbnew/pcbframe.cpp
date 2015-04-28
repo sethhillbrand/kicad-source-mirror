@@ -62,11 +62,10 @@
 #include <class_track.h>
 #include <class_board.h>
 #include <class_module.h>
-//#include <class_teardrop.h>
 #include <worksheet_viewitem.h>
 #include <ratsnest_data.h>
 #include <ratsnest_viewitem.h>
-#include <edit_teardrops.h>
+#include <tools/edit_teardrops.h>
 
 #include <tool/tool_manager.h>
 #include <tool/tool_dispatcher.h>
@@ -741,9 +740,7 @@ void  PCB_EDIT_FRAME::ShowTeardropsEditor( wxCommandEvent& event )
 
     int retVal = dlg_teardrops->ShowModal();
     if (retVal == wxID_OK) {
-        SELECTION selection = m_toolManager->GetTool<SELECTION_TOOL>()->GetSelection();
-        TEARDROPS_EDITOR editor(this, GetGalCanvas()->GetView());
-        editor.EditTeardrops(selection, settings);
+        m_toolManager->GetTool<TEARDROPS_EDITOR>()->EditTeardrops(settings);
         OnModify();
     }
 }

@@ -291,6 +291,7 @@ set( PCBNEW_CLASS_SRCS
     tools/bright_box.cpp
     tools/edit_points.cpp
     tools/edit_constraints.cpp
+    tools/edit_teardrops.cpp
     tools/point_editor.cpp
     tools/drawing_tool.cpp
     tools/edit_tool.cpp

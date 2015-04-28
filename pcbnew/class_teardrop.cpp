@@ -80,7 +80,7 @@ bool TEARDROP::CurvedSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR
 
     // Check that the track is not too short
     double segOutsideVia = aTrack.GetLength() - (aVia.GetWidth() / 2);
-    double minLength = (90 * aVia.GetWidth() / 2) / 100;
+    double minLength = (150 * aVia.GetWidth() / 2) / 100;
     if (segOutsideVia < minLength) {
         return false;
     }

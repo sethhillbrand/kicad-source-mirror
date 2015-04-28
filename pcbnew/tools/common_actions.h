@@ -316,6 +316,9 @@ public:
     static TOOL_ACTION copySettingsToPads;
     static TOOL_ACTION globalEditPads;
 
+    /// Activate teardrops editor
+    static TOOL_ACTION teardropsEditor;
+
 
     /**
      * Function TranslateLegacyId()

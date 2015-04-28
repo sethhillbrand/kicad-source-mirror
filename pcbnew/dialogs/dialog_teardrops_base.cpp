@@ -88,7 +88,7 @@ DIALOG_TEARDROPS_BASE::DIALOG_TEARDROPS_BASE( wxWindow* parent, wxWindowID id, c
 	m_scopeVias->SetValue(true); 
 	sbSizer16->Add( m_scopeVias, 0, 0, 5 );
 	
-	m_scopePads = new wxCheckBox( this, wxID_ANY, wxT("Pads"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_scopePads = new wxCheckBox( this, wxID_ANY, wxT("Circular pads"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_scopePads->SetValue(true); 
 	sbSizer16->Add( m_scopePads, 0, 0, 5 );
 	

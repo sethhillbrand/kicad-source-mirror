@@ -3,12 +3,22 @@
 #include "class_module.h"
 #include "ratsnest_data.h"
 #include "view/view.h"
+#include "common_actions.h"
 #include "router/pns_utils.h"
 
-TEARDROPS_EDITOR::TEARDROPS_EDITOR(PCB_EDIT_FRAME *frame, KIGFX::VIEW *view)
+TEARDROPS_EDITOR::TEARDROPS_EDITOR() :
+    TOOL_BASE(BATCH, TOOL_MANAGER::MakeToolId("pcbnew.TeardropsEditor"), "pcbnew.TeardropsEditor")
 {
-    m_frame = frame;
-    m_view = view;
+}
+
+TEARDROPS_EDITOR::~TEARDROPS_EDITOR()
+{
+}
+
+void TEARDROPS_EDITOR::Reset(RESET_REASON aReason)
+{
+    m_frame = getEditFrame<PCB_EDIT_FRAME>();
+    m_view = getView();
 }
 
 void TEARDROPS_EDITOR::FilterSelection(SELECTION &selection)
@@ -23,9 +33,10 @@ void TEARDROPS_EDITOR::FilterSelection(SELECTION &selection)
     }
 }
 
-bool TEARDROPS_EDITOR::EditTeardrops(SELECTION &selection, const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings)
+bool TEARDROPS_EDITOR::EditTeardrops(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings)
 {
     bool retVal = false;
+    SELECTION selection = GetManager()->GetTool<SELECTION_TOOL>()->GetSelection();
 
     switch (settings.m_type) {
     case DIALOG_TEARDROPS::TEARDROPS_TYPE_CURVED:
@@ -103,9 +114,9 @@ bool TEARDROPS_EDITOR::AddToSelected(SELECTION &selection, const DIALOG_TEARDROP
             DrawSegments(teardropStart, *track);
             added = true;
         }
-        if (settings.m_clearSelection == true) {
-            track->ClearSelected();
-        }
+    }
+    if (settings.m_clearSelection == true) {
+        GetManager()->RunAction(COMMON_ACTIONS::selectionClear, true);
     }
 
     if (added == true) {

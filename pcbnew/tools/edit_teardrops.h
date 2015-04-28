@@ -5,12 +5,17 @@
 #include "tools/selection_tool.h"
 #include "dialogs/dialog_teardrops.h"
 #include "class_teardrop.h"
+#include "import_export.h"
 
-class TEARDROPS_EDITOR
+class APIEXPORT TEARDROPS_EDITOR : public TOOL_BASE
 {
 public:
-    TEARDROPS_EDITOR(PCB_EDIT_FRAME *frame, KIGFX::VIEW *view);
-    bool EditTeardrops(SELECTION &selection, const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);
+    TEARDROPS_EDITOR();
+    ~TEARDROPS_EDITOR();
+    bool EditTeardrops(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS &settings);
+
+    /// @copydoc TOOL_INTERACTIVE::Reset
+    void Reset(RESET_REASON aReason);
 
 private:
     PCB_EDIT_FRAME *m_frame;

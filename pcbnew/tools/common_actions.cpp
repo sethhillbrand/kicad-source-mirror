@@ -541,6 +541,10 @@ TOOL_ACTION COMMON_ACTIONS::routerInlineDrag( "pcbnew.InteractiveRouter.InlineDr
         AS_GLOBAL, 0,
         "", "" );
 
+TOOL_ACTION COMMON_ACTIONS::teardropsEditor( "pcbnew.TeardropsEditor.EditTeardrops",
+        AS_GLOBAL, 0,
+        _( "Run teardrops editor" ), _( "Run teardrops editor" ), NULL, AF_ACTIVATE);
+
 // Point editor
 TOOL_ACTION COMMON_ACTIONS::pointEditorUpdate( "pcbnew.PointEditor.update",
         AS_GLOBAL, 0,
