@@ -145,8 +145,7 @@ void DIALOG_TEARDROPS::LockOptionsControls(bool state)
         if (m_tracksSelected->GetValue() == true) {
             m_checkClear->Enable(true);
         }
-        // The line below is intentionally commented out unless DRC is taken into consideration
-        //m_checkIgnore->Enable(true);
+        m_checkIgnore->Enable(true);
         m_choiceStyle->Enable(true);
     }
 }

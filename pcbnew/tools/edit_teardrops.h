@@ -18,10 +18,17 @@ public:
     void Reset(RESET_REASON aReason);
 
 private:
+    typedef enum {
+        DRC_COMPLY,
+        DRC_IGNORE,
+        DRC_ADJUST
+    } DRC_STRATEGY;
+
     PCB_EDIT_FRAME *m_frame;
     KIGFX::VIEW *m_view;
     TEARDROP::TEARDROP_TYPE m_type;
     PICKED_ITEMS_LIST m_undoListPicker;
+    DRC_STRATEGY m_strategy;
 
     /**
      * @brief FilterSelection filters selected objects and removes all objects except tracks.
@@ -44,7 +51,7 @@ private:
      */
     void RemoveAll();
 
-    void DrawSegments(TEARDROP &teardrop, TRACK &track);
+    bool DrawSegments(TEARDROP &teardrop, TRACK &track);
 };
 
 #endif // TEARDROPS_EDITOR_H

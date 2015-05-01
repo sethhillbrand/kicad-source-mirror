@@ -48,9 +48,6 @@ DIALOG_TEARDROPS_BASE::DIALOG_TEARDROPS_BASE( wxWindow* parent, wxWindowID id, c
 	m_optionsSizer = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, wxT("Options") ), wxVERTICAL );
 	
 	m_checkIgnore = new wxCheckBox( this, wxID_ANY, wxT("Ignore DRC"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_checkIgnore->SetValue(true); 
-	m_checkIgnore->Enable( false );
-	
 	m_optionsSizer->Add( m_checkIgnore, 0, 0, 5 );
 	
 	m_checkClear = new wxCheckBox( this, wxID_ANY, wxT("Clear selection"), wxDefaultPosition, wxDefaultSize, 0 );

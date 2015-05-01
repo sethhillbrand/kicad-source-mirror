@@ -5,10 +5,15 @@
 #include "view/view.h"
 #include "common_actions.h"
 #include "router/pns_utils.h"
+#include "router/pns_router.h"
 
 TEARDROPS_EDITOR::TEARDROPS_EDITOR() :
     TOOL_BASE(BATCH, TOOL_MANAGER::MakeToolId("pcbnew.TeardropsEditor"), "pcbnew.TeardropsEditor")
 {
+    m_frame = NULL;
+    m_view = NULL;
+    m_type = TEARDROP::TEARDROP_STRAIGHT;
+    m_strategy = DRC_COMPLY;
 }
 
 TEARDROPS_EDITOR::~TEARDROPS_EDITOR()
@@ -19,6 +24,8 @@ void TEARDROPS_EDITOR::Reset(RESET_REASON aReason)
 {
     m_frame = getEditFrame<PCB_EDIT_FRAME>();
     m_view = getView();
+    m_type = TEARDROP::TEARDROP_STRAIGHT;
+    m_strategy = DRC_COMPLY;
 }
 
 void TEARDROPS_EDITOR::FilterSelection(SELECTION &selection)
@@ -45,6 +52,14 @@ bool TEARDROPS_EDITOR::EditTeardrops(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS 
     default:
         m_type = TEARDROP::TEARDROP_STRAIGHT;
     }
+
+    if (settings.m_ignoreDrc == true) {
+        m_strategy = DRC_IGNORE;
+    }
+    else {
+        m_strategy = DRC_COMPLY;
+    }
+
     FilterSelection(selection);
     if (settings.m_mode == DIALOG_TEARDROPS::TEARDROPS_MODE_ADD) {
         if (settings.m_track == DIALOG_TEARDROPS::TEARDROPS_TRACKS_ALL) {
@@ -99,27 +114,32 @@ bool TEARDROPS_EDITOR::AddToSelected(SELECTION &selection, const DIALOG_TEARDROP
 {
     bool retVal = false;
     bool added = false;
+    int addedNum = 0;
 
     for (size_t i = 0; i < selection.items.GetCount(); i++) {
         TRACK *track = static_cast<TRACK *>(selection.items.GetPickedItem(i));
         TEARDROP teardropEnd;
         retVal = teardropEnd.Create(*track, ENDPOINT_END, m_type);
         if (retVal == true) {
-            DrawSegments(teardropEnd, *track);
-            added = true;
+            added = DrawSegments(teardropEnd, *track);
+            if (added == true) {
+                addedNum++;
+            }
         }
         TEARDROP teardropStart;
         retVal = teardropStart.Create(*track, ENDPOINT_START, m_type);
         if (retVal == true) {
-            DrawSegments(teardropStart, *track);
-            added = true;
+            added = DrawSegments(teardropStart, *track);
+            if (added == true) {
+                addedNum++;
+            }
         }
     }
     if (settings.m_clearSelection == true) {
         GetManager()->RunAction(COMMON_ACTIONS::selectionClear, true);
     }
 
-    if (added == true) {
+    if (addedNum > 0) {
         m_frame->SaveCopyInUndoList(m_undoListPicker, UR_NEW);
         m_undoListPicker.ClearItemsList();
     }
@@ -131,7 +151,7 @@ bool TEARDROPS_EDITOR::IterateTracks(const BOARD_CONNECTED_ITEM *aObject)
     assert(aObject);
 
     bool retVal = false;
-    bool added = false;
+    bool flagAdded = false;
 
     for (size_t i = 0; i < aObject->m_TracksConnected.size(); i++) {
         TRACK *track = aObject->m_TracksConnected[i];
@@ -141,12 +161,13 @@ bool TEARDROPS_EDITOR::IterateTracks(const BOARD_CONNECTED_ITEM *aObject)
             TEARDROP teardrop;
             retVal = teardrop.Create(*track, endpoint, m_type);
             if (retVal == true) {
-                DrawSegments(teardrop, *track);
-                added = true;
+                if (DrawSegments(teardrop, *track) == true && flagAdded == false) {
+                    flagAdded = true;
+                }
             }
         }
     }
-    return added;
+    return flagAdded;
 }
 
 void TEARDROPS_EDITOR::RemoveAll()
@@ -173,30 +194,64 @@ void TEARDROPS_EDITOR::RemoveAll()
     }
 }
 
-void TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
+bool TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
 {
+    bool tracksAdded = true;
+    bool proceedBuild = true;
     ITEM_PICKER picker(NULL, UR_NEW);
-
+    PNS_NODE *world = PNS_ROUTER::GetInstance()->GetWorld();
+    BOARD *board = aTrack.GetBoard();
+    std::vector<TRACK *> tracks;
     std::vector<VECTOR2I> coordinates;
     teardrop.GetCoordinates(coordinates);
-    BOARD *board = aTrack.GetBoard();
     wxPoint currentPoint(0, 0);
     wxPoint prevPoint(coordinates[0].x, coordinates[0].y);
+
     for (size_t i = 1; i < coordinates.size(); i++) {
-        TRACK *track = new TRACK(aTrack);
-        track->SetWidth(aTrack.GetWidth());
-        track->SetLayer(aTrack.GetLayer());
-        track->SetNetCode(aTrack.GetNetCode());
-        currentPoint.x = coordinates[i].x;
-        currentPoint.y = coordinates[i].y;
-        track->SetStart(prevPoint);
-        track->SetEnd(currentPoint);
-        track->ClearFlags();
-        track->SetState(FLAG1, true);
-        board->Add(track);
-        m_view->Add(track);
+        if (m_strategy != DRC_IGNORE) {
+            PNS_SEGMENT segment(SEG(coordinates[i - 1], coordinates[i]), aTrack.GetNetCode());
+            segment.SetWidth(aTrack.GetWidth());
+            segment.SetLayers(PNS_LAYERSET(aTrack.GetLayer()));
+            segment.SetParent(&aTrack);
+            PNS_NODE::OBSTACLES obstacles;
+            if (world->QueryColliding(&segment, obstacles, PNS_ITEM::ANY, 1) > 0) {
+                // DRC violation found, the segment of a teadrop can not be place
+                tracksAdded = false;
+                proceedBuild = false;
+                break;
+            }
+        }
+        if (proceedBuild == true) {
+            TRACK *track = new TRACK(aTrack);
+            track->SetWidth(aTrack.GetWidth());
+            track->SetLayer(aTrack.GetLayer());
+            track->SetNetCode(aTrack.GetNetCode());
+            currentPoint = wxPoint(coordinates[i].x, coordinates[i].y);
+            track->SetStart(prevPoint);
+            track->SetEnd(currentPoint);
+            track->ClearFlags();
+            track->SetState(FLAG1, true);
+            tracks.push_back(track);
+            prevPoint = currentPoint;
+            picker.SetItem(track);
+            m_undoListPicker.PushItem(picker);
+        }
         prevPoint = currentPoint;
-        picker.SetItem(track);
-        m_undoListPicker.PushItem(picker);
     }
+    if (tracksAdded == true) {
+        BOOST_FOREACH(TRACK *item, tracks) {
+            board->Add(item);
+            m_view->Add(item);
+        }
+    }
+    else {
+        // The teardrop can not be created thus delete all allocated tracks and
+        // remove them from undo list
+        BOOST_FOREACH(TRACK *item, tracks) {
+            m_undoListPicker.PopItem();
+            delete item;
+        }
+    }
+
+    return tracksAdded;
 }
