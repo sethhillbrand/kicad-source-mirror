@@ -26,6 +26,7 @@
 #define CLASS_TEARDROP_H
 
 #include "class_track.h"
+#include "geometry/seg.h"
 
 class TEARDROP
 {
@@ -62,6 +63,7 @@ private:
     ///> \a m_upperSegment and \a m_lowerSegment contain coordinates of segments composing a teardrop
     std::vector<VECTOR2I> m_upperSegment;
     std::vector<VECTOR2I> m_lowerSegment;
+    std::vector<VECTOR2I> vect;
 
     /**
      * @brief Function \a CurvedSegments computes several points on deltoid curve and moves
@@ -100,6 +102,7 @@ private:
     bool SetVector(TRACK &aTrack, const VIA &aVia, VECTOR2I &startPoint, VECTOR2I &endPoint);
 
     BOARD_CONNECTED_ITEM* GetObjectOnEnd(TRACK &aTrack, ENDPOINT_T endPoint);
+    void SplitSegment(const SEG &segment, int splits, std::vector<VECTOR2I> &points);
 };
 
 #endif // CLASS_TEARDROP_H

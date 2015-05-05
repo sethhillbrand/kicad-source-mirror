@@ -2,6 +2,8 @@
 #include "class_board.h"
 #include "class_board_item.h"
 #include "class_undoredo_container.h"
+#include "geometry/seg.h"
+#include "router/pns_utils.h"
 
 TEARDROP::TEARDROP()
 {
@@ -45,8 +47,9 @@ bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = T
 
 void TEARDROP::GetCoordinates(std::vector<VECTOR2I> &points)
 {
-    points.insert(points.end(), m_upperSegment.begin(), m_upperSegment.end());
-    points.insert(points.end(), m_lowerSegment.begin(), m_lowerSegment.end());
+//    points.insert(points.end(), m_upperSegment.begin(), m_upperSegment.end());
+//    points.insert(points.end(), m_lowerSegment.begin(), m_lowerSegment.end());
+    points = vect;
 }
 
 bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, VECTOR2I &endPoint)
@@ -153,8 +156,74 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
 
     upperSegment.push_back(linePoint);
     upperSegment.push_back(upperPoint);
-    lowerSegment.push_back(lowerPoint);
-    lowerSegment.push_back(linePoint);
+
+    // Calculate the number of segments needed to fill the area inside the teardrop
+    std::vector<VECTOR2I> splitPoints;
+    int vertexNum = 1;
+    if (aVia.GetWidth() / 2 > 2 * aTrack.GetWidth()) {
+        // First, calculate the intersection point of the circle and one hand of the teardrop
+        r = aVia.GetWidth() / 2;
+        a = pow((upperPoint.x - startPoint.x), 2) + pow((upperPoint.y - startPoint.y), 2);
+        b = 2 * (double)(upperPoint.x - startPoint.x) * (double)(startPoint.x - viaCenter.x) + 2 * (double)(upperPoint.y - startPoint.y) * (double)(startPoint.y - viaCenter.y);
+        c = pow((startPoint.x - viaCenter.x), 2) + pow((startPoint.y - viaCenter.y), 2) - pow(r, 2);
+        t = 2 * c / (-b + sqrt(b * b - 4 * a * c));
+        x = (upperPoint.x - startPoint.x) * t + startPoint.x;
+        y = (upperPoint.y - startPoint.y) * t + startPoint.y;
+        VECTOR2I intersectionPoint((int)x, (int)y);
+        DrawDebugPoint(intersectionPoint, 5);
+
+        // Second, calculate the distance between the track given and the intersection point
+        SEG trackSegment(aTrack.GetStart().x, aTrack.GetStart().y, aTrack.GetEnd().x, aTrack.GetEnd().y);
+        int dist = trackSegment.LineDistance(intersectionPoint);
+        int numSegments = 2 * dist / aTrack.GetWidth();
+
+        // Third, subdivide radius of the via and build additional segments
+        SEG segRadius = SEG(upperPoint, lowerPoint);
+//        SEG segRadius = SEG(upperPoint, viaCenter);
+        SplitSegment(segRadius, numSegments, splitPoints);
+    }
+
+    std::list<VECTOR2I> pts;
+    pts.push_back(upperPoint);
+    for (size_t i = 0; i < splitPoints.size(); i++) {
+        pts.push_back(splitPoints[i]);
+    }
+    pts.push_back(lowerPoint);
+
+    vertexNum = 0;
+    std::list<VECTOR2I>::iterator iter = pts.begin();
+    while ( iter != pts.end() ) {
+        switch (vertexNum) {
+        case 0:
+            vect.push_back(linePoint);
+            vertexNum++;
+            break;
+        case 1:
+            vect.push_back(*iter);
+            vertexNum++;
+            iter++;
+            break;
+        case 2:
+            vect.push_back(*iter);
+            vertexNum = 0;
+            iter++;
+            break;
+        default:break;
+        }
+    }
+    if (vertexNum == 0) {
+        vect.push_back(linePoint);
+    }
+    else if (vertexNum == 2) {
+        vect.push_back(vect[vect.size() - 3]);
+        vect.push_back(linePoint);
+    }
+
+    for (size_t i = 0; i < vect.size(); i++) {
+        printf("%d, %d\n", vect[i].x, vect[i].y);
+    }
+//    lowerSegment.push_back(lowerPoint);
+//    lowerSegment.push_back(linePoint);
 
     return true;
 }
@@ -193,4 +262,22 @@ BOARD_CONNECTED_ITEM* TEARDROP::GetObjectOnEnd(TRACK &aTrack, ENDPOINT_T endPoin
     }
 
     return item;
+}
+
+void TEARDROP::SplitSegment(const SEG &segment, int splits, std::vector<VECTOR2I> &points)
+{
+    int dX = abs((segment.A.x - segment.B.x) / splits);
+    int dY = abs((segment.A.y - segment.B.y) / splits);
+    if (segment.A.x > segment.B.x) {
+        dX = -dX;
+    }
+    if (segment.A.y > segment.B.y) {
+        dY = -dY;
+    }
+    VECTOR2I delta(dX, dY);
+    points.push_back(segment.A + delta);
+    // The last point is excluded as it will coinside with already built tracks
+    for (int i = 1; i < splits - 1; i++) {
+        points.push_back(points.back() + delta);
+    }
 }
