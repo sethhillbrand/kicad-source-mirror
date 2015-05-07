@@ -3,6 +3,7 @@
 #include "class_board_item.h"
 #include "class_undoredo_container.h"
 #include "geometry/seg.h"
+#include "geometry/shape_circle.h"
 #include "router/pns_utils.h"
 
 TEARDROP::TEARDROP()
@@ -36,20 +37,13 @@ bool TEARDROP::Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type = T
     }
 
     if (type == TEARDROP_STRAIGHT) {
-        result = StraightSegments(aTrack, *aVia, m_upperSegment, m_lowerSegment, 100);
+        result = StraightSegments(aTrack, *aVia, 100);
     }
     else if (type == TEARDROP_CURVED) {
-        result = CurvedSegments(aTrack, *aVia, m_upperSegment, m_lowerSegment);
+        result = CurvedSegments(aTrack, *aVia);
     }
 
     return result;
-}
-
-void TEARDROP::GetCoordinates(std::vector<VECTOR2I> &points)
-{
-//    points.insert(points.end(), m_upperSegment.begin(), m_upperSegment.end());
-//    points.insert(points.end(), m_lowerSegment.begin(), m_lowerSegment.end());
-    points = vect;
 }
 
 bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, VECTOR2I &endPoint)
@@ -72,10 +66,12 @@ bool TEARDROP::SetVector(TRACK &aTrack, const VIA & aVia, VECTOR2I &startPoint, 
     return true;
 }
 
-bool TEARDROP::CurvedSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR2I> &upperSegment, std::vector<VECTOR2I> &lowerSegment)
+bool TEARDROP::CurvedSegments(TRACK &aTrack, const VIA &aVia)
 {
     VECTOR2I startPoint(0, 0);
     VECTOR2I endPoint(0, 0);
+    std::vector<VECTOR2I> upperSegment;
+    std::vector<VECTOR2I> lowerSegment;
 
     if ( !SetVector(aTrack, aVia, startPoint, endPoint) ) {
         return false;
@@ -90,29 +86,76 @@ bool TEARDROP::CurvedSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR
 
     VECTOR2I point(0, 0);
     VECTOR2I viaCenter(aVia.GetPosition().x, aVia.GetPosition().y);
-    double coeff = M_PI / 180.0;
+    VECTOR2I apertureUpper(0, 0);
+    VECTOR2I apertureLower(0, 0);
     double radius = (aVia.GetWidth() / 2) - (aTrack.GetWidth() / 2);
     double rotationAngle = VECTOR2I(startPoint - endPoint).Angle();
-    // Calculate segments of deltoid
+    // Calculate the segments of deltoid composing the outline of a teardrop
     for ( int i = 10; i <= 60; i = i + 10 ) {
-        point.x = 2 * radius * cos(coeff * i) + radius * cos(2 * coeff * i);
-        point.y = 2 * radius * sin(coeff * i) - radius * sin(2 * coeff * i);
+        PointOnCurve(i, radius, point);
         point = point.Rotate(rotationAngle);
         point += viaCenter;
-        upperSegment.push_back(point);
+        m_coordinates.push_back(point);
+        if (i == 50) {
+            apertureUpper = point;
+        }
     }
     for ( int i = 300; i <= 350; i = i + 10 ) {
-        point.x = 2 * radius * cos(coeff * i) + radius * cos(2 * coeff * i);
-        point.y = 2 * radius * sin(coeff * i) - radius * sin(2 * coeff * i);
+        PointOnCurve(i, radius, point);
         point = point.Rotate(rotationAngle);
         point += viaCenter;
-        lowerSegment.push_back(point);
+        m_coordinates.push_back(point);
+        if (i == 340) {
+            apertureLower = point;
+        }
+    }
+
+    // Calculate the number of segments needed to fill the area inside the teardrop
+    if (aVia.GetWidth() / 2 > 2 * aTrack.GetWidth()) {
+        // First, calculate the distance between two points on both sides of the track and
+        // number of iterations required to fill the zone
+        SEG aperture(apertureUpper, apertureLower);
+        int numSegments = aperture.Length() / aTrack.GetWidth();
+
+        int delta = radius / numSegments;
+        for (int iteration = 0; iteration < numSegments; iteration++) {
+            radius = radius - delta;
+            for ( int i = 10; i <= 60; i = i + 10 ) {
+                PointOnCurve(i, radius, point);
+                point = point.Rotate(rotationAngle);
+                point += viaCenter;
+                if (i == 10) {
+                    int distance = SEG(viaCenter, point).Length();
+                    if (distance < aVia.GetWidth() / 2) {
+                        break;
+                    }
+                }
+                m_coordinates.push_back(point);
+            }
+            lowerSegment.clear();
+            for ( int i = 350; i >= 300; i = i - 10 ) {
+                PointOnCurve(i, radius, point);
+                point = point.Rotate(rotationAngle);
+                point += viaCenter;
+                if (i == 350) {
+                    int distance = SEG(viaCenter, point).Length();
+                    if (distance < aVia.GetWidth() / 2) {
+                        break;
+                    }
+                }
+                lowerSegment.push_back(point);
+            }
+            // Revert coordinates order
+            for (std::vector<VECTOR2I>::reverse_iterator iter = lowerSegment.rbegin(); iter != lowerSegment.rend(); ++iter) {
+                m_coordinates.push_back(*iter);
+            }
+        }
     }
 
     return true;
 }
 
-bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR2I> &upperSegment, std::vector<VECTOR2I> &lowerSegment, int distance = 100)
+bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, int distance = 100)
 {
     VECTOR2I startPoint(0, 0);
     VECTOR2I endPoint(0, 0);
@@ -154,12 +197,8 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
     upperPoint += viaCenter;
     lowerPoint += viaCenter;
 
-    upperSegment.push_back(linePoint);
-    upperSegment.push_back(upperPoint);
-
     // Calculate the number of segments needed to fill the area inside the teardrop
     std::vector<VECTOR2I> splitPoints;
-    int vertexNum = 1;
     if (aVia.GetWidth() / 2 > 2 * aTrack.GetWidth()) {
         // First, calculate the intersection point of the circle and one hand of the teardrop
         r = aVia.GetWidth() / 2;
@@ -170,60 +209,54 @@ bool TEARDROP::StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECT
         x = (upperPoint.x - startPoint.x) * t + startPoint.x;
         y = (upperPoint.y - startPoint.y) * t + startPoint.y;
         VECTOR2I intersectionPoint((int)x, (int)y);
-        DrawDebugPoint(intersectionPoint, 5);
 
-        // Second, calculate the distance between the track given and the intersection point
+        // Second, calculate the distance between the given track and the intersection point
         SEG trackSegment(aTrack.GetStart().x, aTrack.GetStart().y, aTrack.GetEnd().x, aTrack.GetEnd().y);
         int dist = trackSegment.LineDistance(intersectionPoint);
         int numSegments = 2 * dist / aTrack.GetWidth();
 
-        // Third, subdivide radius of the via and build additional segments
-        SEG segRadius = SEG(upperPoint, lowerPoint);
-//        SEG segRadius = SEG(upperPoint, viaCenter);
-        SplitSegment(segRadius, numSegments, splitPoints);
+        // Third, subdivide the diameter of the via and build additional segments
+        SEG segDiameter = SEG(upperPoint, lowerPoint);
+        SplitSegment(segDiameter, numSegments, splitPoints);
     }
 
-    std::list<VECTOR2I> pts;
-    pts.push_back(upperPoint);
+    std::list<VECTOR2I> outlinePoints;
+    outlinePoints.push_back(upperPoint);
     for (size_t i = 0; i < splitPoints.size(); i++) {
-        pts.push_back(splitPoints[i]);
+        outlinePoints.push_back(splitPoints[i]);
     }
-    pts.push_back(lowerPoint);
+    outlinePoints.push_back(lowerPoint);
 
-    vertexNum = 0;
-    std::list<VECTOR2I>::iterator iter = pts.begin();
-    while ( iter != pts.end() ) {
+    // Biuld triangles filling the teardrop
+    int vertexNum = 0;
+    std::list<VECTOR2I>::iterator iter = outlinePoints.begin();
+    while ( iter != outlinePoints.end() ) {
         switch (vertexNum) {
         case 0:
-            vect.push_back(linePoint);
+            m_coordinates.push_back(linePoint);
             vertexNum++;
             break;
         case 1:
-            vect.push_back(*iter);
+            m_coordinates.push_back(*iter);
             vertexNum++;
             iter++;
             break;
         case 2:
-            vect.push_back(*iter);
+            m_coordinates.push_back(*iter);
             vertexNum = 0;
             iter++;
             break;
         default:break;
         }
     }
+    // Append additional vertexies in order to finish last triangle
     if (vertexNum == 0) {
-        vect.push_back(linePoint);
+        m_coordinates.push_back(linePoint);
     }
     else if (vertexNum == 2) {
-        vect.push_back(vect[vect.size() - 3]);
-        vect.push_back(linePoint);
+        m_coordinates.push_back(m_coordinates[m_coordinates.size() - 3]);
+        m_coordinates.push_back(linePoint);
     }
-
-    for (size_t i = 0; i < vect.size(); i++) {
-        printf("%d, %d\n", vect[i].x, vect[i].y);
-    }
-//    lowerSegment.push_back(lowerPoint);
-//    lowerSegment.push_back(linePoint);
 
     return true;
 }

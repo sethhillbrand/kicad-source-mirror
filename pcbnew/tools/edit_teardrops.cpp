@@ -204,6 +204,9 @@ bool TEARDROPS_EDITOR::DrawSegments(TEARDROP &teardrop, TRACK &aTrack)
     std::vector<TRACK *> tracks;
     std::vector<VECTOR2I> coordinates;
     teardrop.GetCoordinates(coordinates);
+
+    assert(coordinates.size() != 0);
+
     wxPoint currentPoint(0, 0);
     wxPoint prevPoint(coordinates[0].x, coordinates[0].y);
 

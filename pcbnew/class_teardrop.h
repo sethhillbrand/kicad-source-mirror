@@ -55,7 +55,7 @@ public:
      */
     bool Create(TRACK &aTrack, ENDPOINT_T endPoint, TEARDROP_TYPE type);
 
-    void GetCoordinates(std::vector<VECTOR2I> &points);
+    void GetCoordinates(std::vector<VECTOR2I> &points) const {points = m_coordinates;}
 
 private:
     ///> Contains the type of teardrop
@@ -63,7 +63,7 @@ private:
     ///> \a m_upperSegment and \a m_lowerSegment contain coordinates of segments composing a teardrop
     std::vector<VECTOR2I> m_upperSegment;
     std::vector<VECTOR2I> m_lowerSegment;
-    std::vector<VECTOR2I> vect;
+    std::vector<VECTOR2I> m_coordinates;
 
     /**
      * @brief Function \a CurvedSegments computes several points on deltoid curve and moves
@@ -73,11 +73,9 @@ private:
      * See deltiod description and its parametric equations on [wiki page](http://en.wikipedia.org/wiki/Deltoid_curve).
      * @param [in] aTrack defines a vector along which the curved segments should be built
      * @param [in] aVia used as the center of coordinates
-     * @param [out] upperSegment vector contains the coordinates of computed segments
-     * @param [out] lowerSegment vector contains the coordinates of mirrored segments
      * @return \a true in case the segments were successfully built and \a false otherwise
      */
-    bool CurvedSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR2I> &upperSegment, std::vector<VECTOR2I> &lowerSegment);
+    bool CurvedSegments(TRACK &aTrack, const VIA &aVia);
 
     /**
      * @brief Function \a StraightSegments builds two tangent lines for a circle from a givent point.
@@ -86,11 +84,9 @@ private:
      * @param [in] aTrack defines a vector along which the segments should be built
      * @param [in] aVia represents a circle to which the segments should be built
      * @param [in] distance is distance ratio (in percent) from circle center in respect to its diameter
-     * @param [out] upperSegment vector contains the coordinates of computed segments
-     * @param [out] lowerSegment vector contains the coordinates of mirrored segments
      * @return \a true in case the segments were successfully built and \a false otherwise
      */
-    bool StraightSegments(TRACK &aTrack, const VIA &aVia, std::vector<VECTOR2I> &upperSegment, std::vector<VECTOR2I> &lowerSegment, int distance);
+    bool StraightSegments(TRACK &aTrack, const VIA &aVia, int distance);
 
     /**
      * @brief Function SetVector creates a vector from \a aTrack directed into \a aVia
@@ -103,6 +99,11 @@ private:
 
     BOARD_CONNECTED_ITEM* GetObjectOnEnd(TRACK &aTrack, ENDPOINT_T endPoint);
     void SplitSegment(const SEG &segment, int splits, std::vector<VECTOR2I> &points);
+    inline void PointOnCurve(int angle, double radius, VECTOR2I &point) {
+        double coeff = M_PI / 180.0;
+        point.x = 2 * radius * cos(coeff * angle) + radius * cos(2 * coeff * angle);
+        point.y = 2 * radius * sin(coeff * angle) - radius * sin(2 * coeff * angle);
+    }
 };
 
 #endif // CLASS_TEARDROP_H
