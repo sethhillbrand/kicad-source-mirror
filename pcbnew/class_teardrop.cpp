@@ -15,6 +15,7 @@ TEARDROP::TEARDROP()
 bool TEARDROP::Create(TRACK& aTrack, ENDPOINT_T aEndPoint, TEARDROP_TYPE aType = TEARDROP_STRAIGHT )
 {
     bool result = false;
+    bool dummyObject = false;
 
     BOARD_CONNECTED_ITEM* object = getObjectOnEnd( aTrack, aEndPoint );
     VIA* aVia = NULL;
@@ -37,6 +38,7 @@ bool TEARDROP::Create(TRACK& aTrack, ENDPOINT_T aEndPoint, TEARDROP_TYPE aType =
             aVia->SetLayer( object->GetLayer() );
             aVia->SetPosition( object->GetPosition() );
             aVia->SetWidth( 2 * dynamic_cast<D_PAD*>( object )->GetBoundingRadius() );
+            dummyObject = true;
             break;
 
         default:
@@ -53,6 +55,10 @@ bool TEARDROP::Create(TRACK& aTrack, ENDPOINT_T aEndPoint, TEARDROP_TYPE aType =
         result = curvedSegments( aTrack, *aVia );
     }
 
+    if (dummyObject == true)
+    {
+        delete aVia;
+    }
     return result;
 }
 
@@ -150,7 +156,7 @@ bool TEARDROP::curvedSegments( TRACK& aTrack, const VIA& aVia )
         for( int iteration = 0; iteration < numSegments; iteration++ )
         {
             radius = radius - delta;
-            for( int i = 10; i <= 60; i = i + 10 )
+            for( int i = 0; i <= 60; i = i + 10 )
             {
                 pointOnCurve( i, radius, point );
                 point = point.Rotate( rotationAngle );
@@ -170,7 +176,7 @@ bool TEARDROP::curvedSegments( TRACK& aTrack, const VIA& aVia )
             }
 
             lowerSegment.clear();
-            for( int i = 350; i >= 300; i = i - 10 )
+            for( int i = 360; i >= 300; i = i - 10 )
             {
                 pointOnCurve( i, radius, point );
                 point = point.Rotate( rotationAngle );

@@ -24,6 +24,7 @@
 #include "view/view.h"
 #include "common_actions.h"
 #include "router/pns_router.h"
+#include "tool/tool_manager.h"
 
 TEARDROPS_EDITOR::TEARDROPS_EDITOR() :
     TOOL_BASE( BATCH, TOOL_MANAGER::MakeToolId( "pcbnew.TeardropsEditor" ),

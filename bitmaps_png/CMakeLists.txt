@@ -524,6 +524,7 @@ set( BMAPS_MID
     show_zone_outline_only
     svg_file
     swap_layer
+    teardrop
     text_sketch
     three_d
     tool_ratsnest

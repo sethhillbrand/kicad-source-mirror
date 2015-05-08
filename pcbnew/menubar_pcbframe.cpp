@@ -633,7 +633,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
 
     AddMenuItem( toolsMenu, ID_TEARDROPS_WINDOW,
                  _( "Teardrops" ),
-                 _("Add teardrops"), KiBitmap( new_pcb_xpm ) );
+                 _("Add teardrops"), KiBitmap( teardrop_xpm ) );
 
 #if defined(KICAD_SCRIPTING_WXPYTHON)
     AddMenuItem( toolsMenu, ID_TOOLBARH_PCB_SCRIPTING_CONSOLE,
