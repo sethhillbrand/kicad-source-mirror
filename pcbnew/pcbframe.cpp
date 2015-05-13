@@ -706,7 +706,8 @@ void PCB_EDIT_FRAME::enableGALSpecificMenus()
             ID_TUNE_SINGLE_TRACK_LEN_BUTT,
             ID_TUNE_DIFF_PAIR_LEN_BUTT,
             ID_TUNE_DIFF_PAIR_SKEW_BUTT,
-            ID_MENU_DIFF_PAIR_DIMENSIONS
+            ID_MENU_DIFF_PAIR_DIMENSIONS,
+            ID_TEARDROPS_WINDOW,
         };
 
         bool enbl = IsGalCanvasActive();
