@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2007-2016 Jean-Pierre Charras  jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,12 +32,12 @@
 #include <base_units.h>
 
 #include <gerbview.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
 #include <class_X2_gerber_attributes.h>
 
 extern int ReadInt( char*& text, bool aSkipSeparator = true );
 extern double ReadDouble( char*& text, bool aSkipSeparator = true );
-extern bool GetEndOfBlock( char buff[GERBER_BUFZ], char*& text, FILE* gerber_file );
+extern bool GetEndOfBlock( char* buff, char*& text, FILE* gerber_file );
 
 
 #define CODE( x, y ) ( ( (x) << 8 ) + (y) )
@@ -82,9 +82,23 @@ enum RS274X_PARAMETERS {
     // X2 extention attribute commands
     // Mainly are found standard attributes and user attributes
     // standard attributes commands are:
-    // TF (file attribute)
+    // TF (file attribute) TO (net attribute)
     // TA (aperture attribute) and TD (delete aperture attribute)
     FILE_ATTRIBUTE   = CODE( 'T', 'F' ),
+
+    // X2 extention Net attribute info
+    // Net attribute options are:
+    // TO (net attribute data): TO.CN or TO.P TO.N or TO.C
+    NET_ATTRIBUTE   = CODE( 'T', 'O' ),
+
+    // X2 extention Aperture attribute TA
+    APERTURE_ATTRIBUTE   = CODE( 'T', 'A' ),
+
+    // TD (delete aperture/object attribute):
+    // Delete aperture attribute added by %TA or Oblect attribute added b %TO
+    // TD (delete all) or %TD<attr name> to delete <attr name>.
+    // eg: TD.P or TD.N or TD.C ...
+    REMOVE_APERTURE_ATTRIBUTE   = CODE( 'T', 'D' ),
 
     // Layer specific parameters
     // May be used singly or may be layer specfic
@@ -113,22 +127,69 @@ enum RS274X_PARAMETERS {
 static int ReadXCommand( char*& text )
 {
     int result;
+    int currbyte;
 
     if( text && *text )
-        result = *text++ << 8;
+    {
+        currbyte = *text++;
+        result = ( currbyte & 0xFF ) << 8;
+    }
     else
         return -1;
 
     if( text && *text )
-        result += *text++;
+    {
+        currbyte = *text++;
+        result += currbyte & 0xFF;
+    }
     else
         return -1;
 
     return result;
 }
 
+/**
+ * convert a string read from a gerber file to an unicode string
+ * usual chars are just copied. \hhhh values are converted to
+ * the unicoade char value
+ */
+static const wxString fromGerberString( const wxString& aGbrString )
+{
+    wxString text;
 
-bool GERBER_IMAGE::ReadRS274XCommand( char buff[GERBER_BUFZ], char*& text )
+    for( unsigned ii = 0; ii < aGbrString.size(); ++ii )
+    {
+        if( aGbrString[ii] == '\\' )
+        {
+            unsigned value = 0;
+
+            for( int jj = 0; jj < 4; jj++ )
+            {   // Convert 4 hexa digits to binary value:
+                ii++;
+                value <<= 4;
+                int digit = aGbrString[ii];
+
+                if( digit >= '0' && digit <= '9' )
+                    digit -= '0';
+                else if( digit >= 'A' && digit <= 'F' )
+                    digit -= 'A' - 10;
+                else if( digit >= 'a' && digit <= 'f' )
+                    digit -= 'a' - 10;
+                else digit = 0;
+
+                value += digit & 0xF;
+            }
+
+            text.Append( wxUniChar( value ) );
+        }
+        else
+            text.Append( aGbrString[ii] );
+    }
+
+    return text;
+}
+
+bool GERBER_FILE_IMAGE::ReadRS274XCommand( char* buff, char*& text )
 {
     bool ok = true;
     int  code_command;
@@ -181,9 +242,7 @@ exit:
 }
 
 
-bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
-                                   char buff[GERBER_BUFZ],
-                                   char*&    text )
+bool GERBER_FILE_IMAGE::ExecuteRS274XCommand( int command, char* buff, char*& text )
 {
     int      code;
     int      seq_len;    // not used, just provided
@@ -298,20 +357,20 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
             default:
                 msg.Printf( wxT( "Unknown id (%c) in FS command" ),
                            *text );
-                ReportMessage( msg );
+                AddMessageToList( msg );
                 GetEndOfBlock( buff, text, m_Current_File );
                 ok = false;
                 break;
             }
         }
         if( !x_fmt_known || !y_fmt_known )
-            ReportMessage( wxT( "RS274X: Format Statement (FS) without X or Y format" ) );
+            AddMessageToList( wxT( "RS274X: Format Statement (FS) without X or Y format" ) );
 
         break;
 
     case AXIS_SELECT:       // command ASAXBY*% or %ASAYBX*%
         m_SwapAxis = false;
-        if( strnicmp( text, "AYBX", 4 ) == 0 )
+        if( strncasecmp( text, "AYBX", 4 ) == 0 )
             m_SwapAxis = true;
         break;
 
@@ -354,6 +413,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
     {
         X2_ATTRIBUTE dummy;
         dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+
         if( dummy.IsFileFunction() )
         {
             delete m_FileFunction;
@@ -368,6 +428,55 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
             m_PartString = dummy.GetPrm( 1 );
         }
      }
+        break;
+
+    case APERTURE_ATTRIBUTE:    // Command %TA ... Not yet supported
+        {
+        X2_ATTRIBUTE dummy;
+        dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+
+        if( dummy.GetAttribute() == ".AperFunction" )
+        {
+            m_AperFunction = dummy.GetPrm( 1 );
+
+            // A few function values can have other parameters. Add them
+            for( int ii = 2; ii < dummy.GetPrmCount(); ii++ )
+                m_AperFunction << "," << dummy.GetPrm( ii );
+        }
+        }
+        break;
+
+    case NET_ATTRIBUTE:    // Command %TO currently %TO.P %TO.N and %TO.C
+        {
+        X2_ATTRIBUTE dummy;
+
+        dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+
+        if( dummy.GetAttribute() == ".N" )
+        {
+            m_NetAttributeDict.m_NetAttribType |= GBR_NETLIST_METADATA::GBR_NETINFO_NET;
+            m_NetAttributeDict.m_Netname = fromGerberString( dummy.GetPrm( 1 ) );
+        }
+        else if( dummy.GetAttribute() == ".C" )
+        {
+            m_NetAttributeDict.m_NetAttribType |= GBR_NETLIST_METADATA::GBR_NETINFO_CMP;
+            m_NetAttributeDict.m_Cmpref = fromGerberString( dummy.GetPrm( 1 ) );
+        }
+        else if( dummy.GetAttribute() == ".P" )
+        {
+            m_NetAttributeDict.m_NetAttribType |= GBR_NETLIST_METADATA::GBR_NETINFO_PAD;
+            m_NetAttributeDict.m_Cmpref = fromGerberString( dummy.GetPrm( 1 ) );
+            m_NetAttributeDict.m_Padname = fromGerberString( dummy.GetPrm( 2 ) );
+        }
+        }
+        break;
+
+    case REMOVE_APERTURE_ATTRIBUTE:    // Command %TD ...
+        {
+        X2_ATTRIBUTE dummy;
+        dummy.ParseAttribCmd( m_Current_File, buff, GERBER_BUFZ, text );
+        RemoveAttribute( dummy );
+        }
         break;
 
     case OFFSET:        // command: OFAnnBnn (nn = float number) = layer Offset
@@ -432,16 +541,16 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
         break;
 
     case IMAGE_ROTATION:    // command IR0* or IR90* or IR180* or IR270*
-        if( strnicmp( text, "0*", 2 ) == 0 )
+        if( strncasecmp( text, "0*", 2 ) == 0 )
             m_ImageRotation = 0;
-        else if( strnicmp( text, "90*", 3 ) == 0 )
+        else if( strncasecmp( text, "90*", 3 ) == 0 )
             m_ImageRotation = 90;
-        else if( strnicmp( text, "180*", 4 ) == 0 )
+        else if( strncasecmp( text, "180*", 4 ) == 0 )
             m_ImageRotation = 180;
-        else if( strnicmp( text, "270*", 4 ) == 0 )
+        else if( strncasecmp( text, "270*", 4 ) == 0 )
             m_ImageRotation = 270;
         else
-            ReportMessage( _( "RS274X: Command \"IR\" rotation value not allowed" ) );
+            AddMessageToList( _( "RS274X: Command \"IR\" rotation value not allowed" ) );
         break;
 
     case STEP_AND_REPEAT:   // command SR, like %SRX3Y2I5.0J2*%
@@ -533,7 +642,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
     case KNOCKOUT:
         m_Iterpolation = GERB_INTERPOL_LINEAR_1X;       // Start a new Gerber layer
         msg = _( "RS274X: Command KNOCKOUT ignored by GerbView" ) ;
-        ReportMessage( msg );
+        AddMessageToList( msg );
         break;
 
     case PLOTTER_FILM:  // Command PF <string>
@@ -544,7 +653,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
         {
            msg.Append( *text++ );
         }
-        ReportMessage( msg );
+        AddMessageToList( msg );
         break;
 
     case ROTATE:        // Layer rotation: command like %RO45*%
@@ -572,7 +681,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
         break;
 
     case IMAGE_POLARITY:
-        if( strnicmp( text, "NEG", 3 ) == 0 )
+        if( strncasecmp( text, "NEG", 3 ) == 0 )
             m_ImageNegative = true;
         else
             m_ImageNegative = false;
@@ -586,15 +695,16 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
 
         else
             GetLayerParams().m_LayerNegative = false;
-        DBG( printf( "%22s: LAYER_POLARITY m_LayerNegative=%s\n", __func__,
-                   GetLayerParams().m_LayerNegative ? "true" : "false" ); )
+
+//        DBG( printf( "%22s: LAYER_POLARITY m_LayerNegative=%s\n", __func__,
+//                   GetLayerParams().m_LayerNegative ? "true" : "false" ); )
         break;
 
     case INCLUDE_FILE:
         if( m_FilesPtr >= INCLUDE_FILES_CNT_MAX )
         {
             ok = false;
-            ReportMessage( _( "Too many include files!!" ) );
+            AddMessageToList( _( "Too many include files!!" ) );
             break;
         }
 
@@ -608,7 +718,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
         if( m_Current_File == 0 )
         {
             msg.Printf( wxT( "include file <%s> not found." ), line );
-            ReportMessage( msg );
+            AddMessageToList( msg );
             ok = false;
             m_Current_File = m_FilesList[m_FilesPtr];
             break;
@@ -643,8 +753,11 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
 
         D_CODE* dcode;
         dcode = GetDCODE( code );
+
         if( dcode == NULL )
             break;
+
+        dcode->m_AperFunction = m_AperFunction;
 
         // at this point, text points to character after the ADD<num>,
         // i.e. R in example above.  If text[0] is one of the usual
@@ -801,13 +914,13 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
             {
                 msg.Printf( wxT( "RS274X: aperture macro %s not found\n" ),
                            TO_UTF8( am_lookup.name ) );
-                ReportMessage( msg );
+                AddMessageToList( msg );
                 ok = false;
                 break;
             }
 
             dcode->m_Shape = APT_MACRO;
-            dcode->SetMacro( (APERTURE_MACRO*) pam );
+            dcode->SetMacro( pam );
         }
         break;
 
@@ -824,7 +937,7 @@ bool GERBER_IMAGE::ExecuteRS274XCommand( int       command,
 }
 
 
-bool GetEndOfBlock( char buff[GERBER_BUFZ], char*& text, FILE* gerber_file )
+bool GetEndOfBlock( char* buff, char*& text, FILE* gerber_file )
 {
     for( ; ; )
     {
@@ -860,7 +973,7 @@ bool GetEndOfBlock( char buff[GERBER_BUFZ], char*& text, FILE* gerber_file )
  * @param aFile = the opened GERBER file to read
  * @return a pointer to the beginning of the next line or NULL if end of file
 */
-static char* GetNextLine(  char aBuff[GERBER_BUFZ], char* aText, FILE* aFile  )
+static char* GetNextLine(  char *aBuff, char* aText, FILE* aFile  )
 {
     for( ; ; )
     {
@@ -886,7 +999,7 @@ static char* GetNextLine(  char aBuff[GERBER_BUFZ], char* aText, FILE* aFile  )
 }
 
 
-bool GERBER_IMAGE::ReadApertureMacro( char buff[GERBER_BUFZ],
+bool GERBER_FILE_IMAGE::ReadApertureMacro( char *buff,
                                 char*&    text,
                                 FILE*     gerber_file )
 {
@@ -944,7 +1057,7 @@ bool GERBER_IMAGE::ReadApertureMacro( char buff[GERBER_BUFZ],
         {
             msg.Printf( wxT( "RS274X: Aperture Macro \"%s\": ill. symbol, line: \"%s\"" ),
                         GetChars( am.name ), GetChars( FROM_UTF8( buff ) ) );
-            ReportMessage( msg );
+            AddMessageToList( msg );
             primitive_type = AMP_COMMENT;
         }
         else
@@ -997,15 +1110,15 @@ bool GERBER_IMAGE::ReadApertureMacro( char buff[GERBER_BUFZ],
             // @todo, there needs to be a way of reporting the line number
             msg.Printf( wxT( "RS274X: Aperture Macro \"%s\": Invalid primitive id code %d, line: \"%s\"" ),
                         GetChars( am.name ), primitive_type,  GetChars( FROM_UTF8( buff ) ) );
-            ReportMessage( msg );
+            AddMessageToList( msg );
             return false;
         }
 
         AM_PRIMITIVE prim( m_GerbMetric );
         prim.primitive_id = (AM_PRIMITIVE_ID) primitive_type;
-        int i;
+        int ii;
 
-        for( i = 0; i < paramCount && *text && *text != '*'; ++i )
+        for( ii = 0; ii < paramCount && *text && *text != '*'; ++ii )
         {
             prim.params.push_back( AM_PARAM() );
 
@@ -1019,12 +1132,12 @@ bool GERBER_IMAGE::ReadApertureMacro( char buff[GERBER_BUFZ],
             param.ReadParam( text );
         }
 
-        if( i < paramCount )
+        if( ii < paramCount )
         {
             // maybe some day we can throw an exception and track a line number
             msg.Printf( wxT( "RS274X: read macro descr type %d: read %d parameters, insufficient parameters\n" ),
-                        prim.primitive_id, i );
-            ReportMessage( msg );
+                        prim.primitive_id, ii );
+            AddMessageToList( msg );
 
         }
         // there are more parameters to read if this is an AMP_OUTLINE
@@ -1039,7 +1152,7 @@ bool GERBER_IMAGE::ReadApertureMacro( char buff[GERBER_BUFZ],
 
             paramCount = (int) prim.params[1].GetValue( 0 ) * 2 + 1;
 
-            for( int i = 0; i < paramCount && *text != '*'; ++i )
+            for( int jj = 0; jj < paramCount && *text != '*'; ++jj )
             {
                 prim.params.push_back( AM_PARAM() );
 

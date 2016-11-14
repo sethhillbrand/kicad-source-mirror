@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,7 +32,6 @@
 #include <wxstruct.h>
 #include <class_drawpanel.h>
 #include <build_version.h>
-#include <macros.h>
 #include <trigo.h>
 #include <base_units.h>
 #include <colors_selection.h>
@@ -41,15 +40,13 @@
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <class_gerber_draw_item.h>
-#include <pcbplot.h>
 #include <gerbview_id.h>
 #include <hotkeys.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 #include <dialog_helpers.h>
 #include <class_DCodeSelectionbox.h>
 #include <class_gerbview_layer_widget.h>
-#include <class_gbr_screen.h>
 
 
 // Config keywords
@@ -63,6 +60,7 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     EDA_DRAW_FRAME( aKiway, aParent, FRAME_GERBER, wxT( "GerbView" ),
         wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, GERBVIEW_FRAME_NAME )
 {
+    m_auxiliaryToolBar = NULL;
     m_colorsSettings = &g_ColorsSettings;
     m_gerberLayout = NULL;
     m_zoomLevelCoeff = ZOOM_FACTOR( 110 );   // Adjusted to roughly displays zoom level = 1
@@ -122,6 +120,7 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     ReCreateMenuBar();
     ReCreateHToolbar();
     ReCreateOptToolbar();
+    ReCreateAuxiliaryToolbar();
 
     m_auimgr.SetManagedWindow( this );
 
@@ -148,6 +147,12 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
         m_auimgr.AddPane( m_mainToolBar,
                           wxAuiPaneInfo( horiz ).Name( wxT( "m_mainToolBar" ) ).Top().Row( 0 ) );
 
+    if( m_auxiliaryToolBar )    // the auxiliary horizontal toolbar, that shows component and netname lists
+    {
+        m_auimgr.AddPane( m_auxiliaryToolBar,
+                          wxAuiPaneInfo( horiz ).Name( wxT( "m_auxiliaryToolBar" ) ).Top().Row( 1 ) );
+    }
+
     if( m_drawToolBar )
         m_auimgr.AddPane( m_drawToolBar,
                           wxAuiPaneInfo( vert ).Name( wxT( "m_drawToolBar" ) ).Right().Row( 1 ) );
@@ -173,6 +178,7 @@ GERBVIEW_FRAME::GERBVIEW_FRAME( KIWAY* aKiway, wxWindow* aParent ):
 
     setActiveLayer( 0, true );
     Zoom_Automatique( false );           // Gives a default zoom value
+    UpdateTitleAndInfo();
 }
 
 
@@ -217,7 +223,16 @@ bool GERBVIEW_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         for( unsigned i=0;  i<limit;  ++i, ++layer )
         {
             setActiveLayer( layer );
-            LoadGerberFiles( aFileSet[i] );
+
+            // Try to guess the type of file by its ext
+            // if it is .drl (Kicad files), it is a drill file
+            wxFileName fn( aFileSet[i] );
+            wxString ext = fn.GetExt();
+
+            if( ext == "drl" )
+                LoadExcellonFiles( aFileSet[i] );
+            else
+                LoadGerberFiles( aFileSet[i] );
         }
     }
 
@@ -231,21 +246,23 @@ bool GERBVIEW_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
 double GERBVIEW_FRAME::BestZoom()
 {
-    GERBER_DRAW_ITEM* item = GetGerberLayout()->m_Drawings;
-
-    // gives a minimal value to zoom, if no item in list
-    if( item == NULL  )
-        return ZOOM_FACTOR( 350.0 );
-
     EDA_RECT bbox = GetGerberLayout()->ComputeBoundingBox();
 
-    wxSize  size = m_canvas->GetClientSize();
+    // gives a size to bbox (current page size), if no item in list
+    if( bbox.GetWidth() == 0 || bbox.GetHeight() == 0 )
+    {
+        wxSize pagesize = GetPageSettings().GetSizeMils();
+        bbox.SetSize( wxSize( Mils2iu( pagesize.x ), Mils2iu( pagesize.y ) ) );
+    }
 
+    // Compute best zoom:
+    wxSize  size = m_canvas->GetClientSize();
     double  x   = (double) bbox.GetWidth() / (double) size.x;
     double  y   = (double) bbox.GetHeight() / (double) size.y;
+    double  best_zoom = std::max( x, y ) * 1.1;
+
     SetScrollCenterPosition( bbox.Centre() );
 
-    double  best_zoom = std::max( x, y );
     return best_zoom;
 }
 
@@ -264,9 +281,7 @@ void GERBVIEW_FRAME::LoadSettings( wxConfigBase* aCfg )
     if( m_showBorderAndTitleBlock )
     {
         wxString pageType;
-
         aCfg->Read( cfgShowPageSizeOption, &pageType, wxT( "GERBER" ) );
-
         pageInfo.SetType( pageType );
     }
 
@@ -313,10 +328,13 @@ void GERBVIEW_FRAME::SaveSettings( wxConfigBase* aCfg )
 void GERBVIEW_FRAME::ReFillLayerWidget()
 {
     m_LayersManager->ReFill();
+    m_SelLayerBox->Resync();
+    ReCreateAuxiliaryToolbar();
 
     wxAuiPaneInfo&  lyrs = m_auimgr.GetPane( m_LayersManager );
 
     wxSize          bestz = m_LayersManager->GetBestSize();
+    bestz.x += 5;   // gives a little margin
 
     lyrs.MinSize( bestz );
     lyrs.BestSize( bestz );
@@ -360,16 +378,16 @@ int GERBVIEW_FRAME::getNextAvailableLayer( int aLayer ) const
 {
     int layer = aLayer;
 
-    for( int i = 0; i < GERBER_DRAWLAYERS_COUNT; ++i )
+    for( unsigned i = 0; i < ImagesMaxCount(); ++i )
     {
-        GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( layer );
+        const GERBER_FILE_IMAGE* gerber = GetGbrImage( layer );
 
-        if( gerber == NULL || gerber->m_FileName.IsEmpty() )
+        if( gerber == NULL )    // this graphic layer is available: use it
             return layer;
 
-        ++layer;
+        ++layer;                // try next graphic layer
 
-        if( layer >= GERBER_DRAWLAYERS_COUNT )
+        if( layer >= (int)ImagesMaxCount() )
             layer = 0;
     }
 
@@ -384,19 +402,22 @@ void GERBVIEW_FRAME::syncLayerWidget()
 }
 
 
-void GERBVIEW_FRAME::syncLayerBox()
+void GERBVIEW_FRAME::syncLayerBox( bool aRebuildLayerBox )
 {
-    m_SelLayerBox->Resync();
+    if( aRebuildLayerBox )
+        m_SelLayerBox->Resync();
+
     m_SelLayerBox->SetSelection( getActiveLayer() );
 
-    int             dcodeSelected = -1;
-    GERBER_IMAGE*   gerber = g_GERBER_List.GetGbrImage( getActiveLayer() );
+    int dcodeSelected = -1;
+    GERBER_FILE_IMAGE*   gerber = GetGbrImage( getActiveLayer() );
 
     if( gerber )
         dcodeSelected = gerber->m_Selected_Tool;
 
     if( m_DCodeSelector )
     {
+        updateDCodeSelectBox();
         m_DCodeSelector->SetDCodeSelection( dcodeSelected );
         m_DCodeSelector->Enable( gerber != NULL );
     }
@@ -408,21 +429,19 @@ void GERBVIEW_FRAME::syncLayerBox()
 void GERBVIEW_FRAME::Liste_D_Codes()
 {
     int             ii, jj;
-    D_CODE*         pt_D_code;
     wxString        Line;
     wxArrayString   list;
-    double          scale = g_UserUnit == INCHES ? IU_PER_MILS * 1000 :
-                            IU_PER_MM;
+    double          scale = g_UserUnit == INCHES ? IU_PER_MILS * 1000 : IU_PER_MM;
     int       curr_layer = getActiveLayer();
 
-    for( int layer = 0; layer < GERBER_DRAWLAYERS_COUNT; ++layer )
+    for( int layer = 0; layer < (int)ImagesMaxCount(); ++layer )
     {
-        GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( layer );
+        GERBER_FILE_IMAGE* gerber = GetGbrImage( layer );
 
         if( gerber == NULL )
             continue;
 
-        if( gerber->UsedDcodeNumber() == 0 )
+        if( gerber->GetDcodesCount() == 0 )
             continue;
 
         if( layer == curr_layer )
@@ -433,9 +452,10 @@ void GERBVIEW_FRAME::Liste_D_Codes()
         list.Add( Line );
 
         const char* units = g_UserUnit == INCHES ? "\"" : "mm";
+
         for( ii = 0, jj = 1; ii < TOOLS_MAX_COUNT; ii++ )
         {
-            pt_D_code = gerber->GetDCODE( ii + FIRST_DCODE, false );
+            D_CODE* pt_D_code = gerber->GetDCODE( ii + FIRST_DCODE, false );
 
             if( pt_D_code == NULL )
                 continue;
@@ -443,19 +463,20 @@ void GERBVIEW_FRAME::Liste_D_Codes()
             if( !pt_D_code->m_InUse && !pt_D_code->m_Defined )
                 continue;
 
-            Line.Printf( wxT( "tool %2.2d:   D%2.2d   V %.4f %s  H %.4f %s   %s  " ),
+            Line.Printf( wxT( "tool %2.2d:   D%2.2d   V %.4f %s  H %.4f %s   %s  attribute '%s'" ),
                          jj,
                          pt_D_code->m_Num_Dcode,
                          pt_D_code->m_Size.y / scale, units,
                          pt_D_code->m_Size.x / scale, units,
-                         D_CODE::ShowApertureType( pt_D_code->m_Shape )
+                         D_CODE::ShowApertureType( pt_D_code->m_Shape ),
+                         pt_D_code->m_AperFunction.IsEmpty()? wxT( "none" ) : GetChars( pt_D_code->m_AperFunction )
                          );
 
             if( !pt_D_code->m_Defined )
-                Line += wxT( "(not used)" );
+                Line += wxT( " (not defined)" );
 
-            if( !pt_D_code->m_InUse )
-                Line += wxT( "(in use)" );
+            if( pt_D_code->m_InUse )
+                Line += wxT( " (in use)" );
 
             list.Add( Line );
             jj++;
@@ -469,54 +490,62 @@ void GERBVIEW_FRAME::Liste_D_Codes()
 }
 
 
-
 void GERBVIEW_FRAME::UpdateTitleAndInfo()
 {
-    GERBER_IMAGE*   gerber = g_GERBER_List.GetGbrImage(  getActiveLayer() );
-    wxString        text;
+    GERBER_FILE_IMAGE* gerber = GetGbrImage( getActiveLayer() );
 
     // Display the gerber filename
     if( gerber == NULL )
     {
-        text.Printf( wxT( "GerbView %s" ), GetChars( GetBuildVersion() ) );
-        SetTitle( text );
+        SetTitle( "GerbView" );
+
         SetStatusText( wxEmptyString, 0 );
-        text.Printf( _( "Layer %d not in use" ), getActiveLayer() + 1 );
-        m_TextInfo->SetValue( text );
+
+        wxString info;
+        info.Printf( _( "Drawing layer %d not in use" ), getActiveLayer() + 1 );
+        m_TextInfo->SetValue( info );
+
+        if( EnsureTextCtrlWidth( m_TextInfo, &info ) )  // Resized
+           m_auimgr.Update();
+
         ClearMsgPanel();
         return;
     }
+    else
+    {
+        wxString title;
+        title.Printf( L"GerbView \u2014 %s%s",
+                gerber->m_FileName,
+                gerber->m_IsX2_file
+                    ? " " + _( "(with X2 attributes)" )
+                    : wxString( wxEmptyString ) );
+        SetTitle( title );
 
-    text = _( "File:" );
-    text << wxT( " " ) << gerber->m_FileName;
+        gerber->DisplayImageInfo( this );
 
-    if( gerber->m_IsX2_file )
-        text << wxT( " " ) << _( "(with X2 Attributes)" );
+        // Display Image Name and Layer Name (from the current gerber data):
+        wxString status;
+        status.Printf( _( "Image name: '%s'  Layer name: '%s'" ),
+                GetChars( gerber->m_ImageName ),
+                GetChars( gerber->GetLayerParams().m_LayerName ) );
+        SetStatusText( status, 0 );
 
-    SetTitle( text );
+        // Display data format like fmt in X3.4Y3.4 no LZ or fmt mm X2.3 Y3.5 no TZ in main toolbar
+        wxString info;
+        info.Printf( wxT( "fmt: %s X%d.%d Y%d.%d no %cZ" ),
+                gerber->m_GerbMetric ? wxT( "mm" ) : wxT( "in" ),
+                gerber->m_FmtLen.x - gerber->m_FmtScale.x, gerber->m_FmtScale.x,
+                gerber->m_FmtLen.y - gerber->m_FmtScale.y, gerber->m_FmtScale.y,
+                gerber->m_NoTrailingZeros ? 'T' : 'L' );
 
-    gerber->DisplayImageInfo();
+        if( gerber->m_IsX2_file )
+            info << wxT(" ") << _( "X2 attr" );
 
-    // Display Image Name and Layer Name (from the current gerber data):
-    text.Printf( _( "Image name: '%s'  Layer name: '%s'" ),
-                 GetChars( gerber->m_ImageName ),
-                 GetChars( gerber->GetLayerParams().m_LayerName ) );
-    SetStatusText( text, 0 );
+        m_TextInfo->SetValue( info );
 
-    // Display data format like fmt in X3.4Y3.4 no LZ or fmt mm X2.3 Y3.5 no TZ in main toolbar
-    text.Printf( wxT( "fmt: %s X%d.%d Y%d.%d no %cZ" ),
-                 gerber->m_GerbMetric ? wxT( "mm" ) : wxT( "in" ),
-                 gerber->m_FmtLen.x - gerber->m_FmtScale.x, gerber->m_FmtScale.x,
-                 gerber->m_FmtLen.y - gerber->m_FmtScale.y, gerber->m_FmtScale.y,
-                 gerber->m_NoTrailingZeros ? 'T' : 'L' );
-
-    if( gerber->m_IsX2_file )
-        text << wxT(" ") << _( "X2 attr" );
-
-    m_TextInfo->SetValue( text );
-
-    if( EnsureTextCtrlWidth( m_TextInfo, &text ) )  // Resized
-       m_auimgr.Update();
+        if( EnsureTextCtrlWidth( m_TextInfo, &info ) )  // Resized
+            m_auimgr.Update();
+    }
 }
 
 
@@ -832,4 +861,21 @@ void GERBVIEW_FRAME::UpdateStatusBar()
 const wxString GERBVIEW_FRAME::GetZoomLevelIndicator() const
 {
     return EDA_DRAW_FRAME::GetZoomLevelIndicator();
+}
+
+GERBER_FILE_IMAGE* GERBVIEW_FRAME::GetGbrImage( int aIdx ) const
+{
+    return m_gerberLayout->GetImagesList()->GetGbrImage( aIdx );
+}
+
+unsigned GERBVIEW_FRAME::ImagesMaxCount() const
+{
+    return m_gerberLayout->GetImagesList()->ImagesMaxCount();
+}
+
+
+void GERBVIEW_FRAME::unitsChangeRefresh()
+{   // Called on units change (see EDA_DRAW_FRAME)
+    EDA_DRAW_FRAME::unitsChangeRefresh();
+    updateDCodeSelectBox();
 }

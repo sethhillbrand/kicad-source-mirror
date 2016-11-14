@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2011-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,15 +30,14 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <class_drawpanel.h>
-#include <confirm.h>
-#include <common.h>
 #include <gestfich.h>
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
 #include <kicad_device_context.h>
 #include <gerbview_id.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 #include <dialog_helpers.h>
 #include <class_DCodeSelectionbox.h>
 #include <class_gerbview_layer_widget.h>
@@ -60,7 +59,6 @@ BEGIN_EVENT_TABLE( GERBVIEW_FRAME, EDA_DRAW_FRAME )
     // Menu Files:
     EVT_MENU( wxID_FILE, GERBVIEW_FRAME::Files_io )
     EVT_MENU( ID_NEW_BOARD, GERBVIEW_FRAME::Files_io )
-    EVT_MENU( ID_GEN_PLOT, GERBVIEW_FRAME::ToPlotter )
     EVT_MENU( ID_GERBVIEW_EXPORT_TO_PCBNEW, GERBVIEW_FRAME::ExportDataInPcbnewFormat )
 
     EVT_MENU_RANGE( wxID_FILE1, wxID_FILE9, GERBVIEW_FRAME::OnGbrFileHistory )
@@ -84,11 +82,12 @@ BEGIN_EVENT_TABLE( GERBVIEW_FRAME, EDA_DRAW_FRAME )
               EDA_BASE_FRAME::OnSelectPreferredEditor )
 
     // menu Miscellaneous
-    EVT_MENU( ID_GERBVIEW_GLOBAL_DELETE, GERBVIEW_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_GERBVIEW_ERASE_CURR_LAYER, GERBVIEW_FRAME::Process_Special_Functions )
 
     // Menu Help
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, EDA_DRAW_FRAME::GetKicadAbout )
 
     EVT_TOOL( wxID_UNDO, GERBVIEW_FRAME::Process_Special_Functions )
@@ -105,6 +104,8 @@ BEGIN_EVENT_TABLE( GERBVIEW_FRAME, EDA_DRAW_FRAME )
                     GERBVIEW_FRAME::Process_Special_Functions )
 
     // Option toolbar
+    //EVT_TOOL( ID_NO_TOOL_SELECTED, GERBVIEW_FRAME::Process_Special_Functions ) // mentioned below
+    EVT_TOOL( ID_ZOOM_SELECTION, GERBVIEW_FRAME::Process_Special_Functions )
     EVT_TOOL( ID_TB_OPTIONS_SHOW_POLAR_COORD, GERBVIEW_FRAME::OnSelectOptionToolbar )
     EVT_TOOL( ID_TB_OPTIONS_SHOW_POLYGONS_SKETCH, GERBVIEW_FRAME::OnSelectOptionToolbar )
     EVT_TOOL( ID_TB_OPTIONS_SHOW_FLASHED_ITEMS_SKETCH, GERBVIEW_FRAME::OnSelectOptionToolbar )
@@ -116,6 +117,19 @@ BEGIN_EVENT_TABLE( GERBVIEW_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL_RANGE( ID_TB_OPTIONS_SHOW_GBR_MODE_0, ID_TB_OPTIONS_SHOW_GBR_MODE_2,
                     GERBVIEW_FRAME::OnSelectDisplayMode )
 
+    // Auxiliary horizontal toolbar
+    EVT_CHOICE( ID_GBR_AUX_TOOLBAR_PCB_CMP_CHOICE, GERBVIEW_FRAME::Process_Special_Functions )
+    EVT_CHOICE( ID_GBR_AUX_TOOLBAR_PCB_NET_CHOICE, GERBVIEW_FRAME::Process_Special_Functions )
+    EVT_CHOICE( ID_GBR_AUX_TOOLBAR_PCB_APERATTRIBUTES_CHOICE, GERBVIEW_FRAME::Process_Special_Functions )
+
+    // Right click context menu
+    EVT_MENU( ID_HIGHLIGHT_CMP_ITEMS, GERBVIEW_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_HIGHLIGHT_NET_ITEMS, GERBVIEW_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_HIGHLIGHT_APER_ATTRIBUTE_ITEMS, GERBVIEW_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_HIGHLIGHT_REMOVE_ALL, GERBVIEW_FRAME::Process_Special_Functions )
+
+    EVT_UPDATE_UI( ID_NO_TOOL_SELECTED, GERBVIEW_FRAME::OnUpdateSelectTool )
+    EVT_UPDATE_UI( ID_ZOOM_SELECTION, GERBVIEW_FRAME::OnUpdateSelectTool )
     EVT_UPDATE_UI( ID_TB_OPTIONS_SHOW_POLAR_COORD, GERBVIEW_FRAME::OnUpdateCoordType )
     EVT_UPDATE_UI( ID_TB_OPTIONS_SHOW_FLASHED_ITEMS_SKETCH,
                    GERBVIEW_FRAME::OnUpdateFlashedItemsDrawMode )
@@ -170,6 +184,7 @@ void GERBVIEW_FRAME::Process_Special_Functions( wxCommandEvent& event )
     }
 
     INSTALL_UNBUFFERED_DC( dc, m_canvas );
+    GERBER_DRAW_ITEM* currItem = (GERBER_DRAW_ITEM*) GetScreen()->GetCurItem();
 
     switch( id )
     {
@@ -182,13 +197,17 @@ void GERBVIEW_FRAME::Process_Special_Functions( wxCommandEvent& event )
         }
         break;
 
-    case ID_GERBVIEW_GLOBAL_DELETE:
+    case ID_GERBVIEW_ERASE_CURR_LAYER:
         Erase_Current_DrawLayer( true );
         ClearMsgPanel();
         break;
 
     case ID_NO_TOOL_SELECTED:
         SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+        break;
+
+    case ID_ZOOM_SELECTION:
+        SetToolID( ID_ZOOM_SELECTION, wxCURSOR_MAGNIFIER, _( "Zoom to selection" ) );
         break;
 
     case ID_POPUP_CLOSE_CURRENT_TOOL:
@@ -214,6 +233,41 @@ void GERBVIEW_FRAME::Process_Special_Functions( wxCommandEvent& event )
         HandleBlockEnd( &dc );
         break;
 
+    case ID_GBR_AUX_TOOLBAR_PCB_CMP_CHOICE:
+    case ID_GBR_AUX_TOOLBAR_PCB_NET_CHOICE:
+    case ID_GBR_AUX_TOOLBAR_PCB_APERATTRIBUTES_CHOICE:
+            m_canvas->Refresh();
+        break;
+
+    case ID_HIGHLIGHT_CMP_ITEMS:
+        if( m_SelComponentBox->SetStringSelection( currItem->GetNetAttributes().m_Cmpref ) )
+            m_canvas->Refresh();
+        break;
+
+    case ID_HIGHLIGHT_NET_ITEMS:
+        if( m_SelNetnameBox->SetStringSelection( currItem->GetNetAttributes().m_Netname ) )
+            m_canvas->Refresh();
+        break;
+
+    case ID_HIGHLIGHT_APER_ATTRIBUTE_ITEMS:
+        {
+        D_CODE* apertDescr = currItem->GetDcodeDescr();
+        if( m_SelAperAttributesBox->SetStringSelection( apertDescr->m_AperFunction ) )
+            m_canvas->Refresh();
+        }
+        break;
+
+    case ID_HIGHLIGHT_REMOVE_ALL:
+        m_SelComponentBox->SetSelection( 0 );
+        m_SelNetnameBox->SetSelection( 0 );
+        m_SelAperAttributesBox->SetSelection( 0 );
+
+        if( GetGbrImage( getActiveLayer() ) )
+            GetGbrImage( getActiveLayer() )->m_Selected_Tool = 0;
+
+        m_canvas->Refresh();
+        break;
+
     default:
         wxFAIL_MSG( wxT( "GERBVIEW_FRAME::Process_Special_Functions error" ) );
         break;
@@ -223,7 +277,7 @@ void GERBVIEW_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
 void GERBVIEW_FRAME::OnSelectActiveDCode( wxCommandEvent& event )
 {
-    GERBER_IMAGE* gerber_image = g_GERBER_List.GetGbrImage( getActiveLayer() );
+    GERBER_FILE_IMAGE* gerber_image = GetGbrImage( getActiveLayer() );
 
     if( gerber_image )
     {
@@ -255,7 +309,7 @@ void GERBVIEW_FRAME::OnSelectActiveLayer( wxCommandEvent& event )
 void GERBVIEW_FRAME::OnShowGerberSourceFile( wxCommandEvent& event )
 {
     int     layer = getActiveLayer();
-    GERBER_IMAGE* gerber_layer = g_GERBER_List.GetGbrImage( layer );
+    GERBER_FILE_IMAGE* gerber_layer = GetGbrImage( layer );
 
     if( gerber_layer )
     {
@@ -388,3 +442,9 @@ void GERBVIEW_FRAME::OnSelectOptionToolbar( wxCommandEvent& event )
     }
 }
 
+
+void GERBVIEW_FRAME::OnUpdateSelectTool( wxUpdateUIEvent& aEvent )
+{
+    if( aEvent.GetEventObject() == m_optionsToolBar )
+        aEvent.Check( GetToolId() == aEvent.GetId() );
+}

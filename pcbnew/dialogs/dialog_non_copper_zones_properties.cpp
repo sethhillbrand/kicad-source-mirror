@@ -59,8 +59,8 @@ private:
     ZONE_SETTINGS*  m_ptr;
     ZONE_SETTINGS   m_settings;     // working copy of zone settings
 
-    void OnOkClick( wxCommandEvent& event );
-    void OnCancelClick( wxCommandEvent& event );
+    void OnOkClick( wxCommandEvent& event ) override;
+    void OnCancelClick( wxCommandEvent& event ) override;
     void Init();
 
 public:
@@ -158,7 +158,7 @@ void DIALOG_NON_COPPER_ZONES_EDITOR::Init()
         EDA_COLOR_T layerColor = board->GetLayerColor( layer );
         imageList->Add( makeLayerBitmap( layerColor ) );
 
-        wxString msg = board->GetLayerName( layer );
+        msg = board->GetLayerName( layer );
         msg.Trim();
 
         int itemIndex = m_LayerSelectionCtrl->InsertItem(

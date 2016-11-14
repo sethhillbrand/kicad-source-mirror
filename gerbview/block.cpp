@@ -31,20 +31,14 @@
 #include <fctsys.h>
 #include <common.h>
 #include <class_drawpanel.h>
-#include <confirm.h>
-#include <gr_basic.h>
-
-#include <gerbview.h>
 #include <gerbview_frame.h>
 #include <class_gerber_draw_item.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 
-#include <wx/debug.h>
-
-#define BLOCK_COLOR BROWN
-
-
-static void DrawMovingBlockOutlines( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosition,
-                                     bool erase );
+// Call back function used in block command
+static void DrawMovingBlockOutlines( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
+                                     const wxPoint& aPosition, bool erase );
 
 
 int GERBVIEW_FRAME::BlockCommand( EDA_KEY key )
@@ -88,7 +82,7 @@ void GERBVIEW_FRAME::HandleBlockPlace( wxDC* DC )
         if( m_canvas->IsMouseCaptured() )
             m_canvas->CallMouseCapture( DC, wxDefaultPosition, false );
 
-        Block_Move( DC );
+        Block_Move();
         GetScreen()->m_BlockLocate.ClearItemsList();
         break;
 
@@ -183,16 +177,14 @@ static void DrawMovingBlockOutlines( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wx
 
     if( screen->m_BlockLocate.GetMoveVector().x || screen->m_BlockLocate.GetMoveVector().y )
     {
-        screen->m_BlockLocate.Draw( aPanel,
-                                    aDC,
+        screen->m_BlockLocate.Draw( aPanel, aDC,
                                     screen->m_BlockLocate.GetMoveVector(),
-                                    g_XorMode,
-                                    Color );
+                                    g_XorMode, Color );
     }
 }
 
 
-void GERBVIEW_FRAME::Block_Move( wxDC* DC )
+void GERBVIEW_FRAME::Block_Move()
 {
     wxPoint delta;
     wxPoint oldpos;
@@ -207,14 +199,23 @@ void GERBVIEW_FRAME::Block_Move( wxDC* DC )
 
     /* Calculate displacement vectors. */
     delta = GetScreen()->m_BlockLocate.GetMoveVector();
+    GERBER_FILE_IMAGE_LIST* images = GetGerberLayout()->GetImagesList();
 
-    /* Move items in block */
-    for( GERBER_DRAW_ITEM* item = GetItemsList(); item; item = item->Next() )
+    for( unsigned layer = 0; layer < images->ImagesMaxCount(); ++layer )
     {
-        GERBER_DRAW_ITEM* gerb_item = (GERBER_DRAW_ITEM*) item;
+        GERBER_FILE_IMAGE* gerber = images->GetGbrImage( layer );
 
-        if( gerb_item->HitTest( GetScreen()->m_BlockLocate ) )
-            gerb_item->MoveAB( delta );
+        if( gerber == NULL )    // Graphic layer not yet used
+            continue;
+
+        /* Move items in block */
+        for( GERBER_DRAW_ITEM* item = gerber->GetItemsList(); item; item = item->Next() )
+        {
+            GERBER_DRAW_ITEM* gerb_item = item;
+
+            if( gerb_item->HitTest( GetScreen()->m_BlockLocate ) )
+                gerb_item->MoveAB( delta );
+        }
     }
 
     m_canvas->Refresh( true );

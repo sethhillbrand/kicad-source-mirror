@@ -205,9 +205,9 @@ public:
      * @warning If you override this function in a derived class, make sure you call
      *          down to this or the auto save feature will be disabled.
      */
-    bool ProcessEvent( wxEvent& aEvent );       // override wxFrame::ProcessEvent()
+    bool ProcessEvent( wxEvent& aEvent ) override;
 
-    bool Enable( bool enable );                 // override wxFrame::Enable virtual
+    bool Enable( bool enable ) override;
 
     void SetAutoSaveInterval( int aInterval ) { m_autoSaveInterval = aInterval; }
 
@@ -217,22 +217,11 @@ public:
 
     void GetKicadHelp( wxCommandEvent& event );
 
+    void GetKicadContribute( wxCommandEvent& event );
+
     void GetKicadAbout( wxCommandEvent& event );
 
-    /**
-     * Function CopyVersionInfoToClipboard
-     * copies the version information to the clipboard for bug reporting purposes.
-     */
-    void CopyVersionInfoToClipboard( wxCommandEvent& event );
-
     void PrintMsg( const wxString& text );
-
-    /**
-     * Append the copy version information to clipboard help menu entry to \a aMenu.
-     *
-     * @param aMenu - The menu to append.
-     */
-    void AddHelpVersionInfoMenuEntry( wxMenu* aMenu );
 
     /**
      * Function LoadSettings

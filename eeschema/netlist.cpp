@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2013-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -45,21 +45,9 @@
 #include <sch_sheet.h>
 #include <algorithm>
 #include <invoke_sch_dialog.h>
-#include <boost/foreach.hpp>
 
 #define IS_WIRE false
 #define IS_BUS true
-
-/** @brief Kicad can use case sensitive or case insensitive comparisons for labels
- * Currently, it uses case insensitive.
- * Can be changed by comment/uncomment next lines.
- */
-inline int CmpLabel_KEEPCASE( const wxString& aString1, const wxString& aString2 )
-{
-    return aString1.Cmp( aString2 );          // case sensitive
-    //return aString1.CmpNoCase( aString2 );  // case insensitive
-}
-
 
 //Imported function:
 int TestDuplicateSheetNames( bool aCreateMarker );
@@ -67,9 +55,9 @@ int TestDuplicateSheetNames( bool aCreateMarker );
 
 bool SCH_EDIT_FRAME::prepareForNetlist()
 {
-    int refDes = 1;
+    SCH_SHEET_LIST sheets( g_RootSheet );
 
-    g_RootSheet->AnnotatePowerSymbols( Prj().SchLibs(), &refDes );
+    sheets.AnnotatePowerSymbols( Prj().SchLibs() );
 
     // Performs some controls:
     if( CheckAnnotate( NULL, 0 ) )
@@ -124,7 +112,7 @@ bool SCH_EDIT_FRAME::CreateNetlist( int aFormat, const wxString& aFullFileName,
     if( !prepareForNetlist() )
         return false;
 
-    std::auto_ptr<NETLIST_OBJECT_LIST> connectedItemsList( BuildNetListBase() );
+    std::unique_ptr<NETLIST_OBJECT_LIST> connectedItemsList( BuildNetListBase() );
 
     bool success = WriteNetListFile( connectedItemsList.release(), aFormat,
                                      aFullFileName, aNetlistOptions, aReporter );
@@ -170,10 +158,10 @@ void NETLIST_OBJECT_LIST::SortListbySheet()
 NETLIST_OBJECT_LIST* SCH_EDIT_FRAME::BuildNetListBase()
 {
     // I own this list until I return it to the new owner.
-    std::auto_ptr<NETLIST_OBJECT_LIST> ret( new NETLIST_OBJECT_LIST() );
+    std::unique_ptr<NETLIST_OBJECT_LIST> ret( new NETLIST_OBJECT_LIST() );
 
     // Creates the flattened sheet list:
-    SCH_SHEET_LIST aSheets;
+    SCH_SHEET_LIST aSheets( g_RootSheet );
 
     // Build netlist info
     bool success = ret->BuildNetListInfo( aSheets );
@@ -197,9 +185,10 @@ bool NETLIST_OBJECT_LIST::BuildNetListInfo( SCH_SHEET_LIST& aSheets )
     SCH_SHEET_PATH* sheet;
 
     // Fill list with connected items from the flattened sheet list
-    for( sheet = aSheets.GetFirst(); sheet != NULL;
-         sheet = aSheets.GetNext() )
+    for( unsigned i = 0; i < aSheets.size();  i++ )
     {
+        sheet = &aSheets[i];
+
         for( SCH_ITEM* item = sheet->LastScreen()->GetDrawItems(); item; item = item->Next() )
         {
             item->GetNetListItem( *this, sheet );
@@ -228,7 +217,7 @@ bool NETLIST_OBJECT_LIST::BuildNetListInfo( SCH_SHEET_LIST& aSheets )
         switch( net_item->m_Type )
         {
         case NET_ITEM_UNSPECIFIED:
-            wxMessageBox( wxT( "BuildNetListBase() error" ) );
+            wxMessageBox( wxT( "BuildNetListInfo() error" ) );
             break;
 
         case NET_PIN:
@@ -397,8 +386,8 @@ bool NETLIST_OBJECT_LIST::BuildNetListInfo( SCH_SHEET_LIST& aSheets )
 }
 
 // Helper function to give a priority to sort labels:
-// NET_PINLABEL and NET_GLOBLABEL are global labels
-// and the priority is hight
+// NET_PINLABEL, NET_GLOBBUSLABELMEMBER and NET_GLOBLABEL are global labels
+// and the priority is high
 static int getPriority( const NETLIST_OBJECT* Objet )
 {
     switch( Objet->m_Type )
@@ -407,7 +396,8 @@ static int getPriority( const NETLIST_OBJECT* Objet )
         case NET_LABEL: return 2;
         case NET_HIERLABEL: return 3;
         case NET_PINLABEL: return 4;
-        case NET_GLOBLABEL: return 5;
+        case NET_GLOBBUSLABELMEMBER: return 5;
+        case NET_GLOBLABEL: return 6;
         default: break;
     }
 
@@ -417,11 +407,23 @@ static int getPriority( const NETLIST_OBJECT* Objet )
 
 /* function evalLabelsPriority used by findBestNetNameForEachNet()
  * evalLabelsPriority calculates the priority of alabel1 and aLabel2
- * return true if alabel1 has a highter priority than aLabel2
+ * return true if alabel1 has a higher priority than aLabel2
  */
-static bool evalLabelsPriority( const NETLIST_OBJECT* aLabel1,
-                                 const NETLIST_OBJECT* aLabel2 )
+static bool evalLabelsPriority( const NETLIST_OBJECT* aLabel1, const NETLIST_OBJECT* aLabel2 )
 {
+    // Global labels have the highest prioriy.
+    // For local labels: names are prefixed by their sheetpath
+    // use name defined in the more top level hierarchical sheet
+    // (i.e. shorter timestamp path because paths are /<timestamp1>/<timestamp2>/...
+    // and timestamp = 8 letters.
+    // Note: the final net name uses human sheetpath name, not timestamp sheetpath name
+    // They are equivalent, but not for human readers.
+    if( ! aLabel1->IsLabelGlobal() && ! aLabel2->IsLabelGlobal() )
+    {
+        if( aLabel1->m_SheetPath.Path().Length() != aLabel2->m_SheetPath.Path().Length() )
+            return aLabel1->m_SheetPath.Path().Length() < aLabel2->m_SheetPath.Path().Length();
+    }
+
     int priority1 = getPriority( aLabel1 );
     int priority2 = getPriority( aLabel2 );
 
@@ -429,29 +431,22 @@ static bool evalLabelsPriority( const NETLIST_OBJECT* aLabel1,
         return priority1 > priority2;
 
     // Objects have here the same priority, therefore they have the same type.
-
     // for global labels, we select the best candidate by alphabetic order
     // because they have no sheetpath as prefix name
     // for other labels, we select them before by sheet deep order
     // because the actual name is /sheetpath/label
     // and for a given path length, by alphabetic order
-
-    if( aLabel1->m_Type == NET_PINLABEL || aLabel1->m_Type == NET_GLOBLABEL )
+    if( aLabel1->IsLabelGlobal() )
         return aLabel1->m_Label.Cmp( aLabel2->m_Label ) < 0;
 
-    // not global: names are prefixed by their sheetpath
-    // use name defined in higher hierarchical sheet
-    // (i.e. shorter path because paths are /<timestamp1>/<timestamp2>/...
-    // and timestamp = 8 letters.
-    if( aLabel1->m_SheetPath.Path().Length() != aLabel2->m_SheetPath.Path().Length() )
-        return aLabel1->m_SheetPath.Path().Length() < aLabel2->m_SheetPath.Path().Length();
-
-    // Sheet paths have the same length: use alphabetic label name order
+    // Sheet paths have here the same length: use alphabetic label name order
     // For labels on sheets having an equivalent deep in hierarchy, use
     // alphabetic label name order:
     if( aLabel1->m_Label.Cmp( aLabel2->m_Label ) != 0 )
         return aLabel1->m_Label.Cmp( aLabel2->m_Label ) < 0;
 
+    // For identical labels having the same priority: choose the
+    // alphabetic label full name order
     return aLabel1->m_SheetPath.PathHumanReadable().Cmp(
                 aLabel2->m_SheetPath.PathHumanReadable() ) < 0;
 }
@@ -459,6 +454,12 @@ static bool evalLabelsPriority( const NETLIST_OBJECT* aLabel1,
 
 void NETLIST_OBJECT_LIST::findBestNetNameForEachNet()
 {
+    // Important note: NET_SHEETLABEL items of sheet items should *NOT* be considered,
+    // because they live in a sheet but their names are actually used in the subsheet.
+    // Moreover, in the parent sheet, the name of NET_SHEETLABEL can be not unique,
+    // ( for instance when 2 different sheets share the same schematic in complex hierarchies
+    // and 2 identical NET_SHEETLABEL labels can be connected to 2 different nets
+
     int netcode = 0;            // current netcode for tested items
     unsigned idxstart = 0;      // index of the first item of this net
     NETLIST_OBJECT* item;
@@ -481,9 +482,10 @@ void NETLIST_OBJECT_LIST::findBestNetNameForEachNet()
                     GetItem( jj )->SetNetNameCandidate( candidate );
             }
 
-            if( item == NULL )
+            if( item == NULL )  // End of list
                 break;
 
+            // Prepare next net analysis:
             netcode = item->GetNet();
             candidate = NULL;
             idxstart = ii;
@@ -495,6 +497,7 @@ void NETLIST_OBJECT_LIST::findBestNetNameForEachNet()
         case NET_LABEL:
         case NET_PINLABEL:
         case NET_GLOBLABEL:
+        case NET_GLOBBUSLABELMEMBER:
             // A candidate is found: select the better between the previous
             // and this one
             if( candidate == NULL )
@@ -527,6 +530,7 @@ void NETLIST_OBJECT_LIST::findBestNetNameForEachNet()
     for( unsigned ii = 0; ii < size(); ii++ )
     {
         item = GetItem( ii );
+
         if( !item->HasNetNameCandidate() )
             list.push_back( item );
     }
@@ -566,7 +570,7 @@ void NETLIST_OBJECT_LIST::findBestNetNameForEachNet()
 
         // Examine all pins of the net to find the best candidate,
         // i.e. the first net name candidate, by alphabetic order
-        // the net names are names bu_ilt by GetShortNetName
+        // the net names are built by GetShortNetName
         // (Net-<{reference}-Pad{pad number}> like Net-<U3-Pad5>
         // Not named nets do not have usually a lot of members.
         // Many have only 2 members(a pad and a non connection symbol)
@@ -577,6 +581,7 @@ void NETLIST_OBJECT_LIST::findBestNetNameForEachNet()
             // changed each time the netlist is built (power components)
             // and anyway obviously they are not a good candidate
             SCH_COMPONENT* link = item->GetComponentParent();
+
             if( link && link->IsInNetlist() )
             {
                 // select the better between the previous and this one
@@ -613,12 +618,12 @@ void NETLIST_OBJECT_LIST::sheetLabelConnect( NETLIST_OBJECT* SheetLabel )
         if( ObjetNet->GetNet() == SheetLabel->GetNet() )
             continue;  //already connected.
 
-        if( CmpLabel_KEEPCASE( ObjetNet->m_Label, SheetLabel->m_Label ) != 0 )
+        if( ObjetNet->m_Label != SheetLabel->m_Label )
             continue;  //different names.
 
         // Propagate Netcode having all the objects of the same Netcode.
         if( ObjetNet->GetNet() )
-            propageNetCode( ObjetNet->GetNet(), SheetLabel->GetNet(), IS_WIRE );
+            propagateNetCode( ObjetNet->GetNet(), SheetLabel->GetNet(), IS_WIRE );
         else
             ObjetNet->SetNet( SheetLabel->GetNet() );
     }
@@ -627,16 +632,18 @@ void NETLIST_OBJECT_LIST::sheetLabelConnect( NETLIST_OBJECT* SheetLabel )
 
 void NETLIST_OBJECT_LIST::connectBusLabels()
 {
+    // Propagate the net code between all bus label member objects connected by they name.
+    // If the net code is not yet existing, a new one is created
+    // Search is done in the entire list
     for( unsigned ii = 0; ii < size(); ii++ )
     {
         NETLIST_OBJECT* Label = GetItem( ii );
 
-        if(  (Label->m_Type == NET_SHEETBUSLABELMEMBER)
-          || (Label->m_Type == NET_BUSLABELMEMBER)
-          || (Label->m_Type == NET_HIERBUSLABELMEMBER) )
+        if( Label->IsLabelBusMemberType() )
         {
             if( Label->GetNet() == 0 )
             {
+                // Not yet existiing net code: create a new one.
                 Label->SetNet( m_lastNetCode );
                 m_lastNetCode++;
             }
@@ -644,9 +651,8 @@ void NETLIST_OBJECT_LIST::connectBusLabels()
             for( unsigned jj = ii + 1; jj < size(); jj++ )
             {
                 NETLIST_OBJECT* LabelInTst =  GetItem( jj );
-                if( (LabelInTst->m_Type == NET_SHEETBUSLABELMEMBER)
-                   || (LabelInTst->m_Type == NET_BUSLABELMEMBER)
-                   || (LabelInTst->m_Type == NET_HIERBUSLABELMEMBER) )
+
+                if( LabelInTst->IsLabelBusMemberType() )
                 {
                     if( LabelInTst->m_BusNetCode != Label->m_BusNetCode )
                         continue;
@@ -655,9 +661,11 @@ void NETLIST_OBJECT_LIST::connectBusLabels()
                         continue;
 
                     if( LabelInTst->GetNet() == 0 )
+                        // Append this object to the current net
                         LabelInTst->SetNet( Label->GetNet() );
                     else
-                        propageNetCode( LabelInTst->GetNet(), Label->GetNet(), IS_WIRE );
+                        // Merge the 2 net codes, they are connected.
+                        propagateNetCode( LabelInTst->GetNet(), Label->GetNet(), IS_WIRE );
                 }
             }
         }
@@ -665,7 +673,7 @@ void NETLIST_OBJECT_LIST::connectBusLabels()
 }
 
 
-void NETLIST_OBJECT_LIST::propageNetCode( int aOldNetCode, int aNewNetCode, bool aIsBus )
+void NETLIST_OBJECT_LIST::propagateNetCode( int aOldNetCode, int aNewNetCode, bool aIsBus )
 {
     if( aOldNetCode == aNewNetCode )
         return;
@@ -693,8 +701,7 @@ void NETLIST_OBJECT_LIST::propageNetCode( int aOldNetCode, int aNewNetCode, bool
 }
 
 
-void NETLIST_OBJECT_LIST::pointToPointConnect( NETLIST_OBJECT* aRef, bool aIsBus,
-                                               int start )
+void NETLIST_OBJECT_LIST::pointToPointConnect( NETLIST_OBJECT* aRef, bool aIsBus, int start )
 {
     int netCode;
 
@@ -728,7 +735,7 @@ void NETLIST_OBJECT_LIST::pointToPointConnect( NETLIST_OBJECT* aRef, bool aIsBus
                     if( item->GetNet() == 0 )
                         item->SetNet( netCode );
                     else
-                        propageNetCode( item->GetNet(), netCode, IS_WIRE );
+                        propagateNetCode( item->GetNet(), netCode, IS_WIRE );
                 }
                 break;
 
@@ -780,7 +787,7 @@ void NETLIST_OBJECT_LIST::pointToPointConnect( NETLIST_OBJECT* aRef, bool aIsBus
                     if( item->m_BusNetCode == 0 )
                         item->m_BusNetCode = netCode;
                     else
-                        propageNetCode( item->m_BusNetCode, netCode, IS_BUS );
+                        propagateNetCode( item->m_BusNetCode, netCode, IS_BUS );
                 }
                 break;
             }
@@ -790,7 +797,7 @@ void NETLIST_OBJECT_LIST::pointToPointConnect( NETLIST_OBJECT* aRef, bool aIsBus
 
 
 void NETLIST_OBJECT_LIST::segmentToPointConnect( NETLIST_OBJECT* aJonction,
-                                                bool aIsBus, int aIdxStart )
+                                                 bool aIsBus, int aIdxStart )
 {
     for( unsigned i = aIdxStart; i < size(); i++ )
     {
@@ -817,14 +824,14 @@ void NETLIST_OBJECT_LIST::segmentToPointConnect( NETLIST_OBJECT* aJonction,
             if( aIsBus == IS_WIRE )
             {
                 if( segment->GetNet() )
-                    propageNetCode( segment->GetNet(), aJonction->GetNet(), aIsBus );
+                    propagateNetCode( segment->GetNet(), aJonction->GetNet(), aIsBus );
                 else
                     segment->SetNet( aJonction->GetNet() );
             }
             else
             {
                 if( segment->m_BusNetCode )
-                    propageNetCode( segment->m_BusNetCode, aJonction->m_BusNetCode, aIsBus );
+                    propagateNetCode( segment->m_BusNetCode, aJonction->m_BusNetCode, aIsBus );
                 else
                     segment->m_BusNetCode = aJonction->m_BusNetCode;
             }
@@ -864,11 +871,11 @@ void NETLIST_OBJECT_LIST::labelConnect( NETLIST_OBJECT* aLabelRef )
         // NET_PINLABEL is a kind of global label (generated by a power pin invisible)
         if( item->IsLabelType() )
         {
-            if( CmpLabel_KEEPCASE( item->m_Label, aLabelRef->m_Label ) != 0 )
+            if( item->m_Label != aLabelRef->m_Label )
                 continue;
 
             if( item->GetNet() )
-                propageNetCode( item->GetNet(), aLabelRef->GetNet(), IS_WIRE );
+                propagateNetCode( item->GetNet(), aLabelRef->GetNet(), IS_WIRE );
             else
                 item->SetNet( aLabelRef->GetNet() );
         }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,7 +53,7 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateAndShowItem( const wxPoint& aPosition, const KIC
 {
     SCH_ITEM*      item;
     LIB_PIN*       Pin     = NULL;
-    SCH_COMPONENT* LibItem = NULL;
+    SCH_COMPONENT* component = NULL;
     wxPoint        gridPosition = GetNearestGridPosition( aPosition );
 
     // Check the on grid position first.  There is more likely to be multiple items on
@@ -82,18 +82,18 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateAndShowItem( const wxPoint& aPosition, const KIC
     {
     case SCH_FIELD_T:
     case LIB_FIELD_T:
-        LibItem = (SCH_COMPONENT*) item->GetParent();
-        SendMessageToPCBNEW( item, LibItem );
+        component = (SCH_COMPONENT*) item->GetParent();
+        SendMessageToPCBNEW( item, component );
         break;
 
     case SCH_COMPONENT_T:
-        LibItem = (SCH_COMPONENT*) item;
-        SendMessageToPCBNEW( item, LibItem );
+        component = (SCH_COMPONENT*) item;
+        SendMessageToPCBNEW( item, component );
         break;
 
     case LIB_PIN_T:
         Pin = (LIB_PIN*) item;
-        LibItem = (SCH_COMPONENT*) LocateItem( aPosition, SCH_COLLECTOR::ComponentsOnly );
+        component = (SCH_COMPONENT*) LocateItem( aPosition, SCH_COLLECTOR::ComponentsOnly );
         break;
 
     default:
@@ -105,16 +105,12 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateAndShowItem( const wxPoint& aPosition, const KIC
         // Force display pin information (the previous display could be a component info)
         MSG_PANEL_ITEMS items;
 
-        Pin->GetMsgPanelInfo( items );
-
-        if( LibItem )
-            items.push_back( MSG_PANEL_ITEM( LibItem->GetRef( m_CurrentSheet->Last() ),
-                                             LibItem->GetField( VALUE )->GetShownText(), DARKCYAN ) );
+        Pin->GetMsgPanelInfo( items, component );
 
         SetMsgPanel( items );
 
         // Cross probing:2 - pin found, and send a locate pin command to Pcbnew (highlight net)
-        SendMessageToPCBNEW( Pin, LibItem );
+        SendMessageToPCBNEW( Pin, component );
     }
 
     return item;
@@ -150,6 +146,17 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateItem( const wxPoint& aPosition, const KICAD_T aF
                 {
                     item = m_collectedItems[0];
                 }
+                break;
+
+            case HK_MOVE_COMPONENT_OR_ITEM:
+                if( m_collectedItems.GetCount() == 2 &&
+                        dynamic_cast< SCH_SHEET_PIN * >( m_collectedItems[0] ) &&
+                        dynamic_cast< SCH_SHEET * >( m_collectedItems[1] ) )
+                {
+                    item = m_collectedItems[0];
+                }
+                break;
+
             default:
                 ;
             }
@@ -161,9 +168,9 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateItem( const wxPoint& aPosition, const KICAD_T aF
                           wxT( "Select item clarification context menu size limit exceeded." ) );
 
             wxMenu selectMenu;
-            wxMenuItem* title = new wxMenuItem( &selectMenu, wxID_NONE, _( "Clarify Selection" ) );
 
-            selectMenu.Append( title );
+            AddMenuItem( &selectMenu, wxID_NONE, _( "Clarify Selection" ),
+                         KiBitmap( dismiss_xpm ) );
             selectMenu.AppendSeparator();
 
             for( int i = 0;  i < m_collectedItems.GetCount() && i < MAX_SELECT_ITEM_IDS;  i++ )
@@ -173,7 +180,7 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateItem( const wxPoint& aPosition, const KICAD_T aF
                 AddMenuItem( &selectMenu, ID_SELECT_ITEM_START + i, text, KiBitmap( xpm ) );
             }
 
-            // Set to NULL in case user aborts the clarification context menu.
+            // Set to NULL in case the user aborts the clarification context menu.
             GetScreen()->SetCurItem( NULL );
             m_canvas->SetAbortRequest( true );   // Changed to false if an item is selected
             PopupMenu( &selectMenu );
@@ -187,7 +194,7 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateItem( const wxPoint& aPosition, const KICAD_T aF
     if( item )
     {
         if( item->Type() == SCH_COMPONENT_T )
-            ( (SCH_COMPONENT*) item )->SetCurrentSheet( GetCurrentSheet().Last() );
+            ( (SCH_COMPONENT*) item )->SetCurrentSheetPath( &GetCurrentSheet() );
 
         MSG_PANEL_ITEMS items;
         item->GetMsgPanelInfo( items );

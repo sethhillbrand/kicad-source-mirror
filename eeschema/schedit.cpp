@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -187,8 +187,10 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         DeleteConnection( id == ID_POPUP_SCH_DELETE_CONNECTION );
         screen->SetCurItem( NULL );
         SetRepeatItem( NULL );
-        screen->TestDanglingEnds( m_canvas, &dc );
+
+        screen->TestDanglingEnds();
         m_canvas->Refresh();
+
         break;
 
     case ID_POPUP_SCH_BREAK_WIRE:
@@ -215,7 +217,8 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 SaveCopyInUndoList( oldItems, UR_WIRE_IMAGE );
             }
 
-            screen->TestDanglingEnds( m_canvas, &dc );
+            if( screen->TestDanglingEnds() )
+                m_canvas->Refresh();
         }
         break;
 
@@ -227,8 +230,9 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         DeleteItem( item );
         screen->SetCurItem( NULL );
         SetRepeatItem( NULL );
-        screen->TestDanglingEnds( m_canvas, &dc );
+        screen->TestDanglingEnds();
         SetSheetNumberAndCount();
+        m_canvas->Refresh();
         OnModify();
         break;
 
@@ -239,7 +243,10 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
     case ID_POPUP_SCH_RESIZE_SHEET:
         ReSizeSheet( (SCH_SHEET*) item, &dc );
-        screen->TestDanglingEnds( m_canvas, &dc );
+
+        if( screen->TestDanglingEnds() )
+            m_canvas->Refresh();
+
         break;
 
     case ID_POPUP_IMPORT_HLABEL_TO_SHEETPIN:
@@ -292,7 +299,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         {
             if( PART_LIBS* libs = Prj().SchLibs() )
             {
-                LIB_ALIAS* entry = libs->FindLibraryEntry( ( (SCH_COMPONENT*) item )->GetPartName() );
+                LIB_ALIAS* entry = libs->FindLibraryAlias( ( (SCH_COMPONENT*) item )->GetPartName() );
 
                 if( entry && !!entry->GetDocFileName() )
                 {
@@ -308,7 +315,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
 
         if( item && (item->Type() == SCH_SHEET_T) )
         {
-            m_CurrentSheet->Push( (SCH_SHEET*) item );
+            m_CurrentSheet->push_back( (SCH_SHEET*) item );
             DisplayCurrentSheet();
         }
 
@@ -317,7 +324,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_SCH_LEAVE_SHEET:
         if( m_CurrentSheet->Last() != g_RootSheet )
         {
-            m_CurrentSheet->Pop();
+            m_CurrentSheet->pop_back();
             DisplayCurrentSheet();
         }
 
@@ -375,7 +382,10 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
     case ID_POPUP_SCH_ADD_JUNCTION:
         m_canvas->MoveCursorToCrossHair();
         screen->SetCurItem( AddJunction( &dc, GetCrossHairPosition(), true ) );
-        screen->TestDanglingEnds( m_canvas, &dc );
+
+        if( screen->TestDanglingEnds() )
+            m_canvas->Refresh();
+
         screen->SetCurItem( NULL );
         break;
 
@@ -519,6 +529,10 @@ void SCH_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         SetToolID( id, m_canvas->GetDefaultCursor(), _( "No tool selected" ) );
         break;
 
+    case ID_ZOOM_SELECTION:
+        SetToolID( id, wxCURSOR_MAGNIFIER, _( "Zoom to selection" ) );
+        break;
+
     case ID_HIERARCHY_PUSH_POP_BUTT:
         SetToolID( id, wxCURSOR_HAND, _( "Descend or ascend hierarchy" ) );
         break;
@@ -595,6 +609,18 @@ void SCH_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         SetToolID( id, wxCURSOR_BULLSEYE, _( "Delete item" ) );
         break;
 
+#ifdef KICAD_SPICE
+    case ID_SIM_PROBE:
+        SetToolID( id, -1, _( "Add a simulator probe" ) );
+        m_canvas->SetCursor( CURSOR_PROBE );
+        break;
+
+    case ID_SIM_TUNE:
+        SetToolID( id, -1, _( "Select a value to be tuned" ) );
+        m_canvas->SetCursor( CURSOR_TUNE );
+        break;
+#endif /* KICAD_SPICE */
+
     default:
         SetRepeatItem( NULL );
     }
@@ -648,8 +674,8 @@ bool SCH_EDIT_FRAME::DeleteItemAtCrossHair( wxDC* DC )
         SetRepeatItem( NULL );
         DeleteItem( item );
 
-        if( itemHasConnections )
-            screen->TestDanglingEnds( m_canvas, DC );
+        if( itemHasConnections && screen->TestDanglingEnds() )
+            m_canvas->Refresh();
 
         OnModify();
         return true;
@@ -786,7 +812,15 @@ void SCH_EDIT_FRAME::PrepareMoveItem( SCH_ITEM* aItem, wxDC* aDC )
         aItem->SetStoredPos( wxPoint( 0,0 ) );
     }
     else
-        aItem->SetStoredPos( GetCrossHairPosition() - aItem->GetPosition() );
+    {
+        // Round the point under the cursor to a multiple of the grid
+        wxPoint cursorpos = GetCrossHairPosition() - aItem->GetPosition();
+        wxPoint gridsize = GetScreen()->GetGridSize();
+        cursorpos.x = ( cursorpos.x / gridsize.x ) * gridsize.x;
+        cursorpos.y = ( cursorpos.y / gridsize.y ) * gridsize.y;
+
+        aItem->SetStoredPos( cursorpos );
+    }
 
     OnModify();
 
@@ -855,18 +889,20 @@ void SCH_EDIT_FRAME::OnRotate( wxCommandEvent& aEvent )
     case SCH_GLOBAL_LABEL_T:
     case SCH_HIERARCHICAL_LABEL_T:
         m_canvas->MoveCursorToCrossHair();
-        ChangeTextOrient( (SCH_TEXT*) item, &dc );
+        ChangeTextOrient( (SCH_TEXT*) item );
+        m_canvas->Refresh();
         break;
 
     case SCH_FIELD_T:
         m_canvas->MoveCursorToCrossHair();
-        RotateField( (SCH_FIELD*) item, &dc );
+        RotateField( (SCH_FIELD*) item );
         if( item->GetParent()->Type() == SCH_COMPONENT_T )
         {
             // Now that we're moving a field, they're no longer autoplaced.
             SCH_COMPONENT *parent = static_cast<SCH_COMPONENT*>( item->GetParent() );
             parent->ClearFieldsAutoplaced();
         }
+        m_canvas->Refresh();
         break;
 
     case SCH_BITMAP_T:
@@ -983,7 +1019,7 @@ void SCH_EDIT_FRAME::OnEditItem( wxCommandEvent& aEvent )
     }
 
     case SCH_SHEET_T:
-        if( EditSheet( (SCH_SHEET*) item, m_CurrentSheet->Last() ) )
+        if( EditSheet( (SCH_SHEET*) item, m_CurrentSheet ) )
             m_canvas->Refresh();
         break;
 

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,12 +41,12 @@
 #include <project.h>
 
 
-bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET* aHierarchy )
+bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy )
 {
     if( aSheet == NULL || aHierarchy == NULL )
         return false;
 
-    SCH_SHEET_LIST hierarchy;       // This is the schematic sheet hierarchy.
+    SCH_SHEET_LIST hierarchy( g_RootSheet );       // This is the schematic sheet hierarchy.
 
     // Get the new texts
     DIALOG_SCH_SHEET_PROPS dlg( this );
@@ -86,7 +86,7 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET* aHierarchy )
     }
 
     // Duplicate sheet names are not valid.
-    const SCH_SHEET* sheet = g_RootSheet->FindSheetByName( dlg.GetSheetName() );
+    const SCH_SHEET* sheet = hierarchy.FindSheetByName( dlg.GetSheetName() );
 
     if( sheet && (sheet != aSheet) )
     {
@@ -235,16 +235,15 @@ bool SCH_EDIT_FRAME::EditSheet( SCH_SHEET* aSheet, SCH_SHEET* aHierarchy )
                                            (long unsigned) aSheet->GetTimeStamp() ) );
 
     // Make sure the sheet changes do not cause any recursion.
-    std::vector< std::vector< const SCH_SHEET* > > sheetHierarchy;
-    aSheet->GetSheetPaths( sheetHierarchy );
+    SCH_SHEET_LIST sheetHierarchy( aSheet );
 
     // Make sure files have fully qualified path and file name.
-    wxFileName destFn = aHierarchy->GetFileName();
+    wxFileName destFn = aHierarchy->Last()->GetFileName();
 
     if( destFn.IsRelative() )
         destFn.MakeAbsolute( Prj().GetProjectPath() );
 
-    if( g_RootSheet->TestForRecursion( sheetHierarchy, destFn.GetFullPath( wxPATH_UNIX ) ) )
+    if( hierarchy.TestForRecursion( sheetHierarchy, destFn.GetFullPath( wxPATH_UNIX ) ) )
     {
         msg.Printf( _( "The sheet changes cannot be made because the destination sheet already "
                        "has the sheet <%s> or one of it's subsheets as a parent somewhere in "
@@ -358,7 +357,7 @@ SCH_SHEET* SCH_EDIT_FRAME::CreateSheet( wxDC* aDC )
 
     sheet->SetFlags( IS_NEW | IS_RESIZED );
     sheet->SetTimeStamp( GetNewTimeStamp() );
-    sheet->SetParent( GetCurrentSheet().Last() );
+    sheet->SetParent( GetScreen() );
     sheet->SetScreen( NULL );
 
     // need to check if this is being added to the GetDrawItems().

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun 17 2015)
+// C++ code generated with wxFormBuilder (version May 10 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -47,12 +47,10 @@ class DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE : public DIALOG_SHIM
 			wxID_CURSOR_SHAPE,
 			wxID_DRC_ONOFF,
 			wxID_GENERAL_RATSNEST,
-			wxID_RATSNEST_MODULE,
 			wxID_TRACK_AUTODEL,
 			wxID_TRACKS45,
 			wxID_SEGMENTS45,
 			wxID_MAGNETIC_TRACKS,
-			wxID_MIDDLEBUTTONPAN,
 			wxID_AUTOPAN
 		};
 		
@@ -63,13 +61,10 @@ class DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE : public DIALOG_SHIM
 		wxSpinCtrl* m_MaxShowLinks;
 		wxStaticText* m_staticTextautosave;
 		wxSpinCtrl* m_SaveTime;
-		wxStaticText* m_stMaxUndoItems;
-		wxSpinCtrl* m_spinMaxUndoItems;
 		wxStaticText* m_staticTextRotationAngle;
 		wxTextCtrl* m_RotationAngle;
 		wxCheckBox* m_DrcOn;
 		wxCheckBox* m_ShowGlobalRatsnest;
-		wxCheckBox* m_ShowModuleRatsnest;
 		wxCheckBox* m_TrackAutodel;
 		wxCheckBox* m_Track_45_Only_Ctrl;
 		wxCheckBox* m_Segments_45_Only_Ctrl;
@@ -77,17 +72,14 @@ class DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE : public DIALOG_SHIM
 		wxRadioBox* m_MagneticPadOptCtrl;
 		wxRadioBox* m_MagneticTrackOptCtrl;
 		wxCheckBox* m_ZoomCenterOpt;
-		wxCheckBox* m_MiddleButtonPANOpt;
-		wxCheckBox* m_OptMiddleButtonPanLimited;
+		wxCheckBox* m_MousewheelPANOpt;
 		wxCheckBox* m_AutoPANOpt;
-		wxCheckBox* m_DumpZonesWhenFilling;
 		wxStaticLine* m_staticline1;
 		wxStdDialogButtonSizer* m_sdbSizer;
 		wxButton* m_sdbSizerOK;
 		wxButton* m_sdbSizerCancel;
 		
 		// Virtual event handlers, overide them in your derived class
-		virtual void OnMiddleBtnPanEnbl( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnCancelClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnOkClick( wxCommandEvent& event ) { event.Skip(); }
 		

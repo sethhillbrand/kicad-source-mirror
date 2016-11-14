@@ -33,6 +33,9 @@
 #include <lib_draw_item.h>
 
 
+class SCH_LEGACY_PLUGIN_CACHE;
+
+
 /**
  * Class LIB_FIELD
  * is used in symbol libraries.  At least MANDATORY_FIELDS are always present
@@ -72,14 +75,16 @@ class LIB_FIELD : public LIB_ITEM, public EDA_TEXT
      */
     void drawGraphic( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
                       EDA_COLOR_T aColor, GR_DRAWMODE aDrawMode, void* aData,
-                      const TRANSFORM& aTransform );
+                      const TRANSFORM& aTransform ) override;
 
     /**
      * Calculate the new circle at \a aPosition when editing.
      *
      * @param aPosition - The position to edit the circle in drawing coordinates.
      */
-    void calcEdit( const wxPoint& aPosition );
+    void calcEdit( const wxPoint& aPosition ) override;
+
+    friend class SCH_LEGACY_PLUGIN_CACHE;   // Required to access m_name.
 
 public:
 
@@ -91,7 +96,7 @@ public:
 
     ~LIB_FIELD();
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "LIB_FIELD" );
     }
@@ -128,15 +133,15 @@ public:
      */
     void SetName( const wxString& aName );
 
-    int GetId() { return m_id; }
+    int GetId() const { return m_id; }
 
     void SetId( int aId ) { m_id = aId; }
 
-    int GetPenSize( ) const;
+    int GetPenSize( ) const override;
 
-    bool Save( OUTPUTFORMATTER& aFormatter );
+    bool Save( OUTPUTFORMATTER& aFormatter ) override;
 
-    bool Load( LINE_READER& aLineReader, wxString& errorMsg );
+    bool Load( LINE_READER& aLineReader, wxString& errorMsg ) override;
 
     /**
      * Copy parameters of this field to another field. Pointers are not copied.
@@ -165,13 +170,13 @@ public:
         return (m_Attributs & TEXT_NO_VISIBLE) == 0 ? true : false;
     }
 
-    const EDA_RECT GetBoundingBox() const;    // Virtual
+    const EDA_RECT GetBoundingBox() const override;
 
-    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
-    bool HitTest( const wxPoint& aPosition ) const;
+    bool HitTest( const wxPoint& aPosition ) const override;
 
-    bool HitTest( const wxPoint &aPosition, int aThreshold, const TRANSFORM& aTransform ) const;
+    bool HitTest( const wxPoint &aPosition, int aThreshold, const TRANSFORM& aTransform ) const override;
 
     void operator=( const LIB_FIELD& field )
     {
@@ -205,15 +210,15 @@ public:
      */
     wxString GetFullText( int unit = 1 );
 
-    EDA_COLOR_T GetDefaultColor();
+    EDA_COLOR_T GetDefaultColor() override;
 
-    void BeginEdit( STATUS_FLAGS aEditMode, const wxPoint aStartPoint = wxPoint( 0, 0 ) );
+    void BeginEdit( STATUS_FLAGS aEditMode, const wxPoint aStartPoint = wxPoint( 0, 0 ) ) override;
 
-    bool ContinueEdit( const wxPoint aNextPoint );
+    bool ContinueEdit( const wxPoint aNextPoint ) override;
 
-    void EndEdit( const wxPoint& aPosition, bool aAbort = false );
+    void EndEdit( const wxPoint& aPosition, bool aAbort = false ) override;
 
-    void Rotate();
+    void Rotate() override;
 
     /**
      * Sets the field text to \a aText.
@@ -226,34 +231,34 @@ public:
      *
      * @param aText - New text value.
      */
-    void SetText( const wxString& aText );
+    void SetText( const wxString& aText ) override;
 
-    void SetOffset( const wxPoint& aOffset );
+    void SetOffset( const wxPoint& aOffset ) override;
 
-    bool Inside( EDA_RECT& aRect ) const;
+    bool Inside( EDA_RECT& aRect ) const override;
 
-    void Move( const wxPoint& aPosition );
+    void Move( const wxPoint& aPosition ) override;
 
-    wxPoint GetPosition() const { return m_Pos; }
+    wxPoint GetPosition() const override { return m_Pos; }
 
-    void MirrorHorizontal( const wxPoint& aCenter );
+    void MirrorHorizontal( const wxPoint& aCenter ) override;
 
-    void MirrorVertical( const wxPoint& aCenter );
+    void MirrorVertical( const wxPoint& aCenter ) override;
 
-    void Rotate( const wxPoint& aCenter, bool aRotateCCW = true );
+    void Rotate( const wxPoint& aCenter, bool aRotateCCW = true ) override;
 
     void Plot( PLOTTER* aPlotter, const wxPoint& aOffset, bool aFill,
-               const TRANSFORM& aTransform );
+               const TRANSFORM& aTransform ) override;
 
-    int GetWidth() const { return m_Thickness; }
+    int GetWidth() const override { return m_Thickness; }
 
-    void SetWidth( int aWidth ) { m_Thickness = aWidth; }
+    void SetWidth( int aWidth ) override { m_Thickness = aWidth; }
 
-    wxString GetSelectMenuText() const;
+    wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const { return  move_field_xpm; }
+    BITMAP_DEF GetMenuImage() const override { return  move_field_xpm; }
 
-    EDA_ITEM* Clone() const;
+    EDA_ITEM* Clone() const override;
 
 private:
 
@@ -269,7 +274,7 @@ private:
      *      - Field width.
      *      - Field height.
      */
-    int compare( const LIB_ITEM& aOther ) const;
+    int compare( const LIB_ITEM& aOther ) const override;
 };
 
 typedef std::vector< LIB_FIELD > LIB_FIELDS;

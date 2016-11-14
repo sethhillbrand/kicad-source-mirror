@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Dec 28 2015)
+// C++ code generated with wxFormBuilder (version May 10 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -47,7 +47,6 @@ class DIALOG_EESCHEMA_OPTIONS_BASE : public DIALOG_SHIM
 		// Private event handlers
 		void _wxFB_OnSize( wxSizeEvent& event ){ OnSize( event ); }
 		void _wxFB_OnChooseUnits( wxCommandEvent& event ){ OnChooseUnits( event ); }
-		void _wxFB_OnMiddleBtnPanEnbl( wxCommandEvent& event ){ OnMiddleBtnPanEnbl( event ); }
 		void _wxFB_OnAddButtonClick( wxCommandEvent& event ){ OnAddButtonClick( event ); }
 		void _wxFB_OnDeleteButtonClick( wxCommandEvent& event ){ OnDeleteButtonClick( event ); }
 		
@@ -93,9 +92,6 @@ class DIALOG_EESCHEMA_OPTIONS_BASE : public DIALOG_SHIM
 		wxStaticText* m_staticText7;
 		wxSpinCtrl* m_spinTextSize;
 		wxStaticText* m_staticTextSizeUnits;
-		wxStaticText* m_stMaxUndoItems;
-		wxSpinCtrl* m_spinMaxUndoItems;
-		wxStaticText* m_staticText22;
 		wxStaticText* m_staticText221;
 		wxSpinCtrl* m_spinAutoSaveInterval;
 		wxStaticText* m_staticText23;
@@ -109,8 +105,7 @@ class DIALOG_EESCHEMA_OPTIONS_BASE : public DIALOG_SHIM
 		wxStaticText* m_staticText21;
 		wxPanel* m_panelHotkeys;
 		wxCheckBox* m_checkEnableZoomCenter;
-		wxCheckBox* m_checkEnableMiddleButtonPan;
-		wxCheckBox* m_checkMiddleButtonPanLimited;
+		wxCheckBox* m_checkEnableMousewheelPan;
 		wxCheckBox* m_checkAutoPan;
 		wxPanel* m_tabColors;
 		wxPanel* m_panelColors;
@@ -125,7 +120,6 @@ class DIALOG_EESCHEMA_OPTIONS_BASE : public DIALOG_SHIM
 		// Virtual event handlers, overide them in your derived class
 		virtual void OnSize( wxSizeEvent& event ) { event.Skip(); }
 		virtual void OnChooseUnits( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnMiddleBtnPanEnbl( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnAddButtonClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnDeleteButtonClick( wxCommandEvent& event ) { event.Skip(); }
 		

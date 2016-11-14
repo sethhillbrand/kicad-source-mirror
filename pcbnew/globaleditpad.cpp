@@ -59,9 +59,9 @@ public:
     DIALOG_GLOBAL_PADS_EDITION( PCB_BASE_FRAME* aParent, D_PAD* aPad );
 
 private:
-    void InstallPadEditor( wxCommandEvent& event );
-    void PadPropertiesAccept( wxCommandEvent& event );
-    void OnCancelClick( wxCommandEvent& event );
+    void InstallPadEditor( wxCommandEvent& event ) override;
+    void PadPropertiesAccept( wxCommandEvent& event ) override;
+    void OnCancelClick( wxCommandEvent& event ) override;
 };
 
 
@@ -369,7 +369,6 @@ void PCB_BASE_FRAME::GlobalChange_PadSettings( D_PAD* aPad,
             case PAD_ATTRIB_SMD:
             case PAD_ATTRIB_CONN:
                 pad->SetDrillSize( wxSize( 0, 0 ) );
-                pad->SetOffset( wxPoint( 0, 0 ) );
                 break;
 
             default:

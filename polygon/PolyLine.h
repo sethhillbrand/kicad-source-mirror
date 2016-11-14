@@ -104,6 +104,8 @@ public:
     { return (x != cpt2.x) || (y != cpt2.y) || (end_contour != cpt2.end_contour); }
 };
 
+
+#ifndef SWIG
 /**
  * CPOLYGONS_LIST handle a list of contours (polygons corners).
  * Each corner is a CPolyPt item.
@@ -205,6 +207,8 @@ public:
      */
     int GetContoursCount() const;
 };
+#endif
+
 
 class CPolyLine
 {
@@ -422,6 +426,7 @@ public:
     /**
      * Function NormalizeAreaOutlines
      * Convert a self-intersecting polygon to one (or more) non self-intersecting polygon(s)
+     * Removes null segments.
      * @param aNewPolygonList = a std::vector<CPolyLine*> reference where to store new CPolyLine
      * needed by the normalization
      * @return the polygon count (always >= 1, because there is at least one polygon)

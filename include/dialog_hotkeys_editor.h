@@ -44,8 +44,8 @@ protected:
 
     WIDGET_HOTKEY_LIST* m_hotkeyListCtrl;
 
-    bool TransferDataToWindow();
-    bool TransferDataFromWindow();
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
 
     virtual EDA_BASE_FRAME* GetParent()
     {
@@ -65,7 +65,15 @@ private:
      *
      * @param aEvent is the button press event, unused
      */
-    void ResetClicked( wxCommandEvent& aEvent );
+    void ResetClicked( wxCommandEvent& aEvent ) override;
+
+    /**
+     * Function DefaultsClicked
+     * Set the hotkeys to the default values (values after installation)
+     *
+     * @param aEvent is the button press event, unused
+     */
+    void DefaultsClicked( wxCommandEvent& aEvent ) override;
 };
 
 /**

@@ -1,8 +1,3 @@
-/**
- * @file kicad/kicad.h
- * @brief KICAD_MANAGER_FRAME is the KiCad main frame.
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -27,18 +22,20 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+/**
+ * @file kicad/kicad.h
+ * @brief KICAD_MANAGER_FRAME is the KiCad main frame.
+ */
+
 #ifndef KICAD_H
 #define KICAD_H
 
-#include <vector>
 
-#include <wx/treectrl.h>
-#include <wx/dragimag.h>
-#include <wx/filename.h>
 #include <wx/process.h>
 
 #include <id.h>
 #include <wxstruct.h>
+
 
 #define KICAD_MANAGER_FRAME_NAME   wxT( "KicadFrame" )
 
@@ -191,7 +188,7 @@ public:
 
     void Process_Config( wxCommandEvent& event );
 
-    void ReCreateMenuBar();
+    void ReCreateMenuBar() override;
     void RecreateBaseHToolbar();
 
     /**
@@ -224,9 +221,9 @@ public:
 
     void CreateNewProject( const wxString& aPrjFullFileName, bool aTemplateSelector );
 
-    void LoadSettings( wxConfigBase* aCfg );
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
     /**
      * Function Execute
@@ -241,15 +238,15 @@ public:
     class TERMINATE_HANDLER : public wxProcess
     {
     private:
-        wxString appName;
+        wxString m_appName;
 
     public:
         TERMINATE_HANDLER( const wxString& appName ) :
-            appName(appName)
+            m_appName(appName)
         {
         }
 
-        void OnTerminate( int pid, int status );
+        void OnTerminate( int pid, int status ) override;
     };
 
     /**
@@ -281,11 +278,11 @@ public:
 
 private:
 
-    wxConfigBase*       config();       // override EDA_BASE_FRAME virtual
+    wxConfigBase*       config() override;
 
-    const SEARCH_STACK& sys_search();   // override EDA_BASE_FRAME virtual
+    const SEARCH_STACK& sys_search() override;
 
-    wxString help_name();               // override EDA_BASE_FRAME virtual
+    wxString help_name() override;
 
     TREE_PROJECT_FRAME* m_LeftWin;
     LAUNCHER_PANEL*     m_Launcher;
@@ -311,7 +308,7 @@ private:
                                              *  of the first bitmap button
                                              */
     wxPoint m_buttonLastPosition;           // position of the last button in the window
-    int     m_bitmapButtons_maxHeigth;      // height of bigger bitmap buttons
+    int     m_bitmapButtons_maxHeight;      // height of bigger bitmap buttons
                                             // Used to calculate the height of the panel.
 
 public: LAUNCHER_PANEL( wxWindow* parent );

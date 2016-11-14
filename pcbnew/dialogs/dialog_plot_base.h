@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jan  1 2016)
+// C++ code generated with wxFormBuilder (version Sep  8 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -92,7 +92,8 @@ class DIALOG_PLOT_BASE : public DIALOG_SHIM
 		wxStaticText* m_SolderMaskMinWidthCurrValue;
 		wxStaticBoxSizer* m_GerberOptionsSizer;
 		wxCheckBox* m_useGerberExtensions;
-		wxCheckBox* m_useGerberAttributes;
+		wxCheckBox* m_useGerberX2Attributes;
+		wxCheckBox* m_useGerberNetAttributes;
 		wxCheckBox* m_subtractMaskFromSilk;
 		wxRadioBox* m_rbGerberFormat;
 		wxStaticBoxSizer* m_HPGLOptionsSizer;
@@ -109,6 +110,7 @@ class DIALOG_PLOT_BASE : public DIALOG_SHIM
 		WX_HTML_REPORT_PANEL* m_messagesPanel;
 		wxButton* m_plotButton;
 		wxButton* m_buttonDrill;
+		wxButton* m_buttonDRC;
 		wxButton* m_buttonQuit;
 		wxMenu* m_popMenu;
 		
@@ -121,13 +123,14 @@ class DIALOG_PLOT_BASE : public DIALOG_SHIM
 		virtual void OnSetScaleOpt( wxCommandEvent& event ) { event.Skip(); }
 		virtual void Plot( wxCommandEvent& event ) { event.Skip(); }
 		virtual void CreateDrillFile( wxCommandEvent& event ) { event.Skip(); }
+		virtual void onRunDRC( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnQuit( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnPopUpLayers( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:
 		
-		DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Plot"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 566,618 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_PLOT_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Plot"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 733,673 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_PLOT_BASE();
 		
 		void DIALOG_PLOT_BASEOnContextMenu( wxMouseEvent &event )

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun  5 2014)
+// C++ code generated with wxFormBuilder (version May  6 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -66,7 +66,7 @@ class DIALOG_MODULE_BOARD_EDITOR_BASE : public DIALOG_SHIM
 		wxRadioBox* m_LayerCtrl;
 		wxRadioBox* m_OrientCtrl;
 		wxStaticText* m_staticTextRotation;
-		wxTextCtrl* m_OrientValue;
+		wxTextCtrl* m_OrientValueCtrl;
 		wxStaticText* m_staticTextPos;
 		wxStaticText* m_XPosLabel;
 		wxTextCtrl* m_ModPositionX;
@@ -103,39 +103,32 @@ class DIALOG_MODULE_BOARD_EDITOR_BASE : public DIALOG_SHIM
 		wxTextCtrl* m_SolderPasteMarginRatioCtrl;
 		wxStaticText* m_SolderPasteRatioMarginUnits;
 		wxPanel* m_Panel3D;
-		wxStaticText* m_staticText3Dname;
+		wxBoxSizer* bSizerMain3D;
 		wxListBox* m_3D_ShapeNameListBox;
-		wxStaticText* m_staticTextDefault3DPath;
-		wxTextCtrl* m_textCtrl3DDefaultPath;
-		wxBoxSizer* m_bSizerShapeScale;
-		wxStaticText* m_staticTextShapeScale;
-		wxBoxSizer* m_bSizerShapeOffset;
-		wxStaticText* m_staticTextShapeOffset;
-		wxBoxSizer* m_bSizerShapeRotation;
-		wxStaticText* m_staticTextShapeRotation;
 		wxButton* m_buttonAdd;
 		wxButton* m_buttonRemove;
 		wxButton* m_buttonEdit;
+		wxButton* m_button8;
+		wxBoxSizer* bLowerSizer3D;
 		wxStdDialogButtonSizer* m_sdbSizerStdButtons;
 		wxButton* m_sdbSizerStdButtonsOK;
 		wxButton* m_sdbSizerStdButtonsCancel;
 		
 		// Virtual event handlers, overide them in your derived class
+		virtual void OnInitDlg( wxInitDialogEvent& event ) { event.Skip(); }
 		virtual void OnEditReference( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnEditValue( wxCommandEvent& event ) { event.Skip(); }
 		virtual void ModuleOrientEvent( wxCommandEvent& event ) { event.Skip(); }
 		virtual void ExchangeModule( wxCommandEvent& event ) { event.Skip(); }
 		virtual void GotoModuleEditor( wxCommandEvent& event ) { event.Skip(); }
 		virtual void On3DShapeNameSelected( wxCommandEvent& event ) { event.Skip(); }
+		virtual void Edit3DShapeFilename( wxCommandEvent& event ) { event.Skip(); }
 		virtual void Add3DShape( wxCommandEvent& event ) { event.Skip(); }
 		virtual void Remove3DShape( wxCommandEvent& event ) { event.Skip(); }
-		virtual void Edit3DShapeFilename( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnCancelClick( wxCommandEvent& event ) { event.Skip(); }
-		virtual void OnOkClick( wxCommandEvent& event ) { event.Skip(); }
+		virtual void Cfg3DPath( wxCommandEvent& event ) { event.Skip(); }
 		
 	
 	public:
-		wxStaticBoxSizer* m_Sizer3DValues;
 		
 		DIALOG_MODULE_BOARD_EDITOR_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Footprint Properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_MODULE_BOARD_EDITOR_BASE();

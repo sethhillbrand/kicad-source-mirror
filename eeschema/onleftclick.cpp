@@ -28,9 +28,11 @@
  */
 
 #include <fctsys.h>
+#include <kiway.h>
 #include <eeschema_id.h>
 #include <class_drawpanel.h>
 #include <schframe.h>
+#include <sim/sim_plot_frame.h>
 #include <menus_helpers.h>
 
 #include <sch_bus_entry.h>
@@ -43,6 +45,8 @@
 #include <sch_sheet.h>
 #include <sch_sheet_path.h>
 #include <sch_bitmap.h>
+
+#include <class_netlist_object.h>
 #include <class_library.h>      // fo class SCHLIB_FILTER to filter power parts
 
 
@@ -98,11 +102,6 @@ void SCH_EDIT_FRAME::OnLeftClick( wxDC* aDC, const wxPoint& aPosition )
         else
         {
             item = LocateAndShowItem( aPosition );
-
-            // Show the sheet information when the user clicks anywhere there are no items
-            // in the schematic.
-            if( item == NULL )
-                SetMsgPanel( GetCurrentSheet().Last() );
         }
     }
 
@@ -119,12 +118,12 @@ void SCH_EDIT_FRAME::OnLeftClick( wxDC* aDC, const wxPoint& aPosition )
 
         if( item )  // The user has clicked on a sheet: this is an enter sheet command
         {
-            m_CurrentSheet->Push( (SCH_SHEET*) item );
+            m_CurrentSheet->push_back( (SCH_SHEET*) item );
             DisplayCurrentSheet();
         }
         else if( m_CurrentSheet->Last() != g_RootSheet )
         {   // The user has clicked ouside a sheet:this is an leave sheet command
-            m_CurrentSheet->Pop();
+            m_CurrentSheet->pop_back();
             DisplayCurrentSheet();
         }
         break;
@@ -326,6 +325,56 @@ void SCH_EDIT_FRAME::OnLeftClick( wxDC* aDC, const wxPoint& aPosition )
         }
         break;
 
+#ifdef KICAD_SPICE
+    case ID_SIM_PROBE:
+        {
+            const KICAD_T wiresAndComponents[] = { SCH_LINE_T, SCH_COMPONENT_T, SCH_SHEET_PIN_T };
+            item = LocateAndShowItem( aPosition, wiresAndComponents );
+
+            if( !item )
+                break;
+
+            NETLIST_OBJECT_LIST* netlist = BuildNetListBase();
+
+            for( NETLIST_OBJECT* obj : *netlist )
+            {
+                if( obj->m_Comp == item )
+                {
+                    SIM_PLOT_FRAME* simFrame = (SIM_PLOT_FRAME*) Kiway().Player( FRAME_SIMULATOR, false );
+
+                    if( simFrame )
+                        simFrame->AddVoltagePlot( obj->GetNetName() );
+
+                    break;
+                }
+            }
+        }
+        break;
+
+    case ID_SIM_TUNE:
+        {
+            const KICAD_T fieldsAndComponents[] = { SCH_COMPONENT_T, SCH_FIELD_T };
+            item = LocateAndShowItem( aPosition, fieldsAndComponents );
+
+            if( !item )
+                return;
+
+            if( item->Type() != SCH_COMPONENT_T )
+            {
+                item = static_cast<SCH_ITEM*>( item->GetParent() );
+
+                if( item->Type() != SCH_COMPONENT_T )
+                    return;
+            }
+
+            SIM_PLOT_FRAME* simFrame = (SIM_PLOT_FRAME*) Kiway().Player( FRAME_SIMULATOR, false );
+
+            if( simFrame )
+                simFrame->AddTuner( static_cast<SCH_COMPONENT*>( item ) );
+        }
+        break;
+#endif /* KICAD_SPICE */
+
     default:
         SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
         wxFAIL_MSG( wxT( "SCH_EDIT_FRAME::OnLeftClick invalid tool ID <" ) +
@@ -361,7 +410,7 @@ void SCH_EDIT_FRAME::OnLeftDClick( wxDC* aDC, const wxPoint& aPosition )
         switch( item->Type() )
         {
         case SCH_SHEET_T:
-            m_CurrentSheet->Push( (SCH_SHEET*) item );
+            m_CurrentSheet->push_back( (SCH_SHEET*) item );
             DisplayCurrentSheet();
             break;
 

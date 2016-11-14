@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2010 Jean-Pierre Charras <jp.charras@wanadoo.fr>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,6 +43,8 @@
 #include <wxPcbStruct.h>
 #include <class_board_design_settings.h>
 #include <base_units.h>
+#include <wx/valnum.h>
+#include <board_commit.h>
 
 #include <class_board.h>
 #include <class_drawsegment.h>
@@ -60,30 +62,48 @@ private:
     DRAWSEGMENT*          m_item;
     BOARD_DESIGN_SETTINGS m_brdSettings;
 
+    wxFloatingPointValidator<double>    m_AngleValidator;
+    double                m_AngleValue;
+
 public:
     DIALOG_GRAPHIC_ITEM_PROPERTIES( PCB_EDIT_FRAME* aParent, DRAWSEGMENT* aItem, wxDC* aDC );
     ~DIALOG_GRAPHIC_ITEM_PROPERTIES() {};
 
 private:
-    void initDlg();
-    void OnOkClick( wxCommandEvent& event );
-    void OnCancelClick( wxCommandEvent& event ) { event.Skip(); }
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
     void OnLayerChoice( wxCommandEvent& event );
-    bool itemValuesOK();
+
+    void OnInitDlg( wxInitDialogEvent& event ) override
+    {
+        // Call the default wxDialog handler of a wxInitDialogEvent
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
+
+    bool Validate() override;
 };
 
 DIALOG_GRAPHIC_ITEM_PROPERTIES::DIALOG_GRAPHIC_ITEM_PROPERTIES( PCB_EDIT_FRAME* aParent,
                                                                 DRAWSEGMENT* aItem, wxDC* aDC ):
-    DIALOG_GRAPHIC_ITEM_PROPERTIES_BASE( aParent )
+    DIALOG_GRAPHIC_ITEM_PROPERTIES_BASE( aParent ),
+    m_AngleValidator( 1, &m_AngleValue ),
+    m_AngleValue( 0.0 )
 {
     m_parent = aParent;
     m_DC = aDC;
     m_item = aItem;
     m_brdSettings = m_parent->GetDesignSettings();
-    initDlg();
-    Layout();
-    GetSizer()->SetSizeHints( this );
-    Centre();
+
+    m_AngleValidator.SetRange( -360.0, 360.0 );
+    m_AngleCtrl->SetValidator( m_AngleValidator );
+    m_AngleValidator.SetWindow( m_AngleCtrl );
+
+    m_StandardButtonsSizerOK->SetDefault();
+
+    FixOSXCancelButtonIssue();
 }
 
 
@@ -99,10 +119,8 @@ void PCB_EDIT_FRAME::InstallGraphicItemPropertiesDialog( DRAWSEGMENT* aItem, wxD
 }
 
 
-void DIALOG_GRAPHIC_ITEM_PROPERTIES::initDlg()
+bool DIALOG_GRAPHIC_ITEM_PROPERTIES::TransferDataToWindow()
 {
-    m_StandardButtonsSizerOK->SetDefault();
-
     // Set unit symbol
     wxStaticText* texts_unit[] =
     {
@@ -112,14 +130,10 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::initDlg()
         m_EndPointYUnit,
         m_ThicknessTextUnit,
         m_DefaulThicknessTextUnit,
-        NULL
     };
 
-    for( int ii = 0; ; ii++ )
+    for( size_t ii = 0; ii < DIM( texts_unit ); ii++ )
     {
-        if( texts_unit[ii] == NULL )
-            break;
-
         texts_unit[ii]->SetLabel( GetAbbreviatedUnitsLabel() );
     }
 
@@ -134,8 +148,8 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::initDlg()
         m_StartPointYLabel->SetLabel( _( "Center Y:" ) );
         m_EndPointXLabel->SetLabel( _( "Point X:" ) );
         m_EndPointYLabel->SetLabel( _( "Point Y:" ) );
-        m_Angle_Text->Show( false );
-        m_Angle_Ctrl->Show( false );
+        m_AngleText->Show( false );
+        m_AngleCtrl->Show( false );
         m_AngleUnit->Show( false );
         break;
 
@@ -146,9 +160,7 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::initDlg()
         m_EndPointXLabel->SetLabel( _( "Start Point X:" ) );
         m_EndPointYLabel->SetLabel( _( "Start Point Y:" ) );
 
-        // Here the angle is a double, but the UI is still working with integers.
-        msg << int( m_item->GetAngle() );
-        m_Angle_Ctrl->SetValue( msg );
+        m_AngleValue = m_item->GetAngle() / 10.0;
         break;
 
     case S_SEGMENT:
@@ -156,8 +168,8 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::initDlg()
 
         // Fall through.
     default:
-        m_Angle_Text->Show( false );
-        m_Angle_Ctrl->Show( false );
+        m_AngleText->Show( false );
+        m_AngleCtrl->Show( false );
         m_AngleUnit->Show( false );
         break;
     }
@@ -193,6 +205,8 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::initDlg()
                          "It has been moved to the drawings layer. Please fix it." ) );
         m_LayerSelectionCtrl->SetLayerSelection( Dwgs_User );
     }
+
+    return DIALOG_GRAPHIC_ITEM_PROPERTIES_BASE::TransferDataToWindow();
 }
 
 
@@ -209,12 +223,13 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::OnLayerChoice( wxCommandEvent& event )
 }
 
 
-void DIALOG_GRAPHIC_ITEM_PROPERTIES::OnOkClick( wxCommandEvent& event )
+bool DIALOG_GRAPHIC_ITEM_PROPERTIES::TransferDataFromWindow()
 {
-    if( !itemValuesOK() )
-        return;
+    if( !DIALOG_GRAPHIC_ITEM_PROPERTIES_BASE::TransferDataFromWindow() )
+        return false;
 
-    m_parent->SaveCopyInUndoList( m_item, UR_CHANGED );
+    BOARD_COMMIT commit( m_parent );
+    commit.Modify( m_item );
 
     wxString msg;
 
@@ -248,13 +263,10 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::OnOkClick( wxCommandEvent& event )
 
     if( m_item->GetShape() == S_ARC )
     {
-        double angle;
-        m_Angle_Ctrl->GetValue().ToDouble( &angle );
-        NORMALIZE_ANGLE_360( angle );
-        m_item->SetAngle( angle );
+        m_item->SetAngle( m_AngleValue * 10.0 );
     }
 
-    m_parent->OnModify();
+    commit.Push( _( "Modify drawing properties" ) );
 
     if( m_DC )
         m_item->Draw( m_parent->GetCanvas(), m_DC, GR_OR );
@@ -263,13 +275,16 @@ void DIALOG_GRAPHIC_ITEM_PROPERTIES::OnOkClick( wxCommandEvent& event )
 
     m_parent->SetDesignSettings( m_brdSettings );
 
-    Close( true );
+    return true;
 }
 
 
-bool DIALOG_GRAPHIC_ITEM_PROPERTIES::itemValuesOK()
+bool DIALOG_GRAPHIC_ITEM_PROPERTIES::Validate()
 {
     wxArrayString error_msgs;
+
+    if( !DIALOG_GRAPHIC_ITEM_PROPERTIES_BASE::Validate() )
+        return false;
 
     // Load the start and end points -- all types use these in the checks.
     int startx = ValueFromString( g_UserUnit, m_Center_StartXCtrl->GetValue() );
@@ -282,11 +297,7 @@ bool DIALOG_GRAPHIC_ITEM_PROPERTIES::itemValuesOK()
     {
     case S_ARC:
         // Check angle of arc.
-        double angle;
-        m_Angle_Ctrl->GetValue().ToDouble( &angle );
-        NORMALIZE_ANGLE_360( angle );
-
-        if( angle == 0 )
+        if( m_AngleValue == 0.0 )
         {
             error_msgs.Add( _( "The arc angle must be greater than zero." ) );
         }

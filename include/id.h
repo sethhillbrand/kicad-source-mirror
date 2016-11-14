@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2009 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2009 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2009-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -59,6 +59,7 @@
 // Define room for IDs, for each sub application
 #define ROOM_FOR_KICADMANAGER 50
 #define ROOM_FOR_3D_VIEWER 100
+#define ROOM_FOR_PANEL_PREV_MODEL 50
 
 enum main_id
 {
@@ -92,10 +93,6 @@ enum main_id
     ID_PREFERENCES_HOTKEY_END,
     ID_PREFERENCES_CONFIGURE_PATHS,
 
-    ID_PREFRENCES_MACROS,
-    ID_PREFRENCES_MACROS_SAVE,
-    ID_PREFRENCES_MACROS_READ,
-
     ID_GEN_PLOT,
     ID_GEN_PLOT_PS,
     ID_GEN_PLOT_HPGL,
@@ -118,10 +115,9 @@ enum main_id
     ID_OPT_TOOLBAR,
     ID_AUX_TOOLBAR,
 
-    ID_HELP_COPY_VERSION_STRING,
-
     ID_EDIT,
     ID_NO_TOOL_SELECTED,
+    ID_ZOOM_SELECTION,
     ID_SEL_BG_COLOR,
 
     ID_REPEAT_BUTT,
@@ -148,6 +144,7 @@ enum main_id
     ID_LANGUAGE_DUTCH,
     ID_LANGUAGE_JAPANESE,
     ID_LANGUAGE_BULGARIAN,
+    ID_LANGUAGE_LITHUANIAN,
     ID_LANGUAGE_CHOICE_END,
 
     ID_SET_REPEAT_OPTION,
@@ -254,15 +251,13 @@ enum main_id
     ID_EDA_SOCKET_EVENT_SERV,
     ID_EDA_SOCKET_EVENT,
 
-    // Command IDs common to Pcbnew and CvPcb.
-    ID_PCB_DISPLAY_FOOTPRINT_DOC,
-
     // Common to all
     ID_TB_OPTIONS_SELECT_UNIT_MM,
     ID_TB_OPTIONS_SELECT_UNIT_INCH,
     ID_TB_OPTIONS_SELECT_CURSOR,
     ID_TB_OPTIONS_SHOW_POLAR_COORD,
     ID_TB_OPTIONS_SHOW_GRID,
+    ID_HELP_GET_INVOLVED,
 
     // Common to Pcbnew and CvPcb
     ID_TB_OPTIONS_SHOW_MODULE_TEXT_SKETCH,
@@ -278,7 +273,8 @@ enum main_id
     // mainly we experienced issues related to wxUpdateUIEvent calls when 2 (or more) wxFrames
     // share the same ID in menus, mainly in menubars/toolbars
     // The reason is the fact wxWidgets propagates the wxUpdateUIEvent to all parent windows
-    // to find wxUpdateUIEvent event functions matching the menuitem IDs found when activate a menu in the first frame.
+    // to find wxUpdateUIEvent event functions matching the menuitem IDs found when activate a
+    // menu in the first frame.
 
     // Reserve ROOM_FOR_KICADMANAGER IDs, for Kicad manager
     // Change it if this count is too small.
@@ -289,6 +285,9 @@ enum main_id
     // Change it if this count is too small.
     ID_KICAD_3D_VIEWER_START,
     ID_KICAD_3D_VIEWER_END = ID_KICAD_3D_VIEWER_START + ROOM_FOR_3D_VIEWER,
+
+    ID_KICAD_PANEL_PREV_MODEL_START,
+    ID_KICAD_PANEL_PREV_MODEL_END = ID_KICAD_PANEL_PREV_MODEL_START + ROOM_FOR_PANEL_PREV_MODEL,
 
     ID_END_LIST
 };

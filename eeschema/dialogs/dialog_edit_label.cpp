@@ -51,7 +51,7 @@ class DIALOG_LABEL_EDITOR : public DIALOG_LABEL_EDITOR_BASE
 public:
     DIALOG_LABEL_EDITOR( SCH_EDIT_FRAME* parent, SCH_TEXT* aTextItem );
 
-    void SetTitle( const wxString& aTitle )    // OVERRIDE wxTopLevelWindow::SetTitle
+    void SetTitle( const wxString& aTitle ) override
     {
         // This class is shared for numerous tasks: a couple of
         // single line labels and multi-line text fields.
@@ -76,10 +76,10 @@ public:
     }
 
 private:
-    void InitDialog( );
-    virtual void OnEnterKey( wxCommandEvent& aEvent );
-    virtual void OnOkClick( wxCommandEvent& aEvent );
-    virtual void OnCancelClick( wxCommandEvent& aEvent );
+    void InitDialog( ) override;
+    virtual void OnEnterKey( wxCommandEvent& aEvent ) override;
+    virtual void OnOkClick( wxCommandEvent& aEvent ) override;
+    virtual void OnCancelClick( wxCommandEvent& aEvent ) override;
     void TextPropertiesAccept( wxCommandEvent& aEvent );
 
     SCH_EDIT_FRAME* m_Parent;
@@ -110,12 +110,10 @@ DIALOG_LABEL_EDITOR::DIALOG_LABEL_EDITOR( SCH_EDIT_FRAME* aParent, SCH_TEXT* aTe
     m_CurrentText = aTextItem;
     InitDialog();
 
-    GetSizer()->SetSizeHints( this );
-    Layout();
-    Fit();
-    SetMinSize( GetBestSize() );
+    FixOSXCancelButtonIssue();
 
-    Centre();
+    // Now all widgets have the size fixed, call FinishDialogSettings
+    FinishDialogSettings();
 }
 
 
@@ -165,9 +163,6 @@ void DIALOG_LABEL_EDITOR::InitDialog()
 
     default:
         SetTitle( _( "Text Properties" ) );
-        m_textLabel->Disconnect( wxEVT_COMMAND_TEXT_ENTER,
-                                 wxCommandEventHandler ( DIALOG_LABEL_EDITOR::OnEnterKey ),
-                                 NULL, this );
         break;
     }
 
@@ -301,7 +296,8 @@ void DIALOG_LABEL_EDITOR::TextPropertiesAccept( wxCommandEvent& aEvent )
     m_CurrentText->SetSize( wxSize( value, value ) );
 
     if( m_TextShape )
-        m_CurrentText->SetShape( m_TextShape->GetSelection() );
+        /// @todo move cast to widget
+        m_CurrentText->SetShape( static_cast<PINSHEETLABEL_SHAPE>( m_TextShape->GetSelection() ) );
 
     int style = m_TextStyle->GetSelection();
 

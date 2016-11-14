@@ -29,6 +29,12 @@
 #ifndef CLASS_TREEPROJECTFILES_H
 #define CLASS_TREEPROJECTFILES_H
 
+
+#include <wx/treectrl.h>
+
+#include "kicad.h"
+
+
 /** Class TREEPROJECTFILES
  * This is the class to show (as a tree) the files in the project directory
  */
@@ -51,7 +57,7 @@ public:
     ~TREEPROJECTFILES();
 private:
     /* overridden sort function */
-    int OnCompareItems( const wxTreeItemId& item1, const wxTreeItemId& item2 );
+    int OnCompareItems( const wxTreeItemId& item1, const wxTreeItemId& item2 ) override;
 };
 
 #endif  // CLASS_TREEPROJECTFILES_H

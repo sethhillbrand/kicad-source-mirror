@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -52,6 +52,7 @@
 #include <eeschema_config.h>
 #include <sch_sheet.h>
 #include <sch_sheet_path.h>
+#include "sim/sim_plot_frame.h"
 
 #include <invoke_sch_dialog.h>
 #include <dialogs/dialog_schematic_find.h>
@@ -114,9 +115,9 @@ SEARCH_STACK* PROJECT::SchSearchS()
         {
             PART_LIBS::LibNamesAndPaths( this, false, &libDir );
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& DBG( ioe ) )
         {
-            DBG(printf( "%s: %s\n", __func__, TO_UTF8( ioe.errorText ) );)
+            DBG(printf( "%s: %s\n", __func__, TO_UTF8( ioe.What() ) );)
         }
 
         if( !!libDir )
@@ -181,7 +182,7 @@ PART_LIBS* PROJECT::SchLibs()
         }
         catch( const IO_ERROR& ioe )
         {
-            DisplayError( NULL, ioe.errorText );
+            DisplayError( NULL, ioe.What() );
         }
     }
 
@@ -272,12 +273,20 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_TOOL( ID_AUTOPLACE_FIELDS, SCH_EDIT_FRAME::OnAutoplaceFields )
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
     // Tools and buttons for vertical toolbar.
     EVT_TOOL( ID_NO_TOOL_SELECTED, SCH_EDIT_FRAME::OnSelectTool )
+    EVT_TOOL( ID_ZOOM_SELECTION, SCH_EDIT_FRAME::OnSelectTool )
     EVT_TOOL_RANGE( ID_SCHEMATIC_VERTICAL_TOOLBAR_START, ID_SCHEMATIC_VERTICAL_TOOLBAR_END,
                     SCH_EDIT_FRAME::OnSelectTool )
+
+#ifdef KICAD_SPICE
+    EVT_TOOL( ID_SIM_SHOW, SCH_EDIT_FRAME::OnSimulate )
+    EVT_TOOL( ID_SIM_PROBE, SCH_EDIT_FRAME::OnSelectTool )
+    EVT_TOOL( ID_SIM_TUNE, SCH_EDIT_FRAME::OnSelectTool )
+#endif /* KICAD_SPICE */
 
     EVT_MENU( ID_CANCEL_CURRENT_COMMAND, SCH_EDIT_FRAME::OnCancelCurrentCommand )
     EVT_MENU( ID_SCH_DRAG_ITEM, SCH_EDIT_FRAME::OnDragItem )
@@ -310,6 +319,7 @@ BEGIN_EVENT_TABLE( SCH_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_UPDATE_UI( ID_TB_OPTIONS_HIDDEN_PINS, SCH_EDIT_FRAME::OnUpdateHiddenPins )
     EVT_UPDATE_UI( ID_TB_OPTIONS_BUS_WIRES_ORIENT, SCH_EDIT_FRAME::OnUpdateBusOrientation )
     EVT_UPDATE_UI( ID_NO_TOOL_SELECTED, SCH_EDIT_FRAME::OnUpdateSelectTool )
+    EVT_UPDATE_UI( ID_ZOOM_SELECTION, SCH_EDIT_FRAME::OnUpdateSelectTool )
     EVT_UPDATE_UI_RANGE( ID_SCHEMATIC_VERTICAL_TOOLBAR_START, ID_SCHEMATIC_VERTICAL_TOOLBAR_END,
                          SCH_EDIT_FRAME::OnUpdateSelectTool )
     EVT_UPDATE_UI( ID_SAVE_PROJECT, SCH_EDIT_FRAME::OnUpdateSave )
@@ -349,8 +359,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     m_hasAutoSave = true;
 
     SetForceHVLines( true );
-    SetSpiceAddReferencePrefix( false );
-    SetSpiceUseNetcodeAsNetname( false );
+    SetSpiceAjustPassiveValues( false );
 
     // Give an icon
     wxIcon icon;
@@ -420,6 +429,9 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ):
     GetScreen()->SetZoom( BestZoom() );
 
     Zoom_Automatique( false );
+
+    // Net list generator
+    DefaultExecFlags();
 }
 
 
@@ -477,15 +489,13 @@ void SCH_EDIT_FRAME::SetSheetNumberAndCount()
     int            sheet_count = g_RootSheet->CountSheets();
     int            SheetNumber = 1;
     wxString       current_sheetpath = m_CurrentSheet->Path();
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet );
 
     // Examine all sheets path to find the current sheets path,
     // and count them from root to the current sheet path:
-    SCH_SHEET_PATH* sheet;
-
-    for( sheet = sheetList.GetFirst(); sheet != NULL; sheet = sheetList.GetNext() )
+    for( unsigned i = 0; i < sheetList.size(); i++ )
     {
-        wxString sheetpath = sheet->Path();
+        wxString sheetpath = sheetList[i].Path();
 
         if( sheetpath == current_sheetpath )    // Current sheet path found
             break;
@@ -523,8 +533,6 @@ void SCH_EDIT_FRAME::CreateScreens()
     if( g_RootSheet == NULL )
     {
         g_RootSheet = new SCH_SHEET();
-        g_RootSheet->SetName( "root" );
-        g_RootSheet->SetFileName( "noname.sch" );
     }
 
     if( g_RootSheet->GetScreen() == NULL )
@@ -537,8 +545,8 @@ void SCH_EDIT_FRAME::CreateScreens()
 
     g_RootSheet->GetScreen()->SetFileName( m_DefaultSchematicFileName );
 
-    m_CurrentSheet->Clear();
-    m_CurrentSheet->Push( g_RootSheet );
+    m_CurrentSheet->clear();
+    m_CurrentSheet->push_back( g_RootSheet );
 
     if( GetScreen() == NULL )
     {
@@ -616,7 +624,14 @@ void SCH_EDIT_FRAME::OnCloseWindow( wxCloseEvent& aEvent )
             return;
     }
 
-    if( g_RootSheet->IsModified() )
+    SIM_PLOT_FRAME* simFrame = (SIM_PLOT_FRAME*) Kiway().Player( FRAME_SIMULATOR, false );
+
+    if( simFrame && !simFrame->Close() )   // Can close the simulator?
+        return;
+
+    SCH_SHEET_LIST sheetList( g_RootSheet );
+
+    if( sheetList.IsModified() )
     {
         wxString fileName = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
         wxString msg = wxString::Format( _(
@@ -667,7 +682,7 @@ void SCH_EDIT_FRAME::OnCloseWindow( wxCloseEvent& aEvent )
             wxRemoveFile( fn.GetFullPath() );
     }
 
-    g_RootSheet->ClearModifyStatus();
+    sheetList.ClearModifyStatus();
 
     wxString fileName = Prj().AbsolutePath( g_RootSheet->GetScreen()->GetFileName() );
 
@@ -680,7 +695,7 @@ void SCH_EDIT_FRAME::OnCloseWindow( wxCloseEvent& aEvent )
     g_RootSheet->GetScreen()->Clear();
 
     // all sub sheets are deleted, only the main sheet is usable
-    m_CurrentSheet->Clear();
+    m_CurrentSheet->clear();
 
     Destroy();
 }
@@ -787,13 +802,16 @@ void SCH_EDIT_FRAME::OnUpdateHiddenPins( wxUpdateUIEvent& aEvent )
 
 void SCH_EDIT_FRAME::OnUpdateSave( wxUpdateUIEvent& aEvent )
 {
-    aEvent.Enable( g_RootSheet->IsModified() );
+    SCH_SHEET_LIST sheetList( g_RootSheet );
+
+    aEvent.Enable( sheetList.IsModified() );
 }
 
 
 void SCH_EDIT_FRAME::OnUpdateSaveSheet( wxUpdateUIEvent& aEvent )
 {
     aEvent.Enable( GetScreen()->IsModify() );
+
 }
 
 
@@ -834,7 +852,9 @@ void SCH_EDIT_FRAME::OnUpdatePCB( wxCommandEvent& event )
                                 " PCBs from schematics, you need to launch Kicad shell"
                                 " and create a PCB project." ) );
         return;
-    } else {
+    }
+    else
+    {
         KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB, true );
 
         // a pcb frame can be already existing, but not yet used.
@@ -853,17 +873,22 @@ void SCH_EDIT_FRAME::OnUpdatePCB( wxCommandEvent& event )
         frame->Raise();
     }
 
+    // Ensure the schematic is OK for a netlist creation
+    // (especially all components are annotated):
+    bool success = prepareForNetlist();
+
+    if( !success )
+        return;
+
     NETLIST_OBJECT_LIST* net_atoms = BuildNetListBase();
     NETLIST_EXPORTER_KICAD exporter( net_atoms, Prj().SchLibs() );
     STRING_FORMATTER formatter;
 
     exporter.Format( &formatter, GNL_ALL );
 
-    Kiway().ExpressMail( FRAME_PCB,
-        MAIL_SCH_PCB_UPDATE,
-        formatter.GetString(),  // an abbreviated "kicad" (s-expr) netlist
-        this
-    );
+    // Now, send the "kicad" (s-expr) netlist to Pcbnew
+    Kiway().ExpressMail( FRAME_PCB, MAIL_SCH_PCB_UPDATE,
+                         formatter.GetString(), this );
 }
 
 void SCH_EDIT_FRAME::OnCreateNetlist( wxCommandEvent& event )
@@ -1154,7 +1179,7 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
     {
         if( PART_LIBS* libs = Prj().SchLibs() )
         {
-            LIB_ALIAS* entry = libs->FindLibraryEntry( component->GetPartName() );
+            LIB_ALIAS* entry = libs->FindLibraryAlias( component->GetPartName() );
 
             if( !entry )     // Should not occur
                 return;
@@ -1165,7 +1190,7 @@ void SCH_EDIT_FRAME::OnOpenLibraryEditor( wxCommandEvent& event )
         }
     }
 
-    GetScreen()->SchematicCleanUp( m_canvas, NULL );
+    GetScreen()->SchematicCleanUp();
     m_canvas->Refresh();
 }
 
@@ -1226,9 +1251,12 @@ bool SCH_EDIT_FRAME::isAutoSaveRequired() const
 {
     // In case this event happens before g_RootSheet is initialized which does happen
     // on mingw64 builds.
+
     if( g_RootSheet != NULL )
     {
-        return g_RootSheet->IsAutoSaveRequired();
+        SCH_SHEET_LIST sheetList( g_RootSheet );
+
+        return sheetList.IsAutoSaveRequired();
     }
 
     return false;
@@ -1274,7 +1302,7 @@ void SCH_EDIT_FRAME::addCurrentItemToList( bool aRedraw )
             // the m_mouseCaptureCallback function.
             m_canvas->SetMouseCapture( NULL, NULL );
 
-            if( !EditSheet( (SCH_SHEET*)item, m_CurrentSheet->Last() ) )
+            if( !EditSheet( (SCH_SHEET*)item, m_CurrentSheet ) )
             {
                 screen->SetCurItem( NULL );
                 delete item;
@@ -1338,15 +1366,14 @@ void SCH_EDIT_FRAME::UpdateTitle()
 
     if( GetScreen()->GetFileName() == m_DefaultSchematicFileName )
     {
-        title.Printf( wxT( "Eeschema %s [%s]" ), GetChars( GetBuildVersion() ),
-                            GetChars( GetScreen()->GetFileName() ) );
+        title.Printf( L"Eeschema \u2014 %s", GetChars( GetScreen()->GetFileName() ) );
     }
     else
     {
         wxString    fileName = Prj().AbsolutePath( GetScreen()->GetFileName() );
         wxFileName  fn = fileName;
 
-        title.Printf( wxT( "[ %s %s] (%s)" ),
+        title.Printf( L"Eeschema \u2014 %s [%s] \u2014 %s",
                       GetChars( fn.GetName() ),
                       GetChars( m_CurrentSheet->PathHumanReadable() ),
                       GetChars( fn.GetPath() ) );
@@ -1362,4 +1389,3 @@ void SCH_EDIT_FRAME::UpdateTitle()
 
     SetTitle( title );
 }
-

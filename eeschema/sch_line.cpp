@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,8 +38,6 @@
 #include <protos.h>
 #include <sch_line.h>
 #include <class_netlist_object.h>
-
-#include <boost/foreach.hpp>
 
 
 SCH_LINE::SCH_LINE( const wxPoint& pos, int layer ) :
@@ -270,17 +268,6 @@ void SCH_LINE::Rotate( wxPoint aPosition )
 
 
 /*
- * helper sort function, used by MergeOverlap
- * sorts ref and test by x values, or (for same x values) by y values
- */
-bool sort_by_ends_position(const wxPoint * ref, const wxPoint * tst )
-{
-    if( ref->x == tst->x )
-        return ref->y < tst->y;
-    return ref->x < tst->x;
-}
-
-/*
  * MergeOverlap try to merge 2 lines that are colinear.
  * this function expects these 2 lines have at least a common end
  */
@@ -346,16 +333,18 @@ bool SCH_LINE::MergeOverlap( SCH_LINE* aLine )
     // for horizontal segments the uppermost and the lowest point
     if( colinear )
     {
-        static std::vector <wxPoint*> candidates;
-        candidates.clear();
-        candidates.push_back( &m_start );
-        candidates.push_back( &m_end );
-        candidates.push_back( &aLine->m_start );
-        candidates.push_back( &aLine->m_end );
-        sort( candidates.begin(), candidates.end(), sort_by_ends_position );
-        wxPoint tmp = *candidates[3];
-        m_start = *candidates[0];
-        m_end = tmp;
+        auto less = []( const wxPoint& lhs, const wxPoint& rhs ) -> bool
+        {
+            if( lhs.x == rhs.x )
+                return lhs.y < rhs.y;
+            return lhs.x < rhs.x;
+        };
+
+        wxPoint top_left = std::min( { m_start, m_end, aLine->m_start, aLine->m_end }, less );
+        wxPoint bottom_right = std::max( { m_start, m_end, aLine->m_start, aLine->m_end }, less );
+
+        m_start = top_left;
+        m_end = bottom_right;
         return true;
     }
     return false;
@@ -389,7 +378,7 @@ bool SCH_LINE::IsDanglingStateChanged( std::vector< DANGLING_END_ITEM >& aItemLi
 
     if( GetLayer() == LAYER_WIRE )
     {
-        BOOST_FOREACH( DANGLING_END_ITEM item, aItemList )
+        for( DANGLING_END_ITEM item : aItemList )
         {
             if( item.GetItem() == this )
                 continue;

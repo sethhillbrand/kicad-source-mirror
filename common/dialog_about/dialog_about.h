@@ -30,21 +30,8 @@
 #include <wx/stattext.h>
 #include <wx/hyperlink.h>
 
-#include <aboutinfo.h>
-#include <dialog_about_base.h>
-
-/* Pixel information of icons in XPM format.
- * All KiCad icons are linked into shared library 'libbitmaps.a'.
- *  Icons:
- *  preference_xpm[];    // Icon for 'Developers' tab
- *  editor_xpm[];        // Icon for 'Doc Writers' tab
- *  palette_xpm[];       // Icon for 'Artists' tab
- *  language_xpm[];      // Icon for 'Translators' tab
- *  right_xpm[];         // Right arrow icon for list items
- *  info_xpm[];          // Bulb for description tab
- *  tools_xpm[];         // Sheet of paper icon for license info tab
- */
-#include <bitmaps.h>
+#include "aboutinfo.h"
+#include "dialog_about_base.h"
 
 /**
  * About dialog to show application specific information.
@@ -74,26 +61,27 @@ private:
     virtual void     OnClose( wxCloseEvent& event );
     virtual void     OnOkClick( wxCommandEvent& event );
     virtual void     OnHtmlLinkClicked( wxHtmlLinkEvent& event );
+    virtual void     OnCopyVersionInfo( wxCommandEvent &event );
 
     // Notebook pages
     wxFlexGridSizer* CreateFlexGridSizer();
     void             DeleteNotebooks();
     void             CreateNotebooks();
-    void             CreateNotebookPage( wxAuiNotebook*      parent,
-                                         const wxString&     caption,
-                                         const wxBitmap&     icon,
-                                         const Contributors& contributors );
-    void             CreateNotebookPageByCategory( wxAuiNotebook*      parent,
-                                                   const wxString&     caption,
-                                                   const wxBitmap&     icon,
-                                                   const Contributors& contributors );
-    void             CreateNotebookHtmlPage( wxAuiNotebook*  parent,
-                                             const wxString& caption,
-                                             const wxBitmap& icon,
-                                             const wxString& html );
+    void             CreateNotebookPage( wxAuiNotebook*      aParent,
+                                         const wxString&     aCaption,
+                                         const wxBitmap&     aIcon,
+                                         const Contributors& aContributors );
+    void             CreateNotebookPageByCategory( wxAuiNotebook*      aParent,
+                                                   const wxString&     aCaption,
+                                                   const wxBitmap&     aIcon,
+                                                   const Contributors& aContributors );
+    void             CreateNotebookHtmlPage( wxAuiNotebook*  aParent,
+                                             const wxString& aCaption,
+                                             const wxBitmap& aIcon,
+                                             const wxString& aHtmlMessage );
 
-    wxHyperlinkCtrl* CreateHyperlink( wxScrolledWindow* parent, const wxString& email );
-    wxStaticBitmap*  CreateStaticBitmap( wxScrolledWindow* parent, wxBitmap* icon );
+    wxHyperlinkCtrl* CreateHyperlink( wxScrolledWindow* aParent, const wxString& email );
+    wxStaticBitmap*  CreateStaticBitmap( wxScrolledWindow* aParent, wxBitmap* icon );
 };
 
 #endif // DIALOG_ABOUT_H

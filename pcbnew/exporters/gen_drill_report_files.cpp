@@ -79,7 +79,7 @@ bool EXCELLON_WRITER::GenDrillMapFile( const wxString& aFullFileName,
     case PLOT_FORMAT_GERBER:
         offset  = GetOffset();
         plotter = new GERBER_PLOTTER();
-        plotter->SetViewport( offset, IU_PER_DECIMILS, scale, false );
+        plotter->SetViewport( offset, IU_PER_MILS/10, scale, false );
         plotter->SetGerberCoordinatesFormat( 5 );   // format x.5 unit = mm
         break;
 
@@ -90,7 +90,7 @@ bool EXCELLON_WRITER::GenDrillMapFile( const wxString& aFullFileName,
         hpgl_plotter->SetPenNumber( plot_opts.GetHPGLPenNum() );
         hpgl_plotter->SetPenSpeed( plot_opts.GetHPGLPenSpeed() );
         plotter->SetPageSettings( page_info );
-        plotter->SetViewport( offset, IU_PER_DECIMILS, scale, false );
+        plotter->SetViewport( offset, IU_PER_MILS/10, scale, false );
     }
         break;
 
@@ -133,7 +133,7 @@ bool EXCELLON_WRITER::GenDrillMapFile( const wxString& aFullFileName,
             plotter = new PS_PLOTTER;
 
         plotter->SetPageSettings( pageA4 );
-        plotter->SetViewport( offset, IU_PER_DECIMILS, scale, false );
+        plotter->SetViewport( offset, IU_PER_MILS/10, scale, false );
     }
         break;
 
@@ -142,7 +142,7 @@ bool EXCELLON_WRITER::GenDrillMapFile( const wxString& aFullFileName,
         DXF_PLOTTER* dxf_plotter = new DXF_PLOTTER;
         plotter = dxf_plotter;
         plotter->SetPageSettings( page_info );
-        plotter->SetViewport( offset, IU_PER_DECIMILS, scale, false );
+        plotter->SetViewport( offset, IU_PER_MILS/10, scale, false );
     }
         break;
 
@@ -151,7 +151,7 @@ bool EXCELLON_WRITER::GenDrillMapFile( const wxString& aFullFileName,
         SVG_PLOTTER* svg_plotter = new SVG_PLOTTER;
         plotter = svg_plotter;
         plotter->SetPageSettings( page_info );
-        plotter->SetViewport( offset, IU_PER_DECIMILS, scale, false );
+        plotter->SetViewport( offset, IU_PER_MILS/10, scale, false );
     }
         break;
     }
@@ -338,7 +338,7 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
         if( pair == LAYER_PAIR( F_Cu, B_Cu ) )
         {
             out.Print( 0, "Drill file '%s' contains\n",
-                TO_UTF8( drillFileName( pair, false ) ) );
+                TO_UTF8( drillFileName( pair, false, m_merge_PTH_NPTH ) ) );
 
             out.Print( 0, "    plated through holes:\n" );
             out.Print( 0, separator );
@@ -348,7 +348,7 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
         else    // blind/buried
         {
             out.Print( 0, "Drill file '%s' contains\n",
-                TO_UTF8( drillFileName( pair, false ) ) );
+                TO_UTF8( drillFileName( pair, false, m_merge_PTH_NPTH ) ) );
 
             out.Print( 0, "    holes connecting layer pair: '%s and %s' (%s vias):\n",
                 TO_UTF8( m_pcb->GetLayerName( ToLAYER_ID( pair.first ) ) ),
@@ -376,7 +376,7 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
         out.Print( 0, "Not plated through holes are merged with plated holes\n" );
     else
         out.Print( 0, "Drill file '%s' contains\n",
-                    TO_UTF8( drillFileName( LAYER_PAIR( F_Cu, B_Cu ), true ) ) );
+                    TO_UTF8( drillFileName( LAYER_PAIR( F_Cu, B_Cu ), true, m_merge_PTH_NPTH ) ) );
 
     out.Print( 0, "    unplated through holes:\n" );
     out.Print( 0, separator );
@@ -403,7 +403,7 @@ bool EXCELLON_WRITER::PlotDrillMarks( PLOTTER* aPlotter )
         if( hole.m_Hole_Shape != 0 )
         {
             wxSize oblong_size = hole.m_Hole_Size;
-            aPlotter->FlashPadOval( pos, oblong_size, hole.m_Hole_Orient, SKETCH );
+            aPlotter->FlashPadOval( pos, oblong_size, hole.m_Hole_Orient, SKETCH, NULL );
         }
     }
 

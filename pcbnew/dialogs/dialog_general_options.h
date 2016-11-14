@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2010-2014 Jean-Pierre Charras, jean-pierre.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,16 +37,10 @@ private:
 public:
     DIALOG_GENERALOPTIONS( PCB_EDIT_FRAME* parent );
     ~DIALOG_GENERALOPTIONS() {};
-    void OnOkClick( wxCommandEvent& event );
-    void OnCancelClick( wxCommandEvent& event );
+    void OnOkClick( wxCommandEvent& event ) override;
+    void OnCancelClick( wxCommandEvent& event ) override;
 
     PCB_EDIT_FRAME* GetParent() const { return (PCB_EDIT_FRAME*) wxDialog::GetParent(); }
-
-private:
-    void OnMiddleBtnPanEnbl( wxCommandEvent& event )
-    {
-        m_OptMiddleButtonPanLimited->Enable( m_MiddleButtonPANOpt->GetValue() );
-    }
 };
 
 

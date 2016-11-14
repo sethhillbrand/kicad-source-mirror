@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * Author: Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -22,61 +23,68 @@
 #ifndef __PNS_TOOL_BASE_H
 #define __PNS_TOOL_BASE_H
 
+#include <memory>
 #include <import_export.h>
 
 #include <math/vector2d.h>
-#include <tool/tool_interactive.h>
+#include <tools/pcb_tool.h>
+#include <board_commit.h>
 
 #include <msgpanel.h>
 
 #include "pns_router.h"
 
-class PNS_TUNE_STATUS_POPUP;
 class GRID_HELPER;
 
-class APIEXPORT PNS_TOOL_BASE : public TOOL_INTERACTIVE
+class PNS_KICAD_IFACE;
+class PNS_TUNE_STATUS_POPUP;
+
+namespace PNS {
+
+class APIEXPORT TOOL_BASE : public TOOL_INTERACTIVE
 {
 public:
     static TOOL_ACTION ACT_RouterOptions;
 
-    PNS_TOOL_BASE( const std::string& aToolName );
-    virtual ~PNS_TOOL_BASE();
+    TOOL_BASE( const std::string& aToolName );
+    virtual ~TOOL_BASE();
 
-    virtual void Reset( RESET_REASON aReason );
+    virtual void Reset( RESET_REASON aReason ) override;
 
-    const PNS_ROUTING_SETTINGS& PNSSettings() const
+    const ROUTING_SETTINGS& PNSSettings() const
     {
         return m_savedSettings;
     }
 
-protected:
+    ROUTER* Router() const;
 
-    virtual PNS_ITEM* pickSingleItem( const VECTOR2I& aWhere, int aNet = -1, int aLayer = -1 );
+protected:
+    const VECTOR2I snapToItem( bool aEnabled, ITEM* aItem, VECTOR2I aP);
+    virtual ITEM* pickSingleItem( const VECTOR2I& aWhere, int aNet = -1, int aLayer = -1 );
     virtual void highlightNet( bool aEnabled, int aNetcode = -1 );
     virtual void updateStartItem( TOOL_EVENT& aEvent );
     virtual void updateEndItem( TOOL_EVENT& aEvent );
+    void deleteTraces( ITEM* aStartItem, bool aWholeTrack );
 
     MSG_PANEL_ITEMS m_panelItems;
 
-    PNS_ROUTER* m_router;
-    PNS_ROUTING_SETTINGS m_savedSettings;     ///< Stores routing settings between router invocations
-    PNS_SIZES_SETTINGS m_savedSizes;          ///< Stores sizes settings between router invocations
-    PNS_ITEM* m_startItem;
+    ROUTING_SETTINGS m_savedSettings;     ///< Stores routing settings between router invocations
+    SIZES_SETTINGS m_savedSizes;          ///< Stores sizes settings between router invocations
+    ITEM* m_startItem;
     int m_startLayer;
     VECTOR2I m_startSnapPoint;
 
-    PNS_ITEM* m_endItem;
+    ITEM* m_endItem;
     VECTOR2I m_endSnapPoint;
-
-    ///> Flag marking that the router's world needs syncing.
-    bool m_needsSync;
 
     PCB_EDIT_FRAME* m_frame;
     KIGFX::VIEW_CONTROLS* m_ctls;
     BOARD* m_board;
     GRID_HELPER* m_gridHelper;
-
-
+    PNS_KICAD_IFACE* m_iface;
+    ROUTER* m_router;
 };
+
+}
 
 #endif

@@ -7,7 +7,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2016 CERN
+ *
  * @author Jean-Pierre Charras, jp.charras at wanadoo.fr
  *
  * This program is free software; you can redistribute it and/or
@@ -84,6 +85,7 @@ private:
     void formatOptions( WORKSHEET_DATAITEM* aItem ) const throw( IO_ERROR );
 };
 
+
 // A helper class to write a page layout description to a file
 class WORKSHEET_LAYOUT_FILEIO: public WORKSHEET_LAYOUT_IO
 {
@@ -100,7 +102,7 @@ public:
         }
         catch( const IO_ERROR& ioe )
         {
-            wxMessageBox( ioe.errorText, _("Error writing page layout descr file" ) );
+            wxMessageBox( ioe.What(), _( "Error writing page layout descr file" ) );
         }
     }
 
@@ -109,6 +111,7 @@ public:
         delete m_fileout;
     }
 };
+
 
 // A helper class to write a page layout description to a string
 class WORKSHEET_LAYOUT_STRINGIO: public WORKSHEET_LAYOUT_IO
@@ -127,7 +130,7 @@ public:
         }
         catch( const IO_ERROR& ioe )
         {
-            wxMessageBox( ioe.errorText, _("Error writing page layout descr file" ) );
+            wxMessageBox( ioe.What(), _( "Error writing page layout descr file" ) );
         }
     }
 
@@ -138,6 +141,7 @@ public:
     }
 };
 
+
 /*
  * Save the description in a file
  */
@@ -146,6 +150,7 @@ void WORKSHEET_LAYOUT::Save( const wxString& aFullFileName )
     WORKSHEET_LAYOUT_FILEIO writer( aFullFileName );
     writer.Format( this );
 }
+
 
 /* Save the description in a buffer
  */
@@ -183,17 +188,18 @@ void WORKSHEET_LAYOUT_IO::Format( WORKSHEET_DATAITEM* aItem, int aNestLevel ) co
     }
 }
 
+
 void WORKSHEET_LAYOUT_IO::Format( WORKSHEET_LAYOUT* aPageLayout ) const
     throw( IO_ERROR )
 {
     LOCALE_IO   toggle;     // switch on/off the locale "C" notation
 
-    m_out->Print( 0, "( page_layout\n" );
+    m_out->Print( 0, "(page_layout\n" );
 
     // Setup
     int nestLevel = 1;
     // Write default values:
-    m_out->Print( nestLevel, "(%s", getTokenName( T_setup ) );
+    m_out->Print( nestLevel, "(%s ", getTokenName( T_setup ) );
     m_out->Print( 0, "(textsize %s %s)",
                   double2Str( WORKSHEET_DATAITEM::m_DefaultTextSize.x ).c_str(),
                   double2Str( WORKSHEET_DATAITEM::m_DefaultTextSize.y ).c_str() );
@@ -222,6 +228,7 @@ void WORKSHEET_LAYOUT_IO::Format( WORKSHEET_LAYOUT* aPageLayout ) const
     m_out->Print( 0, ")\n" );
 }
 
+
 void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_TEXT* aItem, int aNestLevel ) const
     throw( IO_ERROR )
 {
@@ -239,10 +246,17 @@ void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_TEXT* aItem, int aNestLevel
 
     // Write font info, only if it is not the default setup
     bool write_size = aItem->m_TextSize.x != 0.0 || aItem->m_TextSize.y != 0.0;
+    bool write_thickness = aItem->m_LineWidth != 0.0;
 
-    if( write_size || aItem->IsBold() || aItem->IsItalic() )
+    if( write_thickness || write_size || aItem->IsBold() || aItem->IsItalic() )
     {
         m_out->Print( 0, " (%s", getTokenName( T_font ) );
+
+        if( write_thickness )
+        {
+            m_out->Print( 0, " (%s %s)", getTokenName( T_linewidth ),
+                          double2Str(aItem->m_LineWidth ).c_str() );
+        }
 
         if( write_size )
         {
@@ -323,7 +337,7 @@ void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM* aItem, int aNestLevel ) co
 void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_POLYPOLYGON* aItem, int aNestLevel ) const
     throw( IO_ERROR )
 {
-    m_out->Print( aNestLevel, "( %s", getTokenName( T_polygon ) );
+    m_out->Print( aNestLevel, "(%s", getTokenName( T_polygon ) );
     m_out->Print( 0, " (%s %s)", getTokenName( T_name ),
                   m_out->Quotew( aItem->m_Name ).c_str() );
     formatCoordinate( getTokenName( T_pos ), aItem->m_Pos );
@@ -341,11 +355,12 @@ void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_POLYPOLYGON* aItem, int aNe
     // Write polygon corners list
     for( int kk = 0; kk < aItem->GetPolyCount(); kk++ )
     {
-        m_out->Print( aNestLevel+1, "( %s", getTokenName( T_pts ) );
+        m_out->Print( aNestLevel+1, "(%s", getTokenName( T_pts ) );
         // Create current polygon corners list
         unsigned ist = aItem->GetPolyIndexStart( kk );
         unsigned iend = aItem->GetPolyIndexEnd( kk );
         int ii = 0;
+
         while( ist <= iend )
         {
             DPOINT pos = aItem->m_Corners[ist++];
@@ -357,33 +372,36 @@ void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_POLYPOLYGON* aItem, int aNe
                 nestLevel = aNestLevel+2;
                 ii = 0;
             }
+
             m_out->Print( nestLevel, " (%s %s %s)", getTokenName( T_xy ),
                           double2Str( pos.x ).c_str(),
                           double2Str( pos.y ).c_str() );
         }
+
         m_out->Print( 0, ")\n" );
     }
 
     m_out->Print( aNestLevel, ")\n" );
 }
 
+
 void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_BITMAP* aItem, int aNestLevel ) const
     throw( IO_ERROR )
 {
-    m_out->Print( aNestLevel, "( %s", getTokenName( T_bitmap ) );
+    m_out->Print( aNestLevel, "(%s", getTokenName( T_bitmap ) );
     m_out->Print( 0, " (%s %s)", getTokenName( T_name ),
                   m_out->Quotew( aItem->m_Name ).c_str() );
     formatCoordinate( getTokenName( T_pos ), aItem->m_Pos );
     formatOptions( aItem );
 
     m_out->Print( 0, " (%s %s)", getTokenName( T_scale ),
-                  double2Str(aItem->m_ImageBitmap->m_Scale ).c_str() );
+                  double2Str( aItem->m_ImageBitmap->GetScale() ).c_str() );
 
     formatRepeatParameters( aItem );
     m_out->Print( 0,"\n");
 
     // Write image in png readable format
-    m_out->Print( aNestLevel, "( %s\n", getTokenName( T_pngdata ) );
+    m_out->Print( aNestLevel, "(%s\n", getTokenName( T_pngdata ) );
     wxArrayString pngStrings;
     aItem->m_ImageBitmap->SaveData( pngStrings );
 
@@ -394,6 +412,7 @@ void WORKSHEET_LAYOUT_IO::format( WORKSHEET_DATAITEM_BITMAP* aItem, int aNestLev
 
     m_out->Print( aNestLevel, ")\n" );
 }
+
 
 void WORKSHEET_LAYOUT_IO::formatCoordinate( const char * aToken,
                                             POINT_COORD & aCoord ) const
@@ -409,23 +428,24 @@ void WORKSHEET_LAYOUT_IO::formatCoordinate( const char * aToken,
             break;
 
         case LT_CORNER:
-            m_out->Print( 0, " %s", getTokenName(T_ltcorner ) );
+            m_out->Print( 0, " %s", getTokenName( T_ltcorner ) );
             break;
 
         case LB_CORNER:
-            m_out->Print( 0, " %s", getTokenName(T_lbcorner ) );
+            m_out->Print( 0, " %s", getTokenName( T_lbcorner ) );
             break;
 
         case RT_CORNER:
-            m_out->Print( 0, " %s", getTokenName(T_rtcorner ) );
+            m_out->Print( 0, " %s", getTokenName( T_rtcorner ) );
             break;
     }
 
     m_out->Print( 0, ")" );
 }
 
+
 void WORKSHEET_LAYOUT_IO::formatRepeatParameters( WORKSHEET_DATAITEM* aItem ) const
-                       throw( IO_ERROR )
+    throw( IO_ERROR )
 {
     if( aItem->m_RepeatCount <= 1 )
         return;
@@ -443,6 +463,7 @@ void WORKSHEET_LAYOUT_IO::formatRepeatParameters( WORKSHEET_DATAITEM* aItem ) co
         m_out->Print( 0, " (incrlabel %d)", aItem->m_IncrementLabel );
 }
 
+
 void WORKSHEET_LAYOUT_IO::formatOptions( WORKSHEET_DATAITEM* aItem ) const
                        throw( IO_ERROR )
 {
@@ -453,13 +474,12 @@ void WORKSHEET_LAYOUT_IO::formatOptions( WORKSHEET_DATAITEM* aItem ) const
             break;
 
         case 1:
-            m_out->Print( 0, " (%s %s)", getTokenName(T_option ),
+            m_out->Print( 0, " (%s %s)", getTokenName( T_option ),
                           getTokenName(T_page1only ) );
             break;
 
         case -1:
-            m_out->Print( 0, " (%s %s)", getTokenName(T_option ),
-                          getTokenName(T_notonpage1 ) );
+            m_out->Print( 0, " (%s %s)", getTokenName( T_option ), getTokenName( T_notonpage1 ) );
             break;
     }
 }

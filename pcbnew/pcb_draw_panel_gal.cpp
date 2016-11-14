@@ -36,7 +36,8 @@
 #include <class_track.h>
 #include <wxBasePcbFrame.h>
 
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 const LAYER_NUM GAL_LAYER_ORDER[] =
 {
@@ -109,7 +110,7 @@ EDA_DRAW_PANEL_GAL( aParentWindow, aWindowId, aPosition, aSize, aGalType )
     // Load display options (such as filled/outline display of items).
     // Can be made only if the parent window is an EDA_DRAW_FRAME (or a derived class)
     // which is not always the case (namely when it is used from a wxDialog like the pad editor)
-    EDA_DRAW_FRAME* frame = dynamic_cast<EDA_DRAW_FRAME*>( aParentWindow );
+    EDA_DRAW_FRAME* frame = GetParentEDAFrame();
 
     if( frame )
     {
@@ -145,7 +146,7 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( const BOARD* aBoard )
     // Load modules and its additional elements
     for( MODULE* module = aBoard->m_Modules; module; module = module->Next() )
     {
-        module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, m_view, _1 ) );
+        module->RunOnChildren( std::bind( &KIGFX::VIEW::Add, m_view, _1 ) );
         m_view->Add( module );
     }
 
@@ -165,18 +166,6 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( const BOARD* aBoard )
 
     // Display settings
     UseColorScheme( aBoard->GetColorsSettings() );
-
-    PCB_BASE_FRAME* frame = dynamic_cast<PCB_BASE_FRAME*>( GetParent() );
-
-    if( frame )
-    {
-        SetTopLayer( frame->GetActiveLayer() );
-        DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*) frame->GetDisplayOptions();
-        static_cast<KIGFX::PCB_RENDER_SETTINGS*>(
-            m_view->GetPainter()->GetSettings() )->LoadDisplayOptions( displ_opts );
-    }
-
-    m_view->RecacheAllItems( true );
 }
 
 
@@ -363,6 +352,22 @@ void PCB_DRAW_PANEL_GAL::GetMsgPanelInfo( std::vector<MSG_PANEL_ITEM>& aList )
 }
 
 
+void PCB_DRAW_PANEL_GAL::OnShow()
+{
+    PCB_BASE_FRAME* frame = dynamic_cast<PCB_BASE_FRAME*>( GetParent() );
+
+    if( frame )
+    {
+        SetTopLayer( frame->GetActiveLayer() );
+        DISPLAY_OPTIONS* displ_opts = (DISPLAY_OPTIONS*) frame->GetDisplayOptions();
+        static_cast<KIGFX::PCB_RENDER_SETTINGS*>(
+            m_view->GetPainter()->GetSettings() )->LoadDisplayOptions( displ_opts );
+    }
+
+    m_view->RecacheAllItems();
+}
+
+
 void PCB_DRAW_PANEL_GAL::setDefaultLayerOrder()
 {
     for( LAYER_NUM i = 0; (unsigned) i < sizeof( GAL_LAYER_ORDER ) / sizeof( LAYER_NUM ); ++i )
@@ -382,18 +387,16 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
         LAYER_NUM layer = GAL_LAYER_ORDER[i];
         wxASSERT( layer < KIGFX::VIEW::VIEW_MAX_LAYERS );
 
+        // Set layer display dependencies & targets
         if( IsCopperLayer( layer ) )
         {
-            // Copper layers are required for netname layers
             m_view->SetRequired( GetNetnameLayer( layer ), layer );
             m_view->SetLayerTarget( layer, KIGFX::TARGET_CACHED );
         }
         else if( IsNetnameLayer( layer ) )
         {
-            // Netnames are drawn only when scale is sufficient (level of details)
-            // so there is no point in caching them
-            m_view->SetLayerTarget( layer, KIGFX::TARGET_NONCACHED );
             m_view->SetLayerDisplayOnly( layer );
+            m_view->SetLayerTarget( layer, KIGFX::TARGET_CACHED );
         }
     }
 
@@ -414,6 +417,7 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
     m_view->SetRequired( F_Mask, ITEM_GAL_LAYER( PAD_FR_VISIBLE ) );
     m_view->SetRequired( F_CrtYd, ITEM_GAL_LAYER( MOD_FR_VISIBLE ) );
     m_view->SetRequired( F_Fab, ITEM_GAL_LAYER( MOD_FR_VISIBLE ) );
+    m_view->SetRequired( F_SilkS, ITEM_GAL_LAYER( MOD_FR_VISIBLE ) );
 
     // Back modules
     m_view->SetRequired( ITEM_GAL_LAYER( PAD_BK_VISIBLE ), ITEM_GAL_LAYER( MOD_BK_VISIBLE ) );
@@ -424,6 +428,7 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
     m_view->SetRequired( B_Mask, ITEM_GAL_LAYER( PAD_BK_VISIBLE ) );
     m_view->SetRequired( B_CrtYd, ITEM_GAL_LAYER( MOD_BK_VISIBLE ) );
     m_view->SetRequired( B_Fab, ITEM_GAL_LAYER( MOD_BK_VISIBLE ) );
+    m_view->SetRequired( B_SilkS, ITEM_GAL_LAYER( MOD_BK_VISIBLE ) );
 
     m_view->SetLayerTarget( ITEM_GAL_LAYER( GP_OVERLAY ), KIGFX::TARGET_OVERLAY );
     m_view->SetLayerDisplayOnly( ITEM_GAL_LAYER( GP_OVERLAY ) );

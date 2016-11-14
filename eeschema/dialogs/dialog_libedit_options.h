@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2009 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -86,8 +86,12 @@ public:
         return m_spinRepeatLabel->GetValue();
     }
 
-    void SetMaxUndoItems( int aItems ) { m_spinMaxUndoItems->SetValue( aItems ); }
-    int GetMaxUndoItems() const { return m_spinMaxUndoItems->GetValue(); }
+    void SetShowElectricalType( bool show ) { m_checkShowPinElectricalType->SetValue( show ); }
+    bool GetShowElectricalType( void )
+    {
+        return m_checkShowPinElectricalType->GetValue();
+    }
+
 };
 
 #endif // __DIALOG_LIBEDIT_OPTIONS__

@@ -5,8 +5,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,10 +29,7 @@
 #include <fctsys.h>
 #include <common.h>
 #include <class_drawpanel.h>
-#include <confirm.h>
-#include <gestfich.h>
 
-#include <gerbview.h>
 #include <gerbview_frame.h>
 #include <gerbview_id.h>
 #include <class_gerbview_layer_widget.h>
@@ -84,7 +81,6 @@ void GERBVIEW_FRAME::Files_io( wxCommandEvent& event )
         Zoom_Automatique( false );
         m_canvas->Refresh();
         ClearMsgPanel();
-        ReFillLayerWidget();
         break;
 
     case ID_GERBVIEW_LOAD_DRILL_FILE:
@@ -115,7 +111,7 @@ bool GERBVIEW_FRAME::LoadGerberFiles( const wxString& aFullFileName )
          * Because the first letter is usually g, we accept g* as extension
          * (Mainly internal copper layers do not have specific extension,
          *  and filenames are like *.g1, *.g2 *.gb1 ...).
-         * Now (2014) Ucamco (the company which manager the Gerber format) encourage
+         * Now (2014) Ucamco (the company which manages the Gerber format) encourages
          * use of .gbr only and the Gerber X2 file format.
          */
         filetypes = _( "Gerber files (.g* .lgr .pho)" );
@@ -137,17 +133,23 @@ bool GERBVIEW_FRAME::LoadGerberFiles( const wxString& aFullFileName )
         filetypes += _( "Top Pad Master (*.GPT)|*.GPT;*.gpt|" );
         filetypes += _( "Bottom Pad Master (*.GPB)|*.GPB;*.gpb|" );
 
-        /* All filetypes */
+        // All filetypes
         filetypes += AllFilesWildcard;
 
-        /* Use the current working directory if the file name path does not exist. */
+        // Use the current working directory if the file name path does not exist.
         if( filename.DirExists() )
             currentPath = filename.GetPath();
         else
+        {
             currentPath = m_mruPath;
 
-        wxFileDialog dlg( this,
-                          _( "Open Gerber File" ),
+            // On wxWidgets 3.1 (bug?) the path in wxFileDialog is ignored when
+            // finishing by the dir separator. Remove it if any:
+            if( currentPath.EndsWith( '\\' ) || currentPath.EndsWith( '/' ) )
+                currentPath.RemoveLast();
+        }
+
+        wxFileDialog dlg( this, _( "Open Gerber File" ),
                           currentPath,
                           filename.GetFullName(),
                           filetypes,
@@ -167,7 +169,6 @@ bool GERBVIEW_FRAME::LoadGerberFiles( const wxString& aFullFileName )
     }
     else
     {
-        wxFileName filename = aFullFileName;
         filenamesList.Add( aFullFileName );
         currentPath = filename.GetPath();
         m_mruPath = currentPath;
@@ -178,7 +179,7 @@ bool GERBVIEW_FRAME::LoadGerberFiles( const wxString& aFullFileName )
 
     for( unsigned ii = 0; ii < filenamesList.GetCount(); ii++ )
     {
-        wxFileName filename = filenamesList[ii];
+        filename = filenamesList[ii];
 
         if( !filename.IsAbsolute() )
             filename.SetPath( currentPath );
@@ -187,7 +188,7 @@ bool GERBVIEW_FRAME::LoadGerberFiles( const wxString& aFullFileName )
 
         setActiveLayer( layer, false );
 
-        if( Read_GERBER_File( filename.GetFullPath(), filename.GetFullPath() ) )
+        if( Read_GERBER_File( filename.GetFullPath() ) )
         {
             UpdateFileHistory( m_lastFileName );
 
@@ -252,7 +253,6 @@ bool GERBVIEW_FRAME::LoadExcellonFiles( const wxString& aFullFileName )
     }
     else
     {
-        wxFileName filename = aFullFileName;
         filenamesList.Add( aFullFileName );
         currentPath = filename.GetPath();
         m_mruPath = currentPath;
@@ -263,7 +263,7 @@ bool GERBVIEW_FRAME::LoadExcellonFiles( const wxString& aFullFileName )
 
     for( unsigned ii = 0; ii < filenamesList.GetCount(); ii++ )
     {
-        wxFileName filename = filenamesList[ii];
+        filename = filenamesList[ii];
 
         if( !filename.IsAbsolute() )
             filename.SetPath( currentPath );

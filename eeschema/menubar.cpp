@@ -28,18 +28,16 @@
  * @brief (Re)Create the main menubar for the schematic frame
  */
 
-#include <fctsys.h>
+
 #include <kiface_i.h>
-#include <pgm_base.h>
-#include <schframe.h>
-
-#include <general.h>
-#include <eeschema_id.h>
-#include <hotkeys.h>
 #include <menus_helpers.h>
+#include <pgm_base.h>
 
-#include <help_common_strings.h>
-
+#include "eeschema_id.h"
+#include "general.h"
+#include "help_common_strings.h"
+#include "hotkeys.h"
+#include "schframe.h"
 
 void SCH_EDIT_FRAME::ReCreateMenuBar()
 {
@@ -100,8 +98,8 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
     }
 
     AddMenuItem( fileMenu,
-                 ID_APPEND_PROJECT, _( "App&end Schematic Sheet" ),
-                 _( "Append schematic sheet to current project" ),
+                 ID_APPEND_PROJECT, _( "Imp&ort Schematic Sheet Content" ),
+                 _( "Import a schematic sheet content from an other project in the current sheet" ),
                  KiBitmap( open_document_xpm ) );
 
     fileMenu->AppendSeparator();
@@ -494,11 +492,18 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  _( "Run CvPcb" ),
                  KiBitmap( cvpcb_xpm ) );
 
+    toolsMenu->AppendSeparator();
+
+#ifdef KICAD_SPICE
+    // Simulator
+    AddMenuItem( toolsMenu,
+                 ID_SIM_SHOW,
+                 _("Simula&tor"), _( "Simulate the circuit" ),
+                 KiBitmap( simulator_xpm ) );
+#endif /* KICAD_SPICE */
+
     // Help Menu:
     wxMenu* helpMenu = new wxMenu;
-
-    // Version info
-    AddHelpVersionInfoMenuEntry( helpMenu );
 
     AddMenuItem( helpMenu,
                  wxID_HELP,
@@ -511,6 +516,18 @@ void SCH_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Getting Started in KiCad" ),
                  _( "Open \"Getting Started in KiCad\" guide for beginners" ),
                  KiBitmap( help_xpm ) );
+
+    AddMenuItem( helpMenu,
+                 ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
+                 _( "&List Hotkeys" ),
+                 _( "Displays the current hotkeys list and corresponding commands" ),
+                 KiBitmap( hotkeys_xpm ) );
+
+    helpMenu->AppendSeparator();
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
 
     helpMenu->AppendSeparator();
     AddMenuItem( helpMenu,

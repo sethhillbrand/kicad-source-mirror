@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2010-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2010-2016 Jean-Pierre Charras  jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,9 +22,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-// Set this to 1 if you want to test PostScript printing under MSW.
-#define wxTEST_POSTSCRIPT_IN_MSW 1
-
 #include <fctsys.h>
 
 #include <kiface_i.h>
@@ -37,8 +34,20 @@
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <class_GERBER.h>
-#include <pcbplot.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
+
+///@{
+/// \ingroup config
+
+#define OPTKEY_LAYERBASE             wxT( "PlotLayer_%d" )
+#define OPTKEY_PRINT_X_FINESCALE_ADJ wxT( "PrintXFineScaleAdj" )
+#define OPTKEY_PRINT_Y_FINESCALE_ADJ wxT( "PrintYFineScaleAdj" )
+#define OPTKEY_PRINT_SCALE           wxT( "PrintScale" )
+#define OPTKEY_PRINT_PAGE_FRAME      wxT( "PrintPageFrame" )
+#define OPTKEY_PRINT_MONOCHROME_MODE wxT( "PrintMonochrome" )
+
+///@}
 
 static double s_ScaleList[] =
 { 0, 0.5, 0.7, 0.999, 1.0, 1.4, 2.0, 3.0, 4.0 };
@@ -70,14 +79,14 @@ public:
     ~DIALOG_PRINT_USING_PRINTER() {};
 
 private:
-    void OnCloseWindow( wxCloseEvent& event );
+    void OnCloseWindow( wxCloseEvent& event ) override;
     void OnInitDialog( wxInitDialogEvent& event );
-    void OnPageSetup( wxCommandEvent& event );
-    void OnPrintPreview( wxCommandEvent& event );
-    void OnPrintButtonClick( wxCommandEvent& event );
-    void OnScaleSelectionClick( wxCommandEvent& event );
+    void OnPageSetup( wxCommandEvent& event ) override;
+    void OnPrintPreview( wxCommandEvent& event ) override;
+    void OnPrintButtonClick( wxCommandEvent& event ) override;
+    void OnScaleSelectionClick( wxCommandEvent& event ) override;
 
-    void OnButtonCancelClick( wxCommandEvent& event ) { Close(); }
+    void OnButtonCloseClick( wxCommandEvent& event ) override { Close(); }
     void SetPrintParameters();
     void InitValues();
 
@@ -91,13 +100,7 @@ public:
 };
 
 
-/*******************************************************/
 void GERBVIEW_FRAME::ToPrinter( wxCommandEvent& event )
-/*******************************************************/
-
-/* Virtual function:
- * Display the print dialog
- */
 {
     if( s_printData == NULL )  // First print
         s_printData = new wxPrintData();
@@ -119,10 +122,8 @@ void GERBVIEW_FRAME::ToPrinter( wxCommandEvent& event )
 }
 
 
-/*************************************************************************************/
 DIALOG_PRINT_USING_PRINTER::DIALOG_PRINT_USING_PRINTER( GERBVIEW_FRAME* parent ) :
     DIALOG_PRINT_USING_PRINTER_BASE( parent )
-/*************************************************************************************/
 {
     m_Parent = parent;
     m_Config = Kiface().KifaceSettings();
@@ -139,9 +140,7 @@ DIALOG_PRINT_USING_PRINTER::DIALOG_PRINT_USING_PRINTER( GERBVIEW_FRAME* parent )
 }
 
 
-/************************************************************************/
 void DIALOG_PRINT_USING_PRINTER::InitValues( )
-/************************************************************************/
 {
     SetFocus();
     wxString msg;
@@ -156,23 +155,23 @@ void DIALOG_PRINT_USING_PRINTER::InitValues( )
     }
 
     s_Parameters.m_PageSetupData = s_pageSetupData;
+    GERBER_FILE_IMAGE_LIST* images = m_Parent->GetGerberLayout()->GetImagesList();
 
     // Create layer list
-    for( int ii = 0; ii < GERBER_DRAWLAYERS_COUNT; ++ii )
+    for( unsigned ii = 0; ii < images->ImagesMaxCount(); ++ii )
     {
         msg = _( "Layer" );
         msg << wxT( " " ) << ii + 1;
-        m_BoxSelectLayer[ii] = new wxCheckBox( this, -1, msg );
 
-        if( g_GERBER_List.GetGbrImage( ii ) == NULL )     // Nothing loaded on this draw layer
+        wxStaticBoxSizer* boxSizer = ( ii < 16 ) ? m_leftLayersBoxSizer
+                                                 : m_rightLayersBoxSizer;
+
+        m_BoxSelectLayer[ii] = new wxCheckBox( boxSizer->GetStaticBox(),
+                                               wxID_ANY, msg );
+        boxSizer->Add( m_BoxSelectLayer[ii], wxGROW | wxLEFT | wxRIGHT | wxTOP );
+
+        if( images->GetGbrImage( ii ) == NULL )     // Nothing loaded on this draw layer
             m_BoxSelectLayer[ii]->Enable( false );
-
-        if( ii < 16 )
-            m_leftLayersBoxSizer->Add( m_BoxSelectLayer[ii],
-                                         wxGROW | wxLEFT | wxRIGHT | wxTOP );
-        else
-            m_rightLayersBoxSizer->Add( m_BoxSelectLayer[ii],
-                                            wxGROW | wxLEFT | wxRIGHT | wxTOP );
     }
 
     // Read the scale adjust option
@@ -232,23 +231,18 @@ void DIALOG_PRINT_USING_PRINTER::InitValues( )
 
 int DIALOG_PRINT_USING_PRINTER::SetLayerSetFromListSelection()
 {
-    int page_count = 0;
-    std::bitset <GERBER_DRAWLAYERS_COUNT> layerMask;
+    std::vector<int> layerList;
+
     for( int ii = 0; ii < GERBER_DRAWLAYERS_COUNT; ++ii )
     {
         if( m_BoxSelectLayer[ii]->IsChecked() && m_BoxSelectLayer[ii]->IsEnabled() )
-        {
-            page_count++;
-            layerMask[ii] = true;
-        }
-        else
-            layerMask[ii] = false;
+            layerList.push_back( ii );
     }
 
-    m_Parent->GetGerberLayout()->SetPrintableLayers( layerMask );
-    s_Parameters.m_PageCount = page_count;
+    m_Parent->GetGerberLayout()->SetPrintableLayers( layerList );
+    s_Parameters.m_PageCount = layerList.size();
 
-    return page_count;
+    return s_Parameters.m_PageCount;
 }
 
 
@@ -264,6 +258,7 @@ void DIALOG_PRINT_USING_PRINTER::OnCloseWindow( wxCloseEvent& event )
         m_Config->Write( OPTKEY_PRINT_PAGE_FRAME, s_Parameters.m_Print_Sheet_Ref);
         m_Config->Write( OPTKEY_PRINT_MONOCHROME_MODE, s_Parameters.m_Print_Black_and_White);
         wxString layerKey;
+
         for( int layer = 0; layer < GERBER_DRAWLAYERS_COUNT; ++layer )
         {
             layerKey.Printf( OPTKEY_LAYERBASE, layer );
@@ -290,20 +285,36 @@ void DIALOG_PRINT_USING_PRINTER::SetPrintParameters()
     int idx = m_ScaleOption->GetSelection();
     s_Parameters.m_PrintScale = s_ScaleList[idx];
 
-    if( m_FineAdjustXscaleOpt )
+    // Test for a reasonnable scale value
+    bool ok = true;
+    double scaleX;
+    m_FineAdjustXscaleOpt->GetValue().ToDouble( &scaleX );
+
+    double scaleY;
+    m_FineAdjustYscaleOpt->GetValue().ToDouble( &scaleY );
+
+    if( scaleX > MAX_SCALE || scaleY > MAX_SCALE )
     {
-        if( s_Parameters.m_XScaleAdjust > MAX_SCALE ||
-            s_Parameters.m_YScaleAdjust > MAX_SCALE )
-            DisplayInfoMessage( NULL, _( "Warning: Scale option set to a very large value" ) );
-        m_FineAdjustXscaleOpt->GetValue().ToDouble( &s_Parameters.m_XScaleAdjust );
+        DisplayInfoMessage( NULL, _( "Warning: Scale option set to a very large value" ) );
+        ok = false;
     }
-    if( m_FineAdjustYscaleOpt )
+
+    if( scaleX < MIN_SCALE || scaleY < MIN_SCALE )
     {
-        // Test for a reasonnable scale value
-        if( s_Parameters.m_XScaleAdjust < MIN_SCALE ||
-            s_Parameters.m_YScaleAdjust < MIN_SCALE )
-            DisplayInfoMessage( NULL, _( "Warning: Scale option set to a very small value" ) );
-        m_FineAdjustYscaleOpt->GetValue().ToDouble( &s_Parameters.m_YScaleAdjust );
+        DisplayInfoMessage( NULL, _( "Warning: Scale option set to a very small value" ) );
+        ok = false;
+    }
+
+    if( ok )
+    {
+        s_Parameters.m_XScaleAdjust = scaleX;
+        s_Parameters.m_YScaleAdjust = scaleY;
+    }
+    else
+    {
+        // Update actual fine scale value
+        m_FineAdjustXscaleOpt->SetValue( wxString::Format( "%f", s_Parameters.m_XScaleAdjust ) );
+        m_FineAdjustYscaleOpt->SetValue( wxString::Format( "%f", s_Parameters.m_YScaleAdjust ) );
     }
 }
 
@@ -311,8 +322,10 @@ void DIALOG_PRINT_USING_PRINTER::OnScaleSelectionClick( wxCommandEvent& event )
 {
     double scale = s_ScaleList[m_ScaleOption->GetSelection()];
     bool enable = (scale == 1.0);
+
     if( m_FineAdjustXscaleOpt )
         m_FineAdjustXscaleOpt->Enable(enable);
+
     if( m_FineAdjustYscaleOpt )
         m_FineAdjustYscaleOpt->Enable(enable);
 }
@@ -335,7 +348,7 @@ bool DIALOG_PRINT_USING_PRINTER::PreparePrintPrms()
 
     // If no layer selected, we have no plot. prompt user if it happens
     // because he could think there is a bug in Pcbnew:
-    if( m_Parent->GetGerberLayout()->GetPrintableLayers().none() )
+    if( m_Parent->GetGerberLayout()->GetPrintableLayers().size() == 0 )
     {
         DisplayError( this, _( "No layer selected" ) );
         return false;

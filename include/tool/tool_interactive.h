@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2013 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -63,6 +64,15 @@ public:
      */
     void SetContextMenu( CONTEXT_MENU* aMenu, CONTEXT_MENU_TRIGGER aTrigger = CMENU_BUTTON );
 
+
+    /**
+     * Function RunMainStack()
+     *
+     * Calls a function using the main stack.
+     * @param aFunc is the function to be calls.
+     */
+    void RunMainStack( std::function<void()> aFunc );
+
     /**
      * Function Go()
      *
@@ -113,7 +123,7 @@ template <class T>
 void TOOL_INTERACTIVE::Go( int (T::* aStateFunc)( const TOOL_EVENT& ),
                            const TOOL_EVENT_LIST& aConditions )
 {
-    TOOL_STATE_FUNC sptr( static_cast<T*>( this ), aStateFunc );
+    TOOL_STATE_FUNC sptr = std::bind( aStateFunc, static_cast<T*>( this ), std::placeholders::_1 );
 
     goInternal( sptr, aConditions );
 }

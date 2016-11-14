@@ -337,13 +337,11 @@ public:
         return NULL;
     }
 
-
     /**
      * Function GetPrimaryCount
      * @return int - The number if items which met the primary search criteria
      */
     int GetPrimaryCount() { return m_PrimaryLength; }
-
 
     /**
      * Function Inspect
@@ -355,8 +353,7 @@ public:
      * @return SEARCH_RESULT - SEARCH_QUIT if the Iterator is to stop the scan,
      *   else SCAN_CONTINUE;
      */
-    SEARCH_RESULT Inspect( EDA_ITEM* testItem, const void* testData );
-
+    SEARCH_RESULT Inspect( EDA_ITEM* testItem, void* testData )  override;
 
     /**
      * Function Collect
@@ -448,7 +445,7 @@ public:
      * Function IsLayerLocked
      * @return bool - true if the given layer is locked, else false.
      */
-    bool IsLayerLocked( LAYER_ID aLayerId ) const
+    bool IsLayerLocked( LAYER_ID aLayerId ) const override
     {
         return m_LayerLocked[aLayerId];
     }
@@ -462,7 +459,7 @@ public:
      * Function IsLayerVisible
      * @return bool - true if the given layer is visible, else false.
      */
-    bool IsLayerVisible( LAYER_ID aLayerId ) const
+    bool IsLayerVisible( LAYER_ID aLayerId ) const override
     {
         return m_LayerVisible[aLayerId];
     }
@@ -476,7 +473,7 @@ public:
      * Function IgnoreLockedLayers
      * @return bool - true if should ignore locked layers, else false.
      */
-    bool IgnoreLockedLayers() const                 { return m_IgnoreLockedLayers; }
+    bool IgnoreLockedLayers() const override        { return m_IgnoreLockedLayers; }
     void SetIgnoreLockedLayers( bool ignore )       { m_IgnoreLockedLayers = ignore; }
 
 
@@ -484,7 +481,7 @@ public:
      * Function IgnoredNonVisibleLayers
      * @return bool - true if should ignore non-visible layers, else false.
      */
-    bool IgnoreNonVisibleLayers() const             { return m_IgnoreNonVisibleLayers; }
+    bool IgnoreNonVisibleLayers() const override    { return m_IgnoreNonVisibleLayers; }
     void SetIgnoreNonVisibleLayers( bool ignore )   { m_IgnoreLockedLayers = ignore; }
 
 
@@ -492,7 +489,7 @@ public:
      * Function GetPreferredLayer
      * @return int - the preferred layer for HitTest()ing.
      */
-    LAYER_ID GetPreferredLayer() const             { return m_PreferredLayer; }
+    LAYER_ID GetPreferredLayer() const override    { return m_PreferredLayer; }
     void SetPreferredLayer( LAYER_ID aLayer )      { m_PreferredLayer = aLayer; }
 
 
@@ -501,7 +498,7 @@ public:
      * provides wildcard behavior regarding the preferred layer.
      * @return bool - true if should ignore preferred layer, else false.
      */
-    bool IgnorePreferredLayer() const               { return  m_IgnorePreferredLayer; }
+    bool IgnorePreferredLayer() const override      { return  m_IgnorePreferredLayer; }
     void SetIgnorePreferredLayer( bool ignore )     { m_IgnorePreferredLayer = ignore; }
 
 
@@ -509,7 +506,7 @@ public:
      * Function IgnoreLockedItems
      * @return bool - true if should ignore locked items, else false.
      */
-    bool IgnoreLockedItems() const                  { return m_IgnoreLockedItems; }
+    bool IgnoreLockedItems() const override         { return m_IgnoreLockedItems; }
     void SetIgnoreLockedItems( bool ignore )        { m_IgnoreLockedItems = ignore; }
 
 
@@ -519,7 +516,7 @@ public:
      * included.
      * @return bool - true if should include, else false.
      */
-    bool IncludeSecondary() const  { return m_IncludeSecondary; }
+    bool IncludeSecondary() const override { return m_IncludeSecondary; }
     void SetIncludeSecondary( bool include ) { m_IncludeSecondary = include; }
 
 
@@ -527,63 +524,63 @@ public:
      * Function IgnoreMTextsMarkedNoShow
      * @return bool - true if MTexts marked as "no show" should be ignored.
      */
-    bool IgnoreMTextsMarkedNoShow() const { return m_IgnoreMTextsMarkedNoShow; }
+    bool IgnoreMTextsMarkedNoShow() const override { return m_IgnoreMTextsMarkedNoShow; }
     void SetIgnoreMTextsMarkedNoShow( bool ignore ) { m_IgnoreMTextsMarkedNoShow = ignore; }
 
     /**
      * Function IgnoreMTextsOnCu
      * @return bool - true if should ignore MTexts on back layers
      */
-    bool IgnoreMTextsOnBack() const { return m_IgnoreMTextsOnBack; }
+    bool IgnoreMTextsOnBack() const override { return m_IgnoreMTextsOnBack; }
     void SetIgnoreMTextsOnBack( bool ignore ) { m_IgnoreMTextsOnBack = ignore; }
 
     /**
      * Function IgnoreMTextsOnFront
      * @return bool - true if should ignore MTexts on front layers
      */
-    bool IgnoreMTextsOnFront() const { return m_IgnoreMTextsOnFront; }
+    bool IgnoreMTextsOnFront() const override { return m_IgnoreMTextsOnFront; }
     void SetIgnoreMTextsOnFront( bool ignore ) { m_IgnoreMTextsOnFront = ignore; }
 
     /**
      * Function IgnoreModulesOnBack
      * @return bool - true if should ignore MODULEs on the back side
      */
-    bool IgnoreModulesOnBack() const { return m_IgnoreModulesOnBack; }
+    bool IgnoreModulesOnBack() const override { return m_IgnoreModulesOnBack; }
     void SetIgnoreModulesOnBack( bool ignore ) { m_IgnoreModulesOnBack = ignore; }
 
     /**
      * Function IgnoreModulesOnFront
      * @return bool - true if should ignore MODULEs on component layer.
      */
-    bool IgnoreModulesOnFront() const { return m_IgnoreModulesOnFront; }
+    bool IgnoreModulesOnFront() const override { return m_IgnoreModulesOnFront; }
     void SetIgnoreModulesOnFront( bool ignore ) { m_IgnoreModulesOnFront = ignore; }
 
     /**
      * Function IgnorePadsOnBack
      * @return bool - true if should ignore Pads on Back Side.
      */
-    bool IgnorePadsOnBack() const { return m_IgnorePadsOnBack; }
+    bool IgnorePadsOnBack() const override { return m_IgnorePadsOnBack; }
     void SetIgnorePadsOnBack(bool ignore) { m_IgnorePadsOnBack = ignore; }
 
     /**
      * Function IgnorePadsOnFront
      * @return bool - true if should ignore PADSs on Front Side.
      */
-    bool IgnorePadsOnFront() const { return m_IgnorePadsOnFront; }
+    bool IgnorePadsOnFront() const override { return m_IgnorePadsOnFront; }
     void SetIgnorePadsOnFront(bool ignore) { m_IgnorePadsOnFront = ignore; }
 
     /**
      * Function IgnoreModulesVals
      * @return bool - true if should ignore modules values.
      */
-    bool IgnoreModulesVals() const { return m_IgnoreModulesVals; }
+    bool IgnoreModulesVals() const override { return m_IgnoreModulesVals; }
     void SetIgnoreModulesVals(bool ignore) { m_IgnoreModulesVals = ignore; }
 
     /**
      * Function IgnoreModulesRefs
      * @return bool - true if should ignore modules references.
      */
-    bool IgnoreModulesRefs() const { return m_IgnoreModulesRefs; }
+    bool IgnoreModulesRefs() const override { return m_IgnoreModulesRefs; }
     void SetIgnoreModulesRefs(bool ignore) { m_IgnoreModulesRefs = ignore; }
 };
 
@@ -595,7 +592,6 @@ public:
  */
 class PCB_TYPE_COLLECTOR : public COLLECTOR
 {
-
 public:
 
     /**
@@ -612,7 +608,6 @@ public:
         return NULL;
     }
 
-
     /**
      * Function Inspect
      * is the examining function within the INSPECTOR which is passed to the
@@ -623,8 +618,7 @@ public:
      * @return SEARCH_RESULT - SEARCH_QUIT if the Iterator is to stop the scan,
      *   else SCAN_CONTINUE;
      */
-    SEARCH_RESULT Inspect( EDA_ITEM* testItem, const void* testData );
-
+    SEARCH_RESULT Inspect( EDA_ITEM* testItem, void* testData ) override;
 
     /**
      * Function Collect

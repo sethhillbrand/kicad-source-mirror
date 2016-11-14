@@ -31,18 +31,19 @@
 #ifndef CLASS_NETCLASS_H
 #define CLASS_NETCLASS_H
 
+
+#include <macros.h>
 #include <set>
-#include <map>
-#include <boost/shared_ptr.hpp>
-
-#include <wx/string.h>
-
+#include <memory>
 #include <richio.h>
 
 
 class LINE_READER;
 class BOARD;
 class BOARD_DESIGN_SETTINGS;
+
+
+DECL_SET_FOR_SWIG( STRINGSET, wxString )
 
 
 /**
@@ -61,12 +62,12 @@ private:
     static const int DEFAULT_VIA_DIAMETER;
     static const int DEFAULT_UVIA_DIAMETER;
     static const int DEFAULT_TRACK_WIDTH;
+    static const int DEFAULT_DIFF_PAIR_WIDTH;
+    static const int DEFAULT_DIFF_PAIR_GAP;
 
 protected:
     wxString    m_Name;                 ///< Name of the net class
     wxString    m_Description;          ///< what this NETCLASS is for.
-
-    typedef std::set<wxString> STRINGSET;
 
     STRINGSET   m_Members;              ///< names of NET members of this class
 
@@ -81,9 +82,12 @@ protected:
     int         m_uViaDia;              ///< microvia diameter
     int         m_uViaDrill;            ///< microvia drill hole diameter
 
+    int         m_diffPairWidth;
+    int         m_diffPairGap;
+
 public:
 
-    static const wxChar Default[];      ///< the name of the default NETCLASS
+    static const char Default[];        ///< the name of the default NETCLASS
 
     /**
      * Constructor
@@ -160,6 +164,8 @@ public:
         m_Members.erase( aName );
     }
 
+    STRINGSET& NetNames()                   { return m_Members; }       ///< for SWIG
+
     const wxString& GetDescription() const  { return m_Description; }
     void    SetDescription( const wxString& aDesc ) { m_Description = aDesc; }
 
@@ -180,6 +186,12 @@ public:
 
     int     GetuViaDrill() const            { return m_uViaDrill; }
     void    SetuViaDrill( int aSize )       { m_uViaDrill = aSize; }
+
+    int     GetDiffPairWidth() const            { return m_diffPairWidth; }
+    void    SetDiffPairWidth( int aSize )       { m_diffPairWidth = aSize; }
+
+    int     GetDiffPairGap() const            { return m_diffPairGap; }
+    void    SetDiffPairGap( int aSize )       { m_diffPairGap = aSize; }
 
     /**
      * Function SetParams
@@ -206,7 +218,10 @@ public:
 #endif
 };
 
-typedef boost::shared_ptr<NETCLASS> NETCLASSPTR;
+
+DECL_SPTR_FOR_SWIG( NETCLASSPTR, NETCLASS )
+DECL_MAP_FOR_SWIG( NETCLASS_MAP, wxString, NETCLASSPTR );
+
 
 /**
  * Class NETCLASSES
@@ -217,13 +232,12 @@ typedef boost::shared_ptr<NETCLASS> NETCLASSPTR;
 class NETCLASSES
 {
 private:
-    typedef std::map<wxString, NETCLASSPTR> NETCLASSMAP;
 
     /// all the NETCLASSes except the default one.
-    NETCLASSMAP             m_NetClasses;
+    NETCLASS_MAP    m_NetClasses;
 
     /// the default NETCLASS.
-    NETCLASSPTR             m_Default;
+    NETCLASSPTR     m_Default;
 
 public:
     NETCLASSES();
@@ -238,11 +252,11 @@ public:
         m_NetClasses.clear();
     }
 
-    typedef NETCLASSMAP::iterator iterator;
+    typedef NETCLASS_MAP::iterator iterator;
     iterator begin() { return m_NetClasses.begin(); }
     iterator end()   { return m_NetClasses.end(); }
 
-    typedef NETCLASSMAP::const_iterator const_iterator;
+    typedef NETCLASS_MAP::const_iterator const_iterator;
     const_iterator begin() const { return m_NetClasses.begin(); }
     const_iterator end()   const { return m_NetClasses.end(); }
 
@@ -266,10 +280,10 @@ public:
 
     /**
      * Function Add
-     * takes ownership of \a aNetclass and puts it into this NETCLASSES container.
+     * takes \a aNetclass and puts it into this NETCLASSES container.
      * @param aNetclass is netclass to add
      * @return true if the name within aNetclass is unique and it could be inserted OK,
-     *  else false because the name was not unique and caller still owns aNetclass.
+     *  else false because the name was not unique.
      */
     bool Add( NETCLASSPTR aNetclass );
 
@@ -289,6 +303,8 @@ public:
      */
     NETCLASSPTR Find( const wxString& aName ) const;
 
+    /// Provide public access to m_NetClasses so it gets swigged.
+    NETCLASS_MAP&   NetClasses()       { return m_NetClasses; }
 };
 
 #endif  // CLASS_NETCLASS_H

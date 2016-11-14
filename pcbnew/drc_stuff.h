@@ -5,7 +5,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2007 Dick Hollenbeck, dick@softplc.com
+ * Copyright (C) 2007-2016 Dick Hollenbeck, dick@softplc.com
  * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -30,7 +30,7 @@
 #define _DRC_STUFF_H
 
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #define OK_DRC  0
 #define BAD_DRC 1
@@ -66,18 +66,20 @@
 #define DRCE_TOO_SMALL_TRACK_WIDTH             27   ///< Too small track width
 #define DRCE_TOO_SMALL_VIA                     28   ///< Too small via size
 #define DRCE_TOO_SMALL_MICROVIA                29   ///< Too small micro via size
-#define DRCE_NETCLASS_TRACKWIDTH               30   ///< netclass has TrackWidth < board.m_designSettings->m_TrackMinWidth
-#define DRCE_NETCLASS_CLEARANCE                31   ///< netclass has Clearance < board.m_designSettings->m_TrackClearance
-#define DRCE_NETCLASS_VIASIZE                  32   ///< netclass has ViaSize < board.m_designSettings->m_ViasMinSize
-#define DRCE_NETCLASS_VIADRILLSIZE             33   ///< netclass has ViaDrillSize < board.m_designSettings->m_ViasMinDrill
-#define DRCE_NETCLASS_uVIASIZE                 34   ///< netclass has ViaSize < board.m_designSettings->m_MicroViasMinSize
-#define DRCE_NETCLASS_uVIADRILLSIZE            35   ///< netclass has ViaSize < board.m_designSettings->m_MicroViasMinDrill
-#define DRCE_VIA_INSIDE_KEEPOUT                36   ///< Via in inside a keepout area
-#define DRCE_TRACK_INSIDE_KEEPOUT              37   ///< Track in inside a keepout area
-#define DRCE_PAD_INSIDE_KEEPOUT                38   ///< Pad in inside a keepout area
-#define DRCE_VIA_INSIDE_TEXT                   39   ///< Via in inside a text area
-#define DRCE_TRACK_INSIDE_TEXT                 40   ///< Track in inside a text area
-#define DRCE_PAD_INSIDE_TEXT                   41   ///< Pad in inside a text area
+#define DRCE_TOO_SMALL_VIA_DRILL               30   ///< Too small via drill
+#define DRCE_TOO_SMALL_MICROVIA_DRILL          31   ///< Too small micro via drill
+#define DRCE_NETCLASS_TRACKWIDTH               32   ///< netclass has TrackWidth < board.m_designSettings->m_TrackMinWidth
+#define DRCE_NETCLASS_CLEARANCE                33   ///< netclass has Clearance < board.m_designSettings->m_TrackClearance
+#define DRCE_NETCLASS_VIASIZE                  34   ///< netclass has ViaSize < board.m_designSettings->m_ViasMinSize
+#define DRCE_NETCLASS_VIADRILLSIZE             35   ///< netclass has ViaDrillSize < board.m_designSettings->m_ViasMinDrill
+#define DRCE_NETCLASS_uVIASIZE                 36   ///< netclass has ViaSize < board.m_designSettings->m_MicroViasMinSize
+#define DRCE_NETCLASS_uVIADRILLSIZE            37   ///< netclass has ViaSize < board.m_designSettings->m_MicroViasMinDrill
+#define DRCE_VIA_INSIDE_KEEPOUT                38   ///< Via in inside a keepout area
+#define DRCE_TRACK_INSIDE_KEEPOUT              39   ///< Track in inside a keepout area
+#define DRCE_PAD_INSIDE_KEEPOUT                40   ///< Pad in inside a keepout area
+#define DRCE_VIA_INSIDE_TEXT                   41   ///< Via in inside a text area
+#define DRCE_TRACK_INSIDE_TEXT                 42   ///< Track in inside a text area
+#define DRCE_PAD_INSIDE_TEXT                   43   ///< Pad in inside a text area
 
 
 class EDA_DRAW_PANEL;
@@ -193,17 +195,17 @@ private:
     int                 m_xcliphi;
     int                 m_ycliphi;
 
-    PCB_EDIT_FRAME*     m_mainWindow;
+    PCB_EDIT_FRAME*     m_pcbEditorFrame;   ///< The pcb frame editor which owns the board
     BOARD*              m_pcb;
-    DIALOG_DRC_CONTROL* m_ui;
+    DIALOG_DRC_CONTROL* m_drcDialog;
 
-    DRC_LIST            m_unconnected;  ///< list of unconnected pads, as DRC_ITEMs
+    DRC_LIST            m_unconnected;      ///< list of unconnected pads, as DRC_ITEMs
 
 
     /**
      * Function updatePointers
      * is a private helper function used to update needed pointers from the
-     * one pointer which is known not to change, m_mainWindow.
+     * one pointer which is known not to change, m_pcbEditorFrame.
      */
     void updatePointers();
 
@@ -289,7 +291,7 @@ private:
 
     //-----<single "item" tests>-----------------------------------------
 
-    bool doNetClass( boost::shared_ptr<NETCLASS> aNetClass, wxString& msg );
+    bool doNetClass( std::shared_ptr<NETCLASS> aNetClass, wxString& msg );
 
     /**
      * Function doPadToPadsDrc
@@ -365,12 +367,12 @@ private:
 
     /**
      * Helper function checkMarginToCircle
-     * Check the distance from a point to
-     * a segment. the segment is expected starting at 0,0, and on the X axis
+     * Check the distance from a point to a segment.
+     * The segment is expected starting at 0,0, and on the X axis
      * (used to test DRC between a segment and a round pad, via or round end of a track
      * @param aCentre The coordinate of the circle's center
      * @param aRadius A "keep out" radius centered over the circle
-     * @param aLength The length of the segment (i.e. coordinate of end, becuase it is on
+     * @param aLength The length of the segment (i.e. coordinate of end, because it is on
      *                the X axis)
      * @return bool - true if distance >= radius, else
      *                false when distance < aRadius
@@ -437,20 +439,29 @@ public:
 
 
     /**
-     * Function ShowDialog
+     * Function ShowDRCDialog
      * opens a dialog and prompts the user, then if a test run button is
      * clicked, runs the test(s) and creates the MARKERS.  The dialog is only
      * created if it is not already in existence.
+     * @param aParent is the parent window for wxWidgets. Usually the PCB editor frame
+     * but can be an other dialog
+     * if aParent == NULL (default), the parent will be the PCB editor frame
+     * and the dialog will be not modal (just float on parent
+     * if aParent is specified, the dialog will be modal.
+     * The modal mode is mandatory if the dialog is created from an other dialog, not
+     * from the PCB editor frame
      */
-    void ShowDialog();
+    void ShowDRCDialog( wxWindow* aParent = NULL );
 
     /**
-     * Function DestroyDialog
+     * Function DestroyDRCDialog
      * deletes this ui dialog box and zeros out its pointer to remember
      * the state of the dialog's existence.
      * @param aReason Indication of which button was clicked to cause the destruction.
+     * if aReason == wxID_OK, design parameters values which can be entered from the dialog will bbe saved
+     * in design parameters list
      */
-    void DestroyDialog( int aReason );
+    void DestroyDRCDialog( int aReason );
 
 
     /**

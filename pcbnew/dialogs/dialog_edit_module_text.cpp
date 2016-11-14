@@ -9,7 +9,7 @@
  * Copyright (C) 2015 Jean-Pierre Charras
  * Copyright (C) 2013 Dick Hollenbeck, dick@softplc.com
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,11 +40,14 @@
 #include <confirm.h>
 #include <wxBasePcbFrame.h>
 #include <base_units.h>
+#include <wx/numformatter.h>
+#include <board_commit.h>
 
 #include <class_module.h>
 #include <class_text_mod.h>
 #include <class_board.h>
 
+#include <class_pcb_layer_box_selector.h>
 #include <dialog_edit_module_text.h>
 
 
@@ -62,37 +65,34 @@ void PCB_BASE_FRAME::InstallTextModOptionsFrame( TEXTE_MODULE* TextMod, wxDC* DC
 
 DialogEditModuleText::DialogEditModuleText( PCB_BASE_FRAME* aParent,
                                             TEXTE_MODULE* aTextMod, wxDC* aDC ) :
-    DialogEditModuleText_base( aParent )
+    DialogEditModuleText_base( aParent ),
+    m_OrientValidator( 1, &m_OrientValue )
 
 {
     m_parent = aParent;
     m_dc     = aDC;
     m_module = NULL;
     m_currentText = aTextMod;
+    m_OrientValue = 0;
+
+    m_OrientValidator.SetRange( -90.0, 90.0 );
+    m_OrientValueCtrl->SetValidator( m_OrientValidator );
+    m_OrientValidator.SetWindow( m_OrientValueCtrl );
 
     if( m_currentText )
         m_module = (MODULE*) m_currentText->GetParent();
 
-    initDlg();
-
-    m_sdbSizer1OK->SetDefault();
-
-    GetSizer()->Fit( this );
-    GetSizer()->SetSizeHints( this );
-
-    Centre();
-}
-
-
-void DialogEditModuleText::OnCancelClick( wxCommandEvent& event )
-{
-   EndModal( 0 );
-}
-
-
-void DialogEditModuleText::initDlg( )
-{
+    m_sdbSizerOK->SetDefault();
     SetFocus();
+
+    FixOSXCancelButtonIssue();
+}
+
+
+bool DialogEditModuleText::TransferDataToWindow()
+{
+    if( !wxDialog::TransferDataToWindow() )
+        return false;
 
     wxString msg;
 
@@ -159,6 +159,31 @@ void DialogEditModuleText::initDlg( )
     if( !m_currentText->IsVisible() )
         m_Show->SetSelection( 1 );
 
+    bool custom_orientation = false;
+    switch( int( text_orient ) )
+    {
+    case 0:
+        m_Orient->SetSelection( 0 );
+        break;
+
+    case 900:
+        m_Orient->SetSelection( 1 );
+        break;
+
+    case -900:
+        m_Orient->SetSelection( 2 );
+        break;
+
+    default:
+        m_Orient->SetSelection( 3 );
+        custom_orientation = true;
+        break;
+    }
+
+    m_OrientValueCtrl->Enable( custom_orientation );
+    m_OrientValue = text_orient / 10.0;
+    m_OrientValidator.TransferToWindow();
+
     // Configure the layers list selector
     if( !m_parent->GetBoard()->IsLayerEnabled( m_currentText->GetLayer() ) )
         // Footprints are built outside the current board, so items cann be
@@ -176,15 +201,20 @@ void DialogEditModuleText::initDlg( )
                         "Now, forced on the front silk screen layer. Please, fix it" ) );
         m_LayerSelectionCtrl->SetLayerSelection( F_SilkS );
     }
+
+    return true;
 }
 
 
-void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
+bool DialogEditModuleText::TransferDataFromWindow()
 {
-    wxString msg;
+    BOARD_COMMIT commit( m_parent );
+
+    if( !Validate() || !DialogEditModuleText_base::TransferDataFromWindow() )
+        return false;
 
     if( m_module )
-        m_parent->SaveCopyInUndoList( m_module, UR_CHANGED );
+        commit.Modify( m_currentText );
 
 #ifndef USE_WX_OVERLAY
     if( m_dc )     //Erase old text on screen
@@ -199,11 +229,8 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
 
     wxPoint tmp;
 
-    msg = m_TxtPosCtrlX->GetValue();
-    tmp.x = ValueFromString( g_UserUnit, msg );
-
-    msg = m_TxtPosCtrlY->GetValue();
-    tmp.y = ValueFromString( g_UserUnit, msg );
+    tmp.x = ValueFromString( g_UserUnit, m_TxtPosCtrlX->GetValue() );
+    tmp.y = ValueFromString( g_UserUnit, m_TxtPosCtrlY->GetValue() );
 
     m_currentText->SetPos0( tmp );
 
@@ -217,10 +244,9 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
     if( textSize.y < TEXTS_MIN_SIZE )
         textSize.y = TEXTS_MIN_SIZE;
 
-    m_currentText->SetSize( textSize ),
+    m_currentText->SetSize( textSize );
 
-    msg = m_TxtWidthCtlr->GetValue();
-    int width = ValueFromString( g_UserUnit, msg );
+    int width = ValueFromString( g_UserUnit, m_TxtWidthCtlr->GetValue() );
 
     // Test for a reasonable width:
     if( width <= 1 )
@@ -239,8 +265,52 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
 
     m_currentText->SetVisible( m_Show->GetSelection() == 0 );
 
-    int text_orient = (m_Orient->GetSelection() == 0) ? 0 : 900;
-    m_currentText->SetOrientation( text_orient );
+    bool custom_orientation = false;
+    switch( m_Orient->GetSelection() )
+    {
+    case 0:
+        m_currentText->SetOrientation( 0 );
+        break;
+
+    case 1:
+        m_currentText->SetOrientation( 900 );
+        break;
+
+    case 2:
+        m_currentText->SetOrientation( -900 );
+        break;
+
+    default:
+        custom_orientation = true;
+        m_currentText->SetOrientation( KiROUND( m_OrientValue * 10.0 ) );
+        break;
+    };
+
+    switch( int( m_currentText->GetOrientation() ) )
+    {
+    case 0:
+        m_Orient->SetSelection( 0 );
+        break;
+
+    case 900:
+    case -2700:
+        m_Orient->SetSelection( 1 );
+        break;
+
+    case -900:
+    case 2700:
+        m_Orient->SetSelection( 2 );
+        break;
+
+    default:
+        m_Orient->SetSelection( 3 );
+        m_currentText->SetOrientation( KiROUND( m_OrientValue * 10.0 ) );
+        custom_orientation = true;
+        break;
+    }
+    m_OrientValue = 10.0 * m_currentText->GetOrientation();
+    m_OrientValueCtrl->Enable( custom_orientation );
+    m_OrientValidator.TransferToWindow();
 
     m_currentText->SetDrawCoord();
 
@@ -252,16 +322,45 @@ void DialogEditModuleText::OnOkClick( wxCommandEvent& event )
     if( m_dc )     // Display new text
     {
         m_currentText->Draw( m_parent->GetCanvas(), m_dc, GR_XOR,
-                             (m_currentText->IsMoving()) ? MoveVector : wxPoint( 0, 0 ) );
+                (m_currentText->IsMoving()) ? MoveVector : wxPoint( 0, 0 ) );
     }
 #else
     m_parent->Refresh();
 #endif
 
-    m_parent->OnModify();
+    commit.Push( _( "Modify module text" ) );
 
     if( m_module )
         m_module->SetLastEditTime();
 
-    EndModal( 1 );
+    return true;
 }
+
+
+void DialogEditModuleText::ModuleOrientEvent( wxCommandEvent& event )
+{
+    bool custom_orientation = false;
+
+    switch( m_Orient->GetSelection() )
+    {
+    case 0:
+        m_OrientValue = 0.0;
+        break;
+
+    case 1:
+        m_OrientValue = 90.0;
+        break;
+
+    case 2:
+        m_OrientValue = -90.0;
+        break;
+
+    default:
+        custom_orientation = true;
+        break;
+    }
+
+    m_OrientValidator.TransferToWindow();
+    m_OrientValueCtrl->Enable( custom_orientation );
+}
+

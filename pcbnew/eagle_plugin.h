@@ -5,7 +5,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2012-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -79,22 +79,23 @@ class EAGLE_PLUGIN : public PLUGIN
 public:
 
     //-----<PUBLIC PLUGIN API>--------------------------------------------------
-    const wxString PluginName() const;
+    const wxString PluginName() const override;
 
-    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe,  const PROPERTIES* aProperties = NULL );
+    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe,  const PROPERTIES* aProperties = NULL ) override;
 
-    const wxString GetFileExtension() const;
+    const wxString GetFileExtension() const override;
 
-    wxArrayString FootprintEnumerate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL);
+    wxArrayString FootprintEnumerate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL) override;
 
-    MODULE* FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName, const PROPERTIES* aProperties = NULL );
+    MODULE* FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
+            const PROPERTIES* aProperties = NULL ) override;
 
-    bool IsFootprintLibWritable( const wxString& aLibraryPath )
+    bool IsFootprintLibWritable( const wxString& aLibraryPath ) override
     {
         return false;   // until someone writes others like FootprintSave(), etc.
     }
 
-    void FootprintLibOptions( PROPERTIES* aProperties ) const;
+    void FootprintLibOptions( PROPERTIES* aProperties ) const override;
 
 /*
     void Save( const wxString& aFileName, BOARD* aBoard, const PROPERTIES* aProperties = NULL );

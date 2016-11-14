@@ -34,7 +34,6 @@
 #include <pgm_base.h>
 #include <wxstruct.h>
 #include <confirm.h>
-#include <3d_viewer.h>
 #include <pcbcommon.h>
 
 #include <cvpcb.h>
@@ -56,7 +55,6 @@ const wxString EquFileExtension( wxT( "equ" ) );
 // Wildcard for schematic retroannotation (import footprint names in schematic):
 const wxString EquFilesWildcard( _( "Component/footprint equ files (*.equ)|*.equ" ) );
 
-
 namespace CV {
 
 static struct IFACE : public KIFACE_I
@@ -67,11 +65,11 @@ static struct IFACE : public KIFACE_I
         KIFACE_I( aName, aType )
     {}
 
-    bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits );
+    bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits ) override;
 
-    void OnKifaceEnd();
+    void OnKifaceEnd() override;
 
-    wxWindow* CreateWindow( wxWindow* aParent, int aClassId, KIWAY* aKiway, int aCtlBits = 0 )
+    wxWindow* CreateWindow( wxWindow* aParent, int aClassId, KIWAY* aKiway, int aCtlBits = 0 ) override
     {
         switch( aClassId )
         {
@@ -100,7 +98,7 @@ static struct IFACE : public KIFACE_I
      *
      * @return void* - and must be cast into the know type.
      */
-    void* IfaceOrAddress( int aDataId )
+    void* IfaceOrAddress( int aDataId ) override
     {
         return NULL;
     }
@@ -183,7 +181,7 @@ bool IFACE::OnKifaceStart( PGM_BASE* aProgram, int aCtlBits )
         wxString msg = wxString::Format( _(
             "An error occurred attempting to load the global footprint library "
             "table:\n\n%s" ),
-            GetChars( ioe.errorText )
+            GetChars( ioe.What() )
             );
         DisplayError( NULL, msg );
         return false;

@@ -43,9 +43,10 @@
 #include <class_board.h>
 #include <class_module.h>
 #include <class_edge_mod.h>
+#include <board_commit.h>
 
-#include <boost/bind.hpp>
-#include <boost/foreach.hpp>
+#include <functional>
+using namespace std::placeholders;
 #include <wx/defs.h>
 
 MODULE_TOOLS::MODULE_TOOLS() :
@@ -157,24 +158,17 @@ int MODULE_TOOLS::PlacePad( const TOOL_EVENT& aEvent )
 
         else if( evt->IsClick( BUT_LEFT ) )
         {
-            m_frame->OnModify();
-            m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
+            BOARD_COMMIT commit( m_frame );
+            commit.Add( pad );
 
             m_board->m_Status_Pcb = 0;    // I have no clue why, but it is done in the legacy view
-            pad->SetParent( m_board->m_Modules );
-            m_board->m_Modules->SetLastEditTime();
-            m_board->m_Modules->Pads().PushBack( pad );
-
-            // Set the relative pad position
-            // ( pad position for module orient, 0, and relative to the module position)
-            pad->SetLocalCoord();
 
             // Take the next available pad number
             pad->IncrementPadName( true, true );
 
             // Handle the view aspect
             preview.Remove( pad );
-            m_view->Add( pad );
+            commit.Push( _( "Add a pad" ) );
 
             // Start placing next pad
             pad = new D_PAD( m_board->m_Modules );
@@ -279,7 +273,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
                 selectedPads.unique();
             }
 
-            BOOST_FOREACH( D_PAD* pad, selectedPads )
+            for( D_PAD* pad : selectedPads )
             {
                 std::set<D_PAD*>::iterator it = allPads.find( pad );
 
@@ -307,11 +301,16 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
                    evt->IsDblClick( BUT_LEFT ) )
         {
             // Accept changes
+            BOARD_COMMIT commit( m_frame );
             m_frame->OnModify();
-            m_frame->SaveCopyInUndoList( m_board->m_Modules, UR_MODEDIT );
 
-            BOOST_FOREACH( D_PAD* pad, pads )
+            for( D_PAD* pad : pads )
+            {
+                commit.Modify( pad );
                 pad->SetPadName( wxString::Format( wxT( "%s%d" ), padPrefix.c_str(), padNumber++ ) );
+            }
+
+            commit.Push( _( "Enumerate pads" ) );
 
             break;
         }
@@ -322,7 +321,7 @@ int MODULE_TOOLS::EnumeratePads( const TOOL_EVENT& aEvent )
         }
     }
 
-    BOOST_FOREACH( D_PAD* pad, pads )
+    for( D_PAD* pad : pads )
         pad->ClearSelected();
 
     m_frame->DisplayToolMsg( wxEmptyString );
@@ -406,7 +405,6 @@ int MODULE_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
 {
     // Parse clipboard
     PCB_IO io( CTL_FOR_CLIPBOARD );
-    MODULE* currentModule = m_board->m_Modules;
     MODULE* pastedModule = NULL;
 
     try
@@ -428,7 +426,8 @@ int MODULE_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
     KIGFX::VIEW_GROUP preview( m_view );
     pastedModule->SetParent( m_board );
     pastedModule->SetPosition( wxPoint( cursorPos.x, cursorPos.y ) );
-    pastedModule->RunOnChildren( boost::bind( &KIGFX::VIEW_GROUP::Add, boost::ref( preview ), _1 ) );
+    pastedModule->RunOnChildren( std::bind( &KIGFX::VIEW_GROUP::Add, 
+                                                std::ref( preview ),  _1 ) );
     preview.Add( pastedModule );
     m_view->Add( &preview );
 
@@ -471,11 +470,9 @@ int MODULE_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
 
         else if( evt->IsClick( BUT_LEFT ) )
         {
-            m_frame->OnModify();
-            m_frame->SaveCopyInUndoList( currentModule, UR_MODEDIT );
+            BOARD_COMMIT commit( m_frame );
 
             m_board->m_Status_Pcb = 0;    // I have no clue why, but it is done in the legacy view
-            currentModule->SetLastEditTime();
 
             // MODULE::RunOnChildren is infeasible here: we need to create copies of items, do not
             // directly modify them
@@ -483,10 +480,7 @@ int MODULE_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
             for( D_PAD* pad = pastedModule->Pads(); pad; pad = pad->Next() )
             {
                 D_PAD* clone = static_cast<D_PAD*>( pad->Clone() );
-
-                currentModule->Add( clone );
-                clone->SetLocalCoord();
-                m_view->Add( clone );
+                commit.Add( clone );
             }
 
             for( BOARD_ITEM* drawing = pastedModule->GraphicalItems();
@@ -498,22 +492,17 @@ int MODULE_TOOLS::PasteItems( const TOOL_EVENT& aEvent )
                 {
                     // Do not add reference/value - convert them to the common type
                     text->SetType( TEXTE_MODULE::TEXT_is_DIVERS );
-                    currentModule->Add( text );
-                    text->SetLocalCoord();
 
                     // Whyyyyyyyyyyyyyyyyyyyyyy?! All other items conform to rotation performed
                     // on its parent module, but texts are so independent..
                     text->Rotate( text->GetPosition(), pastedModule->GetOrientation() );
-                }
-                else if( EDGE_MODULE* edge = dyn_cast<EDGE_MODULE*>( clone ) )
-                {
-                    currentModule->Add( edge );
-                    edge->SetLocalCoord();
+                    commit.Add( text );
                 }
 
-                m_view->Add( clone );
+                commit.Add( clone );
             }
 
+            commit.Push( _( "Paste clipboard contents" ) );
             preview.Clear();
 
             break;
@@ -545,7 +534,7 @@ int MODULE_TOOLS::ModuleTextOutlines( const TOOL_EVENT& aEvent )
 
     bool enable = !settings->GetSketchMode( layers[0] );
 
-    BOOST_FOREACH( LAYER_NUM layer, layers )
+    for( LAYER_NUM layer : layers )
         settings->SetSketchMode( layer, enable );
 
     for( MODULE* module = getModel<BOARD>()->m_Modules; module; module = module->Next() )
@@ -579,7 +568,7 @@ int MODULE_TOOLS::ModuleEdgeOutlines( const TOOL_EVENT& aEvent )
 
     bool enable = !settings->GetSketchMode( layers[0] );
 
-    BOOST_FOREACH( LAYER_NUM layer, layers )
+    for( LAYER_NUM layer : layers )
         settings->SetSketchMode( layer, enable );
 
     for( MODULE* module = getModel<BOARD>()->m_Modules; module; module = module->Next() )

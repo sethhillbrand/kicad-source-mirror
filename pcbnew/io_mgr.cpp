@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2011-2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,21 +41,6 @@
 
 #define FMT_UNIMPLEMENTED   _( "Plugin '%s' does not implement the '%s' function." )
 #define FMT_NOTFOUND        _( "Plugin type '%s' is not found." )
-
-
-// is there a better place for this function?
-bool PROPERTIES::Value( const char* aName, UTF8* aFetchedValue ) const
-{
-    PROPERTIES::const_iterator it = find( aName );
-
-    if( it != end() )
-    {
-        if( aFetchedValue )
-            *aFetchedValue = it->second;
-        return true;
-    }
-    return false;
-}
 
 
 // Some day plugins might be in separate DLL/DSOs, simply because of numbers of them
@@ -98,6 +83,9 @@ PLUGIN* IO_MGR::PluginFind( PCB_FILE_T aFileType )
 #else
         THROW_IO_ERROR( "BUILD_GITHUB_PLUGIN not enabled in cmake build environment" );
 #endif
+
+    case FILE_TYPE_NONE:
+        return NULL;
     }
 
     return NULL;

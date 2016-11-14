@@ -5,7 +5,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 1992-2010 Jean-Pierre Charras <jean-pierre.charras@gipsa-lab.inpg.fr
- * Copyright (C) 1992-2010 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +28,6 @@
 #include <fctsys.h>
 #include <plot_common.h>
 #include <class_sch_screen.h>
-#include <sch_sheet.h>
 #include <schframe.h>
 #include <base_units.h>
 #include <sch_sheet_path.h>
@@ -42,7 +41,6 @@
 void DIALOG_PLOT_SCHEMATIC::createPDFFile( bool aPlotAll, bool aPlotFrameRef )
 {
     SCH_SCREEN*     screen = m_parent->GetScreen();
-    SCH_SHEET_PATH* sheetpath;
     SCH_SHEET_PATH  oldsheetpath = m_parent->GetCurrentSheet();     // sheetpath is saved here
 
     /* When printing all pages, the printed page is not the current page.  In
@@ -52,9 +50,12 @@ void DIALOG_PLOT_SCHEMATIC::createPDFFile( bool aPlotAll, bool aPlotFrameRef )
      * between many sheets and component references depend on the actual sheet
      * path used
      */
-    SCH_SHEET_LIST SheetList( NULL );
+    SCH_SHEET_LIST sheetList;
 
-    sheetpath = SheetList.GetFirst();
+    if( aPlotAll )
+        sheetList.BuildSheetList( g_RootSheet );
+    else
+        sheetList.push_back( m_parent->GetCurrentSheet() );
 
     // Allocate the plotter and set the job level parameter
     PDF_PLOTTER* plotter = new PDF_PLOTTER();
@@ -65,30 +66,16 @@ void DIALOG_PLOT_SCHEMATIC::createPDFFile( bool aPlotAll, bool aPlotFrameRef )
     wxString msg;
     wxFileName plotFileName;
     REPORTER& reporter = m_MessagesBox->Reporter();
+    LOCALE_IO toggle;       // Switch the locale to standard C
 
-    // First page handling is different
-    bool first_page = true;
-    do
+    for( unsigned i = 0; i < sheetList.size(); i++ )
     {
-        // Step over the schematic hierarchy
-        if( aPlotAll )
-        {
-            SCH_SHEET_PATH list;
+        m_parent->SetCurrentSheet( sheetList[i] );
+        m_parent->GetCurrentSheet().UpdateAllScreenReferences();
+        m_parent->SetSheetNumberAndCount();
+        screen = m_parent->GetCurrentSheet().LastScreen();
 
-            if( list.BuildSheetPathInfoFromSheetPathValue( sheetpath->Path() ) )
-            {
-                m_parent->SetCurrentSheet( list );
-                m_parent->GetCurrentSheet().Last()->UpdateAllScreenReferences();
-                m_parent->SetSheetNumberAndCount();
-                screen = m_parent->GetCurrentSheet().LastScreen();
-            }
-            else // Should not happen
-                wxASSERT( 0 );
-
-            sheetpath = SheetList.GetNext();
-        }
-
-        if( first_page )
+        if( i == 0 )
         {
 
             try
@@ -100,23 +87,21 @@ void DIALOG_PLOT_SCHEMATIC::createPDFFile( bool aPlotAll, bool aPlotFrameRef )
 
                 if( !plotter->OpenFile( plotFileName.GetFullPath() ) )
                 {
-                    msg.Printf( _( "Unable to create file '%s'.\n" ), GetChars( plotFileName.GetFullPath() ) );
+                    msg.Printf( _( "Unable to create file '%s'.\n" ),
+                                GetChars( plotFileName.GetFullPath() ) );
                     reporter.Report( msg, REPORTER::RPT_ERROR );
                     delete plotter;
                     return;
                 }
 
                 // Open the plotter and do the first page
-                SetLocaleTo_C_standard();
                 setupPlotPagePDF( plotter, screen );
                 plotter->StartPlot();
-                first_page = false;
-
             }
             catch( const IO_ERROR& e )
             {
                 // Cannot plot PDF file
-                msg.Printf( wxT( "PDF Plotter exception: %s" ), GetChars( e.errorText ) );
+                msg.Printf( wxT( "PDF Plotter exception: %s" ), GetChars( e.What() ) );
                 reporter.Report( msg, REPORTER::RPT_ERROR );
 
                 restoreEnvironment( plotter, oldsheetpath );
@@ -134,28 +119,25 @@ void DIALOG_PLOT_SCHEMATIC::createPDFFile( bool aPlotAll, bool aPlotFrameRef )
         }
 
         plotOneSheetPDF( plotter, screen, aPlotFrameRef );
-    } while( aPlotAll && sheetpath );
+    }
 
     // Everything done, close the plot and restore the environment
     msg.Printf( _( "Plot: '%s' OK.\n" ), GetChars( plotFileName.GetFullPath() ) );
     reporter.Report( msg, REPORTER::RPT_ACTION );
 
-
-    restoreEnvironment(plotter, oldsheetpath );
-
+    restoreEnvironment( plotter, oldsheetpath );
 }
 
 
 void DIALOG_PLOT_SCHEMATIC::restoreEnvironment( PDF_PLOTTER* aPlotter,
-                            SCH_SHEET_PATH& aOldsheetpath )
+                                                SCH_SHEET_PATH& aOldsheetpath )
 {
     aPlotter->EndPlot();
     delete aPlotter;
-    SetLocaleTo_Default();
 
     // Restore the previous sheet
     m_parent->SetCurrentSheet( aOldsheetpath );
-    m_parent->GetCurrentSheet().Last()->UpdateAllScreenReferences();
+    m_parent->GetCurrentSheet().UpdateAllScreenReferences();
     m_parent->SetSheetNumberAndCount();
 }
 
@@ -206,6 +188,7 @@ void DIALOG_PLOT_SCHEMATIC::setupPlotPagePDF( PLOTTER * aPlotter, SCH_SCREEN* aS
     double  scaley  = (double) plotPage.GetHeightMils() / actualPage.GetHeightMils();
     double  scale   = std::min( scalex, scaley );
     aPlotter->SetPageSettings( plotPage );
-    aPlotter->SetViewport( wxPoint( 0, 0 ), IU_PER_DECIMILS, scale, false );
+    // Currently, plot units are in decimil
+    aPlotter->SetViewport( wxPoint( 0, 0 ), IU_PER_MILS/10, scale, false );
 }
 

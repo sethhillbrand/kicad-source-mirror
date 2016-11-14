@@ -28,6 +28,8 @@
 #include <layers_id_colors_and_visibility.h>
 
 struct SELECTION;
+class COMMIT;
+
 class PCB_BASE_FRAME;
 
 class DIALOG_TRACK_VIA_PROPERTIES : public DIALOG_TRACK_VIA_PROPERTIES_BASE
@@ -36,21 +38,30 @@ public:
     DIALOG_TRACK_VIA_PROPERTIES( PCB_BASE_FRAME* aParent, const SELECTION& aItems );
 
     ///> Applies values from the dialog to the selected items.
-    bool Apply();
+    bool Apply( COMMIT& aCommit );
 
 private:
-    void onClose( wxCloseEvent& aEvent );
-    void onTrackNetclassCheck( wxCommandEvent& aEvent );
-    void onViaNetclassCheck( wxCommandEvent& aEvent );
-    void onCancelClick( wxCommandEvent& aEvent );
-    void onOkClick( wxCommandEvent& aEvent );
+    void onClose( wxCloseEvent& aEvent ) override;
+    void onTrackNetclassCheck( wxCommandEvent& aEvent ) override;
+    void onViaNetclassCheck( wxCommandEvent& aEvent ) override;
+    void onCancelClick( wxCommandEvent& aEvent ) override;
+    void onOkClick( wxCommandEvent& aEvent ) override;
+
+    void OnInitDlg( wxInitDialogEvent& event ) override
+    {
+        // Call the default wxDialog handler of a wxInitDialogEvent
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
 
     ///> Checks if the dialog values are correct.
     bool check() const;
 
     ///> Sets wxTextCtrl to the value stored in boost::optional<T> or "<...>" if it is not available.
     template<typename T>
-    void setCommonVal( const boost::optional<T>& aVal, wxTextCtrl* aTxtCtrl, WX_UNIT_BINDER& aBinder )
+        void setCommonVal( const boost::optional<T>& aVal, wxTextCtrl* aTxtCtrl, WX_UNIT_BINDER& aBinder )
     {
         if( aVal )
             aBinder.SetValue( *aVal );

@@ -1,5 +1,3 @@
-#ifndef PGM_KICAD_H_
-#define PGM_KICAD_H_
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -24,6 +22,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#ifndef PGM_KICAD_H_
+#define PGM_KICAD_H_
+
 
 #include <pgm_base.h>
 #include <bin_mod.h>
@@ -43,14 +44,15 @@ public:
         m_bm( "kicad" )     // indicates a "$HOME/.kicad wxConfig like" config file.
     {}
 
-    ~PGM_KICAD()
+    ~PGM_KICAD() throw()
     {
-        destroy();
+        Destroy();
     }
 
-    bool OnPgmInit( wxApp* aWxApp );                // overload PGM_BASE virtual
-    void OnPgmExit();                               // overload PGM_BASE virtual
-    void MacOpenFile( const wxString& aFileName );  // overload PGM_BASE virtual
+    bool OnPgmInit();
+    void OnPgmExit();
+
+    void MacOpenFile( const wxString& aFileName ) override;
 
     wxFileHistory&  GetFileHistory()            { return m_bm.m_history; }
 
@@ -60,17 +62,18 @@ public:
 
     wxString        GetHelpFileName()           { return m_bm.m_help_file; }
 
-protected:
-
     // The PGM_* classes can have difficulties at termination if they
     // are not destroyed soon enough.  Relying on a static destructor can be
     // too late for contained objects like wxSingleInstanceChecker.
-    void destroy();
+    void Destroy();
+
+protected:
 
     BIN_MOD         m_bm;
 };
 
 
-extern PGM_KICAD&  Pgm();
+extern PGM_KICAD& PgmTop();
+
 
 #endif  // PGM_KICAD_H_

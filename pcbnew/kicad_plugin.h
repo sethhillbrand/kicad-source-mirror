@@ -2,6 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 CERN.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,9 +38,10 @@ class NETINFO_MAPPING;
 
 /// Current s-expression file format version.  2 was the last legacy format version.
 
-//#define SEXPR_BOARD_FILE_VERSION    3     // first s-expression format, used legacy cu stack
-#define SEXPR_BOARD_FILE_VERSION    4       // reversed cu stack, changed Inner* to In* in reverse order
-                                            // went to 32 Cu layers from 16.
+//#define SEXPR_BOARD_FILE_VERSION    3         // first s-expression format, used legacy cu stack
+//#define SEXPR_BOARD_FILE_VERSION    4         // reversed cu stack, changed Inner* to In* in reverse order
+//                                              // went to 32 Cu layers from 16.
+#define SEXPR_BOARD_FILE_VERSION    20160815    // differential pair settings per net class
 
 #define CTL_STD_LAYER_NAMES         (1 << 0)    ///< Use English Standard layer names
 #define CTL_OMIT_NETS               (1 << 1)    ///< Omit pads net names (useless in library)
@@ -89,12 +91,12 @@ public:
 
     //-----<PLUGIN API>---------------------------------------------------------
 
-    const wxString PluginName() const
+    const wxString PluginName() const override
     {
         return wxT( "KiCad" );
     }
 
-    const wxString GetFileExtension() const
+    const wxString GetFileExtension() const override
     {
         // Would have used wildcards_and_files_ext.cpp's KiCadPcbFileExtension,
         // but to be pure, a plugin should not assume that it will always be linked
@@ -104,25 +106,26 @@ public:
     }
 
     void Save( const wxString& aFileName, BOARD* aBoard,
-               const PROPERTIES* aProperties = NULL );          // overload
+               const PROPERTIES* aProperties = NULL ) override;
 
-    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe, const PROPERTIES* aProperties = NULL );
+    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe, const PROPERTIES* aProperties = NULL ) override;
 
-    wxArrayString FootprintEnumerate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL);
+    wxArrayString FootprintEnumerate( const wxString& aLibraryPath,
+            const PROPERTIES* aProperties = NULL ) override;
 
     MODULE* FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
-                           const PROPERTIES* aProperties = NULL );
+            const PROPERTIES* aProperties = NULL ) override;
 
     void FootprintSave( const wxString& aLibraryPath, const MODULE* aFootprint,
-                        const PROPERTIES* aProperties = NULL );
+                        const PROPERTIES* aProperties = NULL ) override;
 
-    void FootprintDelete( const wxString& aLibraryPath, const wxString& aFootprintName, const PROPERTIES* aProperties = NULL );
+    void FootprintDelete( const wxString& aLibraryPath, const wxString& aFootprintName, const PROPERTIES* aProperties = NULL ) override;
 
-    void FootprintLibCreate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL);
+    void FootprintLibCreate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL) override;
 
-    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL );
+    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL ) override;
 
-    bool IsFootprintLibWritable( const wxString& aLibraryPath );
+    bool IsFootprintLibWritable( const wxString& aLibraryPath ) override;
 
     //-----</PLUGIN API>--------------------------------------------------------
 
@@ -153,7 +156,7 @@ public:
     void SetOutputFormatter( OUTPUTFORMATTER* aFormatter ) { m_out = aFormatter; }
 
     BOARD_ITEM* Parse( const wxString& aClipboardSourceInput )
-        throw( PARSE_ERROR, IO_ERROR );
+        throw( FUTURE_FORMAT_ERROR, PARSE_ERROR, IO_ERROR );
 
 protected:
 

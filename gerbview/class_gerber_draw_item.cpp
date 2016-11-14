@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2010 <Jean-Pierre Charras>
- * Copyright (C) 1992-2010 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2016 <Jean-Pierre Charras>
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,20 +31,18 @@
 #include <common.h>
 #include <trigo.h>
 #include <class_drawpanel.h>
-#include <macros.h>
 #include <msgpanel.h>
-
-#include <gerbview.h>
 #include <gerbview_frame.h>
+
 #include <class_gerber_draw_item.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 
 
-GERBER_DRAW_ITEM::GERBER_DRAW_ITEM( GBR_LAYOUT* aParent, GERBER_IMAGE* aGerberparams ) :
-    EDA_ITEM( (EDA_ITEM*)aParent, TYPE_GERBER_DRAW_ITEM )
+GERBER_DRAW_ITEM::GERBER_DRAW_ITEM( GERBER_FILE_IMAGE* aGerberImageFile ) :
+    EDA_ITEM( (EDA_ITEM*)NULL, TYPE_GERBER_DRAW_ITEM )
 {
-    m_imageParams = aGerberparams;
-    m_Layer         = 0;
+    m_GerberImageFile = aGerberImageFile;
     m_Shape         = GBR_SEGMENT;
     m_Flashed       = false;
     m_DCode         = 0;
@@ -55,38 +53,9 @@ GERBER_DRAW_ITEM::GERBER_DRAW_ITEM( GBR_LAYOUT* aParent, GERBER_IMAGE* aGerberpa
     m_mirrorB       = false;
     m_drawScale.x   = m_drawScale.y = 1.0;
     m_lyrRotation   = 0;
-    if( m_imageParams )
+
+    if( m_GerberImageFile )
         SetLayerParameters();
-}
-
-
-// Copy constructor
-GERBER_DRAW_ITEM::GERBER_DRAW_ITEM( const GERBER_DRAW_ITEM& aSource ) :
-    EDA_ITEM( aSource )
-{
-    m_imageParams = aSource.m_imageParams;
-    m_Shape = aSource.m_Shape;
-
-    m_Flags     = aSource.m_Flags;
-    SetTimeStamp( aSource.m_TimeStamp );
-
-    SetStatus( aSource.GetStatus() );
-    m_Start         = aSource.m_Start;
-    m_End           = aSource.m_End;
-    m_Size          = aSource.m_Size;
-    m_Layer         = aSource.m_Layer;
-    m_Shape         = aSource.m_Shape;
-    m_Flashed       = aSource.m_Flashed;
-    m_DCode         = aSource.m_DCode;
-    m_PolyCorners   = aSource.m_PolyCorners;
-    m_UnitsMetric   = aSource.m_UnitsMetric;
-    m_LayerNegative = aSource.m_LayerNegative;
-    m_swapAxis      = aSource.m_swapAxis;
-    m_mirrorA       = aSource.m_mirrorA;
-    m_mirrorB       = aSource.m_mirrorB;
-    m_layerOffset   = aSource.m_layerOffset;
-    m_drawScale     = aSource.m_drawScale;
-    m_lyrRotation   = aSource.m_lyrRotation;
 }
 
 
@@ -95,9 +64,23 @@ GERBER_DRAW_ITEM::~GERBER_DRAW_ITEM()
 }
 
 
-GERBER_DRAW_ITEM* GERBER_DRAW_ITEM::Copy() const
+void GERBER_DRAW_ITEM::SetNetAttributes( const GBR_NETLIST_METADATA& aNetAttributes )
 {
-    return new GERBER_DRAW_ITEM( *this );
+    m_netAttributes = aNetAttributes;
+
+    if( ( m_netAttributes.m_NetAttribType & GBR_NETLIST_METADATA::GBR_NETINFO_CMP ) ||
+        ( m_netAttributes.m_NetAttribType & GBR_NETLIST_METADATA::GBR_NETINFO_PAD ) )
+        m_GerberImageFile->m_ComponentsList.insert( std::make_pair( m_netAttributes.m_Cmpref, 0 ) );
+
+    if( ( m_netAttributes.m_NetAttribType & GBR_NETLIST_METADATA::GBR_NETINFO_NET ) )
+        m_GerberImageFile->m_NetnamesList.insert( std::make_pair( m_netAttributes.m_Netname, 0 ) );
+}
+
+
+int GERBER_DRAW_ITEM::GetLayer() const
+{
+    // returns the layer this item is on, or 0 if the m_GerberImageFile is NULL.
+    return m_GerberImageFile ? m_GerberImageFile->m_GraphicLayer : 0;
 }
 
 
@@ -107,15 +90,15 @@ wxPoint GERBER_DRAW_ITEM::GetABPosition( const wxPoint& aXYPosition ) const
      * For instance: Rotation must be made after or before mirroring ?
      * Note: if something is changed here, GetYXPosition must reflect changes
      */
-    wxPoint abPos = aXYPosition + m_imageParams->m_ImageJustifyOffset;
+    wxPoint abPos = aXYPosition + m_GerberImageFile->m_ImageJustifyOffset;
 
     if( m_swapAxis )
         std::swap( abPos.x, abPos.y );
 
-    abPos  += m_layerOffset + m_imageParams->m_ImageOffset;
+    abPos  += m_layerOffset + m_GerberImageFile->m_ImageOffset;
     abPos.x = KiROUND( abPos.x * m_drawScale.x );
     abPos.y = KiROUND( abPos.y * m_drawScale.y );
-    double rotation = m_lyrRotation * 10 + m_imageParams->m_ImageRotation * 10;
+    double rotation = m_lyrRotation * 10 + m_GerberImageFile->m_ImageRotation * 10;
 
     if( rotation )
         RotatePoint( &abPos, -rotation );
@@ -142,36 +125,36 @@ wxPoint GERBER_DRAW_ITEM::GetXYPosition( const wxPoint& aABPosition ) const
     if( !m_mirrorB )
         xyPos.y = -xyPos.y;
 
-    double rotation = m_lyrRotation * 10 + m_imageParams->m_ImageRotation * 10;
+    double rotation = m_lyrRotation * 10 + m_GerberImageFile->m_ImageRotation * 10;
 
     if( rotation )
         RotatePoint( &xyPos, rotation );
 
     xyPos.x = KiROUND( xyPos.x / m_drawScale.x );
     xyPos.y = KiROUND( xyPos.y / m_drawScale.y );
-    xyPos  -= m_layerOffset + m_imageParams->m_ImageOffset;
+    xyPos  -= m_layerOffset + m_GerberImageFile->m_ImageOffset;
 
     if( m_swapAxis )
         std::swap( xyPos.x, xyPos.y );
 
-    return xyPos - m_imageParams->m_ImageJustifyOffset;
+    return xyPos - m_GerberImageFile->m_ImageJustifyOffset;
 }
 
 
 void GERBER_DRAW_ITEM::SetLayerParameters()
 {
-    m_UnitsMetric = m_imageParams->m_GerbMetric;
-    m_swapAxis    = m_imageParams->m_SwapAxis;     // false if A = X, B = Y;
+    m_UnitsMetric = m_GerberImageFile->m_GerbMetric;
+    m_swapAxis    = m_GerberImageFile->m_SwapAxis;     // false if A = X, B = Y;
 
     // true if A =Y, B = Y
-    m_mirrorA     = m_imageParams->m_MirrorA;      // true: mirror / axe A
-    m_mirrorB     = m_imageParams->m_MirrorB;      // true: mirror / axe B
-    m_drawScale   = m_imageParams->m_Scale;        // A and B scaling factor
-    m_layerOffset = m_imageParams->m_Offset;       // Offset from OF command
+    m_mirrorA     = m_GerberImageFile->m_MirrorA;      // true: mirror / axe A
+    m_mirrorB     = m_GerberImageFile->m_MirrorB;      // true: mirror / axe B
+    m_drawScale   = m_GerberImageFile->m_Scale;        // A and B scaling factor
+    m_layerOffset = m_GerberImageFile->m_Offset;       // Offset from OF command
 
     // Rotation from RO command:
-    m_lyrRotation = m_imageParams->m_LocalRotation;
-    m_LayerNegative = m_imageParams->GetLayerParams().m_LayerNegative;
+    m_lyrRotation = m_GerberImageFile->m_LocalRotation;
+    m_LayerNegative = m_GerberImageFile->GetLayerParams().m_LayerNegative;
 }
 
 
@@ -225,14 +208,10 @@ D_CODE* GERBER_DRAW_ITEM::GetDcodeDescr()
     if( (m_DCode < FIRST_DCODE) || (m_DCode > LAST_DCODE) )
         return NULL;
 
-    GERBER_IMAGE* gerber = g_GERBER_List.GetGbrImage( m_Layer );
-
-    if( gerber == NULL )
+    if( m_GerberImageFile == NULL )
         return NULL;
 
-    D_CODE* d_code = gerber->GetDCODE( m_DCode, false );
-
-    return d_code;
+    return m_GerberImageFile->GetDCODE( m_DCode, false );
 }
 
 
@@ -243,8 +222,15 @@ const EDA_RECT GERBER_DRAW_ITEM::GetBoundingBox() const
 
     bbox.Inflate( m_Size.x / 2, m_Size.y / 2 );
 
-    bbox.SetOrigin( GetABPosition( bbox.GetOrigin() ) );
-    bbox.SetEnd( GetABPosition( bbox.GetEnd() ) );
+    // calculate the corners coordinates in current gerber axis orientations
+    wxPoint org = GetABPosition( bbox.GetOrigin() );
+    wxPoint end = GetABPosition( bbox.GetEnd() );
+
+    // Set the corners position:
+    bbox.SetOrigin( org );
+    bbox.SetEnd( end );
+    bbox.Normalize();
+
     return bbox;
 }
 
@@ -273,87 +259,56 @@ void GERBER_DRAW_ITEM::MoveXY( const wxPoint& aMoveVector )
 }
 
 
-bool GERBER_DRAW_ITEM::Save( FILE* aFile ) const
-{
-    return true;
-}
-
 bool GERBER_DRAW_ITEM::HasNegativeItems()
 {
-    bool isClear = m_LayerNegative ^ m_imageParams->m_ImageNegative;
+    bool isClear = m_LayerNegative ^ m_GerberImageFile->m_ImageNegative;
 
     // if isClear is true, this item has negative shape
-    // but if isClear is true, and if this item use an aperture macro definition,
-    // we must see if this aperture macro uses a negative shape.
-    if( isClear )
-        return true;
-
-    // see for a macro def
-    D_CODE* dcodeDescr = GetDcodeDescr();
-
-    if( dcodeDescr == NULL )
-        return false;
-
-    if( m_Shape ==  GBR_SPOT_MACRO )
-    {
-        APERTURE_MACRO* macro = dcodeDescr->GetMacro();
-
-        if( macro )     // macro == NULL should not occurs
-            return macro->HasNegativeItems( this );
-    }
-
-    return false;
+    return isClear;
 }
 
 
 void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
-                             const wxPoint& aOffset )
+                             const wxPoint& aOffset, GBR_DISPLAY_OPTIONS* aDrawOptions )
 {
     // used when a D_CODE is not found. default D_CODE to draw a flashed item
     static D_CODE dummyD_CODE( 0 );
-    EDA_COLOR_T   color, alt_color;
     bool          isFilled;
     int           radius;
     int           halfPenWidth;
     static bool   show_err;
     D_CODE*       d_codeDescr = GetDcodeDescr();
-    GERBVIEW_FRAME* gerbFrame = (GERBVIEW_FRAME*) aPanel->GetParent();
 
     if( d_codeDescr == NULL )
         d_codeDescr = &dummyD_CODE;
 
-    if( gerbFrame->IsLayerVisible( GetLayer() ) == false )
-        return;
-
-    color = gerbFrame->GetLayerColor( GetLayer() );
+    EDA_COLOR_T color = m_GerberImageFile->GetPositiveDrawColor();
 
     if( aDrawMode & GR_HIGHLIGHT )
         ColorChangeHighlightFlag( &color, !(aDrawMode & GR_AND) );
 
     ColorApplyHighlightFlag( &color );
 
-    alt_color = gerbFrame->GetNegativeItemsColor();
-
     /* isDark is true if flash is positive and should use a drawing
      *   color other than the background color, else use the background color
      *   when drawing so that an erasure happens.
      */
-    bool isDark = !(m_LayerNegative ^ m_imageParams->m_ImageNegative);
+    bool isDark = !(m_LayerNegative ^ m_GerberImageFile->m_ImageNegative);
 
     if( !isDark )
     {
         // draw in background color ("negative" color)
-        std::swap( color, alt_color );
+        color = aDrawOptions->m_NegativeDrawColor;
     }
 
     GRSetDrawMode( aDC, aDrawMode );
 
-    isFilled = gerbFrame->DisplayLinesSolidMode();
+    isFilled = aDrawOptions->m_DisplayLinesFill;
 
     switch( m_Shape )
     {
     case GBR_POLYGON:
-        isFilled = gerbFrame->DisplayPolygonsSolidMode();
+        isFilled = aDrawOptions->m_DisplayPolygonsFill;
 
         if( !isDark )
             isFilled = true;
@@ -412,8 +367,8 @@ void GERBER_DRAW_ITEM::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDra
     case GBR_SPOT_OVAL:
     case GBR_SPOT_POLY:
     case GBR_SPOT_MACRO:
-        isFilled = gerbFrame->DisplayFlashedItemsSolidMode();
-        d_codeDescr->DrawFlashedShape( this, aPanel->GetClipBox(), aDC, color, alt_color,
+        isFilled = aDrawOptions->m_DisplayFlashedItemsFill;
+        d_codeDescr->DrawFlashedShape( this, aPanel->GetClipBox(), aDC, color,
                                        m_Start, isFilled );
         break;
 
@@ -484,8 +439,8 @@ void GERBER_DRAW_ITEM::ConvertSegmentToPolygon( )
 
     // Now create the full polygon.
     // Due to previous changes, the shape is always something like
-    //          3 4
-    // 2          5
+    // 3 4
+    // 2 5
     // 1 6
     wxPoint corner;
     corner.x -= m_Size.x/2;
@@ -544,16 +499,24 @@ void GERBER_DRAW_ITEM::DrawGbrPoly( EDA_RECT*      aClipBox,
 void GERBER_DRAW_ITEM::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
 {
     wxString msg;
+    wxString text;
 
     msg = ShowGBRShape();
     aList.push_back( MSG_PANEL_ITEM( _( "Type" ), msg, DARKCYAN ) );
 
     // Display D_Code value:
-    msg.Printf( wxT( "%d" ), m_DCode );
-    aList.push_back( MSG_PANEL_ITEM( _( "D Code" ), msg, RED ) );
+    msg.Printf( _( "D Code %d" ), m_DCode );
+    D_CODE* apertDescr = GetDcodeDescr();
+
+    if( apertDescr->m_AperFunction.IsEmpty() )
+        text = _( "No attribute" );
+    else
+        text = apertDescr->m_AperFunction;
+
+    aList.push_back( MSG_PANEL_ITEM( msg, text, RED ) );
 
     // Display graphic layer number
-    msg.Printf( wxT( "%d" ), GetLayer() + 1 );
+    msg = GERBER_FILE_IMAGE_LIST::GetImagesList().GetDisplayName( GetLayer(), true );
     aList.push_back( MSG_PANEL_ITEM( _( "Graphic Layer" ), msg, BROWN ) );
 
     // Display item rotation
@@ -576,6 +539,40 @@ void GERBER_DRAW_ITEM::GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList )
     // Display AB axis swap (item specific)
     msg = m_swapAxis ? wxT( "A=Y B=X" ) : wxT( "A=X B=Y" );
     aList.push_back( MSG_PANEL_ITEM( _( "AB axis" ), msg, DARKRED ) );
+
+    // Display net info, if exists
+    if( m_netAttributes.m_NetAttribType == GBR_NETLIST_METADATA::GBR_NETINFO_UNSPECIFIED )
+        return;
+
+    // Build full net info:
+    wxString net_msg;
+    wxString cmp_pad_msg;
+
+    if( ( m_netAttributes.m_NetAttribType & GBR_NETLIST_METADATA::GBR_NETINFO_NET ) )
+    {
+        net_msg = _( "Net:" );
+        net_msg << " ";
+        if( m_netAttributes.m_Netname.IsEmpty() )
+            net_msg << "<no net name>";
+        else
+            net_msg << m_netAttributes.m_Netname;
+    }
+
+    if( ( m_netAttributes.m_NetAttribType & GBR_NETLIST_METADATA::GBR_NETINFO_PAD ) )
+    {
+        cmp_pad_msg.Printf( _( "Cmp: %s;  Pad: %s" ),
+                                GetChars( m_netAttributes.m_Cmpref ),
+                                GetChars( m_netAttributes.m_Padname ) );
+    }
+
+    else if( ( m_netAttributes.m_NetAttribType & GBR_NETLIST_METADATA::GBR_NETINFO_CMP ) )
+    {
+        cmp_pad_msg = _( "Cmp:" );
+        cmp_pad_msg << " " << m_netAttributes.m_Cmpref;
+    }
+
+
+    aList.push_back( MSG_PANEL_ITEM( net_msg, cmp_pad_msg, CYAN ) );
 }
 
 
@@ -618,7 +615,7 @@ void GERBER_DRAW_ITEM::Show( int nestLevel, std::ostream& os ) const
 
     " shape=\"" << m_Shape << '"' <<
     " addr=\"" << std::hex << this << std::dec << '"' <<
-    " layer=\"" << m_Layer << '"' <<
+    " layer=\"" << GetLayer() << '"' <<
     " size=\"" << m_Size << '"' <<
     " flags=\"" << m_Flags << '"' <<
     " status=\"" << GetStatus() << '"' <<

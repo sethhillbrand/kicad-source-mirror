@@ -2381,7 +2381,7 @@ void IDF3_BOARD::readBoardFile( const std::string& aFileName, bool aNoSubstitute
             }
         }
     }
-    catch( const std::exception& e )
+    catch( const std::exception& )
     {
         brd.exceptions ( std::ios_base::goodbit );
 
@@ -2699,7 +2699,7 @@ void IDF3_BOARD::readLibFile( const std::string& aFileName )
 
         while( lib.good() ) readLibSection( lib, state, this );
     }
-    catch( const std::exception& e )
+    catch( const std::exception& )
     {
         lib.exceptions ( std::ios_base::goodbit );
 
@@ -2722,18 +2722,42 @@ bool IDF3_BOARD::ReadFile( const wxString& aFullFileName, bool aNoSubstituteOutl
 
     wxFileName brdname( aFullFileName );
     wxFileName libname( aFullFileName );
+    wxString ext = brdname.GetExt();
+
+    if( !ext.Cmp( "EMN" ) )
+    {
+        libname.SetExt( wxT( "EMP" ) );
+    }
+    else if( !ext.Cmp( "emn" ) )
+    {
+        libname.SetExt( wxT( "emp" ) );
+    }
+    else
+    {
+        ostringstream ostr;
+        ostr << __FILE__ << ": " << __FUNCTION__ << ": " << __LINE__ << "\n";
+        ostr << "* [INFO] invalid file name: '" << aFullFileName.ToUTF8() << "'";
+
+        errormsg = ostr.str();
+    }
+
 
     brdname.SetExt( wxT( "emn" ) );
-    libname.SetExt( wxT( "emp" ) );
 
     std::string bfname = TO_UTF8( aFullFileName );
+
+    if( !wxFileExists( bfname ) )
+    {
+        brdname.SetExt( wxT( "EMN" ) );
+        libname.SetExt( wxT( "EMP" ) );
+    }
 
     try
     {
         if( !brdname.IsOk() )
         {
             ostringstream ostr;
-            ostr << "\n* invalid file name: '" << bfname << "'";
+            ostr << "\n* invalid file name: '" << aFullFileName.ToUTF8() << "'";
 
             throw( IDF_ERROR( __FILE__, __FUNCTION__, __LINE__, ostr.str() ) );
         }
@@ -2741,7 +2765,7 @@ bool IDF3_BOARD::ReadFile( const wxString& aFullFileName, bool aNoSubstituteOutl
         if( !brdname.FileExists() )
         {
             ostringstream ostr;
-            ostr << "\n* no such file: '" << bfname << "'";
+            ostr << "\n* no such file: '" << aFullFileName.ToUTF8() << "'";
 
             throw( IDF_ERROR( __FILE__, __FUNCTION__, __LINE__, ostr.str() ) );
         }
@@ -2829,7 +2853,7 @@ bool IDF3_BOARD::writeLibFile( const std::string& aFileName )
         }
 
     }
-    catch( const std::exception& e )
+    catch( const std::exception& )
     {
         lib.exceptions( std::ios_base::goodbit );
 
@@ -3096,7 +3120,7 @@ void IDF3_BOARD::writeBoardFile( const std::string& aFileName )
         }
 
     }
-    catch( const std::exception& e )
+    catch( const std::exception& )
     {
         brd.exceptions( std::ios_base::goodbit );
 

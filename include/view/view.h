@@ -27,7 +27,7 @@
 
 #include <vector>
 #include <set>
-#include <boost/unordered/unordered_map.hpp>
+#include <unordered_map>
 
 #include <math/box2.h>
 #include <gal/definitions.h>
@@ -463,10 +463,8 @@ public:
     /**
      * Function RecacheAllItems()
      * Rebuilds GAL display lists.
-     * @param aForceNow decides if every item should be instantly recached. Otherwise items are
-     * going to be recached when they become visible.
      */
-    void RecacheAllItems( bool aForceNow = false );
+    void RecacheAllItems();
 
     /**
      * Function IsDynamic()
@@ -577,7 +575,7 @@ private:
     };
 
     // Convenience typedefs
-    typedef boost::unordered_map<int, VIEW_LAYER>   LAYER_MAP;
+    typedef std::unordered_map<int, VIEW_LAYER>     LAYER_MAP;
     typedef LAYER_MAP::iterator                     LAYER_MAP_ITER;
     typedef std::vector<VIEW_LAYER*>                LAYER_ORDER;
     typedef std::vector<VIEW_LAYER*>::iterator      LAYER_ORDER_ITER;

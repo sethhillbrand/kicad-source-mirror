@@ -35,9 +35,25 @@
 #include <wxstruct.h>
 #include <class_drawpanel.h>
 #include <class_base_screen.h>
+#include <bitmaps.h>
 
 #include "../eeschema/dialogs/dialog_schematic_find.h"
 
+
+static const unsigned char dummy_png[] = {
+ 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+ 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0xf3, 0xff,
+ 0x61, 0x00, 0x00, 0x00, 0x5f, 0x49, 0x44, 0x41, 0x54, 0x38, 0xcb, 0x63, 0xf8, 0xff, 0xff, 0x3f,
+ 0x03, 0x25, 0x98, 0x61, 0x68, 0x1a, 0x00, 0x04, 0x46, 0x40, 0xfc, 0x02, 0x88, 0x45, 0x41, 0x1c,
+ 0x76, 0x20, 0xfe, 0x01, 0xc4, 0xbe, 0x24, 0x18, 0x60, 0x01, 0xc4, 0x20, 0x86, 0x04, 0x88, 0xc3,
+ 0x01, 0xe5, 0x04, 0x0c, 0xb8, 0x01, 0x37, 0x81, 0xf8, 0x04, 0x91, 0xf8, 0x0a, 0x54, 0x8f, 0x06,
+ 0xb2, 0x01, 0x9b, 0x81, 0x78, 0x02, 0x91, 0x78, 0x05, 0x54, 0x8f, 0xca, 0xe0, 0x08, 0x03, 0x36,
+ 0xa8, 0xbf, 0xec, 0xc8, 0x32, 0x80, 0xcc, 0x84, 0x04, 0x0a, 0xbc, 0x1d, 0x40, 0x2c, 0xc8, 0x30,
+ 0xf4, 0x33, 0x13, 0x00, 0x6b, 0x1a, 0x46, 0x7b, 0x68, 0xe7, 0x0f, 0x0b, 0x00, 0x00, 0x00, 0x00,
+ 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+};
+
+static const BITMAP_OPAQUE dummy_xpm[1] = {{ dummy_png, sizeof( dummy_png ), "dummy_xpm" }};
 
 const wxString traceFindReplace( wxT( "KicadFindReplace" ) );
 
@@ -65,13 +81,7 @@ EDA_ITEM::EDA_ITEM( KICAD_T idType )
 EDA_ITEM::EDA_ITEM( const EDA_ITEM& base )
 {
     initVars();
-    m_StructType = base.m_StructType;
-    m_Parent     = base.m_Parent;
-    m_Flags      = base.m_Flags;
-
-    // A copy of an item cannot have the same time stamp as the original item.
-    SetTimeStamp( GetNewTimeStamp() );
-    m_Status     = base.m_Status;
+    *this = base;
 }
 
 
@@ -82,7 +92,6 @@ void EDA_ITEM::initVars()
     Pback       = NULL;     // Linked list: Link (previous struct)
     m_Parent    = NULL;     // Linked list: Link (parent struct)
     m_List      = NULL;     // I am not on any list yet
-    m_Image     = NULL;     // Link to an image copy for undelete or abort command
     m_Flags     = 0;        // flags for editions and other
     SetTimeStamp( 0 );      // Time stamp used for logical links
     m_Status    = 0;
@@ -107,10 +116,10 @@ EDA_ITEM* EDA_ITEM::Clone() const
 }
 
 
-SEARCH_RESULT EDA_ITEM::IterateForward( EDA_ITEM*     listStart,
-                                        INSPECTOR*    inspector,
-                                        const void*   testData,
-                                        const KICAD_T scanTypes[] )
+SEARCH_RESULT EDA_ITEM::IterateForward( EDA_ITEM*       listStart,
+                                        INSPECTOR       inspector,
+                                        void*           testData,
+                                        const KICAD_T   scanTypes[] )
 {
     EDA_ITEM* p = listStart;
 
@@ -126,8 +135,7 @@ SEARCH_RESULT EDA_ITEM::IterateForward( EDA_ITEM*     listStart,
 
 // see base_struct.h
 // many classes inherit this method, be careful:
-SEARCH_RESULT EDA_ITEM::Visit( INSPECTOR* inspector, const void* testData,
-                               const KICAD_T scanTypes[] )
+SEARCH_RESULT EDA_ITEM::Visit( INSPECTOR inspector, void* testData, const KICAD_T scanTypes[] )
 {
     KICAD_T stype;
 
@@ -140,7 +148,7 @@ SEARCH_RESULT EDA_ITEM::Visit( INSPECTOR* inspector, const void* testData,
         // If caller wants to inspect my type
         if( stype == Type() )
         {
-            if( SEARCH_QUIT == inspector->Inspect( this, testData ) )
+            if( SEARCH_QUIT == inspector( this, testData ) )
                 return SEARCH_QUIT;
 
             break;
@@ -225,23 +233,23 @@ bool EDA_ITEM::operator<( const EDA_ITEM& aItem ) const
     return false;
 }
 
-#ifdef USE_EDA_ITEM_OP_EQ   // see base_struct.h for explanations
 EDA_ITEM& EDA_ITEM::operator=( const EDA_ITEM& aItem )
 {
-    if( &aItem != this )
-    {
-        m_Image = aItem.m_Image;
-        m_StructType = aItem.m_StructType;
-        m_Parent = aItem.m_Parent;
-        m_Flags = aItem.m_Flags;
-        m_TimeStamp = aItem.m_TimeStamp;
-        m_Status = aItem.m_Status;
-        m_forceVisible = aItem.m_forceVisible;
-    }
+    // do not call initVars()
+
+    m_StructType = aItem.m_StructType;
+    m_Flags      = aItem.m_Flags;
+    m_Status     = aItem.m_Status;
+    m_Parent     = aItem.m_Parent;
+    m_forceVisible = aItem.m_forceVisible;
+
+    // A copy of an item cannot have the same time stamp as the original item.
+    SetTimeStamp( GetNewTimeStamp() );
+
+    // do not copy list related fields (Pnext, Pback, m_List)
 
     return *this;
 }
-#endif
 
 const BOX2I EDA_ITEM::ViewBBox() const
 {
@@ -258,6 +266,10 @@ void EDA_ITEM::ViewGetLayers( int aLayers[], int& aCount ) const
     aLayers[0]  = 0;
 }
 
+BITMAP_DEF EDA_ITEM::GetMenuImage() const
+{
+    return dummy_xpm;
+}
 
 #if defined(DEBUG)
 

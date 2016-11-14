@@ -39,6 +39,8 @@
 #include <richio.h>
 #include <view/view_item.h>
 #include <class_eda_rect.h>
+#include <functional>
+
 
 #if defined(DEBUG)
 #include <iostream>         // needed for Show()
@@ -83,35 +85,28 @@ class MSG_PANEL_ITEM;
 
 
 /**
- * Class INSPECTOR
- * is an abstract class that is used to inspect and possibly collect the
- * (search) results of Iterating over a list or tree of KICAD_T objects.
- * Extend from this class and implement the Inspect function and provide for
- * a way for the extension to collect the results of the search/scan data and
- * provide them to the caller.
+ * Typedef INSPECTOR
+ * is used to inspect and possibly collect the
+ * (search) results of iterating over a list or tree of KICAD_T objects.
+ * Provide an implementation as needed to inspect EDA_ITEMs visited via
+ * EDA_ITEM::Visit() and EDA_ITEM::IterateForward().
+ * <p>
+ * FYI the std::function may hold a lambda, std::bind, pointer to func, or
+ * ptr to member function, per modern C++. It is used primarily for searching,
+ * but not limited to that.  It can also collect or modify the scanned objects.
+ * 'Capturing' lambdas are particularly convenient because they can use context
+ * and this often means @a aTestData is not used.
+ *
+ * @param aItem An EDA_ITEM to examine.
+ * @param aTestData is arbitrary data needed by the inspector to determine
+ *  if the EDA_ITEM under test meets its match criteria, and is often NULL
+ *  with the advent of capturing lambdas.
+ * @return A #SEARCH_RESULT type #SEARCH_QUIT if the iterator function is to
+ *          stop the scan, else #SEARCH_CONTINUE;
  */
-class INSPECTOR
-{
-public:
-    virtual ~INSPECTOR()
-    {
-    }
+typedef std::function< SEARCH_RESULT ( EDA_ITEM* aItem, void* aTestData ) >   INSPECTOR_FUNC;
 
-
-    /**
-     * Function Inspect
-     * is the examining function within the INSPECTOR which is passed to the
-     * EDA_ITEM::Iterate() function.  It is used primarily for searching, but
-     * not limited to that.  It can also collect or modify the scanned objects.
-     *
-     * @param aItem An EDA_ITEM to examine.
-     * @param aTestData is arbitrary data needed by the inspector to determine
-     *                  if the EDA_ITEM under test meets its match criteria.
-     * @return A #SEARCH_RESULT type #SEARCH_QUIT if the iterator function is to
-     *          stop the scan, else #SEARCH_CONTINUE;
-     */
-    virtual SEARCH_RESULT Inspect( EDA_ITEM* aItem, const void* aTestData ) = 0;
-};
+typedef const INSPECTOR_FUNC& INSPECTOR;    /// std::function passed to nested users by ref, avoids copying std::function
 
 
 // These define are used for the .m_Flags and .m_UndoRedoStatus member of the
@@ -183,9 +178,6 @@ protected:
 
     /// Flag bits for editing and other uses.
     STATUS_FLAGS  m_Flags;
-
-    // Link to an copy of the item use to save the item's state for undo/redo feature.
-    EDA_ITEM*     m_Image;
 
 private:
 
@@ -266,8 +258,6 @@ public:
     void SetFlags( STATUS_FLAGS aMask ) { m_Flags |= aMask; }
     void ClearFlags( STATUS_FLAGS aMask = EDA_ITEM_ALL_FLAGS ) { m_Flags &= ~aMask; }
     STATUS_FLAGS GetFlags() const { return m_Flags; }
-
-    void SetImage( EDA_ITEM* aItem ) { m_Image = aItem; }
 
     /**
      * Function SetForceVisible
@@ -359,10 +349,10 @@ public:
      * @return SEARCH_RESULT SEARCH_QUIT if the called INSPECTOR returned
      *                       SEARCH_QUIT, else SCAN_CONTINUE;
      */
-    static SEARCH_RESULT IterateForward( EDA_ITEM*     listStart,
-                                         INSPECTOR*    inspector,
-                                         const void*   testData,
-                                         const KICAD_T scanTypes[] );
+    static SEARCH_RESULT IterateForward( EDA_ITEM*      listStart,
+                                         INSPECTOR      inspector,
+                                         void*          testData,
+                                         const KICAD_T  scanTypes[] );
 
     /**
      * Function Visit
@@ -378,8 +368,7 @@ public:
      * @return SEARCH_RESULT SEARCH_QUIT if the Iterator is to stop the scan,
      *                       else SCAN_CONTINUE, and determined by the inspector.
      */
-    virtual SEARCH_RESULT Visit( INSPECTOR* inspector, const void* testData,
-                                 const KICAD_T scanTypes[] );
+    virtual SEARCH_RESULT Visit( INSPECTOR inspector, void* testData, const KICAD_T scanTypes[] );
 
     /**
      * Function GetClass
@@ -406,7 +395,7 @@ public:
      * images.
      * @return The menu image associated with the item.
      */
-    virtual BITMAP_DEF GetMenuImage() const { return right_xpm; }
+    virtual BITMAP_DEF GetMenuImage() const;
 
     /**
      * Function Matches
@@ -488,23 +477,17 @@ public:
      */
     static bool Sort( const EDA_ITEM* aLeft, const EDA_ITEM* aRight ) { return *aLeft < *aRight; }
 
-#if 0
     /**
      * Operator assignment
      * is used to assign the members of \a aItem to another object.
-     *
-     * @warning This is still a work in progress and not ready for prime time.  Do not use
-     *          as there is a known issue with wxString buffers.
      */
-    virtual EDA_ITEM& operator=( const EDA_ITEM& aItem );
-    #define USE_EDA_ITEM_OP_EQ
-#endif
+    EDA_ITEM& operator=( const EDA_ITEM& aItem );
 
     /// @copydoc VIEW_ITEM::ViewBBox()
-    virtual const BOX2I ViewBBox() const;
+    virtual const BOX2I ViewBBox() const override;
 
     /// @copydoc VIEW_ITEM::ViewGetLayers()
-    virtual void ViewGetLayers( int aLayers[], int& aCount ) const;
+    virtual void ViewGetLayers( int aLayers[], int& aCount ) const override;
 
 #if defined(DEBUG)
 

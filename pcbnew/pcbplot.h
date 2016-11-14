@@ -46,7 +46,9 @@ class ZONE_CONTAINER;
 class BOARD;
 class REPORTER;
 
-// Shared Config keys for plot and print
+///@{
+/// \ingroup config
+
 #define OPTKEY_LAYERBASE             wxT( "PlotLayer_%d" )
 #define OPTKEY_PRINT_X_FINESCALE_ADJ wxT( "PrintXFineScaleAdj" )
 #define OPTKEY_PRINT_Y_FINESCALE_ADJ wxT( "PrintYFineScaleAdj" )
@@ -59,6 +61,8 @@ class REPORTER;
 #define OPTKEY_PLOT_X_FINESCALE_ADJ  wxT( "PlotXFineScaleAdj" )
 #define OPTKEY_PLOT_Y_FINESCALE_ADJ  wxT( "PlotYFineScaleAdj" )
 #define CONFIG_PS_FINEWIDTH_ADJ      wxT( "PSPlotFineWidthAdj" )
+
+///@}
 
 // Define min and max reasonable values for plot/print scale
 #define PLOT_MIN_SCALE 0.01
@@ -264,7 +268,7 @@ const wxString GetGerberProtelExtension( LAYER_NUM aLayer );
  *      , compatible with X1 (rx274) notation (G04#@!TF.FileFunction)
  * @return The attribute, as a text string
  */
-extern wxString GetGerberFileFunctionAttribute( const BOARD *aBoard,
+const wxString GetGerberFileFunctionAttribute( const BOARD *aBoard,
                 LAYER_NUM aLayer, bool aUseX1CompatibilityMode );
 
 /**

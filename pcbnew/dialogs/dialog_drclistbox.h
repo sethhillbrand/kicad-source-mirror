@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2009 Dick Hollenbeck, dick@softplc.com
+ * Copyright (C) 2009-2016 Dick Hollenbeck, dick@softplc.com
  * Copyright (C) 2004-2012 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -71,13 +71,13 @@ public:
 
     //-----<Interface DRC_ITEM_LIST>---------------------------------------
 
-    void            DeleteAllItems()
+    void            DeleteAllItems() override
     {
         m_board->DeleteMARKERs();
     }
 
 
-    const DRC_ITEM* GetItem( int aIndex )
+    const DRC_ITEM* GetItem( int aIndex ) override
     {
         const MARKER_PCB* marker = m_board->GetMARKER( aIndex );
         if( marker )
@@ -85,7 +85,7 @@ public:
         return NULL;
     }
 
-    void DeleteItem( int aIndex )
+    void DeleteItem( int aIndex ) override
     {
         MARKER_PCB* marker = m_board->GetMARKER( aIndex );
         if( marker )
@@ -97,7 +97,7 @@ public:
      * Function GetCount
      * returns the number of items in the list.
      */
-    int  GetCount()
+    int  GetCount() override
     {
         return m_board->GetMARKERCount();
     }
@@ -131,7 +131,7 @@ public:
 
     //-----<Interface DRC_ITEM_LIST>---------------------------------------
 
-    void            DeleteAllItems()
+    void            DeleteAllItems() override
     {
         if( m_vector )
         {
@@ -143,7 +143,7 @@ public:
     }
 
 
-    const DRC_ITEM* GetItem( int aIndex )
+    const DRC_ITEM* GetItem( int aIndex ) override
     {
         if( m_vector &&  (unsigned)aIndex < m_vector->size() )
         {
@@ -153,7 +153,7 @@ public:
         return NULL;
     }
 
-    void DeleteItem( int aIndex )
+    void DeleteItem( int aIndex ) override
     {
         if( m_vector &&  (unsigned)aIndex < m_vector->size() )
         {
@@ -167,7 +167,7 @@ public:
      * Function GetCount
      * returns the number of items in the list.
      */
-    int  GetCount()
+    int  GetCount() override
     {
         if( m_vector )
         {
@@ -244,7 +244,7 @@ public:
      * @param n An index into the list.
      * @return wxString - the simple html text to show in the listbox.
      */
-    wxString OnGetItem( size_t n ) const
+    wxString OnGetItem( size_t n ) const override
     {
         if( m_list )
         {
@@ -262,7 +262,7 @@ public:
      * @param n An index into the list.
      * @return wxString - the simple html text to show in the listbox.
      */
-    wxString OnGetItemMarkup( size_t n ) const
+    wxString OnGetItemMarkup( size_t n ) const override
     {
         return OnGetItem( n );
     }

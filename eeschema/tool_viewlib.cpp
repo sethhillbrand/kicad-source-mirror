@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,35 +28,28 @@
  * @brief Build the toolbars for the library browser.
  */
 
-#include <fctsys.h>
-#include <macros.h>
-#include <eeschema_id.h>
 
-#include <general.h>
-#include <hotkeys.h>
-#include <class_library.h>
-#include <viewlib_frame.h>
 #include <dialog_helpers.h>
+#include <macros.h>
 #include <menus_helpers.h>
-#include <help_common_strings.h>
+
+#include "class_library.h"
+#include "eeschema_id.h"
+#include "general.h"
+#include "help_common_strings.h"
+#include "hotkeys.h"
+#include "viewlib_frame.h"
 
 
 void LIB_VIEW_FRAME::ReCreateHToolbar()
 {
     wxString    msg;
-    LIB_ALIAS*  entry = NULL;
-    bool        asdeMorgan = false;
     LIB_PART*   part = NULL;
 
-    if( m_mainToolBar  == NULL )
+    if( m_mainToolBar == NULL )
     {
         m_mainToolBar = new wxAuiToolBar( this, ID_H_TOOLBAR, wxDefaultPosition, wxDefaultSize,
                                           wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORZ_LAYOUT );
-
-        // Set up toolbar
-        m_mainToolBar->AddTool( ID_LIBVIEW_SELECT_LIB, wxEmptyString,
-                                KiBitmap( library_xpm ),
-                                _( "Select library to browse" ) );
 
         m_mainToolBar->AddTool( ID_LIBVIEW_SELECT_PART, wxEmptyString,
                                 KiBitmap( add_component_xpm ),
@@ -134,30 +127,12 @@ void LIB_VIEW_FRAME::ReCreateHToolbar()
         if( PART_LIB* lib = Prj().SchLibs()->FindLibrary( m_libraryName ) )
         {
             part = lib->FindPart( m_entryName );
-
-            if( part && part->HasConversion() )
-                asdeMorgan = true;
-
-            entry = lib->FindEntry( m_entryName );
         }
     }
 
-    // Must be AFTER Realize():
-    m_mainToolBar->EnableTool( ID_LIBVIEW_DE_MORGAN_CONVERT_BUTT, asdeMorgan );
-    m_mainToolBar->EnableTool( ID_LIBVIEW_DE_MORGAN_NORMAL_BUTT, asdeMorgan );
-
-    if( asdeMorgan )
-    {
-        bool normal = m_convert <= 1;
-        m_mainToolBar->ToggleTool( ID_LIBVIEW_DE_MORGAN_NORMAL_BUTT,normal );
-        m_mainToolBar->ToggleTool( ID_LIBVIEW_DE_MORGAN_CONVERT_BUTT, !normal );
-    }
-    else
-    {
-        m_mainToolBar->ToggleTool( ID_LIBVIEW_DE_MORGAN_NORMAL_BUTT, true  );
-        m_mainToolBar->ToggleTool( ID_LIBVIEW_DE_MORGAN_CONVERT_BUTT, false );
-     }
-
+    /// @todo Move updating the symbol units in the combobox to the symbol select function
+    ///       and stop calling this function to update the toolbar.  All of the other toolbar
+    ///       updates are handled by wxUpdateUIEvents.
     int parts_count = 1;
 
     if( part )
@@ -167,14 +142,12 @@ void LIB_VIEW_FRAME::ReCreateHToolbar()
 
     for( int ii = 0; ii < parts_count; ii++ )
     {
-        wxString msg = wxString::Format( _( "Unit %c" ), 'A' + ii );
+        msg.Printf( _( "Unit %c" ), 'A' + ii );
         m_selpartBox->Append( msg );
     }
 
     m_selpartBox->SetSelection( m_unit > 0 ? m_unit - 1 : 0 );
     m_selpartBox->Enable( parts_count > 1 );
-
-    m_mainToolBar->EnableTool( ID_LIBVIEW_VIEWDOC, entry && !!entry->GetDocFileName() );
 
     m_mainToolBar->Refresh();
 }
@@ -207,13 +180,6 @@ void LIB_VIEW_FRAME::ReCreateMenuBar( void )
     // Menu File:
     wxMenu* fileMenu = new wxMenu;
 
-    // Active library selection
-    AddMenuItem( fileMenu, ID_LIBVIEW_SELECT_LIB, _("Set Current Library"),
-                           _( "Select library to be displayed" ),
-                           KiBitmap( open_library_xpm ) );
-    fileMenu->AppendSeparator();
-
-    // Close viewer
     AddMenuItem( fileMenu, wxID_EXIT,
                  _( "Cl&ose" ),
                  _( "Close schematic component viewer" ),
@@ -239,11 +205,12 @@ void LIB_VIEW_FRAME::ReCreateMenuBar( void )
     AddMenuItem( viewMenu, ID_ZOOM_REDRAW, text,
                  HELP_ZOOM_REDRAW, KiBitmap( zoom_redraw_xpm ) );
 
+    viewMenu->AppendSeparator();
+    AddMenuItem( viewMenu, ID_LIBVIEW_SHOW_ELECTRICAL_TYPE, _( "&Show Pin Electrical Type" ),
+                 wxEmptyString, KiBitmap( pin_show_etype_xpm ), wxITEM_CHECK );
+
     // Menu Help:
     wxMenu* helpMenu = new wxMenu;
-
-    // Version info
-    AddHelpVersionInfoMenuEntry( helpMenu );
 
     // Contents
     AddMenuItem( helpMenu, wxID_HELP,
@@ -256,7 +223,12 @@ void LIB_VIEW_FRAME::ReCreateMenuBar( void )
                  _( "Open the \"Getting Started in KiCad\" guide for beginners" ),
                  KiBitmap( help_xpm ) );
 
-    // About Pcbnew
+    helpMenu->AppendSeparator();
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
+
     helpMenu->AppendSeparator();
     AddMenuItem( helpMenu, wxID_ABOUT,
                  _( "&About Eeschema" ),

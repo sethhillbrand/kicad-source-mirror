@@ -35,7 +35,6 @@
 #include <pcbnew_id.h>
 
 #include <boost/optional.hpp>
-#include <boost/foreach.hpp>
 
 ///> Stores information about a mouse button state
 struct TOOL_DISPATCHER::BUTTON_STATE
@@ -131,14 +130,14 @@ TOOL_DISPATCHER::TOOL_DISPATCHER( TOOL_MANAGER* aToolMgr ) :
 
 TOOL_DISPATCHER::~TOOL_DISPATCHER()
 {
-    BOOST_FOREACH( BUTTON_STATE* st, m_buttons )
+    for( BUTTON_STATE* st : m_buttons )
         delete st;
 }
 
 
 void TOOL_DISPATCHER::ResetState()
 {
-    BOOST_FOREACH( BUTTON_STATE* st, m_buttons )
+    for( BUTTON_STATE* st : m_buttons )
         st->Reset();
 }
 
@@ -323,7 +322,18 @@ void TOOL_DISPATCHER::DispatchWxEvent( wxEvent& aEvent )
         m_toolMgr->ProcessEvent( *evt );
 
     // pass the event to the GUI, it might still be interested in it
+#ifdef __APPLE__
+    // On OS X, key events are always meant to be caught.  An uncaught key event is assumed
+    // to be a user input error by OS X (as they are pressing keys in a context where nothing
+    // is there to catch the event).  This annoyingly makes OS X beep and/or flash the screen
+    // in pcbnew and the footprint editor any time a hotkey is used.  The correct procedure is
+    // to NOT pass key events to the GUI under OS X.
+
+    if( type != wxEVT_CHAR )
+        aEvent.Skip();
+#else
     aEvent.Skip();
+#endif
 
     updateUI();
 }
@@ -348,5 +358,5 @@ void TOOL_DISPATCHER::updateUI()
     // but at the moment I cannot think of a better one..
     EDA_DRAW_FRAME* frame = static_cast<EDA_DRAW_FRAME*>( m_toolMgr->GetEditFrame() );
     frame->UpdateStatusBar();
-    frame->UpdateMsgPanel();
+    //frame->UpdateMsgPanel();
 }

@@ -33,9 +33,8 @@
 #include <general.h>
 #include <lib_draw_item.h>
 #include <lib_field.h>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
 #include <vector>
+#include <memory>
 
 class LINE_READER;
 class OUTPUTFORMATTER;
@@ -45,22 +44,9 @@ class LIB_PART;
 class LIB_FIELD;
 
 
-/// Compiler controlled string compare function, either case independent or not:
-inline int Cmp_KEEPCASE( const wxString& aString1, const wxString& aString2 )
-{
-#ifdef KICAD_KEEPCASE
-    // case specificity, the normal behavior:
-    return aString1.Cmp( aString2 );
-#else
-    // case independence (only for guys who want that: not recommended)
-    return aString1.CmpNoCase( aString2 );
-#endif
-}
-
-
 typedef std::vector<LIB_ALIAS*>         LIB_ALIASES;
-typedef boost::shared_ptr<LIB_PART>     PART_SPTR;      ///< shared pointer to LIB_PART
-typedef boost::weak_ptr<LIB_PART>       PART_REF;       ///< weak pointer to LIB_PART
+typedef std::shared_ptr<LIB_PART>       PART_SPTR;      ///< shared pointer to LIB_PART
+typedef std::weak_ptr<LIB_PART>         PART_REF;       ///< weak pointer to LIB_PART
 
 
 /* values for member .m_options */
@@ -109,7 +95,7 @@ public:
 
     virtual ~LIB_ALIAS();
 
-    virtual wxString GetClass() const
+    virtual wxString GetClass() const override
     {
         return wxT( "LIB_ALIAS" );
     }
@@ -178,7 +164,7 @@ public:
     bool operator==( const LIB_ALIAS* aAlias ) const { return this == aAlias; }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 };
 
@@ -198,6 +184,7 @@ class LIB_PART : public EDA_ITEM
 {
     friend class PART_LIB;
     friend class LIB_ALIAS;
+    friend class SCH_LEGACY_PLUGIN_CACHE;
 
     PART_SPTR           m_me;               ///< http://www.boost.org/doc/libs/1_55_0/libs/smart_ptr/sp_techniques.html#weak_without_shared
     wxString            m_name;
@@ -241,7 +228,7 @@ public:
         return m_me;
     }
 
-    virtual wxString GetClass() const
+    virtual wxString GetClass() const override
     {
         return wxT( "LIB_PART" );
     }
@@ -253,6 +240,8 @@ public:
     const wxString GetLibraryName();
 
     PART_LIB* GetLib()              { return m_library; }
+
+    void SetLib( PART_LIB* aLibrary ) { m_library = aLibrary; }
 
     wxArrayString GetAliasNames( bool aIncludeRoot = true ) const;
 
@@ -302,7 +291,7 @@ public:
      *  if aConvert == 0 Convert is non used
      *  Invisible fields are not taken in account
      **/
-    const EDA_RECT GetBoundingBox( int aUnit, int aConvert ) const;
+    const EDA_RECT GetUnitBoundingBox( int aUnit, int aConvert ) const;
 
     /**
      * Function GetBodyBoundingBox
@@ -314,6 +303,11 @@ public:
      *  Fields are not taken in account
      **/
     const EDA_RECT GetBodyBoundingBox( int aUnit, int aConvert ) const;
+
+    const EDA_RECT GetBoundingBox() const override
+    {
+        return GetUnitBoundingBox( 0, 0 );
+    }
 
     /**
      * Function SaveDateAndTime
@@ -351,14 +345,14 @@ public:
     bool LoadAliases( char* aLine, wxString& aErrorMsg );
     bool LoadFootprints( LINE_READER& aReader, wxString& aErrorMsg );
 
-    bool IsPower()      { return m_options == ENTRY_POWER; }
-    bool IsNormal()     { return m_options == ENTRY_NORMAL; }
+    bool IsPower() const  { return m_options == ENTRY_POWER; }
+    bool IsNormal() const { return m_options == ENTRY_NORMAL; }
 
     void SetPower()     { m_options = ENTRY_POWER; }
     void SetNormal()    { m_options = ENTRY_NORMAL; }
 
     void LockUnits( bool aLockUnits ) { m_unitsLocked = aLockUnits; }
-    bool UnitsLocked()  { return m_unitsLocked; }
+    bool UnitsLocked() const { return m_unitsLocked; }
 
     /**
      * Function SetFields
@@ -423,6 +417,8 @@ public:
      *              vector<bool> exactly the same length as the number of pins,
      *              indicating whether each pin is dangling. If NULL, all pins
      *              will be drawn as if they were dangling.
+     * @param aShowElectricalType - show the electrical type name of the pin
+     *              used only in component editor and component viewer
      */
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDc, const wxPoint& aOffset,
                int aMulti, int aConvert, GR_DRAWMODE aDrawMode,
@@ -430,7 +426,8 @@ public:
                const TRANSFORM& aTransform = DefaultTransform,
                bool aShowPinText = true, bool aDrawFields = true,
                bool aOnlySelected = false,
-               const std::vector<bool>* aPinsDangling = NULL );
+               const std::vector<bool>* aPinsDangling = NULL,
+               bool aShowElectricalType = false );
 
     /**
      * Plot lib part to plotter.
@@ -766,7 +763,7 @@ public:
     bool operator==( const LIB_PART*  aPart ) const { return this == aPart; }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 };
 

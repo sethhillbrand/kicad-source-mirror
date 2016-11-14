@@ -938,8 +938,8 @@ double compute_Ratsnest_PlaceModule( BOARD* aBrd )
         if( dx < dy )
             std::swap( dx, dy );
 
-        // Cost of the connection = lenght + penalty due to the slope
-        // dx is the biggest lenght relative to the X or Y axis
+        // Cost of the connection = length + penalty due to the slope
+        // dx is the biggest length relative to the X or Y axis
         // the penalty is max for 45 degrees ratsnests,
         // and 0 for horizontal or vertical ratsnests.
         // For Horizontal and Vertical ratsnests, dy = 0;
@@ -1109,9 +1109,9 @@ static MODULE* PickModule( PCB_EDIT_FRAME* pcbframe, wxDC* DC )
 
     sort( moduleList.begin(), moduleList.end(), Tri_PlaceModules );
 
-    for( unsigned ii = 0; ii < moduleList.size(); ii++ )
+    for( unsigned kk = 0; kk < moduleList.size(); kk++ )
     {
-        Module = moduleList[ii];
+        Module = moduleList[kk];
         Module->SetFlag( 0 );
 
         if( !Module->NeedsPlaced() )

@@ -23,8 +23,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <boost/make_shared.hpp>
-
 #include <fctsys.h>
 #include <common.h>
 #include <kicad_string.h>
@@ -37,15 +35,17 @@
 
 
 // This will get mapped to "kicad_default" in the specctra_export.
-const wxChar NETCLASS::Default[] = wxT( "Default" );
+const char NETCLASS::Default[] = "Default";
 
 // Initial values for netclass initialization
 const int NETCLASS::DEFAULT_CLEARANCE  = Millimeter2iu( 0.2 ); // track to track and track to pads clearance
-const int NETCLASS::DEFAULT_VIA_DIAMETER  = Millimeter2iu( 0.6 );
+const int NETCLASS::DEFAULT_VIA_DIAMETER  = Millimeter2iu( 0.8 );
 const int NETCLASS::DEFAULT_VIA_DRILL  = Millimeter2iu( 0.4 );
 const int NETCLASS::DEFAULT_UVIA_DIAMETER = Millimeter2iu( 0.3 );
 const int NETCLASS::DEFAULT_UVIA_DRILL = Millimeter2iu( 0.1 );
 const int NETCLASS::DEFAULT_TRACK_WIDTH = Millimeter2iu( 0.25 );
+const int NETCLASS::DEFAULT_DIFF_PAIR_WIDTH = Millimeter2iu( 0.2 );
+const int NETCLASS::DEFAULT_DIFF_PAIR_GAP = Millimeter2iu( 0.25 );
 
 
 NETCLASS::NETCLASS( const wxString& aName ) :
@@ -60,6 +60,8 @@ NETCLASS::NETCLASS( const wxString& aName ) :
     SetTrackWidth( DEFAULT_TRACK_WIDTH );
     SetViaDiameter( DEFAULT_VIA_DIAMETER );
     SetuViaDiameter( DEFAULT_UVIA_DIAMETER );
+    SetDiffPairGap( DEFAULT_DIFF_PAIR_GAP );
+    SetDiffPairWidth( DEFAULT_DIFF_PAIR_WIDTH );
 }
 
 
@@ -71,6 +73,9 @@ void NETCLASS::SetParams( const NETCLASS& aDefaults )
     SetViaDrill( aDefaults.GetViaDrill() );
     SetuViaDiameter( aDefaults.GetuViaDiameter() );
     SetuViaDrill( aDefaults.GetuViaDrill() );
+    SetDiffPairWidth( aDefaults.GetDiffPairWidth() );
+    SetDiffPairGap( aDefaults.GetDiffPairGap() );
+
 }
 
 
@@ -81,7 +86,7 @@ NETCLASS::~NETCLASS()
 
 NETCLASSES::NETCLASSES()
 {
-    m_Default = boost::make_shared<NETCLASS>( NETCLASS::Default );
+    m_Default = std::make_shared<NETCLASS>( NETCLASS::Default );
 }
 
 
@@ -121,11 +126,11 @@ bool NETCLASSES::Add( NETCLASSPTR aNetClass )
 
 NETCLASSPTR NETCLASSES::Remove( const wxString& aNetName )
 {
-    NETCLASSMAP::iterator found = m_NetClasses.find( aNetName );
+    NETCLASS_MAP::iterator found = m_NetClasses.find( aNetName );
 
     if( found != m_NetClasses.end() )
     {
-        boost::shared_ptr<NETCLASS> netclass = found->second;
+        std::shared_ptr<NETCLASS> netclass = found->second;
         m_NetClasses.erase( found );
         return netclass;
     }
@@ -139,7 +144,7 @@ NETCLASSPTR NETCLASSES::Find( const wxString& aName ) const
     if( aName == NETCLASS::Default )
         return m_Default;
 
-    NETCLASSMAP::const_iterator found = m_NetClasses.find( aName );
+    NETCLASS_MAP::const_iterator found = m_NetClasses.find( aName );
 
     if( found == m_NetClasses.end() )
         return NETCLASSPTR();
@@ -258,6 +263,10 @@ void NETCLASS::Format( OUTPUTFORMATTER* aFormatter, int aNestLevel, int aControl
 
     aFormatter->Print( aNestLevel+1, "(uvia_dia %s)\n", FMT_IU( GetuViaDiameter() ).c_str() );
     aFormatter->Print( aNestLevel+1, "(uvia_drill %s)\n", FMT_IU( GetuViaDrill() ).c_str() );
+
+    aFormatter->Print( aNestLevel+1, "(diff_pair_gap %s)\n", FMT_IU( GetDiffPairGap() ).c_str() );
+    aFormatter->Print( aNestLevel+1, "(diff_pair_width %s)\n", FMT_IU( GetDiffPairWidth() ).c_str() );
+
 
     for( NETCLASS::const_iterator it = begin(); it != end(); ++it )
         aFormatter->Print( aNestLevel+1, "(add_net %s)\n", aFormatter->Quotew( *it ).c_str() );

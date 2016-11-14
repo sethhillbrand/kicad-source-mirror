@@ -6,7 +6,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2011 jean-pierre.charras
- * Copyright (C) 2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2011-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@
 
 BITMAP_BASE::BITMAP_BASE( const wxPoint& pos )
 {
-    m_Scale  = 1.0;                 // 1.0 = original bitmap size
+    m_scale  = 1.0;                 // 1.0 = original bitmap size
     m_bitmap = NULL;
     m_image  = NULL;
     m_ppi    = 300;                 // the bitmap definition. the default is 300PPI
@@ -57,7 +57,7 @@ BITMAP_BASE::BITMAP_BASE( const wxPoint& pos )
 
 BITMAP_BASE::BITMAP_BASE( const BITMAP_BASE& aSchBitmap )
 {
-    m_Scale = aSchBitmap.m_Scale;
+    m_scale = aSchBitmap.m_scale;
     m_ppi   = aSchBitmap.m_ppi;
     m_pixelScaleFactor = aSchBitmap.m_pixelScaleFactor;
     m_image = new wxImage( *aSchBitmap.m_image );
@@ -73,7 +73,7 @@ void BITMAP_BASE::ImportData( BITMAP_BASE* aItem )
 {
     *m_image  = *aItem->m_image;
     *m_bitmap = *aItem->m_bitmap;
-    m_Scale   = aItem->m_Scale;
+    m_scale   = aItem->m_scale;
     m_ppi     = aItem->m_ppi;
     m_pixelScaleFactor = aItem->m_pixelScaleFactor;
 }
@@ -107,15 +107,17 @@ bool BITMAP_BASE::SaveData( FILE* aFile ) const
         // Write binary data in hexadecimal form (ASCII)
         wxStreamBuffer* buffer = stream.GetOutputStreamBuffer();
         char*           begin  = (char*) buffer->GetBufferStart();
-        int             ii;
-        for( ii = 0; begin <= buffer->GetBufferEnd(); begin++, ii++ )
+
+        for( int ii = 0; begin < buffer->GetBufferEnd(); begin++, ii++ )
         {
             if( ii >= 32 )
             {
                 ii = 0;
+
                 if( fprintf( aFile, "\n" ) == EOF )
                     return false;
             }
+
             if( fprintf( aFile, "%2.2X ", *begin & 0xFF ) == EOF )
                 return false;
         }
@@ -123,6 +125,7 @@ bool BITMAP_BASE::SaveData( FILE* aFile ) const
 
     return true;
 }
+
 
 void BITMAP_BASE::SaveData( wxArrayString& aPngStrings ) const
 {
@@ -134,8 +137,9 @@ void BITMAP_BASE::SaveData( wxArrayString& aPngStrings ) const
         // Write binary data in hexadecimal form (ASCII)
         wxStreamBuffer* buffer = stream.GetOutputStreamBuffer();
         char*           begin  = (char*) buffer->GetBufferStart();
-        wxString line;
-        for( int ii = 0; begin <= buffer->GetBufferEnd(); begin++, ii++ )
+        wxString        line;
+
+        for( int ii = 0; begin < buffer->GetBufferEnd(); begin++, ii++ )
         {
             if( ii >= 32 )
             {
@@ -144,7 +148,7 @@ void BITMAP_BASE::SaveData( wxArrayString& aPngStrings ) const
                 line.Empty();
             }
 
-            line << wxString::Format( wxT("%2.2X "), *begin & 0xFF );
+            line << wxString::Format( wxT( "%2.2X " ), *begin & 0xFF );
         }
 
         // Add last line:
@@ -169,7 +173,7 @@ bool BITMAP_BASE::LoadData( LINE_READER& aLine, wxString& aErrorMsg )
 
         line = aLine.Line();
 
-        if( strnicmp( line, "EndData", 4 ) == 0 )
+        if( strncasecmp( line, "EndData", 4 ) == 0 )
         {
             // all the PNG date is read.
             // We expect here m_image and m_bitmap are void
@@ -184,9 +188,11 @@ bool BITMAP_BASE::LoadData( LINE_READER& aLine, wxString& aErrorMsg )
         // each byte = 2 hexadecimal digits and a space between 2 bytes
         // and put it in memory stream buffer
         int len = strlen( line );
+
         for( ; len > 0; len -= 3, line += 3 )
         {
             int value = 0;
+
             if( sscanf( line, "%X", &value ) == 1 )
                 stream.PutC( (char) value );
             else
@@ -218,6 +224,10 @@ void BITMAP_BASE::DrawBitmap( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& 
     wxPoint pos  = aPos;
     wxSize  size = GetSize();
 
+    // This fixes a bug in OSX that should be fixed in the 3.0.3 version or later.
+    if( ( size.x == 0 ) || ( size.y == 0 ) )
+        return;
+
     // To draw the bitmap, pos is the upper left corner position
     pos.x -= size.x / 2;
     pos.y -= size.y / 2;
@@ -228,7 +238,7 @@ void BITMAP_BASE::DrawBitmap( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& 
     aDC->GetLogicalOrigin( &logicalOriginX, &logicalOriginY );
     aDC->SetUserScale( scale * GetScalingFactor(), scale * GetScalingFactor() );
     aDC->SetLogicalOrigin( logicalOriginX / GetScalingFactor(),
-                          logicalOriginY / GetScalingFactor() );
+                           logicalOriginY / GetScalingFactor() );
     aDC->DrawBitmap( *m_bitmap,
                      KiROUND( pos.x / GetScalingFactor() ),
                      KiROUND( pos.y / GetScalingFactor() ),
@@ -238,9 +248,6 @@ void BITMAP_BASE::DrawBitmap( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& 
 }
 
 
-/* Function GetSize
- * returns the actual size (in user units, not in pixels) of the image
- */
 wxSize BITMAP_BASE::GetSize() const
 {
     wxSize size;
@@ -258,12 +265,6 @@ wxSize BITMAP_BASE::GetSize() const
 }
 
 
-/*
- * Mirror image vertically (i.e. relative to its horizontal X axis )
- *  or horizontally (i.e relative to its vertical Y axis)
- * param aVertically = false to mirror horizontally
- *                      or true to mirror vertically
- */
 void BITMAP_BASE::Mirror( bool aVertically )
 {
     if( m_image )
@@ -292,10 +293,9 @@ void BITMAP_BASE::PlotImage( PLOTTER*       aPlotter,
     if( m_image == NULL )
         return;
 
-    // These 2 lines are useful only fot plotters that cannot plot a bitmap
+    // These 2 lines are useful only for plotters that cannot plot a bitmap
     // and plot a rectangle instead of.
     aPlotter->SetColor( aDefaultColor );
     aPlotter->SetCurrentLineWidth( aDefaultPensize );
-
     aPlotter->PlotImage( *m_image, aPos, GetScalingFactor() );
 }

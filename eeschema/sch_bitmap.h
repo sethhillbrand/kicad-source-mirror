@@ -37,11 +37,8 @@
 
 class SCH_BITMAP : public SCH_ITEM
 {
-    wxPoint      m_Pos;                 // XY coordinates of center of the bitmap
-
-public:
-    BITMAP_BASE* m_Image;               // the BITMAP_BASE item
-
+    wxPoint      m_pos;                 // XY coordinates of center of the bitmap
+    BITMAP_BASE* m_image;               // the BITMAP_BASE item
 
 public:
     SCH_BITMAP( const wxPoint& pos = wxPoint( 0, 0 ) );
@@ -50,7 +47,7 @@ public:
 
     ~SCH_BITMAP()
     {
-        delete m_Image;
+        delete m_image;
     }
 
     SCH_ITEM& operator=( const SCH_ITEM& aItem );
@@ -58,8 +55,15 @@ public:
     /*
      * Accessors:
      */
-    double GetPixelScaleFactor() { return m_Image->GetPixelScaleFactor(); }
-    void SetPixelScaleFactor( double aSF ) { m_Image->SetPixelScaleFactor( aSF ); }
+    double GetPixelScaleFactor() const { return m_image->GetPixelScaleFactor(); }
+    void SetPixelScaleFactor( double aSF ) { m_image->SetPixelScaleFactor( aSF ); }
+
+    BITMAP_BASE* GetImage()
+    {
+        wxCHECK_MSG( m_image != NULL, NULL, "Invalid SCH_BITMAP initialization, m_image is NULL." );
+
+        return m_image;
+    }
 
     /**
      * Function GetScalingFactor
@@ -74,11 +78,11 @@ public:
      */
     double GetScalingFactor() const
     {
-        return m_Image->GetScalingFactor();
+        return m_image->GetScalingFactor();
     }
 
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "SCH_BITMAP" );
     }
@@ -90,12 +94,12 @@ public:
      */
     wxSize GetSize() const;
 
-    const EDA_RECT GetBoundingBox() const;    // Virtual
+    const EDA_RECT GetBoundingBox() const override;
 
-    void SwapData( SCH_ITEM* aItem );
+    void SwapData( SCH_ITEM* aItem ) override;
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR );
+               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     /**
      * Function ReadImageFile
@@ -106,42 +110,42 @@ public:
      */
     bool ReadImageFile( const wxString& aFullFilename );
 
-    bool Save( FILE* aFile ) const;
+    bool Save( FILE* aFile ) const override;
 
-    bool Load( LINE_READER& aLine, wxString& aErrorMsg );
+    bool Load( LINE_READER& aLine, wxString& aErrorMsg ) override;
 
-    void Move( const wxPoint& aMoveVector )
+    void Move( const wxPoint& aMoveVector ) override
     {
-        m_Pos += aMoveVector;
+        m_pos += aMoveVector;
     }
 
 
-    void MirrorY( int aYaxis_position );
+    void MirrorY( int aYaxis_position ) override;
 
-    void MirrorX( int aXaxis_position );
+    void MirrorX( int aXaxis_position ) override;
 
-    void Rotate( wxPoint aPosition );
+    void Rotate( wxPoint aPosition ) override;
 
-    bool IsSelectStateChanged( const wxRect& aRect );
+    bool IsSelectStateChanged( const wxRect& aRect ) override;
 
-    wxString GetSelectMenuText() const { return wxString( _( "Image" ) ); }
+    wxString GetSelectMenuText() const override { return wxString( _( "Image" ) ); }
 
-    BITMAP_DEF GetMenuImage() const { return image_xpm; }
+    BITMAP_DEF GetMenuImage() const override { return image_xpm; }
 
-    wxPoint GetPosition() const { return m_Pos; }
+    wxPoint GetPosition() const override { return m_pos; }
 
-    void SetPosition( const wxPoint& aPosition ) { m_Pos = aPosition; }
+    void SetPosition( const wxPoint& aPosition ) override { m_pos = aPosition; }
 
-    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const;
+    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const override;
 
-    bool HitTest( const EDA_RECT& aRect, bool aContained = false, int aAccuracy = 0 ) const;
+    bool HitTest( const EDA_RECT& aRect, bool aContained = false, int aAccuracy = 0 ) const override;
 
-    void Plot( PLOTTER* aPlotter );
+    void Plot( PLOTTER* aPlotter ) override;
 
-    EDA_ITEM* Clone() const;
+    EDA_ITEM* Clone() const override;
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const;     // override
+    void Show( int nestLevel, std::ostream& os ) const override;
 #endif
 };
 

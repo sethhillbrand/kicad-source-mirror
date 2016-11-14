@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2007 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
  * Copyright (C) 2009-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,16 +27,16 @@
  * @file eeschema/menubar_libedit.cpp
  * @brief (Re)Create the main menubar for the component editor frame (LibEdit)
  */
-#include <fctsys.h>
+
+#include <menus_helpers.h>
 #include <pgm_base.h>
 
-#include <general.h>
-#include <libeditframe.h>
-#include <eeschema_id.h>
-#include <hotkeys.h>
+#include "eeschema_id.h"
+#include "general.h"
+#include "help_common_strings.h"
+#include "hotkeys.h"
+#include "libeditframe.h"
 
-#include <help_common_strings.h>
-#include <menus_helpers.h>
 
 /**
  * @brief (Re)Create the menubar for the component editor frame
@@ -65,7 +65,7 @@ void LIB_EDIT_FRAME::ReCreateMenuBar()
     // Select current library
     AddMenuItem( fileMenu,
                  ID_LIBEDIT_SELECT_CURRENT_LIB,
-                 _( "&Current Library" ),
+                 _( "Select &Current Library" ),
                  _( "Select working library" ),
                  KiBitmap( library_xpm ) );
     fileMenu->AppendSeparator();
@@ -247,9 +247,6 @@ void LIB_EDIT_FRAME::ReCreateMenuBar()
     // Menu Help:
     wxMenu* helpMenu = new wxMenu;
 
-    // Version info
-    AddHelpVersionInfoMenuEntry( helpMenu );
-
     // Contents
     AddMenuItem( helpMenu,
                  wxID_HELP,
@@ -262,6 +259,18 @@ void LIB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Getting Started in KiCad" ),
                  _( "Open the \"Getting Started in KiCad\" guide for beginners" ),
                  KiBitmap( help_xpm ) );
+
+    AddMenuItem( helpMenu,
+                 ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
+                 _( "&List Hotkeys" ),
+                 _( "Displays the current hotkeys list and corresponding commands" ),
+                 KiBitmap( hotkeys_xpm ) );
+
+    helpMenu->AppendSeparator();
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
 
     // About Eeschema
     helpMenu->AppendSeparator();

@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2014 CERN
+ * Copyright (C) 2014-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -45,7 +45,7 @@ public:
     ~PCBNEW_CONTROL();
 
     /// @copydoc TOOL_INTERACTIVE::Reset()
-    void Reset( RESET_REASON aReason );
+    void Reset( RESET_REASON aReason ) override;
 
     // View controls
     int ZoomInOut( const TOOL_EVENT& aEvent );
@@ -80,6 +80,7 @@ public:
     int GridNext( const TOOL_EVENT& aEvent );
     int GridPrev( const TOOL_EVENT& aEvent );
     int GridSetOrigin( const TOOL_EVENT& aEvent );
+    int GridResetOrigin( const TOOL_EVENT& aEvent );
     int GridPreset( const TOOL_EVENT& aEvent );
 
     // Miscellaneous
@@ -92,7 +93,7 @@ public:
     int ToBeDone( const TOOL_EVENT& aEvent );
 
     ///> Sets up handlers for various events.
-    void SetTransitions();
+    void SetTransitions() override;
 
 private:
     ///> Pointer to the currently used edit frame.

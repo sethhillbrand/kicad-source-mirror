@@ -382,7 +382,11 @@ const optional<SHAPE_LINE_CHAIN::INTERSECTION> SHAPE_LINE_CHAIN::SelfIntersectin
                 is.p = s2a;
                 return is;
             }
-            else if( CSegment( s1 ).Contains( s2b ) )
+            else if( CSegment( s1 ).Contains( s2b ) &&
+                     // for closed polylines, the ending point of the
+                     // last segment == starting point of the first segment
+                     // this is a normal case, not self intersecting case
+                     !( IsClosed() && s1 == 0 && s2 == SegmentCount()-1 ) )
             {
                 INTERSECTION is;
                 is.our = CSegment( s1 );
@@ -566,6 +570,11 @@ bool SHAPE_LINE_CHAIN::Parse( std::stringstream& aStream )
 
     m_points.clear();
     aStream >> n_pts;
+
+    // Rough sanity check, just make sure the loop bounds aren't absolutely outlandish
+    if( n_pts < 0 || n_pts > int( aStream.str().size() ) )
+        return false;
+
     aStream >> m_closed;
 
     for( int i = 0; i < n_pts; i++ )

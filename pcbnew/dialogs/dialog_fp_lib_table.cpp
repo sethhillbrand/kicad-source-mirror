@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013 CERN
- * Copyright (C) 2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2012-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -81,14 +81,14 @@ public:
 
     //-----<wxGridTableBase overloads>-------------------------------------------
 
-    int         GetNumberRows()     { return rows.size(); }
-    int         GetNumberCols()     { return COL_COUNT; }
+    int         GetNumberRows() override { return rows.size(); }
+    int         GetNumberCols() override { return COL_COUNT; }
 
-    wxString    GetValue( int aRow, int aCol )
+    wxString    GetValue( int aRow, int aCol ) override
     {
         if( unsigned( aRow ) < rows.size() )
         {
-            const ROW&  r  = rows[aRow];
+            const FP_LIB_TABLE_ROW&  r  = rows[aRow];
 
             switch( aCol )
             {
@@ -105,11 +105,11 @@ public:
         return wxEmptyString;
     }
 
-    void    SetValue( int aRow, int aCol, const wxString &aValue )
+    void    SetValue( int aRow, int aCol, const wxString &aValue ) override
     {
         if( unsigned( aRow ) < rows.size() )
         {
-            ROW&  r  = rows[aRow];
+            FP_LIB_TABLE_ROW&  r  = rows[aRow];
 
             switch( aCol )
             {
@@ -122,16 +122,16 @@ public:
         }
     }
 
-    bool IsEmptyCell( int aRow, int aCol )
+    bool IsEmptyCell( int aRow, int aCol ) override
     {
         return !GetValue( aRow, aCol );
     }
 
-    bool InsertRows( size_t aPos = 0, size_t aNumRows = 1 )
+    bool InsertRows( size_t aPos = 0, size_t aNumRows = 1 ) override
     {
         if( aPos < rows.size() )
         {
-            rows.insert( rows.begin() + aPos, aNumRows, ROW() );
+            rows.insert( rows.begin() + aPos, aNumRows, FP_LIB_TABLE_ROW() );
 
             // use the (wxGridStringTable) source Luke.
             if( GetView() )
@@ -149,11 +149,11 @@ public:
         return false;
     }
 
-    bool AppendRows( size_t aNumRows = 1 )
+    bool AppendRows( size_t aNumRows = 1 ) override
     {
         // do not modify aNumRows, original value needed for wxGridTableMessage below
         for( int i = aNumRows; i; --i )
-            rows.push_back( ROW() );
+            rows.push_back( FP_LIB_TABLE_ROW() );
 
         if( GetView() )
         {
@@ -167,13 +167,13 @@ public:
         return true;
     }
 
-    bool DeleteRows( size_t aPos, size_t aNumRows )
+    bool DeleteRows( size_t aPos, size_t aNumRows ) override
     {
         // aPos may be a large positive, e.g. size_t(-1), and the sum of
         // aPos+aNumRows may wrap here, so both ends of the range are tested.
         if( aPos < rows.size() && aPos + aNumRows <= rows.size() )
         {
-            ROWS_ITER start = rows.begin() + aPos;
+            FP_LIB_TABLE_ROWS_ITER start = rows.begin() + aPos;
             rows.erase( start, start + aNumRows );
 
             if( GetView() )
@@ -191,13 +191,13 @@ public:
         return false;
     }
 
-    void Clear()
+    void Clear() override
     {
         rows.clear();
         nickIndex.clear();
     }
 
-    wxString GetColLabelValue( int aCol )
+    wxString GetColLabelValue( int aCol ) override
     {
         switch( aCol )
         {
@@ -228,18 +228,18 @@ protected:
 
     /// handle specialized clipboard text, with leading "(fp_lib_table", OR
     /// spreadsheet formatted text.
-    virtual void paste_text( const wxString& cb_text )
+    virtual void paste_text( const wxString& cb_text ) override
     {
         FP_TBL_MODEL*       tbl = (FP_TBL_MODEL*) m_grid->GetTable();
 
-        size_t  ndx = cb_text.find( wxT( "(fp_lib_table" ) );
+        size_t  ndx = cb_text.find( "(fp_lib_table" );
 
         if( ndx != std::string::npos )
         {
-            // paste the ROWs of s-expression (fp_lib_table), starting
+            // paste the FP_LIB_TABLE_ROWs of s-expression (fp_lib_table), starting
             // at column 0 regardless of current cursor column.
 
-            STRING_LINE_READER  slr( TO_UTF8( cb_text ), wxT( "Clipboard" ) );
+            STRING_LINE_READER  slr( TO_UTF8( cb_text ), "Clipboard" );
             FP_LIB_TABLE_LEXER  lexer( &slr );
             FP_LIB_TABLE        tmp_tbl;
             bool                parsed = true;
@@ -250,7 +250,7 @@ protected:
             }
             catch( PARSE_ERROR& pe )
             {
-                DisplayError( NULL, pe.errorText );
+                DisplayError( NULL, pe.What() );
                 parsed = false;
             }
 
@@ -386,7 +386,7 @@ public:
 
 
 private:
-    typedef FP_LIB_TABLE::ROW   ROW;
+    typedef FP_LIB_TABLE_ROW   ROW;
 
     /// If the cursor is not on a valid cell, because there are no rows at all, return -1,
     /// else return a 0 based column index.
@@ -430,7 +430,7 @@ private:
                 {
                     wxString msg = wxString::Format(
                         _( "Illegal character '%s' found in Nickname: '%s' in row %d" ),
-                        wxT( ":" ), GetChars( nick ), r );
+                        ":", GetChars( nick ), r );
 
                     // show the tabbed panel holding the grid we have flunked:
                     if( &model != cur_model() )
@@ -501,7 +501,7 @@ private:
 
     //-----<event handlers>----------------------------------
 
-    void onKeyDown( wxKeyEvent& ev )
+    void onKeyDown( wxKeyEvent& ev ) override
     {
 #if 0
         // send the key to the current grid
@@ -513,13 +513,13 @@ private:
 #endif
     }
 
-    void pageChangedHandler( wxAuiNotebookEvent& event )
+    void pageChangedHandler( wxAuiNotebookEvent& event ) override
     {
         m_pageNdx = m_auinotebook->GetSelection();
         m_cur_grid = ( m_pageNdx == 0 ) ? m_global_grid : m_project_grid;
     }
 
-    void appendRowHandler( wxCommandEvent& event )
+    void appendRowHandler( wxCommandEvent& event ) override
     {
         if( m_cur_grid->AppendRows( 1 ) )
         {
@@ -532,7 +532,7 @@ private:
         }
     }
 
-    void deleteRowHandler( wxCommandEvent& event )
+    void deleteRowHandler( wxCommandEvent& event ) override
     {
 #if 1
         int currRow = getCursorRow();
@@ -569,7 +569,7 @@ private:
 #endif
     }
 
-    void moveUpHandler( wxCommandEvent& event )
+    void moveUpHandler( wxCommandEvent& event ) override
     {
         int curRow = getCursorRow();
         if( curRow >= 1 )
@@ -601,7 +601,7 @@ private:
         }
     }
 
-    void moveDownHandler( wxCommandEvent& event )
+    void moveDownHandler( wxCommandEvent& event ) override
     {
         FP_TBL_MODEL* tbl = cur_model();
 
@@ -633,7 +633,7 @@ private:
         }
     }
 
-    void optionsEditor( wxCommandEvent& event )
+    void optionsEditor( wxCommandEvent& event ) override
     {
         FP_TBL_MODEL*   tbl = cur_model();
 
@@ -665,19 +665,19 @@ private:
         }
     }
 
-    void OnClickLibraryWizard( wxCommandEvent& event );
+    void OnClickLibraryWizard( wxCommandEvent& event ) override;
 
-    void onCancelButtonClick( wxCommandEvent& event )
+    void onCancelButtonClick( wxCommandEvent& event ) override
     {
         EndModal( 0 );
     }
 
-    void onCancelCaptionButtonClick( wxCloseEvent& event )
+    void onCancelCaptionButtonClick( wxCloseEvent& event ) override
     {
         EndModal( 0 );
     }
 
-    void onOKButtonClick( wxCommandEvent& event )
+    void onOKButtonClick( wxCommandEvent& event ) override
     {
         int dialogRet = 0;
 
@@ -710,7 +710,7 @@ private:
     /// by examining all the full_uri columns.
     void populateEnvironReadOnlyTable()
     {
-        wxRegEx re( wxT( ".*?\\$\\{(.+?)\\}.*?" ), wxRE_ADVANCED );
+        wxRegEx re( ".*?\\$\\{(.+?)\\}.*?", wxRE_ADVANCED );
         wxASSERT( re.IsValid() );   // wxRE_ADVANCED is required.
 
         std::set< wxString >        unique;
@@ -875,10 +875,10 @@ int InvokeFootprintWizard( wxTopLevelWindow* aParent, FP_LIB_TABLE* aGlobal, FP_
             if( it->GetStatus() == WIZARD_FPLIB_TABLE::LIBRARY::INVALID )
                 continue;
 
-            FP_LIB_TABLE::ROW row( it->GetDescription(),
-                                it->GetAutoPath( scope ),
-                                it->GetPluginName(),
-                                wxEmptyString );     // options
+            FP_LIB_TABLE_ROW row( it->GetDescription(),
+                                  it->GetAutoPath( scope ),
+                                  it->GetPluginName(),
+                                  wxEmptyString );     // options
             fp_tbl->InsertRow( row );
         }
     }

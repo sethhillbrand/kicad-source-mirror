@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2010 <Jean-Pierre Charras>
- * Copyright (C) 1992-2010 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2016 <Jean-Pierre Charras>
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,11 +33,14 @@
 #include <dlist.h>
 #include <layers_id_colors_and_visibility.h>
 #include <gr_basic.h>
+#include <gbr_netlist_metadata.h>
+#include <dcode.h>
 
-class GERBER_IMAGE;
+class GERBER_FILE_IMAGE;
 class GBR_LAYOUT;
 class D_CODE;
 class MSG_PANEL_ITEM;
+class GBR_DISPLAY_OPTIONS;
 
 
 /* Shapes id for basic shapes ( .m_Shape member ) */
@@ -82,16 +85,15 @@ public:
                                             // 0 for items that do not use DCodes (polygons)
                                             // or when unknown and normal values are 10 to 999
                                             // values 0 to 9 can be used for special purposes
-    GERBER_IMAGE* m_imageParams;            /* main GERBER info for this item
+    GERBER_FILE_IMAGE* m_GerberImageFile;   /* Gerber file image source of this item
                                              * Note: some params stored in this class are common
                                              * to the whole gerber file (i.e) the whole graphic
-                                             * layer and some can change when reaging the file,
-                                             * so they are stored inside this item there is no
+                                             * layer and some can change when reading the file,
+                                             * so they are stored inside this item if there is no
                                              * redundancy for these parameters
                                              */
-private:
-    int m_Layer;
 
+private:
     // These values are used to draw this item, according to gerber layers parameters
     // Because they can change inside a gerber image, they are stored here
     // for each item
@@ -102,37 +104,25 @@ private:
     wxRealPoint m_drawScale;                // A and B scaling factor
     wxPoint     m_layerOffset;              // Offset for A and B axis, from OF parameter
     double      m_lyrRotation;              // Fine rotation, from OR parameter, in degrees
+    GBR_NETLIST_METADATA m_netAttributes;   ///< the string given by a %TO attribute set in aperture
+                                            ///< (dcode). Stored in each item, because %TO is
+                                            ///< a dynamic object attribute
 
 public:
-    GERBER_DRAW_ITEM( GBR_LAYOUT* aParent, GERBER_IMAGE* aGerberparams );
-    GERBER_DRAW_ITEM( const GERBER_DRAW_ITEM& aSource );
+    GERBER_DRAW_ITEM( GERBER_FILE_IMAGE* aGerberparams );
     ~GERBER_DRAW_ITEM();
-
-    /**
-     * Function Copy
-     * will copy this object
-     * the corresponding type.
-     * @return - GERBER_DRAW_ITEM*
-     */
-    GERBER_DRAW_ITEM* Copy() const;
 
     GERBER_DRAW_ITEM* Next() const { return static_cast<GERBER_DRAW_ITEM*>( Pnext ); }
     GERBER_DRAW_ITEM* Back() const { return static_cast<GERBER_DRAW_ITEM*>( Pback ); }
+
+    void SetNetAttributes( const GBR_NETLIST_METADATA& aNetAttributes );
+    const GBR_NETLIST_METADATA& GetNetAttributes()  { return m_netAttributes; }
 
     /**
      * Function GetLayer
      * returns the layer this item is on.
      */
-    int GetLayer() const { return m_Layer; }
-
-    /**
-     * Function SetLayer
-     * sets the layer this item is on.
-     * @param aLayer The layer number.
-     * is virtual because some items (in fact: class DIMENSION)
-     * have a slightly different initialization
-     */
-    void SetLayer( int aLayer )  { m_Layer = aLayer; }
+    int GetLayer() const;
 
     bool GetLayerPolarity()
     {
@@ -213,13 +203,11 @@ public:
      */
     D_CODE* GetDcodeDescr();
 
-    const EDA_RECT GetBoundingBox() const;  // Virtual
+    const EDA_RECT GetBoundingBox() const override;
 
     /* Display on screen: */
-    void Draw( EDA_DRAW_PANEL*         aPanel,
-               wxDC*                   aDC,
-               GR_DRAWMODE             aDrawMode,
-               const wxPoint&aOffset );
+    void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
+               GR_DRAWMODE aDrawMode, const wxPoint&aOffset, GBR_DISPLAY_OPTIONS* aDrawOptions );
 
     /**
      * Function ConvertSegmentToPolygon
@@ -233,14 +221,13 @@ public:
      * Function DrawGbrPoly
      * a helper function used to draw the polygon stored in m_PolyCorners
      */
-    void DrawGbrPoly( EDA_RECT* aClipBox,
-                      wxDC* aDC, EDA_COLOR_T aColor,
+    void DrawGbrPoly( EDA_RECT* aClipBox, wxDC* aDC, EDA_COLOR_T aColor,
                       const wxPoint& aOffset, bool aFilledShape );
 
     /* divers */
     int Shape() const { return m_Shape; }
 
-    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
     wxString ShowGBRShape();
 
@@ -250,7 +237,7 @@ public:
      * @param aRefPos a wxPoint to test
      * @return bool - true if a hit, else false
      */
-    bool HitTest( const wxPoint& aRefPos ) const;
+    bool HitTest( const wxPoint& aRefPos ) const override;
 
     /**
      * Function HitTest (overloaded)
@@ -266,17 +253,10 @@ public:
      * returns the class name.
      * @return wxString
      */
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "GERBER_DRAW_ITEM" );
     }
-
-    /**
-     * Function Save.
-     * currently: no nothing, but must be defined to meet requirements
-     * of the basic class
-     */
-    bool Save( FILE* aFile ) const;
 
     /**
      * Function UnLink
@@ -301,7 +281,7 @@ public:
         delete this;
     }
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const;  // override
+    void Show( int nestLevel, std::ostream& os ) const override;
 #endif
 
 };

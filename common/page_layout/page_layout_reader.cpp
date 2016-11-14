@@ -70,14 +70,37 @@ private:
     double parseDouble();
 
     void parseSetup( WORKSHEET_LAYOUT* aLayout ) throw( IO_ERROR, PARSE_ERROR );
+
+    /**
+     * parse a graphic item starting by "(line" or "(rect" and read parameters.
+     */
     void parseGraphic( WORKSHEET_DATAITEM * aItem ) throw( IO_ERROR, PARSE_ERROR );
+
+    /**
+     * parse a text item starting by "(tbtext" and read parameters.
+     */
     void parseText( WORKSHEET_DATAITEM_TEXT * aItem ) throw( IO_ERROR, PARSE_ERROR );
+
+    /**
+     * parse a polygon item starting by "( polygon" and read parameters.
+     * the list of corners included in this description is read by parsePolyOutline
+     */
     void parsePolygon( WORKSHEET_DATAITEM_POLYPOLYGON * aItem )
         throw( IO_ERROR, PARSE_ERROR );
+
+    /**
+     * parse a list of corners starting by "( pts" and read coordinates.
+     */
     void parsePolyOutline( WORKSHEET_DATAITEM_POLYPOLYGON * aItem )
         throw( IO_ERROR, PARSE_ERROR );
+
+
+    /**
+     * parse a bitmap item starting by "( bitmap" and read parameters.
+     */
     void parseBitmap( WORKSHEET_DATAITEM_BITMAP * aItem )
         throw( IO_ERROR, PARSE_ERROR );
+
     void parseCoordinate( POINT_COORD& aCoord) throw( IO_ERROR, PARSE_ERROR );
     void readOption( WORKSHEET_DATAITEM * aItem ) throw( IO_ERROR, PARSE_ERROR );
     void readPngdata( WORKSHEET_DATAITEM_BITMAP * aItem ) throw( IO_ERROR, PARSE_ERROR );
@@ -364,7 +387,7 @@ void PAGE_LAYOUT_READER_PARSER::parseBitmap( WORKSHEET_DATAITEM_BITMAP * aItem )
             break;
 
         case T_scale:
-            aItem->m_ImageBitmap->m_Scale = parseDouble();
+            aItem->m_ImageBitmap->SetScale( parseDouble() );
             NeedRIGHT();
             break;
 
@@ -415,8 +438,9 @@ void PAGE_LAYOUT_READER_PARSER::readPngdata( WORKSHEET_DATAITEM_BITMAP * aItem )
     tmp += "EndData";
 
     wxString msg;
-    STRING_LINE_READER reader( tmp, wxT("Png kicad_wks data") );
-    if( ! aItem->m_ImageBitmap->LoadData( reader, msg ) )
+    STRING_LINE_READER str_reader( tmp, wxT("Png kicad_wks data") );
+
+    if( ! aItem->m_ImageBitmap->LoadData( str_reader, msg ) )
     {
         wxLogMessage(msg);
     }
@@ -463,12 +487,21 @@ void PAGE_LAYOUT_READER_PARSER::parseGraphic( WORKSHEET_DATAITEM * aItem )
 
         if( token == T_LEFT )
             token = NextTok();
+        else
+        {
+            // If an other token than T_LEFT is read here, this is an error
+            // however, due to a old bug in kicad, the token T_end can be found
+            // without T_LEFT in a very few .wks files (perhaps only one in a demo).
+            // So this ugly hack disables the error detection.
+            if( token != T_end )
+                Unexpected( CurText() );
+        }
 
         switch( token )
         {
         case T_comment:
             NeedSYMBOLorNUMBER();
-            aItem->m_Info =  FromUTF8();
+            aItem->m_Info = FromUTF8();
             NeedRIGHT();
             break;
 
@@ -750,7 +783,7 @@ void WORKSHEET_LAYOUT::SetDefaultLayout()
     }
     catch( const IO_ERROR& ioe )
     {
-        wxLogMessage( ioe.errorText );
+        wxLogMessage( ioe.What() );
     }
 }
 
@@ -771,7 +804,7 @@ void WORKSHEET_LAYOUT::SetPageLayout( const char* aPageLayout, bool Append )
     }
     catch( const IO_ERROR& ioe )
     {
-        wxLogMessage( ioe.errorText );
+        wxLogMessage( ioe.What() );
     }
 }
 
@@ -834,7 +867,7 @@ void WORKSHEET_LAYOUT::SetPageLayout( const wxString& aFullFileName, bool Append
         }
         catch( const IO_ERROR& ioe )
         {
-            wxLogMessage( ioe.errorText );
+            wxLogMessage( ioe.What() );
         }
     }
 

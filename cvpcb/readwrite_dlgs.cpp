@@ -40,7 +40,7 @@
 
 #include <cvpcb.h>
 #include <cvpcb_mainframe.h>
-#include <cvstruct.h>
+#include <listview_classes.h>
 #include <wildcards_and_files_ext.h>
 #include <fp_conflict_assignment_selector.h>
 
@@ -245,7 +245,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles( const std::string& aNetlist )
             }
             catch( const IO_ERROR& ioe )
             {
-                wxString msg = ioe.errorText;
+                msg = ioe.What();
                 msg += wxT( "\n\n" );
                 msg += _( "First check your footprint library table entries." );
 
@@ -368,7 +368,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles( const std::string& aNetlist )
 }
 
 
-void CVPCB_MAINFRAME::SaveEdits()
+void CVPCB_MAINFRAME::SaveFootprintAssociation()
 {
     STRING_FORMATTER sf;
 
@@ -376,5 +376,5 @@ void CVPCB_MAINFRAME::SaveEdits()
 
     Kiway().ExpressMail( FRAME_SCH, MAIL_BACKANNOTATE_FOOTPRINTS, sf.GetString() );
 
-    SetStatusText( _("Edits sent to Eeschema") );
+    SetStatusText( _("Footprint association sent to Eeschema") );
 }

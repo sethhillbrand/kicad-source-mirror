@@ -1,8 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
+ * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,6 +38,7 @@
 #include <msgpanel.h>
 
 class BOARD;
+class EDA_DRAW_FRAME;
 class TOOL_DISPATCHER;
 
 namespace KIGFX
@@ -63,7 +65,7 @@ public:
                         const wxSize& aSize, GAL_TYPE aGalType = GAL_TYPE_OPENGL );
     ~EDA_DRAW_PANEL_GAL();
 
-    virtual void SetFocus();
+    virtual void SetFocus() override;
 
     /**
      * Function SwitchBackend
@@ -112,7 +114,7 @@ public:
     }
 
     /// @copydoc wxWindow::Refresh()
-    void Refresh( bool aEraseBackground = true, const wxRect* aRect = NULL );
+    void Refresh( bool aEraseBackground = true, const wxRect* aRect = NULL ) override;
 
     /**
      * Function ForceRefresh()
@@ -165,6 +167,33 @@ public:
      */
     double GetLegacyZoom() const;
 
+    /**
+     * Function GetParentEDAFrame()
+     * Returns parent EDA_DRAW_FRAME, if available or NULL otherwise.
+     */
+    EDA_DRAW_FRAME* GetParentEDAFrame() const
+    {
+        return m_edaFrame;
+    }
+
+    /**
+     * Function SaveGalSettings()
+     * Stores GAL related settings in the configuration storage.
+     */
+    virtual bool SaveGalSettings();
+
+    /**
+     * Function LoadGalSettings()
+     * Loads GAL related settings from the configuration storage.
+     */
+    virtual bool LoadGalSettings();
+
+    /**
+     * Function OnShow()
+     * Called when the window is shown for the first time.
+     */
+    virtual void OnShow() {}
+
 protected:
     void onPaint( wxPaintEvent& WXUNUSED( aEvent ) );
     void onSize( wxSizeEvent& aEvent );
@@ -172,11 +201,15 @@ protected:
     void onEnter( wxEvent& aEvent );
     void onLostFocus( wxFocusEvent& aEvent );
     void onRefreshTimer( wxTimerEvent& aEvent );
+    void onShowTimer( wxTimerEvent& aEvent );
 
     static const int MinRefreshPeriod = 17;             ///< 60 FPS.
 
     /// Pointer to the parent window
     wxWindow*                m_parent;
+
+    /// Parent EDA_DRAW_FRAME (if available)
+    EDA_DRAW_FRAME*          m_edaFrame;
 
     /// Last timestamp when the panel was refreshed
     wxLongLong               m_lastRefresh;
@@ -192,6 +225,9 @@ protected:
 
     /// Timer responsible for preventing too frequent refresh
     wxTimer                  m_refreshTimer;
+
+    /// Timer used to execute OnShow() when the window finally appears on the screen.
+    wxTimer                  m_onShowTimer;
 
     /// Interface for drawing objects on a 2D-surface
     KIGFX::GAL*              m_gal;
@@ -214,6 +250,9 @@ protected:
     /// Flag to indicate that focus should be regained on the next mouse event. It is a workaround
     /// for cases when the panel loses keyboard focus, so it does not react to hotkeys anymore.
     bool                     m_lostFocus;
+
+    /// Grid style setting string
+    static const wxChar GRID_STYLE_CFG[];
 };
 
 #endif

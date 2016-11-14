@@ -103,7 +103,7 @@ void PCB_EDIT_FRAME::ImportSpecctraSession( wxCommandEvent& event )
     }
     catch( const IO_ERROR& ioe )
     {
-        wxString msg = ioe.errorText;
+        wxString msg = ioe.What();
         msg += '\n';
         msg += _("BOARD may be corrupted, do not save it.");
         msg += '\n';
@@ -341,9 +341,9 @@ TRACK* SPECCTRA_DB::makeTRACK( PATH* aPath, int aPointIndex, int aNetcode ) thro
         via->SetLayerPair( topLayer, botLayer );
     }
 
-    if( via )
-        via->SetNetCode( aNetCode );
+    wxASSERT( via );
 
+    via->SetNetCode( aNetCode );
     return via;
 }
 
@@ -444,18 +444,18 @@ void SPECCTRA_DB::FromSESSION( BOARD* aBoard ) throw( IO_ERROR )
 
     // Walk the NET_OUTs and create tracks and vias anew.
     NET_OUTS& net_outs = session->route->net_outs;
-    for( NET_OUTS::iterator net=net_outs.begin();  net!=net_outs.end();  ++net )
+    for( NET_OUTS::iterator net = net_outs.begin(); net!=net_outs.end(); ++net )
     {
-        int         netCode = 0;
+        int netoutCode = 0;
 
         // page 143 of spec says wire's net_id is optional
         if( net->net_id.size() )
         {
             wxString netName = FROM_UTF8( net->net_id.c_str() );
+            NETINFO_ITEM* netinfo = aBoard->FindNet( netName );
 
-            NETINFO_ITEM* net = aBoard->FindNet( netName );
-            if( net )
-                netCode = net->GetNet();
+            if( netinfo )
+                netoutCode = netinfo->GetNet();
             else  // else netCode remains 0
             {
                 // int breakhere = 1;
@@ -463,7 +463,7 @@ void SPECCTRA_DB::FromSESSION( BOARD* aBoard ) throw( IO_ERROR )
         }
 
         WIRES& wires = net->wires;
-        for( unsigned i=0;  i<wires.size();  ++i )
+        for( unsigned i = 0; i<wires.size(); ++i )
         {
             WIRE*   wire  = &wires[i];
             DSN_T   shape = wire->shape->Type();
@@ -496,7 +496,7 @@ void SPECCTRA_DB::FromSESSION( BOARD* aBoard ) throw( IO_ERROR )
                     }
                     */
 
-                    TRACK* track = makeTRACK( path, pt, netCode );
+                    TRACK* track = makeTRACK( path, pt, netoutCode );
                     aBoard->Add( track );
                 }
             }
@@ -512,10 +512,10 @@ void SPECCTRA_DB::FromSESSION( BOARD* aBoard ) throw( IO_ERROR )
             if( net->net_id.size() )
             {
                 wxString netName = FROM_UTF8( net->net_id.c_str() );
+                NETINFO_ITEM* netvia = aBoard->FindNet( netName );
 
-                NETINFO_ITEM* net = aBoard->FindNet( netName );
-                if( net )
-                    netCode = net->GetNet();
+                if( netvia )
+                    netCode = netvia->GetNet();
 
                 // else netCode remains 0
             }

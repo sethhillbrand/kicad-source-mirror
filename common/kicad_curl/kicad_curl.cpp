@@ -23,7 +23,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-// kicad_curl.h must be included before xw headers, to avoid
+// kicad_curl.h must be included before wx headers, to avoid
 // conflicts for some defines, at least on Windows
 #include <kicad_curl/kicad_curl.h>
 
@@ -45,7 +45,7 @@ static volatile bool s_initialized;
 static MUTEX s_lock;        // for s_initialized
 
 // Assume that on these platforms libcurl uses OpenSSL
-#if defined(__linux__) || defined(_WIN32)
+#if defined(__linux__) || defined(__MINGW32__)
 
 #include <openssl/crypto.h>
 

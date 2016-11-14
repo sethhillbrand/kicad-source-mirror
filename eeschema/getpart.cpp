@@ -41,7 +41,6 @@
 #include <general.h>
 #include <class_library.h>
 #include <sch_component.h>
-#include <sch_sheet_path.h>
 #include <libeditframe.h>
 #include <viewlib_frame.h>
 #include <eeschema_id.h>
@@ -49,8 +48,6 @@
 #include <dialog_choose_component.h>
 #include <component_tree_search_container.h>
 #include <dialog_get_component.h>
-
-#include <boost/foreach.hpp>
 
 
 wxString SCH_BASE_FRAME::SelectComponentFromLibBrowser( const SCHLIB_FILTER* aFilter,
@@ -63,7 +60,7 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibBrowser( const SCHLIB_FILTER* aFi
     if( viewlibFrame )
         viewlibFrame->Destroy();
 
-    viewlibFrame = (LIB_VIEW_FRAME*) Kiway().Player( FRAME_SCH_VIEWER_MODAL, true );
+    viewlibFrame = (LIB_VIEW_FRAME*) Kiway().Player( FRAME_SCH_VIEWER_MODAL, true, this );
 
     if( aFilter )
         viewlibFrame->SetFilter( aFilter );
@@ -134,7 +131,7 @@ wxString SCH_BASE_FRAME::SelectComponentFromLibrary( const SCHLIB_FILTER* aFilte
 
     if( !loaded )
     {
-        BOOST_FOREACH( PART_LIB& lib, *libs )
+        for( PART_LIB& lib : *libs )
         {
             search_container.AddLibrary( lib );
         }
@@ -221,8 +218,8 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
         return NULL;
     }
 
-    SCH_COMPONENT*  component = new SCH_COMPONENT( *part, m_CurrentSheet->Last(), unit, convert,
-                                                   GetCrossHairPosition(), true );
+    SCH_COMPONENT*  component = new SCH_COMPONENT( *part, m_CurrentSheet, unit, convert,
+            GetCrossHairPosition(), true );
 
     // Set the m_ChipName value, from component name in lib, for aliases
     // Note if part is found, and if name is an alias of a component,
@@ -237,7 +234,7 @@ SCH_COMPONENT* SCH_EDIT_FRAME::Load_Component( wxDC*           aDC,
 
     MSG_PANEL_ITEMS items;
 
-    component->SetCurrentSheet( GetCurrentSheet().Last() );
+    component->SetCurrentSheetPath( &GetCurrentSheet() );
     component->GetMsgPanelInfo( items );
 
     SetMsgPanel( items );
@@ -276,8 +273,10 @@ void SCH_EDIT_FRAME::OrientComponent( COMPONENT_ORIENTATION_T aOrientation )
     component->SetOrientation( aOrientation );
 
     m_canvas->CrossHairOn( &dc );
-    GetScreen()->TestDanglingEnds( m_canvas, &dc );
-    m_canvas->Refresh();
+
+    if( GetScreen()->TestDanglingEnds() )
+        m_canvas->Refresh();
+
     OnModify();
 }
 
@@ -326,7 +325,7 @@ void SCH_EDIT_FRAME::OnSelectUnit( wxCommandEvent& aEvent )
             component->Draw( m_canvas, &dc, wxPoint( 0, 0 ), g_XorMode );
 
         /* Update the unit number. */
-        component->SetUnitSelection( m_CurrentSheet->Last(), unit );
+        component->SetUnitSelection( m_CurrentSheet, unit );
         component->SetUnit( unit );
         component->ClearFlags();
         component->SetFlags( flags );   // Restore m_Flag modified by SetUnit()
@@ -334,8 +333,9 @@ void SCH_EDIT_FRAME::OnSelectUnit( wxCommandEvent& aEvent )
         if( m_autoplaceFields )
             component->AutoAutoplaceFields( GetScreen() );
 
-        screen->TestDanglingEnds( m_canvas, &dc );
-        m_canvas->Refresh();
+        if( screen->TestDanglingEnds() )
+            m_canvas->Refresh();
+
         OnModify();
     }
 }
@@ -372,6 +372,9 @@ void SCH_EDIT_FRAME::ConvertPart( SCH_COMPONENT* DrawComponent, wxDC* DC )
         if( DrawComponent->GetConvert() > 2 )
             DrawComponent->SetConvert( 1 );
 
+        // The alternate symbol may cause a change in the connection status so test the
+        // connections so the connection indicators are drawn correctly.
+        GetScreen()->TestDanglingEnds();
         DrawComponent->ClearFlags();
         DrawComponent->SetFlags( flags );   // Restore m_Flag (modified by SetConvert())
 
@@ -381,7 +384,6 @@ void SCH_EDIT_FRAME::ConvertPart( SCH_COMPONENT* DrawComponent, wxDC* DC )
         else
             DrawComponent->Draw( m_canvas, DC, wxPoint( 0, 0 ), GR_DEFAULT_DRAWMODE );
 
-        GetScreen()->TestDanglingEnds( m_canvas, DC );
         OnModify();
     }
 }

@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -48,8 +48,8 @@ void LIB_EDIT_FRAME::OnImportPart( wxCommandEvent& event )
 {
     m_lastDrawItem = NULL;
 
-    wxFileDialog dlg( this, _( "Import Component" ), m_lastLibImportPath,
-                      m_mruPath, SchematicLibraryFileWildcard,
+    wxFileDialog dlg( this, _( "Import Component" ), m_mruPath,
+                      wxEmptyString, SchematicLibraryFileWildcard,
                       wxFD_OPEN | wxFD_FILE_MUST_EXIST );
 
     if( dlg.ShowModal() == wxID_CANCEL )
@@ -59,14 +59,14 @@ void LIB_EDIT_FRAME::OnImportPart( wxCommandEvent& event )
 
     m_mruPath = fn.GetPath();
 
-    std::auto_ptr<PART_LIB> lib;
+    std::unique_ptr<PART_LIB> lib;
 
     try
     {
-        std::auto_ptr<PART_LIB> new_lib( PART_LIB::LoadLibrary( fn.GetFullPath() ) );
-        lib = new_lib;
+        std::unique_ptr<PART_LIB> new_lib( PART_LIB::LoadLibrary( fn.GetFullPath() ) );
+        lib = std::move( new_lib );
     }
-    catch( const IO_ERROR& ioe )
+    catch( const IO_ERROR& )
     {
         wxString msg = wxString::Format( _(
             "Unable to import library '%s'.  Error:\n"
@@ -78,25 +78,25 @@ void LIB_EDIT_FRAME::OnImportPart( wxCommandEvent& event )
         return;
     }
 
-    LIB_ALIAS* entry = lib->GetFirstEntry();
+    wxArrayString aliasNames;
 
-    if( !entry )
+    lib->GetAliasNames( aliasNames );
+
+    if( aliasNames.IsEmpty() )
     {
-        wxString msg = wxString::Format( _(
-            "Part library file '%s' is empty." ),
-            GetChars( fn.GetFullPath() )
-            );
+        wxString msg = wxString::Format( _( "Part library file '%s' is empty." ),
+                                         GetChars( fn.GetFullPath() ) );
         DisplayError( this,  msg );
         return;
     }
 
+    LIB_ALIAS* entry = lib->FindAlias( aliasNames[0] );
+
     if( LoadOneLibraryPartAux( entry, lib.get() ) )
     {
-        fn = dlg.GetPath();
-        m_lastLibImportPath = fn.GetPath();
         DisplayLibInfos();
         GetScreen()->ClearUndoRedoList();
-        m_canvas->Refresh();
+        Zoom_Automatique( false );
     }
 }
 
@@ -120,15 +120,15 @@ void LIB_EDIT_FRAME::OnExportPart( wxCommandEvent& event )
 
     title = createLib ? _( "New Library" ) : _( "Export Component" );
 
-    wxFileDialog dlg( this, title, m_lastLibExportPath, fn.GetFullName(),
-            SchematicLibraryFileWildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+    wxFileDialog dlg( this, title, m_mruPath, fn.GetFullName(),
+                      SchematicLibraryFileWildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
 
     if( dlg.ShowModal() == wxID_CANCEL )
         return;
 
     fn = dlg.GetPath();
 
-    std::auto_ptr<PART_LIB> temp_lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, fn.GetFullPath() ) );
+    std::unique_ptr<PART_LIB> temp_lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, fn.GetFullPath() ) );
 
     SaveOnePart( temp_lib.get() );
 
@@ -167,7 +167,7 @@ void LIB_EDIT_FRAME::OnExportPart( wxCommandEvent& event )
     }
 
     if( result )
-        m_lastLibExportPath = fn.GetPath();
+        m_mruPath = fn.GetPath();
 
     if( result )
     {

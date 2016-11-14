@@ -49,8 +49,11 @@ DIALOG_EDIT_COMPONENT_IN_LIBRARY::DIALOG_EDIT_COMPONENT_IN_LIBRARY( LIB_EDIT_FRA
 
     initDlg();
 
-    GetSizer()->SetSizeHints( this );
-    Center();
+
+    FixOSXCancelButtonIssue();
+
+    // Now all widgets have the size fixed, call FinishDialogSettings
+    FinishDialogSettings();
 }
 
 
@@ -343,7 +346,7 @@ void DIALOG_EDIT_COMPONENT_IN_LIBRARY::AddAliasOfPart( wxCommandEvent& event )
         return;
     }
 
-    if( library && library->FindEntry( aliasname ) != NULL )
+    if( library && library->FindAlias( aliasname ) != NULL )
     {
         wxString msg;
         msg.Printf( _( "Alias or component name <%s> already exists in library <%s>." ),

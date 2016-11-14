@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2011-2014 Jean-Pierre Charras  jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2011-2016 Jean-Pierre Charras  jp.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -73,31 +73,32 @@ enum drill_G_code_t {
 // Helper struct to analyse Excellon commands
 struct EXCELLON_CMD
 {
-    std::string m_Name;      // key string
-    int    m_Code;      // internal code, used as id in functions
-    int    m_asParams;  // 0 = no param, -1 = skip params, 1 = read params
+    std::string m_Name;     // key string
+    int    m_Code;          // internal code, used as id in functions
+    int    m_asParams;      // 0 = no param, -1 = skip params, 1 = read params
 };
 
 
 /* EXCELLON_IMAGE handle a drill image
- *  It is derived from GERBER_IMAGE because there is a lot of likeness
+ *  It is derived from GERBER_FILE_IMAGE because there is a lot of likeness
  *  between EXCELLON files and GERBER files
  *  DCode aperture are also similat to T Codes.
- *  So we can reuse GERBER_IMAGE to handle EXCELLON_IMAGE with very few new functions
+ *  So we can reuse GERBER_FILE_IMAGE to handle EXCELLON_IMAGE with very few new functions
  */
 
-class EXCELLON_IMAGE : public GERBER_IMAGE
+class EXCELLON_IMAGE : public GERBER_FILE_IMAGE
 {
 private:
     enum excellon_state {
         READ_HEADER_STATE,          // When we are in this state, we are reading header
         READ_PROGRAM_STATE          // When we are in this state, we are reading drill data
     };
-    excellon_state m_State;         // state of excellon file analysis
-    bool           m_SlotOn;        // true during an oval driil definition
 
-public: EXCELLON_IMAGE( GERBVIEW_FRAME* aParent, int layer ) :
-        GERBER_IMAGE( aParent, layer )
+    excellon_state m_State;         // state of excellon file analysis
+    bool           m_SlotOn;        // true during an oblong drill definition
+
+public: EXCELLON_IMAGE( int layer ) :
+        GERBER_FILE_IMAGE( layer )
     {
         m_State  = READ_HEADER_STATE;
         m_SlotOn = false;
@@ -106,14 +107,21 @@ public: EXCELLON_IMAGE( GERBVIEW_FRAME* aParent, int layer ) :
 
     ~EXCELLON_IMAGE() {};
 
-    virtual void ResetDefaultValues()
+    virtual void ResetDefaultValues() override
     {
-        GERBER_IMAGE::ResetDefaultValues();
+        GERBER_FILE_IMAGE::ResetDefaultValues();
         SelectUnits( false );
     }
 
 
-    bool Read_EXCELLON_File( FILE* aFile, const wxString& aFullFileName );
+    /**
+     * Read and load a drill (EXCELLON format) file.
+     * @param aFullFileName = the full filename of the Gerber file
+     * when the file cannot be loaded
+     * Warning and info messages are stored in m_Messages
+     * @return bool if OK, false if the gerber file was not loaded
+     */
+    bool LoadFile( const wxString& aFullFileName );
 
 private:
     bool Execute_HEADER_Command( char*& text );
@@ -121,9 +129,14 @@ private:
     bool Execute_EXCELLON_G_Command( char*& text );
     bool Execute_Drill_Command( char*& text );
 
-    int TCodeNumber( char*& Text )
+    /** Read a tool definition like T1C0.02 or T1F00S00C0.02 or T1C0.02F00S00
+     * and enter params in TCODE list
+     */
+    bool readToolInformation( char*& aText );
+
+    int TCodeNumber( char*& aText )
     {
-        return DCodeNumber( Text );
+        return DCodeNumber( aText );
     }
 
 

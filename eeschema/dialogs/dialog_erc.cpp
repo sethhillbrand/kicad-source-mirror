@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2012-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -49,9 +49,9 @@
 #include <erc.h>
 #include <id.h>
 
-extern int           DiagErc[PIN_NMAX][PIN_NMAX];
-extern int           DefaultDiagErc[PIN_NMAX][PIN_NMAX];
 
+extern int           DiagErc[PINTYPE_COUNT][PINTYPE_COUNT];
+extern int           DefaultDiagErc[PINTYPE_COUNT][PINTYPE_COUNT];
 
 
 bool DIALOG_ERC::m_writeErcFile = false;            // saved only for the current session
@@ -62,8 +62,9 @@ bool DIALOG_ERC::m_tstUniqueGlobalLabels = true;    // saved only for the curren
 // Control identifiers for events
 #define ID_MATRIX_0 1800
 
+
 BEGIN_EVENT_TABLE( DIALOG_ERC, DIALOG_ERC_BASE )
-    EVT_COMMAND_RANGE( ID_MATRIX_0, ID_MATRIX_0 + ( PIN_NMAX * PIN_NMAX ) - 1,
+    EVT_COMMAND_RANGE( ID_MATRIX_0, ID_MATRIX_0 + ( PINTYPE_COUNT * PINTYPE_COUNT ) - 1,
                        wxEVT_COMMAND_BUTTON_CLICKED, DIALOG_ERC::ChangeErrorLevel )
 END_EVENT_TABLE()
 
@@ -76,9 +77,12 @@ DIALOG_ERC::DIALOG_ERC( SCH_EDIT_FRAME* parent ) :
     m_lastMarkerFound = NULL;
     Init();
 
-    GetSizer()->SetSizeHints( this );
-    Centre();
+    FixOSXCancelButtonIssue();
+
+    // Now all widgets have the size fixed, call FinishDialogSettings
+    FinishDialogSettings();
 }
+
 
 DIALOG_ERC::~DIALOG_ERC()
 {
@@ -91,9 +95,9 @@ void DIALOG_ERC::Init()
 {
     m_initialized = false;
 
-    for( int ii = 0; ii < PIN_NMAX; ii++ )
+    for( int ii = 0; ii < PINTYPE_COUNT; ii++ )
     {
-        for( int jj = 0; jj < PIN_NMAX; jj++ )
+        for( int jj = 0; jj < PINTYPE_COUNT; jj++ )
             m_buttonList[ii][jj] = NULL;
     }
 
@@ -157,6 +161,7 @@ void DIALOG_ERC::OnButtonCloseClick( wxCommandEvent& event )
     Close();
 }
 
+
 void DIALOG_ERC::OnCloseErcDialog( wxCloseEvent& event )
 {
     Destroy();
@@ -201,13 +206,13 @@ void DIALOG_ERC::OnLeftClickMarkersList( wxHtmlLinkEvent& event )
         return;
 
     // Search for the selected marker
-    SCH_SHEET_PATH* sheet;
-    SCH_SHEET_LIST  SheetList;
+    unsigned i;
+    SCH_SHEET_LIST  sheetList( g_RootSheet );
     bool notFound = true;
 
-    for( sheet = SheetList.GetFirst(); sheet; sheet = SheetList.GetNext() )
+    for( i = 0;  i < sheetList.size(); i++ )
     {
-        SCH_ITEM* item = (SCH_ITEM*) sheet->LastDrawList();
+        SCH_ITEM* item = (SCH_ITEM*) sheetList[i].LastDrawList();
 
         for( ; item; item = item->Next() )
         {
@@ -231,11 +236,11 @@ void DIALOG_ERC::OnLeftClickMarkersList( wxHtmlLinkEvent& event )
         return;
     }
 
-    if( *sheet != m_parent->GetCurrentSheet() )
+    if( sheetList[i] != m_parent->GetCurrentSheet() )
     {
-        sheet->LastScreen()->SetZoom( m_parent->GetScreen()->GetZoom() );
-        m_parent->SetCurrentSheet( *sheet );
-        m_parent->GetCurrentSheet().Last()->UpdateAllScreenReferences();
+        sheetList[i].LastScreen()->SetZoom( m_parent->GetScreen()->GetZoom() );
+        m_parent->SetCurrentSheet( sheetList[i] );
+        m_parent->GetCurrentSheet().UpdateAllScreenReferences();
     }
 
     m_lastMarkerFound = marker;
@@ -290,7 +295,7 @@ void DIALOG_ERC::ReBuildMatrixPanel()
     if( m_initialized == false )
     {
         // Print row labels
-        for( int ii = 0; ii < PIN_NMAX; ii++ )
+        for( int ii = 0; ii < PINTYPE_COUNT; ii++ )
         {
             int y = pos.y + (ii * bitmap_size.y);
             text = new wxStaticText( m_matrixPanel, -1, CommentERC_H[ii],
@@ -305,7 +310,7 @@ void DIALOG_ERC::ReBuildMatrixPanel()
     else
         pos = m_buttonList[0][0]->GetPosition();
 
-    for( int ii = 0; ii < PIN_NMAX; ii++ )
+    for( int ii = 0; ii < PINTYPE_COUNT; ii++ )
     {
         int y = pos.y + (ii * bitmap_size.y);
 
@@ -323,7 +328,7 @@ void DIALOG_ERC::ReBuildMatrixPanel()
                 text     = new wxStaticText( m_matrixPanel, -1, CommentERC_V[ii], txtpos );
             }
 
-            int event_id = ID_MATRIX_0 + ii + ( jj * PIN_NMAX );
+            int event_id = ID_MATRIX_0 + ii + ( jj * PINTYPE_COUNT );
             BITMAP_DEF bitmap_butt = erc_green_xpm;
 
             delete m_buttonList[ii][jj];
@@ -372,14 +377,12 @@ void DIALOG_ERC::setDRCMatrixButtonState( wxBitmapButton *aButton, int aState )
 
 void DIALOG_ERC::DisplayERC_MarkersList()
 {
-    SCH_SHEET_LIST sheetList;
+    SCH_SHEET_LIST sheetList( g_RootSheet);
     m_MarkersList->ClearList();
 
-    SCH_SHEET_PATH* sheet = sheetList.GetFirst();
-
-    for( ; sheet != NULL; sheet = sheetList.GetNext() )
+    for( unsigned i = 0; i < sheetList.size(); i++ )
     {
-        SCH_ITEM* item = sheet->LastDrawList();
+        SCH_ITEM* item = sheetList[i].LastDrawList();
 
         for( ; item != NULL; item = item->Next() )
         {
@@ -420,7 +423,7 @@ void DIALOG_ERC::ChangeErrorLevel( wxCommandEvent& event )
     wxBitmapButton* butt = (wxBitmapButton*) event.GetEventObject();
     pos  = butt->GetPosition();
 
-    x = ii / PIN_NMAX; y = ii % PIN_NMAX;
+    x = ii / PINTYPE_COUNT; y = ii % PINTYPE_COUNT;
 
     level = DiagErc[y][x];
 
@@ -440,7 +443,7 @@ void DIALOG_ERC::ChangeErrorLevel( wxCommandEvent& event )
         break;
     }
 
-    setDRCMatrixButtonState( butt, level);
+    setDRCMatrixButtonState( butt, level );
 
     DiagErc[y][x] = DiagErc[x][y] = level;
 }
@@ -455,8 +458,8 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
     m_tstUniqueGlobalLabels = m_cbTestUniqueGlbLabels->GetValue();
 
     // Build the whole sheet list in hierarchy (sheet, not screen)
-    int refDes = 1;
-    g_RootSheet->AnnotatePowerSymbols( Prj().SchLibs(), &refDes );
+    SCH_SHEET_LIST sheets( g_RootSheet );
+    sheets.AnnotatePowerSymbols( Prj().SchLibs() );
 
     if( m_parent->CheckAnnotate( aMessagesList, false ) )
     {
@@ -480,7 +483,7 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
         /* Ff wire list has changed, delete Undo Redo list to avoid pointers on deleted
          * data problems.
          */
-        if( screen->SchematicCleanUp( NULL ) )
+        if( screen->SchematicCleanUp() )
             screen->ClearUndoRedoList();
     }
 
@@ -489,26 +492,42 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
      */
     TestDuplicateSheetNames( true );
 
-    std::auto_ptr<NETLIST_OBJECT_LIST> objectsConnectedList( m_parent->BuildNetListBase() );
+    std::unique_ptr<NETLIST_OBJECT_LIST> objectsConnectedList( m_parent->BuildNetListBase() );
 
     // Reset the connection type indicator
     objectsConnectedList->ResetConnectionsType();
 
-    unsigned lastNet;
-    unsigned nextNet = lastNet = 0;
+    unsigned lastItemIdx;
+    unsigned nextItemIdx = lastItemIdx = 0;
     int MinConn    = NOC;
 
-    for( unsigned net = 0; net < objectsConnectedList->size(); net++ )
+    /* The netlist generated by SCH_EDIT_FRAME::BuildNetListBase is sorted
+     * by net number, which means we can group netlist items into ranges
+     * that live in the same net. The range from nextItem to the current
+     * item (exclusive) needs to be checked against the current item. The
+     * lastItem variable is used as a helper to pass the last item's number
+     * from one loop iteration to the next, which simplifies the initial
+     * pass.
+     */
+
+    for( unsigned itemIdx = 0; itemIdx < objectsConnectedList->size(); itemIdx++ )
     {
-        if( objectsConnectedList->GetItemNet( lastNet ) !=
-            objectsConnectedList->GetItemNet( net ) )
+        auto item = objectsConnectedList->GetItem( itemIdx );
+        auto lastItem = objectsConnectedList->GetItem( lastItemIdx );
+
+        auto lastNet = lastItem->GetNet();
+        auto net = item->GetNet();
+
+        wxASSERT_MSG( lastNet <= net, wxT( "Netlist not correctly ordered" ) );
+
+        if( lastNet != net )
         {
             // New net found:
-            MinConn    = NOC;
-            nextNet   = net;
+            MinConn      = NOC;
+            nextItemIdx = itemIdx;
         }
 
-        switch( objectsConnectedList->GetItemType( net ) )
+        switch( item->m_Type )
         {
         // These items do not create erc problems
         case NET_ITEM_UNSPECIFIED:
@@ -528,11 +547,11 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
             // ERC problems when pin sheets do not match hierarchical labels.
             // Each pin sheet must match a hierarchical label
             // Each hierarchical label must match a pin sheet
-            objectsConnectedList->TestforNonOrphanLabel( net, nextNet );
+            objectsConnectedList->TestforNonOrphanLabel( itemIdx, nextItemIdx );
             break;
         case NET_GLOBLABEL:
             if( m_tstUniqueGlobalLabels )
-                objectsConnectedList->TestforNonOrphanLabel( net, nextNet );
+                objectsConnectedList->TestforNonOrphanLabel( itemIdx, nextItemIdx );
             break;
 
         case NET_NOCONNECT:
@@ -540,19 +559,19 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
             // ERC problems when a noconnect symbol is connected to more than one pin.
             MinConn = NET_NC;
 
-            if( objectsConnectedList->CountPinsInNet( nextNet ) > 1 )
-                Diagnose( objectsConnectedList->GetItem( net ), NULL, MinConn, UNC );
+            if( objectsConnectedList->CountPinsInNet( nextItemIdx ) > 1 )
+                Diagnose( item, NULL, MinConn, UNC );
 
             break;
 
         case NET_PIN:
 
             // Look for ERC problems between pins:
-            TestOthersItems( objectsConnectedList.get(), net, nextNet, &MinConn );
+            TestOthersItems( objectsConnectedList.get(), itemIdx, nextItemIdx, &MinConn );
             break;
         }
 
-        lastNet = net;
+        lastItemIdx = itemIdx;
     }
 
     // Test similar labels (i;e. labels which are identical when
@@ -569,6 +588,11 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
     // Display new markers:
     m_parent->GetCanvas()->Refresh();
 
+    // Display message
+    wxString msg = _( "Finished" );
+    msg += wxT( "\n" );
+    aMessagesList->Add( msg );
+
     if( m_writeErcFile )
     {
         fn = g_RootSheet->GetScreen()->GetFileName();
@@ -582,10 +606,7 @@ void DIALOG_ERC::TestErc( wxArrayString* aMessagesList )
             return;
 
         if( WriteDiagnosticERC( dlg.GetPath() ) )
-        {
-            Close( true );
             ExecuteFile( this, Pgm().GetEditorName(), QuoteFullPath( fn ) );
-        }
     }
 }
 

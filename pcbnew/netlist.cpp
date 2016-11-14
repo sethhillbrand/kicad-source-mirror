@@ -27,7 +27,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
+
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <class_drawpanel.h>
@@ -67,6 +69,9 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     KIGFX::VIEW*    view = GetGalCanvas()->GetView();
     BOARD*          board = GetBoard();
     std::vector<MODULE*> newFootprints;
+    // keep trace of the initial baord area, if we want to place new footprints
+    // outside the existinag board
+    EDA_RECT bbox = board->ComputeBoundingBox( false );
 
     netlist.SetIsDryRun( aIsDryRun );
     netlist.SetFindByTimeStamp( aSelectByTimeStamp );
@@ -75,7 +80,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
 
     try
     {
-        std::auto_ptr<NETLIST_READER> netlistReader( NETLIST_READER::GetNetlistReader(
+        std::unique_ptr<NETLIST_READER> netlistReader( NETLIST_READER::GetNetlistReader(
             &netlist, aNetlistFileName, aCmpFileName ) );
 
         if( !netlistReader.get() )
@@ -91,7 +96,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     }
     catch( const IO_ERROR& ioe )
     {
-        msg.Printf( _( "Error loading netlist.\n%s" ), ioe.errorText.GetData() );
+        msg.Printf( _( "Error loading netlist.\n%s" ), ioe.What().GetData() );
         wxMessageBox( msg, _( "Netlist Load Error" ), wxOK | wxICON_ERROR );
         return;
     }
@@ -105,7 +110,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
         // Remove old modules
         for( MODULE* module = board->m_Modules; module; module = module->Next() )
         {
-            module->RunOnChildren( boost::bind( &KIGFX::VIEW::Remove, view, _1 ) );
+            module->RunOnChildren( std::bind( &KIGFX::VIEW::Remove, view, _1 ) );
             view->Remove( module );
         }
     }
@@ -122,15 +127,27 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
 
     if( IsGalCanvasActive() )
     {
-        SpreadFootprints( &newFootprints, false, false );
+        SpreadFootprints( &newFootprints, false, false, GetCrossHairPosition() );
+
         if( !newFootprints.empty() )
         {
-            BOOST_FOREACH( MODULE* footprint, newFootprints )
+            for( MODULE* footprint : newFootprints )
             {
                 m_toolManager->RunAction( COMMON_ACTIONS::selectItem, true, footprint );
             }
             m_toolManager->InvokeTool( "pcbnew.InteractiveEdit" );
         }
+    }
+    else
+    {
+        wxPoint placementAreaPosition;
+
+        // Place area to the left side of the board.
+        // if the board is empty, the bbox position is (0,0)
+        placementAreaPosition.x = bbox.GetEnd().x + Millimeter2iu( 10 );
+        placementAreaPosition.y = bbox.GetOrigin().y;
+
+        SpreadFootprints( &newFootprints, false, false, placementAreaPosition );
     }
 
     OnModify();
@@ -140,7 +157,7 @@ void PCB_EDIT_FRAME::ReadPcbNetlist( const wxString& aNetlistFileName,
     // Reload modules
     for( MODULE* module = board->m_Modules; module; module = module->Next() )
     {
-        module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
+        module->RunOnChildren( std::bind( &KIGFX::VIEW::Add, view, _1 ) );
         view->Add( module );
         module->ViewUpdate();
     }
@@ -306,7 +323,6 @@ void PCB_EDIT_FRAME::LoadFootprints( NETLIST& aNetlist, REPORTER* aReporter )
             {
                 if( aReporter )
                 {
-                    wxString msg;
                     msg.Printf( _( "Component '%s' footprint '%s' was not found in "
                                    "any libraries in the footprint library table.\n" ),
                                 GetChars( component->GetReference() ),

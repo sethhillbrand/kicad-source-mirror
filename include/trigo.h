@@ -201,19 +201,30 @@ inline double RAD2DECIDEG( double rad ) { return rad * 1800.0 / M_PI; }
 /// Normalize angle to be in the -360.0 .. 360.0:
 template <class T> inline void NORMALIZE_ANGLE_360( T &Angle )
 {
-    while( Angle < -3600 )
+    while( Angle <= -3600 )
         Angle += 3600;
-    while( Angle > 3600 )
+    while( Angle >= 3600 )
         Angle -= 3600;
 }
 
 /// Normalize angle to be in the 0.0 .. 360.0 range:
+/// angle is in 1/10 degees
 template <class T> inline void NORMALIZE_ANGLE_POS( T &Angle )
 {
     while( Angle < 0 )
         Angle += 3600;
     while( Angle >= 3600 )
         Angle -= 3600;
+}
+
+/// Normalize angle to be in the 0.0 .. 360.0 range:
+/// angle is in degrees
+inline void NORMALIZE_ANGLE_DEGREES_POS( double &Angle )
+{
+    while( Angle < 0 )
+        Angle += 360.0;
+    while( Angle >= 360.0 )
+        Angle -= 360.0;
 }
 
 /// Add two angles (keeping the result normalized). T2 is here

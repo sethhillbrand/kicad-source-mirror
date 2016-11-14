@@ -21,6 +21,7 @@
  *
  */
 
+#include <cmath>
 #include <limits>
 #include <transline.h>
 #include <units.h>
@@ -136,7 +137,8 @@ double TRANSLINE::skin_depth()
 
 /* The function computes the complete elliptic integral of first kind
  *  K() and the second kind E() using the arithmetic-geometric mean
- *  algorithm (AGM) by Abramowitz and Stegun. */
+ *  algorithm (AGM) by Abramowitz and Stegun.
+ */
 void TRANSLINE::ellipke( double arg, double& k, double& e )
 {
     int iMax = 16;
@@ -153,7 +155,7 @@ void TRANSLINE::ellipke( double arg, double& k, double& e )
     }
     else
     {
-        double a, b, c, f, s, fk = 1, fe = 1, t, da = arg;
+        double a, b, c, fr, s, fk = 1, fe = 1, t, da = arg;
         int    i;
         if( arg < 0 )
         {
@@ -164,16 +166,16 @@ void TRANSLINE::ellipke( double arg, double& k, double& e )
         a = 1;
         b = sqrt( 1 - da );
         c = sqrt( da );
-        f = 0.5;
-        s = f * c * c;
+        fr = 0.5;
+        s = fr * c * c;
         for( i = 0; i < iMax; i++ )
         {
             t  = (a + b) / 2;
             c  = (a - b) / 2;
             b  = sqrt( a * b );
             a  = t;
-            f *= 2;
-            s += f * c * c;
+            fr *= 2;
+            s += fr * c * c;
             if( c / a < NR_EPSI )
                 break;
         }

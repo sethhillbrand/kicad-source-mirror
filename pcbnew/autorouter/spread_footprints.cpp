@@ -35,7 +35,6 @@
  */
 
 #include <algorithm>
-#include <boost/foreach.hpp>
 
 #include <fctsys.h>
 #include <convert_to_biu.h>
@@ -168,17 +167,20 @@ void moveFootprintsInArea( CRectPlacement& aPlacementArea,
 static bool sortFootprintsbySheetPath( MODULE* ref, MODULE* compare );
 
 /* Function to move components in a rectangular area format 4 / 3,
- * starting from the mouse cursor
- * The components with the FIXED status set are not moved
+ * starting from the mouse cursor.
+ * Footprints are grouped by sheet.
+ * Components with the LOCKED status set are not moved
  */
 void PCB_EDIT_FRAME::SpreadFootprints( std::vector<MODULE*>* aFootprints,
                                        bool aMoveFootprintsOutsideBoardOnly,
-                                       bool aCheckForBoardEdges )
+                                       bool aCheckForBoardEdges,
+                                       wxPoint aSpreadAreaPosition,
+                                       bool aPrepareUndoCommand )
 {
     EDA_RECT bbox = GetBoard()->ComputeBoundingBox( true );
-    bool     edgesExist = ( bbox.GetWidth() || bbox.GetHeight() );
+    bool     edgesExist = bbox.GetWidth() || bbox.GetHeight();
     // if aFootprintsOutsideBoardOnly is true, and if board outline exists,
-    // wue have to filter footprints to move:
+    // we have to filter footprints to move:
     bool outsideBrdFilter = aMoveFootprintsOutsideBoardOnly && edgesExist;
 
     // no edges exist
@@ -194,7 +196,7 @@ void PCB_EDIT_FRAME::SpreadFootprints( std::vector<MODULE*>* aFootprints,
     // calculate also the area needed by these footprints
     std::vector <MODULE*> footprintList;
 
-    BOOST_FOREACH( MODULE* footprint, *aFootprints )
+    for( MODULE* footprint : *aFootprints )
     {
         footprint->CalculateBoundingBox();
 
@@ -216,17 +218,23 @@ void PCB_EDIT_FRAME::SpreadFootprints( std::vector<MODULE*>* aFootprints,
     // sort footprints by sheet path. we group them later by sheet
     sort( footprintList.begin(), footprintList.end(), sortFootprintsbySheetPath );
 
-    // Undo command: init undo list
+    // Undo command: init undo list. If aPrepareUndoCommand == false
+    // no undo command will be initialized.
+    // Useful when a undo command is already initialized by the caller
     PICKED_ITEMS_LIST  undoList;
-    undoList.m_Status = UR_CHANGED;
-    ITEM_PICKER        picker( NULL, UR_CHANGED );
 
-    BOOST_FOREACH( MODULE* footprint, footprintList )
+    if( aPrepareUndoCommand )
     {
-        // Undo: add copy of the footprint to undo list
-        picker.SetItem( footprint );
-        picker.SetLink( footprint->Clone() );
-        undoList.PushItem( picker );
+        undoList.m_Status = UR_CHANGED;
+        ITEM_PICKER        picker( NULL, UR_CHANGED );
+
+        for( MODULE* footprint : footprintList )
+        {
+            // Undo: add copy of the footprint to undo list
+            picker.SetItem( footprint );
+            picker.SetLink( footprint->Clone() );
+            undoList.PushItem( picker );
+        }
     }
 
     // Extract and place footprints by sheet
@@ -235,16 +243,20 @@ void PCB_EDIT_FRAME::SpreadFootprints( std::vector<MODULE*>* aFootprints,
     double subsurface;
     double placementsurface = 0.0;
 
-    wxPoint placementAreaPosition = GetCrossHairPosition();
+    // put the placement area position on mouse cursor.
+    // this position will be adjusted later
+    wxPoint placementAreaPosition = aSpreadAreaPosition;
 
     // We sometimes do not want to move footprints inside an existing board.
-    // move the placement area position outside the board bounding box
+    // Therefore, move the placement area position outside the board bounding box
     // to the left of the board
-    if( edgesExist && aCheckForBoardEdges )
+    if( aCheckForBoardEdges && edgesExist )
     {
         if( placementAreaPosition.x < bbox.GetEnd().x &&
             placementAreaPosition.y < bbox.GetEnd().y )
         {
+            // the placement area could overlap the board
+            // move its position to a safe location
             placementAreaPosition.x = bbox.GetEnd().x;
             placementAreaPosition.y = bbox.GetOrigin().y;
         }
@@ -344,7 +356,9 @@ void PCB_EDIT_FRAME::SpreadFootprints( std::vector<MODULE*>* aFootprints,
     }   // End pass
 
     // Undo: commit list
-    SaveCopyInUndoList( undoList, UR_CHANGED );
+    if( aPrepareUndoCommand )
+        SaveCopyInUndoList( undoList, UR_CHANGED );
+
     OnModify();
 
     m_canvas->Refresh();

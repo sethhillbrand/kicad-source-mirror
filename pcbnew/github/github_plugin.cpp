@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2016 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -548,7 +548,7 @@ void GITHUB_PLUGIN::remoteGetZip( const wxString& aRepoURL ) throw( IO_ERROR )
                                      errorcmd,
                                      zip_url.c_str(),
                                      TO_UTF8( aRepoURL ),
-                                     TO_UTF8( ioe.errorText )
+                                     TO_UTF8( ioe.What() )
                                      );
 
         THROW_IO_ERROR( msg );
@@ -587,7 +587,7 @@ int main( int argc, char** argv )
     }
     catch( const IO_ERROR& ioe )
     {
-        printf( "%s\n", TO_UTF8(ioe.errorText) );
+        printf( "%s\n", TO_UTF8(ioe.What()) );
     }
 
     UNINIT_LOGGER();

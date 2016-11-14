@@ -3,8 +3,8 @@
  *
  * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2012-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,22 +28,23 @@
  * @file menubar_pcbframe.cpp
  * Pcbnew editor menu bar
  */
-#include <fctsys.h>
-#include <pgm_base.h>
-#include <kiface_i.h>
-#include <pcbnew.h>
-#include <wxPcbStruct.h>
-#include <hotkeys.h>
-#include <pcbnew_id.h>
 
-#include <help_common_strings.h>
+
 #include <menus_helpers.h>
+#include <kiface_i.h>
+#include <pgm_base.h>
+#include <wxPcbStruct.h>
+
+#include "help_common_strings.h"
+#include "hotkeys.h"
+#include "pcbnew.h"
+#include "pcbnew_id.h"
+
 
 void PCB_EDIT_FRAME::ReCreateMenuBar()
 {
     wxString    text;
     wxMenuBar*  menuBar = GetMenuBar();
-    wxMenuItem * menutitem;
 
     wxFileHistory&  fhist = Kiface().GetFileHistory();
 
@@ -65,11 +66,11 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     if( Kiface().IsSingle() )   // not when under a project mgr
     {
         AddMenuItem( filesMenu, ID_NEW_BOARD,
-                _( "&New" ),
+                _( "&New Board" ),
                 _( "Clear current board and initialize a new one" ),
                 KiBitmap( new_pcb_xpm ) );
 
-        text = AddHotkeyName( _( "&Open" ), m_hotkeysDescrList, HK_LOAD_BOARD );
+        text = AddHotkeyName( _( "&Open Board" ), m_hotkeysDescrList, HK_LOAD_BOARD );
         AddMenuItem( filesMenu, ID_LOAD_FILE, text,
                 _( "Delete current board and load new board" ),
                 KiBitmap( open_brd_file_xpm ) );
@@ -94,15 +95,18 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                      -1, _( "Open &Recent" ),
                      _( "Open a recent opened board" ),
                      KiBitmap( open_project_xpm ) );
+        AddMenuItem( filesMenu, ID_APPEND_FILE,
+                     _( "&Append Board" ),
+                     _( "Append another Pcbnew board to the current loaded board. Available only when Pcbnew runs in stand alone mode" ),
+                     KiBitmap( import_xpm ) );
+
+        filesMenu->AppendSeparator();
+
+        AddMenuItem( filesMenu, ID_IMPORT_NON_KICAD_BOARD,
+                _( "Import Non Kicad Board File" ),
+                _( "Load a non KiCad board file and convert it to a .kicad_pcb file" ),
+                KiBitmap( import_brd_file_xpm ) );
     }
-
-    menutitem = AddMenuItem( filesMenu, ID_APPEND_FILE,
-                 _( "&Append Board" ),
-                 _( "Append another Pcbnew board to the current loaded board. Available only when Pcbnew runs in stand alone mode" ),
-                 KiBitmap( import_xpm ) );
-    if( ! Kiface().IsSingle() )      // disable when under a project mgr
-        menutitem->Enable( false );
-
 
     filesMenu->AppendSeparator();
 
@@ -217,6 +221,10 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "I&DFv3" ), _( "IDFv3 board and component export" ),
                  KiBitmap( export_idf_xpm ) );
 
+    AddMenuItem( submenuexport, ID_GEN_EXPORT_FILE_STEP,
+                 _( "S&TEP" ), _( "STEP export" ),
+                 KiBitmap( export_idf_xpm ) );
+
     AddMenuItem( submenuexport, ID_PCB_GEN_CMP_FILE,
                  _( "&Component (.cmp) File" ),
                  _( "Export component file (*.cmp) for Eeschema footprint field back-annotation" ),
@@ -292,7 +300,20 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     AddMenuItem( editMenu, ID_FIND_ITEMS, text, HELP_FIND , KiBitmap( find_xpm ) );
 
     editMenu->AppendSeparator();
+    AddMenuItem( editMenu, ID_PCB_EDIT_ALL_VIAS_AND_TRACK_SIZE,
+                     _( "Edit All Tracks and Vias" ), KiBitmap( width_track_via_xpm ) );
 
+    AddMenuItem( editMenu, ID_MENU_PCB_RESET_TEXTMODULE_FIELDS_SIZES,
+                 _( "Set Footp&rint Field Sizes" ),
+                 _( "Set text size and width of footprint fields." ),
+                 KiBitmap( reset_text_xpm ) );
+
+    AddMenuItem( editMenu, ID_MENU_PCB_SWAP_LAYERS,
+                 _( "&Swap Layers" ),
+                 _( "Swap tracks on copper layers or drawings on other layers" ),
+                 KiBitmap( swap_layer_xpm ) );
+
+    editMenu->AppendSeparator();
     AddMenuItem( editMenu, ID_PCB_GLOBAL_DELETE,
                  _( "&Global Deletions" ),
                  _( "Delete tracks, footprints, texts... on board" ),
@@ -302,16 +323,6 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "&Cleanup Tracks and Vias" ),
                  _( "Clean stubs, vias, delete break points, or unconnected tracks to pads and vias" ),
                  KiBitmap( delete_xpm ) );
-
-    AddMenuItem( editMenu, ID_MENU_PCB_SWAP_LAYERS,
-                 _( "&Swap Layers" ),
-                 _( "Swap tracks on copper layers or drawings on other layers" ),
-                 KiBitmap( swap_layer_xpm ) );
-
-    AddMenuItem( editMenu, ID_MENU_PCB_RESET_TEXTMODULE_FIELDS_SIZES,
-                 _( "Set Footp&rint Field Sizes" ),
-                 _( "Set text size and width of footprint fields." ),
-                 KiBitmap( reset_text_xpm ) );
 
     //----- View menu -----------------------------------------------------------
     wxMenu* viewMenu = new wxMenu;
@@ -387,7 +398,7 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "Add footprints" ), KiBitmap( module_xpm ) );
 
     text = AddHotkeyName( _( "&Track" ), g_Pcbnew_Editor_Hokeys_Descr,
-                          HK_ADD_NEW_TRACK );
+                          HK_ADD_NEW_TRACK, IS_ACCELERATOR );
     AddMenuItem( placeMenu, ID_TRACK_BUTT, text,
                  _( "Add tracks and vias" ), KiBitmap( add_tracks_xpm ) );
 
@@ -572,24 +583,6 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
     // Hotkey submenu
     AddHotkeyConfigMenu( configmenu );
 
-    //--- Macros submenu --------------------------------------------------------
-    wxMenu* macrosMenu = new wxMenu;
-
-    AddMenuItem( macrosMenu, ID_PREFRENCES_MACROS_SAVE,
-                 _( "&Save macros" ),
-                 _( "Save macros to file" ),
-                 KiBitmap( save_setup_xpm ) );
-
-    AddMenuItem( macrosMenu, ID_PREFRENCES_MACROS_READ,
-                 _( "&Read macros" ),
-                 _( "Read macros from file" ),
-                 KiBitmap( read_setup_xpm ) );
-
-    AddMenuItem( configmenu, macrosMenu,
-                 -1, _( "Ma&cros" ),
-                 _( "Macros save/read operations" ),
-                 KiBitmap( macros_record_xpm ) );
-
     configmenu->AppendSeparator();
 
     AddMenuItem( configmenu, ID_CONFIG_SAVE,
@@ -654,8 +647,6 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
 
     wxMenu* helpMenu = new wxMenu;
 
-    AddHelpVersionInfoMenuEntry( helpMenu );
-
     AddMenuItem( helpMenu, wxID_HELP,
                  _( "Pcbnew &Manual" ),
                  _( "Open the Pcbnew Manual" ),
@@ -666,7 +657,20 @@ void PCB_EDIT_FRAME::ReCreateMenuBar()
                  _( "Open the \"Getting Started in KiCad\" guide for beginners" ),
                  KiBitmap( help_xpm ) );
 
+    AddMenuItem( helpMenu, ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
+                 _( "&List Hotkeys" ),
+                 _( "Displays the current hotkeys list and corresponding commands" ),
+                 KiBitmap( hotkeys_xpm ) );
+
     helpMenu->AppendSeparator();
+
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
+
+    helpMenu->AppendSeparator();
+
     AddMenuItem( helpMenu, wxID_ABOUT,
                  _( "&About KiCad" ),
                  _( "Display the KiCad About dialog" ),

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2015 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2015-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,9 +37,8 @@
 wxString GetBuildVersion()
 {
     wxString msg = wxString::Format(
-        wxT( "%s-%s" ),
-        wxT( KICAD_BUILD_VERSION ),
-        wxT( KICAD_REPO_NAME )
+        wxT( "%s" ),
+        wxT( KICAD_FULL_VERSION )
         );
 
     return msg;

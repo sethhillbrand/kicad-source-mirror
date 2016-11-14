@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,12 +53,11 @@
 #include <hotkeys.h>
 #include <wildcards_and_files_ext.h>
 #include <class_board.h>
-#include <3d_viewer.h>
 #include <fp_lib_table.h>
 #include <module_editor_frame.h>
 #include <modview_frame.h>
 #include <footprint_wizard_frame.h>
-
+#include <gl_context_mgr.h>
 extern bool IsWxPythonLoaded();
 
 // Colors for layers and items
@@ -94,7 +93,6 @@ wxString    g_DocModulesFileName = wxT( "footprints_doc/footprints.pdf" );
  */
 DLIST<TRACK> g_CurrentTrackList;
 
-bool g_DumpZonesWhenFilling = false;
 
 namespace PCB {
 
@@ -106,11 +104,11 @@ static struct IFACE : public KIFACE_I
         KIFACE_I( aName, aType )
     {}
 
-    bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits );
+    bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits ) override;
 
-    void OnKifaceEnd();
+    void OnKifaceEnd() override;
 
-    wxWindow* CreateWindow( wxWindow* aParent, int aClassId, KIWAY* aKiway, int aCtlBits = 0 )
+    wxWindow* CreateWindow( wxWindow* aParent, int aClassId, KIWAY* aKiway, int aCtlBits = 0 ) override
     {
         wxWindow* frame = NULL;
 
@@ -165,7 +163,7 @@ static struct IFACE : public KIFACE_I
      *
      * @return void* - and must be cast into the know type.
      */
-    void* IfaceOrAddress( int aDataId )
+    void* IfaceOrAddress( int aDataId ) override
     {
         return NULL;
     }
@@ -351,7 +349,7 @@ bool IFACE::OnKifaceStart( PGM_BASE* aProgram, int aCtlBits )
         wxString msg = wxString::Format( _(
             "An error occurred attempting to load the global footprint library "
             "table:\n\n%s" ),
-            GetChars( ioe.errorText )
+            GetChars( ioe.What() )
             );
         DisplayError( NULL, msg );
         return false;
@@ -367,8 +365,12 @@ bool IFACE::OnKifaceStart( PGM_BASE* aProgram, int aCtlBits )
 
 void IFACE::OnKifaceEnd()
 {
-    end_common();
+    // This function deletes OpenGL contexts used (if any) by wxGLCanvas objects.
+    // It can be called only when closing the application, because it deletes an OpenGL context
+    // which can still be in usage. Destroying OpenGL contexts earlier may crash the application.
+    GL_CONTEXT_MANAGER::Get().DeleteAll();
 
+    end_common();
 #if defined( KICAD_SCRIPTING_WXPYTHON )
     // Restore the thread state and tell Python to cleanup after itself.
     // wxPython will do its own cleanup as part of that process.

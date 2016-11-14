@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun 17 2015)
+// C++ code generated with wxFormBuilder (version May  6 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -47,15 +47,13 @@ class DIALOG_DISPLAY_OPTIONS_BASE : public DIALOG_SHIM
 		wxRadioBox* m_OptDisplayPolygons;
 		wxRadioBox* m_ShowPageLimits;
 		wxCheckBox* m_OptZoomNoCenter;
-		wxCheckBox* m_OptMiddleButtonPan;
-		wxCheckBox* m_OptMiddleButtonPanLimited;
+		wxCheckBox* m_OptMousewheelPan;
 		wxStaticLine* m_staticline1;
 		wxStdDialogButtonSizer* m_sdbSizer1;
 		wxButton* m_sdbSizer1OK;
 		wxButton* m_sdbSizer1Cancel;
 		
 		// Virtual event handlers, overide them in your derived class
-		virtual void OnMiddleBtnPanEnbl( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnCancelButtonClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnOKBUttonClick( wxCommandEvent& event ) { event.Skip(); }
 		

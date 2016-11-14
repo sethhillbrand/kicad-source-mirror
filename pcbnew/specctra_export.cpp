@@ -185,7 +185,7 @@ bool PCB_EDIT_FRAME::ExportSpecctraFile( const wxString& aFullFilename )
         ok = false;
 
         // copy the error string to safe place, ioe is in this scope only.
-        errorText = ioe.errorText;
+        errorText = ioe.What();
     }
 
     // done assuredly, even if an exception was thrown and caught.
@@ -289,7 +289,7 @@ static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* item
         DRAWSEGMENT*    graphic = (DRAWSEGMENT*) (*items)[i];
         unsigned        d;
 
-        wxASSERT( graphic->Type() == PCB_LINE_T );
+        wxASSERT( graphic->Type() == PCB_LINE_T || graphic->Type() == PCB_MODULE_EDGE_T );
 
         switch( graphic->GetShape() )
         {
@@ -348,7 +348,7 @@ static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* item
 #if defined(DEBUG)
     if( items->GetCount() )
     {
-        printf( "Unable to find segment matching point (%.6g,%.6g) (seg count %d)\n",
+        printf( "Unable to find segment matching point (%.6g;%.6g) (seg count %d)\n",
                 IU2um( aPoint.x )/1000, IU2um( aPoint.y )/1000,
                 items->GetCount());
 
@@ -356,13 +356,22 @@ static DRAWSEGMENT* findPoint( const wxPoint& aPoint, ::PCB_TYPE_COLLECTOR* item
         {
             DRAWSEGMENT* graphic = (DRAWSEGMENT*) (*items)[i];
 
-            printf( "item %d, type=%s, start=%.6g %.6g  end=%.6g,%.6g\n",
-                    i + 1,
-                    TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
-                    IU2um( graphic->GetStart().x )/1000,
-                    IU2um( graphic->GetStart().y )/1000,
-                    IU2um( graphic->GetEnd().x )/1000,
-                    IU2um( graphic->GetEnd().y )/1000 );
+            if( graphic->GetShape() == S_ARC )
+                printf( "item %d, type=%s, start=%.6g;%.6g  end=%.6g;%.6g\n",
+                        i + 1,
+                        TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
+                        IU2um( graphic->GetArcStart().x )/1000,
+                        IU2um( graphic->GetArcStart().y )/1000,
+                        IU2um( graphic->GetArcEnd().x )/1000,
+                        IU2um( graphic->GetArcEnd().y )/1000 );
+            else
+                printf( "item %d, type=%s, start=%.6g;%.6g  end=%.6g;%.6g\n",
+                        i + 1,
+                        TO_UTF8( BOARD_ITEM::ShowShape( graphic->GetShape() ) ),
+                        IU2um( graphic->GetStart().x )/1000,
+                        IU2um( graphic->GetStart().y )/1000,
+                        IU2um( graphic->GetEnd().x )/1000,
+                        IU2um( graphic->GetEnd().y )/1000 );
         }
     }
 #endif
@@ -541,27 +550,27 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
             double  dy  = scale( aPad->GetSize().y ) / 2.0;
             double  dr  = dx - dy;
             double  radius;
-            POINT   start;
-            POINT   stop;
+            POINT   pstart;
+            POINT   pstop;
 
             if( dr >= 0 )       // oval is horizontal
             {
                 radius = dy;
 
-                start   = POINT( -dr, 0.0 );
-                stop    = POINT(  dr, 0.0 );
+                pstart   = POINT( -dr, 0.0 );
+                pstop    = POINT(  dr, 0.0 );
             }
             else        // oval is vertical
             {
                 radius  = dx;
                 dr      = -dr;
 
-                start   = POINT( 0.0, -dr );
-                stop    = POINT( 0.0, dr );
+                pstart   = POINT( 0.0, -dr );
+                pstop    = POINT( 0.0, dr );
             }
 
-            start   += dsnOffset;
-            stop    += dsnOffset;
+            pstart   += dsnOffset;
+            pstop    += dsnOffset;
 
             for( int ndx=0; ndx<reportedLayers; ++ndx )
             {
@@ -571,7 +580,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
                 shape = new SHAPE( padstack );
 
                 padstack->Append( shape );
-                path = makePath( start, stop, layerName[ndx] );
+                path = makePath( pstart, pstop, layerName[ndx] );
                 shape->SetShape( path );
                 path->aperture_width = 2.0 * radius;
             }
@@ -732,13 +741,9 @@ IMAGE* SPECCTRA_DB::makeIMAGE( BOARD* aBoard, MODULE* aModule )
 
             pin->padstack_id = padstack->padstack_id;
 
-            int angle = pad->GetOrientation() - aModule->GetOrientation();    // tenths of degrees
-
-            if( angle )
-            {
-                NORMALIZE_ANGLE_POS( angle );
-                pin->SetRotation( angle / 10.0 );
-            }
+            double angle = pad->GetOrientationDegrees() - aModule->GetOrientationDegrees();
+            NORMALIZE_ANGLE_DEGREES_POS( angle );
+            pin->SetRotation( angle );
 
             wxPoint pos( pad->GetPos0() );
 
@@ -977,7 +982,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                 // an arc with a series of short lines and put those
                 // line segments into the !same! PATH.
                 {
-                    wxPoint     start   = graphic->GetArcStart();
+                    wxPoint     pstart   = graphic->GetArcStart();
                     wxPoint     center  = graphic->GetCenter();
                     double      angle   = -graphic->GetAngle();
                     int         steps   = STEPS * fabs(angle) /3600.0;
@@ -991,9 +996,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                     {
                         double rotation = ( angle * step ) / steps;
 
-                        pt = start;
+                        pt = pstart;
 
-                        RotatePoint( &pt.x, &pt.y, center.x, center.y, rotation );
+                        RotatePoint( &pt, center, rotation );
 
                         if( pt.x < xmin.x )
                         {
@@ -1093,21 +1098,21 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                     // an arc with a series of short lines and put those
                     // line segments into the !same! PATH.
                     {
-                        wxPoint start  = graphic->GetArcStart();
-                        wxPoint end    = graphic->GetArcEnd();
-                        wxPoint center = graphic->GetCenter();
+                        wxPoint pstart  = graphic->GetArcStart();
+                        wxPoint pend    = graphic->GetArcEnd();
+                        wxPoint pcenter = graphic->GetCenter();
                         double  angle  = -graphic->GetAngle();
                         int     steps  = STEPS * fabs(angle) /3600.0;
 
                         if( steps == 0 )
                             steps = 1;
 
-                        if( !close_enough( prevPt, start, prox ) )
+                        if( !close_enough( prevPt, pstart, prox ) )
                         {
                             wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
 
                             angle = -angle;
-                            std::swap( start, end );
+                            std::swap( pstart, pend );
                         }
 
                         wxPoint nextPt;
@@ -1115,10 +1120,8 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                         for( int step = 1; step<=steps; ++step )
                         {
                             double rotation = ( angle * step ) / steps;
-
-                            nextPt = start;
-
-                            RotatePoint( &nextPt.x, &nextPt.y, center.x, center.y, rotation );
+                            nextPt = pstart;
+                            RotatePoint( &nextPt, pcenter, rotation );
 
                             path->AppendPoint( mapPt( nextPt ) );
                         }
@@ -1228,21 +1231,21 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                         // an arc with a series of short lines and put those
                         // line segments into the !same! PATH.
                         {
-                            wxPoint     start   = graphic->GetArcStart();
-                            wxPoint     end     = graphic->GetArcEnd();
-                            wxPoint     center  = graphic->GetCenter();
+                            wxPoint     pstart   = graphic->GetArcStart();
+                            wxPoint     pend     = graphic->GetArcEnd();
+                            wxPoint     pcenter  = graphic->GetCenter();
                             double      angle   = -graphic->GetAngle();
                             int         steps   = STEPS * fabs(angle) /3600.0;
 
                             if( steps == 0 )
                                 steps = 1;
 
-                            if( !close_enough( prevPt, start, prox ) )
+                            if( !close_enough( prevPt, pstart, prox ) )
                             {
                                 wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
 
                                 angle = -angle;
-                                std::swap( start, end );
+                                std::swap( pstart, pend );
                             }
 
                             wxPoint nextPt;
@@ -1251,9 +1254,8 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                             {
                                 double rotation = ( angle * step ) / steps;
 
-                                nextPt = start;
-
-                                RotatePoint( &nextPt.x, &nextPt.y, center.x, center.y, rotation );
+                                nextPt = pstart;
+                                RotatePoint( &nextPt, pcenter, rotation );
 
                                 poly_ko->AppendPoint( mapPt( nextPt ) );
                             }
@@ -1392,7 +1394,7 @@ bool SPECCTRA_DB::GetBoardPolygonOutlines( BOARD* aBoard,
         // from global bounding box
         success = false;
         if( aErrorText )
-            *aErrorText = ioe.errorText;
+            *aErrorText = ioe.What();
 
         EDA_RECT bbbox = aBoard->ComputeBoundingBox( true );
 
@@ -1856,7 +1858,7 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
 
             comp->places.push_back( place );
 
-            place->SetRotation( module->GetOrientation()/10.0 );
+            place->SetRotation( module->GetOrientationDegrees() );
             place->SetVertex( mapPt( module->GetPosition() ) );
             place->component_id = componentId;
             place->part_number  = TO_UTF8( module->GetValue() );
@@ -1864,9 +1866,9 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
             // module is flipped from bottom side, set side to T_back
             if( module->GetFlag() )
             {
-                int angle = 1800 - module->GetOrientation();
-                NORMALIZE_ANGLE_POS( angle );
-                place->SetRotation( angle / 10.0 );
+                double angle = 180.0 - module->GetOrientationDegrees();
+                NORMALIZE_ANGLE_DEGREES_POS( angle );
+                place->SetRotation( angle );
 
                 place->side = T_back;
             }

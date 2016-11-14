@@ -32,20 +32,22 @@
 #define MODULE_H_
 
 
+#include <list>
 #include <dlist.h>
 #include <layers_id_colors_and_visibility.h>       // ALL_LAYERS definition.
 #include <class_board_item.h>
+#include <board_item_container.h>
 #include <fpid.h>
 
 #include <class_text_mod.h>
 #include <PolyLine.h>
 #include "zones.h"
+#include <3d_cache/3d_info.h>
 
-#include <boost/function.hpp>
+#include <functional>
 
 class LINE_READER;
 class EDA_3D_CANVAS;
-class S3D_MASTER;
 class EDA_DRAW_PANEL;
 class D_PAD;
 class BOARD;
@@ -74,7 +76,7 @@ enum MODULE_ATTR_T
 };
 
 
-class MODULE : public BOARD_ITEM
+class MODULE : public BOARD_ITEM_CONTAINER
 {
 public:
     MODULE( BOARD* parent );
@@ -82,6 +84,8 @@ public:
     MODULE( const MODULE& aModule );
 
     ~MODULE();
+
+    MODULE& operator=( const MODULE& aOther );
 
     static inline bool ClassOf( const EDA_ITEM* aItem )
     {
@@ -91,37 +95,11 @@ public:
     MODULE* Next() const { return static_cast<MODULE*>( Pnext ); }
     MODULE* Back() const { return static_cast<MODULE*>( Pback ); }
 
-    void Copy( MODULE* Module );        // Copy structure
+    ///> @copydoc BOARD_ITEM_CONTAINER::Add()
+    void Add( BOARD_ITEM* aBoardItem, ADD_MODE aMode = ADD_INSERT ) override;
 
-    /**
-     * Function Add
-     * adds the given item to this MODULE and takes ownership of its memory.
-     * @param aBoardItem The item to add to this board.
-     * @param doAppend If true, then append, else insert.
-     */
-    void Add( BOARD_ITEM* aBoardItem, bool doAppend = true );
-
-    /**
-     * Function Delete
-     * removes the given single item from this MODULE and deletes its memory.
-     * @param aBoardItem The item to remove from this module and delete
-     */
-    void Delete( BOARD_ITEM* aBoardItem )
-    {
-        // developers should run DEBUG versions and fix such calls with NULL
-        wxASSERT( aBoardItem );
-
-        if( aBoardItem )
-            delete Remove( aBoardItem );
-    }
-
-    /**
-     * Function Remove
-     * removes \a aBoardItem from this MODULE and returns it to caller without deleting it.
-     * @param aBoardItem The item to remove from this module.
-     * @return BOARD_ITEM* \a aBoardItem which was passed in.
-     */
-    BOARD_ITEM* Remove( BOARD_ITEM* aBoardItem );
+    ///> @copydoc BOARD_ITEM_CONTAINER::Remove()
+    void Remove( BOARD_ITEM* aBoardItem ) override;
 
     /**
      * Function ClearAllNets
@@ -146,7 +124,7 @@ public:
     EDA_RECT GetFootprintRect() const;
 
     // Virtual function
-    const EDA_RECT GetBoundingBox() const;
+    const EDA_RECT GetBoundingBox() const override;
 
     DLIST<D_PAD>& Pads()                        { return m_Pads; }
     const DLIST<D_PAD>& Pads() const            { return m_Pads; }
@@ -154,14 +132,17 @@ public:
     DLIST<BOARD_ITEM>& GraphicalItems()         { return m_Drawings; }
     const DLIST<BOARD_ITEM>& GraphicalItems() const { return m_Drawings; }
 
-    DLIST<S3D_MASTER>& Models()                 { return m_3D_Drawings; }
-    const DLIST<S3D_MASTER>& Models() const     { return m_3D_Drawings; }
+    std::list<S3D_INFO>& Models()             { return m_3D_Drawings; }
+    const std::list<S3D_INFO>& Models() const { return m_3D_Drawings; }
 
-    void SetPosition( const wxPoint& aPos );                        // was overload
-    const wxPoint& GetPosition() const          { return m_Pos; }   // was overload
+    void SetPosition( const wxPoint& aPos ) override;
+    const wxPoint& GetPosition() const override { return m_Pos; }
 
     void SetOrientation( double newangle );
+    void SetOrientationDegrees( double aOrientation ) { SetOrientation( aOrientation*10.0 ); }
     double GetOrientation() const { return m_Orient; }
+    double GetOrientationDegrees() const   { return m_Orient/10.0; }
+    double GetOrientationRadians() const   { return m_Orient*M_PI/1800; }
 
     const FPID& GetFPID() const { return m_fpid; }
     void SetFPID( const FPID& aFPID ) { m_fpid = aFPID; }
@@ -203,11 +184,11 @@ public:
     void IncrementFlag() { m_arflag += 1; }
     int GetFlag() const { return m_arflag; }
 
-    void Move( const wxPoint& aMoveVector );
+    void Move( const wxPoint& aMoveVector ) override;
 
-    void Rotate( const wxPoint& aRotCentre, double aAngle );
+    void Rotate( const wxPoint& aRotCentre, double aAngle ) override;
 
-    void Flip( const wxPoint& aCentre );
+    void Flip( const wxPoint& aCentre ) override;
 
     /**
      * Function MoveAnchorPosition
@@ -235,9 +216,9 @@ public:
 #define MODULE_PADS_LOCKED  0x08        ///< In autoplace: module waiting for autoplace
 
 
-    bool IsLocked() const
+    bool IsLocked() const override
     {
-        return (m_ModuleStatus & MODULE_is_LOCKED) != 0;
+        return ( m_ModuleStatus & MODULE_is_LOCKED ) != 0;
     }
 
     /**
@@ -245,7 +226,7 @@ public:
      * sets the MODULE_is_LOCKED bit in the m_ModuleStatus
      * @param isLocked When true means turn on locked status, else unlock
      */
-    void SetLocked( bool isLocked )
+    void SetLocked( bool isLocked ) override
     {
         if( isLocked )
             m_ModuleStatus |= MODULE_is_LOCKED;
@@ -298,7 +279,7 @@ public:
     void Draw( EDA_DRAW_PANEL* aPanel,
                wxDC*           aDC,
                GR_DRAWMODE     aDrawMode,
-               const wxPoint&  aOffset = ZeroOffset );
+               const wxPoint&  aOffset = ZeroOffset ) override;
 
     /**
      * Function DrawOutlinesWhenMoving
@@ -340,7 +321,7 @@ public:
                             int             aInflateValue,
                             int             aCircleToSegmentsCount,
                             double          aCorrectionFactor,
-                            bool            aSkipNPTHPadsWihNoCopper = false );
+                            bool            aSkipNPTHPadsWihNoCopper = false ) const;
 
     /**
      * function TransformGraphicShapesWithClearanceToPolygonSet
@@ -368,7 +349,26 @@ public:
                             int             aInflateValue,
                             int             aCircleToSegmentsCount,
                             double          aCorrectionFactor,
-                            int             aCircleToSegmentsCountForTexts = 0 );
+                            int             aCircleToSegmentsCountForTexts = 0 ) const;
+
+    /**
+     * @brief TransformGraphicTextWithClearanceToPolygonSet
+     * This function is the same as TransformGraphicShapesWithClearanceToPolygonSet
+     * but only generate text
+     * @param aLayer
+     * @param aCornerBuffer
+     * @param aInflateValue
+     * @param aCircleToSegmentsCount
+     * @param aCorrectionFactor
+     * @param aCircleToSegmentsCountForTexts
+     */
+    void TransformGraphicTextWithClearanceToPolygonSet(
+                            LAYER_ID aLayer,
+                            SHAPE_POLY_SET& aCornerBuffer,
+                            int             aInflateValue,
+                            int             aCircleToSegmentsCount,
+                            double          aCorrectionFactor,
+                            int             aCircleToSegmentsCountForTexts = 0 ) const;
 
     /**
      * Function DrawEdgesOnly
@@ -381,17 +381,24 @@ public:
     void DrawEdgesOnly( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
                         GR_DRAWMODE draw_mode );
 
+    /**
+     * Function DrawAncre
+     * Draw the anchor cross (vertical)
+     * Must be done after the pads, because drawing the hole will erase overwrite
+     * every thing already drawn.
+     */
     void DrawAncre( EDA_DRAW_PANEL* panel, wxDC* DC,
                     const wxPoint& offset, int dim_ancre, GR_DRAWMODE draw_mode );
 
-    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    ///> @copydoc EDA_ITEM::GetMsgPanelInfo
+    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
-    bool HitTest( const wxPoint& aPosition ) const;
+    bool HitTest( const wxPoint& aPosition ) const override;
 
     /** @copydoc BOARD_ITEM::HitTest(const EDA_RECT& aRect,
      *                               bool aContained = true, int aAccuracy ) const
      */
-    bool HitTest( const EDA_RECT& aRect, bool aContained = true, int aAccuracy = 0 ) const;
+    bool HitTest( const EDA_RECT& aRect, bool aContained = true, int aAccuracy = 0 ) const override;
 
     /**
      * Function GetReference
@@ -446,25 +453,6 @@ public:
     /// The const versions to keep the compiler happy.
     TEXTE_MODULE& Value() const       { return *m_Value; }
     TEXTE_MODULE& Reference() const   { return *m_Reference; }
-
-    /*!
-     * Function IncrementItemReference
-     * Implementation of the generic "reference" incrementing interface
-     * Increments the numeric suffix, filling any sequence gaps
-     */
-    bool IncrementItemReference(); //override
-
-    /**
-     * Function IncrementReference
-     * Increments the module's reference, if possible. A reference with
-     * a numerical suffix and an optional alphabetical prefix can be
-     * incremented: "A1" and "1" can be, "B" can't.
-     *
-     * @param aFillSequenceGaps if true, the next reference in a sequence
-     * like A1,A3,A4 will be A2. If false, it will be A5.
-     * @return true if the reference was incremented.
-     */
-    bool IncrementReference( bool aFillSequenceGaps );
 
     /**
      * Function FindPadByName
@@ -532,34 +520,34 @@ public:
     void SetPlacementCost90( int aCost )    { m_CntRot90 = aCost; }
 
     /**
-     * Function DuplicateAndAddItem
-     * Duplicate a given item within the module
+     * Function Duplicate
+     * Duplicate a given item within the module, without adding to the board
      * @return the new item, or NULL if the item could not be duplicated
      */
-    BOARD_ITEM* DuplicateAndAddItem( const BOARD_ITEM* item,
-                                     bool aIncrementPadNumbers );
+    BOARD_ITEM* Duplicate( const BOARD_ITEM* aItem,
+                           bool aIncrementPadNumbers,
+                           bool aAddToModule = false );
 
     /**
      * Function Add3DModel
      * adds \a a3DModel definition to the end of the 3D model list.
      *
-     * @param a3DModel A pointer to a #S3D_MASTER to add to the list.
+     * @param a3DModel A pointer to a #S3D_INFO to add to the list.
      */
-    void Add3DModel( S3D_MASTER* a3DModel );
+    void Add3DModel( S3D_INFO* a3DModel );
 
-    SEARCH_RESULT Visit( INSPECTOR* inspector, const void* testData,
-                         const KICAD_T scanTypes[] );
+    SEARCH_RESULT Visit( INSPECTOR inspector,  void* testData, const KICAD_T scanTypes[] ) override;
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "MODULE" );
     }
 
-    wxString GetSelectMenuText() const;
+    wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const { return  module_xpm; }
+    BITMAP_DEF GetMenuImage() const override { return  module_xpm; }
 
-    EDA_ITEM* Clone() const;
+    EDA_ITEM* Clone() const override;
 
     /**
      * Function RunOnChildren
@@ -567,19 +555,19 @@ public:
      * Invokes a function on all BOARD_ITEMs that belong to the module (pads, drawings, texts).
      * @param aFunction is the function to be invoked.
      */
-    void RunOnChildren( boost::function<void (BOARD_ITEM*)> aFunction );
+    void RunOnChildren( std::function<void (BOARD_ITEM*)> aFunction );
 
     /// @copydoc VIEW_ITEM::ViewUpdate()
-    void ViewUpdate( int aUpdateFlags = KIGFX::VIEW_ITEM::ALL );
+    void ViewUpdate( int aUpdateFlags = KIGFX::VIEW_ITEM::ALL ) override;
 
     /// @copydoc VIEW_ITEM::ViewGetLayers()
-    virtual void ViewGetLayers( int aLayers[], int& aCount ) const;
+    virtual void ViewGetLayers( int aLayers[], int& aCount ) const override;
 
     /// @copydoc VIEW_ITEM::ViewGetLOD()
-    virtual unsigned int ViewGetLOD( int aLayer ) const;
+    virtual unsigned int ViewGetLOD( int aLayer ) const override;
 
     /// @copydoc VIEW_ITEM::ViewBBox()
-    virtual const BOX2I ViewBBox() const;
+    virtual const BOX2I ViewBBox() const override;
 
     /**
      * Function CopyNetlistSettings
@@ -651,13 +639,13 @@ public:
     const wxArrayString* GetInitialComments() const { return m_initial_comments; }
 
 #if defined(DEBUG)
-    virtual void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); }    // override
+    virtual void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 
 private:
     DLIST<D_PAD>      m_Pads;           ///< Linked list of pads.
     DLIST<BOARD_ITEM> m_Drawings;       ///< Linked list of graphical items.
-    DLIST<S3D_MASTER> m_3D_Drawings;    ///< Linked list of 3D models.
+    std::list<S3D_INFO> m_3D_Drawings;  ///< Linked list of 3D models.
     double            m_Orient;         ///< Orientation in tenths of a degree, 900=90.0 degrees.
     wxPoint           m_Pos;            ///< Position of module on the board in internal units.
     TEXTE_MODULE*     m_Reference;      ///< Component reference designator value (U34, R18..)

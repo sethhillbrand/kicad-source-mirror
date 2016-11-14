@@ -46,6 +46,7 @@
 #include <wildcards_and_files_ext.h>
 
 #include <kiway.h>
+#include <sim/sim_plot_frame.h>
 
 // The main sheet of the project
 SCH_SHEET*  g_RootSheet = NULL;
@@ -64,11 +65,11 @@ static struct IFACE : public KIFACE_I
         KIFACE_I( aName, aType )
     {}
 
-    bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits );
+    bool OnKifaceStart( PGM_BASE* aProgram, int aCtlBits ) override;
 
-    void OnKifaceEnd();
+    void OnKifaceEnd() override;
 
-    wxWindow* CreateWindow( wxWindow* aParent, int aClassId, KIWAY* aKiway, int aCtlBits = 0 )
+    wxWindow* CreateWindow( wxWindow* aParent, int aClassId, KIWAY* aKiway, int aCtlBits = 0 ) override
     {
         switch( aClassId )
         {
@@ -92,6 +93,14 @@ static struct IFACE : public KIFACE_I
             }
             break;
 
+#ifdef KICAD_SPICE
+        case FRAME_SIMULATOR:
+            {
+                SIM_PLOT_FRAME* frame = new SIM_PLOT_FRAME( aKiway, aParent );
+                return frame;
+            }
+            break;
+#endif /* KICAD_SPICE */
 
         case FRAME_SCH_VIEWER:
         case FRAME_SCH_VIEWER_MODAL:
@@ -117,7 +126,7 @@ static struct IFACE : public KIFACE_I
      *
      * @return void* - and must be cast into the know type.
      */
-    void* IfaceOrAddress( int aDataId )
+    void* IfaceOrAddress( int aDataId ) override
     {
         return NULL;
     }
@@ -238,4 +247,3 @@ void IFACE::OnKifaceEnd()
     wxConfigSaveSetups( KifaceSettings(), cfg_params() );
     end_common();
 }
-

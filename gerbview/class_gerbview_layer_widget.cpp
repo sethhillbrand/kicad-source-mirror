@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2004-2010 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2010 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2010 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,16 +32,14 @@
 #include <fctsys.h>
 #include <common.h>
 #include <class_drawpanel.h>
-#include <pcbstruct.h>
 #include <macros.h>
 #include <class_gbr_layer_box_selector.h>
 
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image_list.h>
 #include <layer_widget.h>
 #include <class_gerbview_layer_widget.h>
-#include <class_X2_gerber_attributes.h>
 
 
 /*
@@ -79,11 +77,12 @@ GERBER_LAYER_WIDGET::GERBER_LAYER_WIDGET( GERBVIEW_FRAME* aParent, wxWindow* aFo
     // using installRightLayerClickHandler
 }
 
-/**
- * Function SetLayersManagerTabsText
- * Update the layer manager tabs labels
- * Useful when changing Language or to set labels to a non default value
- */
+GERBER_FILE_IMAGE_LIST* GERBER_LAYER_WIDGET::GetImagesList()
+{
+    return &GERBER_FILE_IMAGE_LIST::GetImagesList();
+}
+
+
 void GERBER_LAYER_WIDGET::SetLayersManagerTabsText( )
 {
     m_notebook->SetPageText(0, _("Layer") );
@@ -210,9 +209,9 @@ void GERBER_LAYER_WIDGET::onPopupSelection( wxCommandEvent& event )
         break;
 
     case ID_SORT_GBR_LAYERS:
-        g_GERBER_List.SortImagesByZOrder( myframe->GetItemsList() );
+        GetImagesList()->SortImagesByZOrder();
         myframe->ReFillLayerWidget();
-        myframe->syncLayerBox();
+        myframe->syncLayerBox( true );
         myframe->GetCanvas()->Refresh();
         break;
     }
@@ -240,7 +239,7 @@ void GERBER_LAYER_WIDGET::ReFill()
 
     for( int layer = 0; layer < GERBER_DRAWLAYERS_COUNT; ++layer )
     {
-        wxString msg = g_GERBER_List.GetDisplayName( layer );
+        wxString msg = GetImagesList()->GetDisplayName( layer );
 
         AppendLayerRow( LAYER_WIDGET::ROW( msg, layer,
                         myframe->GetLayerColor( layer ), wxEmptyString, true ) );
@@ -309,11 +308,11 @@ void GERBER_LAYER_WIDGET::OnRenderEnable( int aId, bool isEnabled )
 /*
  * Virtual Function useAlternateBitmap
  * return true if bitmaps shown in Render layer list
- * must be alternate bitmaps, or false to use "normal" bitmaps
+ * must be alternate bitmap (when a gerber iùmage is loaded), or false to use "normal" bitmap
  */
 bool GERBER_LAYER_WIDGET::useAlternateBitmap(int aRow)
 {
-    return g_GERBER_List.IsUsed( aRow );
+    return GetImagesList()->GetGbrImage( aRow ) != NULL;
 }
 
 /*

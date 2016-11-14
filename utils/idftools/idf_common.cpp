@@ -24,6 +24,7 @@
  */
 
 
+#include <algorithm>
 #include <list>
 #include <string>
 #include <iostream>
@@ -500,22 +501,22 @@ bool IDF_DRILL_DATA::read( std::ifstream& aBoardFile, IDF3::IDF_UNIT aBoardUnit,
                               "invalid IDFv3 file\n"
                               "* Violation of specification: missing PLATING for drilled hole" ) );
 
-            if( CompareToken( "PTH", token ) )
-            {
-                plating = IDF3::PTH;
-            }
-            else if( CompareToken( "NPTH", token ) )
-            {
-                plating = IDF3::NPTH;
-            }
-            else
-            {
-                ostringstream ostr;
-                ostr << "invalid IDFv3 file\n";
-                ostr << "* Violation of specification: invalid PLATING type ('" << token << "')";
+        if( CompareToken( "PTH", token ) )
+        {
+            plating = IDF3::PTH;
+        }
+        else if( CompareToken( "NPTH", token ) )
+        {
+            plating = IDF3::NPTH;
+        }
+        else
+        {
+            ostringstream ostr;
+            ostr << "invalid IDFv3 file\n";
+            ostr << "* Violation of specification: invalid PLATING type ('" << token << "')";
 
-                throw( IDF_ERROR( __FILE__, __FUNCTION__, __LINE__, ostr.str() ) );
-            }
+            throw( IDF_ERROR( __FILE__, __FUNCTION__, __LINE__, ostr.str() ) );
+        }
     }
     else
     {
@@ -613,14 +614,14 @@ bool IDF_DRILL_DATA::read( std::ifstream& aBoardFile, IDF3::IDF_UNIT aBoardUnit,
                               "invalid IDFv3 file\n"
                               "* Violation of specification: missing OWNER for drilled hole" ) );
 
-            if( !ParseOwner( token, owner ) )
-            {
-                ostringstream ostr;
-                ostr << "invalid IDFv3 file\n";
-                ostr << "* Violation of specification: invalid OWNER for drilled hole ('" << token << "')";
+        if( !ParseOwner( token, owner ) )
+        {
+            ostringstream ostr;
+            ostr << "invalid IDFv3 file\n";
+            ostr << "* Violation of specification: invalid OWNER for drilled hole ('" << token << "')";
 
-                throw( IDF_ERROR( __FILE__, __FUNCTION__, __LINE__, ostr.str() ) );
-            }
+            throw( IDF_ERROR( __FILE__, __FUNCTION__, __LINE__, ostr.str() ) );
+        }
     }
     else
     {
@@ -1141,8 +1142,10 @@ void IDF_SEGMENT::CalcCenterAndRadius( void )
     else
         offAng -= M_PI_2;
 
-    if( ( angle > 180.0 ) || ( angle < -180.0 ) )
+    if( angle < -180.0 )
         offAng += M_PI;
+    else if( angle > 180 )
+        offAng -= M_PI;
 
     center.x = h * cos( offAng ) + xm;
     center.y = h * sin( offAng ) + ym;
@@ -1222,8 +1225,8 @@ void IDF_SEGMENT::SwapEnds( void )
     if( ( angle < MIN_ANG ) && ( angle > -MIN_ANG ) )
         return;         // nothing more to do
 
-        // change the direction of the arc
-        angle = -angle;
+    // change the direction of the arc
+    angle = -angle;
     // calculate the new offset angle
     offsetAngle = IDF3::CalcAngleDeg( center, startPoint );
 }

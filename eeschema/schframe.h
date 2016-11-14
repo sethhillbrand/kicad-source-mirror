@@ -38,6 +38,8 @@
 #include <class_sch_screen.h>
 #include <sch_collectors.h>
 
+// enum PINSHEETLABEL_SHAPE
+#include <sch_text.h>
 
 class LIB_EDIT_FRAME;
 class LIB_VIEW_FRAME;
@@ -143,6 +145,8 @@ private:
                                                   ///< simulator (gnucap, spice, ...)
     wxString                m_netListerCommand;   ///< Command line to call a custom net list
                                                   ///< generator.
+    int                     m_exec_flags;         ///< Flags of the wxExecute() function
+                                                  ///< to call a custom net list generator.
 
     bool                    m_forceHVLines;       ///< force H or V directions for wires, bus, line
 
@@ -162,20 +166,17 @@ private:
     /// The name of the format to use when generating a net list.
     wxString    m_netListFormat;
 
-    /// Add X prefix to component references when generating spice net lists.
-    bool        m_spiceNetlistAddReferencePrefix;
-
     /// Use netcodes (net number) as net names when generating spice net lists.
-    bool        m_spiceNetlistUseNetcodeAsNetname;
+    bool        m_spiceAjustPassiveValues;
 
     /*  these are PROJECT specific, not schematic editor specific
     wxString        m_userLibraryPath;
     wxArrayString   m_componentLibFiles;
     */
 
-    static int      m_lastSheetPinType;         ///< Last sheet pin type.
-    static wxSize   m_lastSheetPinTextSize;     ///< Last sheet pin text size.
-    static wxPoint  m_lastSheetPinPosition;     ///< Last sheet pin position.
+    static PINSHEETLABEL_SHAPE m_lastSheetPinType;  ///< Last sheet pin type.
+    static wxSize   m_lastSheetPinTextSize;         ///< Last sheet pin text size.
+    static wxPoint  m_lastSheetPinPosition;         ///< Last sheet pin position.
 
 protected:
     TEMPLATES             m_TemplateFieldNames;
@@ -191,13 +192,13 @@ protected:
      *
      * @return true if the auto save was successful otherwise false.
      */
-    virtual bool doAutoSave();
+    virtual bool doAutoSave() override;
 
     /**
      * Function autoSaveRequired
      * returns true if the schematic has been modified.
      */
-    virtual bool isAutoSaveRequired() const;
+    virtual bool isAutoSaveRequired() const override;
 
     /**
      * Function addCurrentItemToList
@@ -231,7 +232,7 @@ public:
     SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent );
     ~SCH_EDIT_FRAME();
 
-    SCH_SCREEN* GetScreen() const;                  // overload SCH_BASE_FRAME
+    SCH_SCREEN* GetScreen() const override;
 
     void OnCloseWindow( wxCloseEvent& Event );
 
@@ -246,13 +247,9 @@ public:
 
     void SetNetListFormatName( const wxString& aFormat ) { m_netListFormat = aFormat; }
 
-    bool GetSpiceAddReferencePrefix() const { return m_spiceNetlistAddReferencePrefix; }
+    bool GetSpiceAjustPassiveValues() const { return m_spiceAjustPassiveValues; }
 
-    void SetSpiceAddReferencePrefix( bool aEnable ) { m_spiceNetlistAddReferencePrefix = aEnable; }
-
-    bool GetSpiceUseNetcodeAsNetname() const { return m_spiceNetlistUseNetcodeAsNetname; }
-
-    void SetSpiceUseNetcodeAsNetname( bool aEnable ) { m_spiceNetlistUseNetcodeAsNetname = aEnable; }
+    void SetSpiceAjustPassiveValues( bool aEnable ) { m_spiceAjustPassiveValues = aEnable; }
 
     /* These are PROJECT specific, not schematic editor specific
     wxString GetUserLibraryPath() const { return m_userLibraryPath; }
@@ -269,7 +266,7 @@ public:
     void Process_Config( wxCommandEvent& event );
     void OnSelectTool( wxCommandEvent& aEvent );
 
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 ) override;
 
     /**
      * Function GetProjectFileParametersList
@@ -287,7 +284,7 @@ public:
      * saves changes to the project settings to the project (.pro) file.
      * @param aAskForSave = true to open a dialog before saving the settings
      */
-    void SaveProjectSettings( bool aAskForSave );
+    void SaveProjectSettings( bool aAskForSave ) override;
 
     /**
      * Function LoadProjectFile
@@ -364,21 +361,21 @@ public:
      */
     PARAM_CFG_ARRAY& GetConfigurationSettings();
 
-    void LoadSettings( wxConfigBase* aCfg );
-    void SaveSettings( wxConfigBase* aCfg );
+    void LoadSettings( wxConfigBase* aCfg ) override;
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
-    void RedrawActiveWindow( wxDC* DC, bool EraseBg );
+    void RedrawActiveWindow( wxDC* DC, bool EraseBg ) override;
 
     void CreateScreens();
-    void ReCreateHToolbar();
-    void ReCreateVToolbar();
+    void ReCreateHToolbar() override;
+    void ReCreateVToolbar() override;
     void ReCreateOptToolbar();
-    void ReCreateMenuBar();
+    void ReCreateMenuBar() override;
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
-    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;
+    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const override;
 
-    bool OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
+    bool OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem = NULL ) override;
 
     /**
      * Function OnModify
@@ -388,7 +385,7 @@ public:
      */
     void OnModify();
 
-    virtual wxString GetScreenDesc() const;
+    virtual wxString GetScreenDesc() const override;
 
     void InstallConfigFrame( wxCommandEvent& event );
 
@@ -398,15 +395,15 @@ public:
      * this is a virtual function called by EDA_DRAW_FRAME::OnSockRequest().
      * @param cmdline = received command from socket
      */
-    virtual void ExecuteRemoteCommand( const char* cmdline );
+    virtual void ExecuteRemoteCommand( const char* cmdline ) override;
 
-    void KiwayMailIn( KIWAY_EXPRESS& aEvent );      // override virtual from KIWAY_PLAYER
+    void KiwayMailIn( KIWAY_EXPRESS& aEvent ) override;
 
-    void OnLeftClick( wxDC* aDC, const wxPoint& aPosition );
-    void OnLeftDClick( wxDC* aDC, const wxPoint& aPosition );
-    bool OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu );
+    void OnLeftClick( wxDC* aDC, const wxPoint& aPosition ) override;
+    void OnLeftDClick( wxDC* aDC, const wxPoint& aPosition ) override;
+    bool OnRightClick( const wxPoint& aPosition, wxMenu* PopMenu ) override;
     void OnSelectOptionToolbar( wxCommandEvent& event );
-    double BestZoom();
+    double BestZoom() override;
 
     /**
      * Function LocateAndShowItem
@@ -520,7 +517,7 @@ public:
     bool CreateNetlist( int             aFormat,
                         const wxString& aFullFileName,
                         unsigned        aNetlistOptions,
-                        REPORTER* aReporter = NULL );
+                        REPORTER*       aReporter = NULL );
 
     /**
      * Function  WriteNetListFile
@@ -669,7 +666,6 @@ public:
     void SetPrintSheetReference( bool aShow ) { m_printSheetReference = aShow; }
 
     // Plot functions:
-//    void ToPostProcess( wxCommandEvent& event );
     void PlotSchematic( wxCommandEvent& event );
 
     // read and save files
@@ -684,7 +680,7 @@ public:
      */
     void OnSaveProject( wxCommandEvent& aEvent );
 
-    bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl = 0 );  // virtual from KIWAY_PLAYER
+    bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl = 0 ) override;
 
     /**
      * Function AppendOneEEProject
@@ -810,6 +806,7 @@ private:
     void OnErc( wxCommandEvent& event );
     void OnCreateNetlist( wxCommandEvent& event );
     void OnUpdatePCB( wxCommandEvent& event );
+    void OnSimulate( wxCommandEvent& event );
     void OnCreateBillOfMaterials( wxCommandEvent& event );
     void OnFindItems( wxCommandEvent& event );
     void OnFindDialogClose( wxFindDialogEvent& event );
@@ -909,7 +906,7 @@ private:
     // Text, label, glabel
     SCH_TEXT* CreateNewText( wxDC* aDC, int aType );
     void EditSchematicText( SCH_TEXT* TextStruct );
-    void ChangeTextOrient( SCH_TEXT* aTextItem, wxDC* aDC );
+    void ChangeTextOrient( SCH_TEXT* aTextItem );
 
     /**
      * Function OnCovertTextType
@@ -1015,7 +1012,7 @@ public:
      *
      * Note: the screen is not refresh. The caller is responsible to do that
      */
-    bool EditSheet( SCH_SHEET* aSheet, SCH_SHEET* aHierarchy );
+    bool EditSheet( SCH_SHEET* aSheet, SCH_SHEET_PATH* aHierarchy );
 
     wxPoint GetLastSheetPinPosition() const { return m_lastSheetPinPosition; }
 
@@ -1112,7 +1109,7 @@ private:
      */
     void EditComponentFieldText( SCH_FIELD* aField );
 
-    void RotateField( SCH_FIELD* aField, wxDC* aDC );
+    void RotateField( SCH_FIELD* aField );
 
     /**
      * Function PastListOfItems
@@ -1219,7 +1216,7 @@ public:
      * Function InitBlockPasteInfos
      * initializes the parameters used by the block paste command.
      */
-    void InitBlockPasteInfos();
+    void InitBlockPasteInfos() override;
 
     /**
      * Function BlockCommand
@@ -1229,7 +1226,7 @@ public:
      * @param aKey = the key modifiers (Alt, Shift ...)
      * @return the block command id (BLOCK_MOVE, BLOCK_COPY...)
      */
-    virtual int BlockCommand( EDA_KEY aKey );
+    virtual int BlockCommand( EDA_KEY aKey ) override;
 
     /**
      * Function HandleBlockPlace
@@ -1238,7 +1235,7 @@ public:
      * (bloc move, drag, copy .. )
      * Parameters must be initialized in GetScreen()->m_BlockLocate
      */
-    virtual void HandleBlockPlace( wxDC* DC );
+    virtual void HandleBlockPlace( wxDC* DC ) override;
 
     /**
      * Function HandleBlockEnd
@@ -1252,7 +1249,7 @@ public:
      * @return false if no item selected, or command finished,
      * true if some items found and HandleBlockPlace must be called later
      */
-    virtual bool HandleBlockEnd( wxDC* aDC );
+    virtual bool HandleBlockEnd( wxDC* aDC ) override;
 
     /**
      * Function RepeatDrawItem
@@ -1344,7 +1341,7 @@ public:
      * @param aData = a pointer on an auxiliary data (not always used, NULL if not used)
      */
     virtual void PrintPage( wxDC* aDC, LSET aPrintMask,
-                            bool aPrintMirrorMode, void* aData = NULL );
+                            bool aPrintMirrorMode, void* aData = NULL ) override;
 
     void SetSimulatorCommand( const wxString& aCommand ) { m_simulatorCommand = aCommand; }
 
@@ -1352,7 +1349,36 @@ public:
 
     void SetNetListerCommand( const wxString& aCommand ) { m_netListerCommand = aCommand; }
 
+    /**
+     * Function DefaultExecFlags
+     * resets the execution flags to defaults for external netlist and
+     * bom generators.
+     */
+    void DefaultExecFlags() { m_exec_flags = wxEXEC_SYNC; }
+
+    /**
+     * Function SetExecFlags
+     * sets (adds) specified flags for next execution of external
+     * generator of the netlist or bom.
+     * @param aFlags = wxEXEC_* flags, see wxExecute docs.
+     */
+    void SetExecFlags( const int aFlags ) { m_exec_flags |= aFlags; }
+
+    /**
+     * Function ClearExecFlags
+     * clears (removes) specified flags that not needed for next execution
+     * of external generator of the netlist or bom.
+     * @param aFlags = wxEXEC_* flags, see wxExecute docs.
+     */
+    void ClearExecFlags( const int aFlags ) { m_exec_flags &= ~( aFlags ); }
+
     wxString GetNetListerCommand() const { return m_netListerCommand; }
+
+    ///> Probe cursor, used by circuit simulator
+    const static wxCursor CURSOR_PROBE;
+
+    ///> Tuner cursor, used by circuit simulator
+    const static wxCursor CURSOR_TUNE;
 
     DECLARE_EVENT_TABLE()
 };

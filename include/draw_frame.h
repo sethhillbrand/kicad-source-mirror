@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2009 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -332,7 +332,7 @@ public:
     void SkipNextLeftButtonReleaseEvent();
 
     ///> @copydoc EDA_BASE_FRAME::WriteHotkeyConfig
-    int WriteHotkeyConfig( struct EDA_HOTKEY_CONFIG* aDescList, wxString* aFullFileName = NULL );
+    int WriteHotkeyConfig( struct EDA_HOTKEY_CONFIG* aDescList, wxString* aFullFileName = NULL ) override;
 
     /**
      * Function GetHotkeyConfig()
@@ -382,7 +382,7 @@ public:
 
     virtual void ReCreateHToolbar() = 0;
     virtual void ReCreateVToolbar() = 0;
-    virtual void ReCreateMenuBar();
+    virtual void ReCreateMenuBar() override;
     virtual void ReCreateAuxiliaryToolbar();
 
     /**
@@ -593,9 +593,11 @@ public:
      * @param aLineWidth The pen width to use to draw the layout.
      * @param aScale The mils to Iu conversion factor.
      * @param aFilename The filename to display in basic inscriptions.
+     * @param aSheetLayer The layer displayed from pcbnew.
      */
     void DrawWorkSheet( wxDC* aDC, BASE_SCREEN* aScreen, int aLineWidth,
-                         double aScale, const wxString &aFilename );
+                         double aScale, const wxString &aFilename,
+                         const wxString &aSheetLayer = wxEmptyString );
 
     void            DisplayToolMsg( const wxString& msg );
     virtual void    RedrawActiveWindow( wxDC* DC, bool EraseBg ) = 0;
@@ -641,8 +643,12 @@ public:
      * Function HandleBlockBegin
      * initializes the block command including the command type, initial position,
      * and other variables.
+     *
+     * @param aExplicitCommand - if this is given, begin with this command, rather
+     *  than looking up the command from aKey.
      */
-    virtual bool HandleBlockBegin( wxDC* aDC, EDA_KEY aKey, const wxPoint& aPosition );
+    virtual bool HandleBlockBegin( wxDC* aDC, EDA_KEY aKey, const wxPoint& aPosition,
+            int aExplicitCommand = 0 );
 
     /**
      * Function BlockCommand
@@ -686,9 +692,9 @@ public:
     void OnSockRequest( wxSocketEvent& evt );
     void OnSockRequestServer( wxSocketEvent& evt );
 
-    void LoadSettings( wxConfigBase* aCfg );    // override virtual
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );    // override virtual
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
     /**
      * Append a message to the message panel.

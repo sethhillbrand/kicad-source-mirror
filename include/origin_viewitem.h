@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -48,18 +48,18 @@ public:
                      MARKER_STYLE aStyle = CIRCLE_X, int aSize = 16,
                      const VECTOR2D& aPosition = VECTOR2D( 0, 0 ) );
 
-    const BOX2I ViewBBox() const;
+    const BOX2I ViewBBox() const override;
 
-    void ViewDraw( int aLayer, KIGFX::GAL* aGal ) const;
+    void ViewDraw( int aLayer, KIGFX::GAL* aGal ) const override;
 
-    void ViewGetLayers( int aLayers[], int& aCount ) const
+    void ViewGetLayers( int aLayers[], int& aCount ) const override
     {
         aLayers[0] = ITEM_GAL_LAYER( GP_OVERLAY );
         aCount = 1;
     }
 
 #if defined(DEBUG)
-    void Show( int x, std::ostream& st ) const
+    void Show( int x, std::ostream& st ) const override
     {
     }
 #endif
@@ -67,7 +67,7 @@ public:
     /** Get class name
      * @return  string "ORIGIN_VIEWITEM"
      */
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "ORIGIN_VIEWITEM" );
     }
@@ -86,6 +86,7 @@ public:
     inline void SetPosition( const VECTOR2D& aPosition )
     {
         m_position = aPosition;
+        ViewUpdate();
     }
 
     inline const VECTOR2D& GetPosition() const

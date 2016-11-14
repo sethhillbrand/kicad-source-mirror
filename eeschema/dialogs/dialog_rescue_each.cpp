@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Chris Pavlina <pavlina.chris@gmail.com>
- * Copyright (C) 2015 Kicad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2015-2016 Chris Pavlina <pavlina.chris@gmail.com>
+ * Copyright (C) 2015-2016 Kicad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,11 +31,8 @@
 #include <class_libentry.h>
 #include <set>
 #include <vector>
-#include <boost/foreach.hpp>
 #include <project_rescue.h>
 #include <eeschema_config.h>
-#include <sch_sheet_path.h>
-
 
 class DIALOG_RESCUE_EACH: public DIALOG_RESCUE_EACH_BASE
 {
@@ -58,16 +55,16 @@ private:
     RESCUER*        m_Rescuer;
     bool            m_AskShowAgain;
 
-    bool TransferDataToWindow();
-    bool TransferDataFromWindow();
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
     void PopulateConflictList();
     void PopulateInstanceList();
-    void OnConflictSelect( wxDataViewEvent& event );
-    void OnNeverShowClick( wxCommandEvent& event );
-    void OnCancelClick( wxCommandEvent& event );
-    void OnHandleCachePreviewRepaint( wxPaintEvent& aRepaintEvent );
-    void OnHandleLibraryPreviewRepaint( wxPaintEvent& aRepaintEvent );
-    void OnDialogResize( wxSizeEvent& aSizeEvent );
+    void OnConflictSelect( wxDataViewEvent& event ) override;
+    void OnNeverShowClick( wxCommandEvent& event ) override;
+    void OnCancelClick( wxCommandEvent& event ) override;
+    void OnHandleCachePreviewRepaint( wxPaintEvent& aRepaintEvent ) override;
+    void OnHandleLibraryPreviewRepaint( wxPaintEvent& aRepaintEvent ) override;
+    void OnDialogResize( wxSizeEvent& aSizeEvent ) override;
     void renderPreview( LIB_PART* aComponent, int aUnit, wxPanel* panel );
 };
 
@@ -90,6 +87,9 @@ DIALOG_RESCUE_EACH::DIALOG_RESCUE_EACH( SCH_EDIT_FRAME* aParent, RESCUER& aRescu
            "\n"
            "The following changes are recommended to update the project." );
     m_lblInfo->SetLabel( info_message );
+
+    m_componentViewOld->SetLayoutDirection( wxLayout_LeftToRight );
+    m_componentViewNew->SetLayoutDirection( wxLayout_LeftToRight );
 }
 
 
@@ -126,7 +126,7 @@ bool DIALOG_RESCUE_EACH::TransferDataToWindow()
 void DIALOG_RESCUE_EACH::PopulateConflictList()
 {
     wxVector<wxVariant> data;
-    BOOST_FOREACH( RESCUE_CANDIDATE& each_candidate, m_Rescuer->m_all_candidates )
+    for( RESCUE_CANDIDATE& each_candidate : m_Rescuer->m_all_candidates )
     {
         data.clear();
         data.push_back( wxVariant( true ) );
@@ -150,7 +150,7 @@ void DIALOG_RESCUE_EACH::PopulateInstanceList()
     RESCUE_CANDIDATE& selected_part = m_Rescuer->m_all_candidates[row];
 
     wxVector<wxVariant> data;
-    BOOST_FOREACH( SCH_COMPONENT* each_component, *m_Rescuer->GetComponents() )
+    for( SCH_COMPONENT* each_component : *m_Rescuer->GetComponents() )
     {
         if( each_component->GetPartName() != selected_part.GetRequestedName() )
             continue;
@@ -158,7 +158,7 @@ void DIALOG_RESCUE_EACH::PopulateInstanceList()
         SCH_FIELD* valueField = each_component->GetField( 1 );
 
         data.clear();
-        data.push_back( each_component->GetRef( m_Parent->GetCurrentSheet().Last() ) );
+        data.push_back( each_component->GetRef( & m_Parent->GetCurrentSheet() ) );
         data.push_back( valueField ? valueField->GetText() : wxT( "" ) );
         m_ListOfInstances->AppendItem( data );
 
@@ -222,7 +222,7 @@ void DIALOG_RESCUE_EACH::renderPreview( LIB_PART* aComponent, int aUnit, wxPanel
     dc.SetDeviceOrigin( dc_size.x / 2, dc_size.y / 2 );
 
     // Find joint bounding box for everything we are about to draw.
-    EDA_RECT bBox = aComponent->GetBoundingBox( aUnit, /* deMorganConvert */ 1 );
+    EDA_RECT bBox = aComponent->GetUnitBoundingBox( aUnit, /* deMorganConvert */ 1 );
     const double xscale = (double) dc_size.x / bBox.GetWidth();
     const double yscale = (double) dc_size.y / bBox.GetHeight();
     const double scale  = std::min( xscale, yscale ) * 0.85;
@@ -288,7 +288,7 @@ void DIALOG_RESCUE_EACH::OnNeverShowClick( wxCommandEvent& aEvent )
 
     if( resp == wxID_YES )
     {
-        m_Config->Write( RESCUE_NEVER_SHOW_KEY, true );
+        m_Config->Write( RescueNeverShowEntry, true );
         m_Rescuer->m_chosen_candidates.clear();
         Close();
     }

@@ -1,7 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2015 CERN
+ * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -128,9 +129,18 @@ TOOL_ACTION COMMON_ACTIONS::remove( "pcbnew.InteractiveEdit.remove",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_DELETE ),
         _( "Remove" ), _( "Deletes selected item(s)" ), delete_xpm );
 
+TOOL_ACTION COMMON_ACTIONS::removeAlt( "pcbnew.InteractiveEdit.removeAlt",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_BACK_SPACE ),
+        _( "Remove (alterative)" ), _( "Deletes selected item(s)" ), delete_xpm );
+
+
 TOOL_ACTION COMMON_ACTIONS::properties( "pcbnew.InteractiveEdit.properties",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_EDIT_ITEM ),
         _( "Properties..." ), _( "Displays item properties dialog" ), editor_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::editModifiedSelection( "pcbnew.InteractiveEdit.ModifiedSelection",
+        AS_GLOBAL, 0,
+        "", "" );
 
 
 // Drawing tool actions
@@ -331,6 +341,10 @@ TOOL_ACTION COMMON_ACTIONS::gridSetOrigin( "common.Control.gridSetOrigin",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_SET_GRID_ORIGIN ),
         "", "" );
 
+TOOL_ACTION COMMON_ACTIONS::gridResetOrigin( "common.Control.gridResetOrigin",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_RESET_GRID_ORIGIN ),
+        "", "" );
+
 TOOL_ACTION COMMON_ACTIONS::gridPreset( "common.Control.gridPreset",
         AS_GLOBAL, 0,
         "", "" );
@@ -395,9 +409,17 @@ TOOL_ACTION COMMON_ACTIONS::crossProbeSchToPcb( "pcbnew.EditorControl.crossProbS
         AS_GLOBAL, 0,
         "", "" );
 
-TOOL_ACTION COMMON_ACTIONS::toggleLockModule( "pcbnew.EditorControl.toggleLockModule",
+TOOL_ACTION COMMON_ACTIONS::toggleLock( "pcbnew.EditorControl.toggleLock",
         AS_GLOBAL, 'L',
-        "", "" );
+        "Toggle lock", "" );
+
+TOOL_ACTION COMMON_ACTIONS::lock( "pcbnew.EditorControl.lock",
+        AS_GLOBAL, 0,
+        _( "Lock" ), "" );
+
+TOOL_ACTION COMMON_ACTIONS::unlock( "pcbnew.EditorControl.unlock",
+        AS_GLOBAL, 0,
+        _( "Unlock" ), "" );
 
 TOOL_ACTION COMMON_ACTIONS::appendBoard( "pcbnew.EditorControl.appendBoard",
         AS_GLOBAL, 0,
@@ -478,6 +500,10 @@ TOOL_ACTION COMMON_ACTIONS::selectionTool( "pcbnew.Control.selectionTool",
         AS_GLOBAL, 0,
         "", "", NULL, AF_ACTIVATE );
 
+TOOL_ACTION COMMON_ACTIONS::zoomTool( "pcbnew.Control.zoomTool",
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ZOOM_SELECTION ),
+        _( "Zoom to selection" ), "", NULL, AF_ACTIVATE );
+
 TOOL_ACTION COMMON_ACTIONS::pickerTool( "pcbnew.Picker", AS_GLOBAL, 0, "", "", NULL, AF_ACTIVATE );
 
 TOOL_ACTION COMMON_ACTIONS::resetCoords( "pcbnew.Control.resetCoords",
@@ -546,10 +572,6 @@ TOOL_ACTION COMMON_ACTIONS::teardropsEditor( "pcbnew.TeardropsEditor.EditTeardro
         _( "Run teardrops editor" ), _( "Run teardrops editor" ), NULL, AF_ACTIVATE);
 
 // Point editor
-TOOL_ACTION COMMON_ACTIONS::pointEditorUpdate( "pcbnew.PointEditor.update",
-        AS_GLOBAL, 0,
-        "", "" );    // No description, it is not supposed to be shown anywhere
-
 TOOL_ACTION COMMON_ACTIONS::pointEditorAddCorner( "pcbnew.PointEditor.addCorner",
         AS_GLOBAL, 0,
         _( "Create corner" ), _( "Create corner" ), add_corner_xpm );
@@ -704,6 +726,9 @@ boost::optional<TOOL_EVENT> COMMON_ACTIONS::TranslateLegacyId( int aId )
     case ID_NO_TOOL_SELECTED:
         return COMMON_ACTIONS::selectionTool.MakeEvent();
 
+    case ID_ZOOM_SELECTION:
+        return COMMON_ACTIONS::zoomTool.MakeEvent();
+
     case ID_PCB_DELETE_ITEM_BUTT:
     case ID_MODEDIT_DELETE_TOOL:
         return COMMON_ACTIONS::deleteItemCursor.MakeEvent();
@@ -718,7 +743,6 @@ boost::optional<TOOL_EVENT> COMMON_ACTIONS::TranslateLegacyId( int aId )
         return COMMON_ACTIONS::appendBoard.MakeEvent();
 
     case ID_PCB_SHOW_1_RATSNEST_BUTT:
-    case ID_TB_OPTIONS_SHOW_MODULE_RATSNEST:
         return COMMON_ACTIONS::toBeDone.MakeEvent();
     }
 

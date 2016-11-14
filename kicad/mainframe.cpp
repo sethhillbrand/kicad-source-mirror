@@ -1,8 +1,3 @@
-/**
- * @file kicad/mainframe.cpp
- * @brief KICAD_MANAGER_FRAME is the KiCad main frame.
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -28,21 +23,23 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <fctsys.h>
-#include <pgm_kicad.h>
+/**
+ * @file kicad/mainframe.cpp
+ * @brief KICAD_MANAGER_FRAME is the KiCad main frame.
+ */
+
+
+#include <draw_frame.h>
+#include <dialog_hotkeys_editor.h>
+#include <gestfich.h>
 #include <kiway.h>
 #include <kiway_player.h>
-#include <confirm.h>
-#include <gestfich.h>
-#include <macros.h>
-
-#include <kicad.h>
-#include <tree_project_frame.h>
 #include <wildcards_and_files_ext.h>
-#include <menus_helpers.h>
-#include <dialog_hotkeys_editor.h>
 
-#include <wx/filefn.h>
+#include "pgm_kicad.h"
+#include "tree_project_frame.h"
+
+#include "kicad.h"
 
 
 #define TREE_FRAME_WIDTH_ENTRY     wxT( "LeftWinWidth" )
@@ -123,7 +120,7 @@ KICAD_MANAGER_FRAME::~KICAD_MANAGER_FRAME()
 
 wxConfigBase* KICAD_MANAGER_FRAME::config()
 {
-    wxConfigBase* ret = Pgm().PgmSettings();
+    wxConfigBase* ret = PgmTop().PgmSettings();
     wxASSERT( ret );
     return ret;
 }
@@ -185,13 +182,13 @@ void KICAD_MANAGER_FRAME::ReCreateTreePrj()
 
 const SEARCH_STACK& KICAD_MANAGER_FRAME::sys_search()
 {
-    return Pgm().SysSearch();
+    return PgmTop().SysSearch();
 }
 
 
 wxString KICAD_MANAGER_FRAME::help_name()
 {
-    return Pgm().GetHelpFileName();
+    return PgmTop().GetHelpFileName();
 }
 
 
@@ -216,7 +213,7 @@ void KICAD_MANAGER_FRAME::OnCloseWindow( wxCloseEvent& Event )
     {
         int px, py;
 
-        UpdateFileHistory( GetProjectFileName(), &Pgm().GetFileHistory() );
+        UpdateFileHistory( GetProjectFileName(), &PgmTop().GetFileHistory() );
 
         if( !IsIconized() )   // save main frame position and size
         {
@@ -247,7 +244,7 @@ void KICAD_MANAGER_FRAME::OnExit( wxCommandEvent& event )
 void KICAD_MANAGER_FRAME::TERMINATE_HANDLER::OnTerminate( int pid, int status )
 {
     wxString msg = wxString::Format( _( "%s closed [pid=%d]\n" ),
-            GetChars( appName ), pid );
+            GetChars( m_appName ), pid );
 
     wxWindow* window = wxWindow::FindWindowByName( KICAD_MANAGER_FRAME_NAME );
 
@@ -303,7 +300,16 @@ void KICAD_MANAGER_FRAME::RunEeschema( const wxString& aProjectSchematicFileName
     // and the dialog field editor was used
     if( !frame )
     {
-        frame = Kiway.Player( FRAME_SCH, true );
+        try
+        {
+            frame = Kiway.Player( FRAME_SCH, true );
+        }
+        catch( IO_ERROR err )
+        {
+            wxMessageBox( _( "Eeschema failed to load:\n" ) + err.What(),
+                          _( "KiCad Error" ), wxOK | wxICON_ERROR, this );
+            return;
+        }
     }
 
     if( !frame->IsShown() ) // the frame exists, (created by the dialog field editor)
@@ -325,9 +331,7 @@ void KICAD_MANAGER_FRAME::RunEeschema( const wxString& aProjectSchematicFileName
 void KICAD_MANAGER_FRAME::OnRunEeschema( wxCommandEvent& event )
 {
     wxFileName fn( GetProjectFileName() );
-
     fn.SetExt( SchematicFileExtension );
-
     RunEeschema( fn.GetFullPath() );
 }
 
@@ -338,7 +342,17 @@ void KICAD_MANAGER_FRAME::OnRunSchLibEditor( wxCommandEvent& event )
 
     if( !frame )
     {
-        frame = Kiway.Player( FRAME_SCH_LIB_EDITOR, true );
+        try
+        {
+            frame = Kiway.Player( FRAME_SCH_LIB_EDITOR, true );
+        }
+        catch( IO_ERROR err )
+        {
+            wxMessageBox( _( "Component library editor failed to load:\n" ) + err.What(),
+                          _( "KiCad Error" ), wxOK | wxICON_ERROR, this );
+            return;
+        }
+
         // frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectSchematicFileName ) );
         frame->Show( true );
     }
@@ -353,7 +367,18 @@ void KICAD_MANAGER_FRAME::OnRunSchLibEditor( wxCommandEvent& event )
 
 void KICAD_MANAGER_FRAME::RunPcbNew( const wxString& aProjectBoardFileName )
 {
-    KIWAY_PLAYER* frame = Kiway.Player( FRAME_PCB, true );
+    KIWAY_PLAYER* frame;
+
+    try
+    {
+        frame = Kiway.Player( FRAME_PCB, true );
+    }
+    catch( IO_ERROR err )
+    {
+        wxMessageBox( _( "Pcbnew failed to load:\n" ) + err.What(), _( "KiCad Error" ),
+                      wxOK | wxICON_ERROR, this );
+        return;
+    }
 
     // a pcb frame can be already existing, but not yet used.
     // this is the case when running the footprint editor, or the footprint viewer first
@@ -390,7 +415,17 @@ void KICAD_MANAGER_FRAME::OnRunPcbFpEditor( wxCommandEvent& event )
 
     if( !frame )
     {
-        frame = Kiway.Player( FRAME_PCB_MODULE_EDITOR, true );
+        try
+        {
+            frame = Kiway.Player( FRAME_PCB_MODULE_EDITOR, true );
+        }
+        catch( IO_ERROR err )
+        {
+            wxMessageBox( _( "Footprint library editor failed to load:\n" ) + err.What(),
+                          _( "KiCad Error" ), wxOK | wxICON_ERROR, this );
+            return;
+        }
+
 //        frame->OpenProjectFiles( std::vector<wxString>( 1, aProjectBoardFileName ) );
         frame->Show( true );
     }
@@ -474,7 +509,6 @@ void KICAD_MANAGER_FRAME::OnRefresh( wxCommandEvent& event )
 void KICAD_MANAGER_FRAME::language_change( wxCommandEvent& event )
 {
     int id = event.GetId();
-
     Kiway.SetLanguage( id );
 }
 

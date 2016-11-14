@@ -1,11 +1,8 @@
-/**
- * @file pl_editor_frame.cpp
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * @author Jean-Pierre Charras, jp.charras at wanadoo.fr
  *
  * This program is free software; you can redistribute it and/or
@@ -24,6 +21,10 @@
  * or you may search the http://www.gnu.org website for the version 2 license,
  * or you may write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
+/**
+ * @file pl_editor_frame.cpp
  */
 
 #include <fctsys.h>
@@ -71,7 +72,7 @@ PL_EDITOR_FRAME::PL_EDITOR_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_propertiesFrameWidth = 200;
 
     if( m_canvas )
-        m_canvas->SetEnableBlockCommands( false );
+        m_canvas->SetEnableBlockCommands( true );
 
     // Give an icon
     wxIcon icon;
@@ -218,6 +219,7 @@ void PL_EDITOR_FRAME::OnCloseWindow( wxCloseEvent& Event )
     {
         wxString msg;
         wxString filename = GetCurrFileName();
+
         if( filename.IsEmpty() )
             msg = _("Save changes in a new file before closing?");
         else
@@ -251,7 +253,6 @@ void PL_EDITOR_FRAME::OnCloseWindow( wxCloseEvent& Event )
 
             if( !SavePageLayoutDescrFile( filename ) )
             {
-                wxString msg;
                 msg.Printf( _("Unable to create <%s>"), GetChars( filename ) );
                 wxMessageBox( msg );
             }
@@ -338,8 +339,10 @@ void PL_EDITOR_FRAME::SaveSettings( wxConfigBase* aCfg )
 void PL_EDITOR_FRAME::UpdateTitleAndInfo()
 {
     wxString title;
-    title.Printf( wxT( "Pl_Editor %s [%s]" ), GetChars( GetBuildVersion() ),
-        GetChars( GetCurrFileName() ) );
+    wxString file = GetCurrFileName();
+
+    title.Printf( _( "Page Layout Editor" ) + L" \u2014 %s",
+            !!file ? file : _( "no file selected" ) );
     SetTitle( title );
 }
 
@@ -722,7 +725,6 @@ WORKSHEET_DATAITEM* PL_EDITOR_FRAME::Locate( const wxPoint& aPosition )
 
         for( unsigned ii = 0; ii < list.size(); ++ii )
         {
-            wxString    text;
             drawitem = list[ii];
             text = drawitem->GetParent()->m_Name;
 

@@ -67,7 +67,7 @@ public:
 
     ~SCH_FIELD();
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "SCH_FIELD" );
     }
@@ -100,7 +100,7 @@ public:
 
     void Place( SCH_EDIT_FRAME* frame, wxDC* DC );
 
-    const EDA_RECT GetBoundingBox() const;    // Virtual
+    const EDA_RECT GetBoundingBox() const override;
 
     /**
      * Function IsHorizJustifyFlipped
@@ -120,17 +120,25 @@ public:
         return len == 0 || ( len == 1 && m_Text[0] == wxChar( '~' ) );
     }
 
-    void SwapData( SCH_ITEM* aItem );
+    void SwapData( SCH_ITEM* aItem ) override;
 
     /**
      * Function ImportValues
-     * copy parameters from a source.
+     * copy parameters from a LIB_FIELD source.
      * Pointers and specific values (position) are not copied
      * @param aSource = the LIB_FIELD to read
      */
     void ImportValues( const LIB_FIELD& aSource );
 
-    int GetPenSize() const;
+    /**
+     * Function ImportValues
+     * copy parameters into a LIB_FIELD destination.
+     * Pointers and specific values (position) are not copied
+     * @param aDest = the LIB_FIELD to write
+     */
+    void ExportValues(LIB_FIELD& aDest ) const;
+
+    int GetPenSize() const override;
 
     /**
      * Function IsVisible
@@ -142,19 +150,19 @@ public:
     }
 
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR );
+               GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
-    bool Save( FILE* aFile ) const;
+    bool Save( FILE* aFile ) const override;
 
     // Geometric transforms (used in block operations):
 
-    void Move( const wxPoint& aMoveVector )
+    void Move( const wxPoint& aMoveVector ) override
     {
         m_Pos += aMoveVector;
     }
 
 
-    void Rotate( wxPoint aPosition );
+    void Rotate( wxPoint aPosition ) override;
 
     /**
      * @copydoc SCH_ITEM::MirrorX()
@@ -163,7 +171,7 @@ public:
      * when the parent component is mirrored.  This function is only needed by the
      * pure function of the master class.
      */
-    void MirrorX( int aXaxis_position )
+    void MirrorX( int aXaxis_position ) override
     {
     }
 
@@ -174,34 +182,36 @@ public:
      * when the parent component is mirrored.  This function is only needed by the
      * pure function of the master class.
      */
-    void MirrorY( int aYaxis_position )
+    void MirrorY( int aYaxis_position ) override
     {
     }
 
-    bool Matches( wxFindReplaceData& aSearchData, void* aAuxData, wxPoint* aFindLocation );
+    bool Matches( wxFindReplaceData& aSearchData, void* aAuxData, wxPoint* aFindLocation ) override;
 
-    bool Replace( wxFindReplaceData& aSearchData, void* aAuxData = NULL );
+    bool Replace( wxFindReplaceData& aSearchData, void* aAuxData = NULL ) override;
 
-    wxString GetSelectMenuText() const;
+    wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const;
+    BITMAP_DEF GetMenuImage() const override;
 
-    bool IsReplaceable() const { return true; }
+    bool IsReplaceable() const override { return true; }
 
-    wxPoint GetPosition() const;
+    wxPoint GetLibPosition() const { return m_Pos; }
 
-    void SetPosition( const wxPoint& aPosition );
+    wxPoint GetPosition() const override;
 
-    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const;
+    void SetPosition( const wxPoint& aPosition ) override;
 
-    bool HitTest( const EDA_RECT& aRect, bool aContained = false, int aAccuracy = 0 ) const;
+    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const override;
 
-    void Plot( PLOTTER* aPlotter );
+    bool HitTest( const EDA_RECT& aRect, bool aContained = false, int aAccuracy = 0 ) const override;
 
-    EDA_ITEM* Clone() const;
+    void Plot( PLOTTER* aPlotter ) override;
+
+    EDA_ITEM* Clone() const override;
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 };
 

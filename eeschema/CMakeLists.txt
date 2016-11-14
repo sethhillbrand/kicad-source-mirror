@@ -1,18 +1,14 @@
-# the map generation creates on Windows/gcc a lot of useless warnings
-# so disable it on windows
-if( WIN32 AND NOT CMAKE_CROSSCOMPILING )
-    set( MAKE_LINK_MAPS false )
-else()
-    set( MAKE_LINK_MAPS true )
-endif()
-
 add_definitions( -DEESCHEMA )
 
+if( KICAD_SPICE )
+    set( INC_AFTER ${INC_AFTER} ${NGSPICE_INCLUDE_DIR} )
+endif()
 
 include_directories( BEFORE ${INC_BEFORE} )
 include_directories(
     ./dialogs
     ./netlist_exporters
+    ./widgets
     ../common
     ../common/dialogs
     ${INC_AFTER}
@@ -72,6 +68,8 @@ set( EESCHEMA_DLGS
 
 set( EESCHEMA_WIDGETS
     widgets/widget_eeschema_color_config.cpp
+    widgets/pin_shape_combobox.cpp
+    widgets/pin_type_combobox.cpp
     )
 
 
@@ -137,6 +135,8 @@ set( EESCHEMA_SRCS
     operations_on_items_lists.cpp
     pinedit.cpp
     pin_number.cpp
+    pin_shape.cpp
+    pin_type.cpp
     plot_schematic_DXF.cpp
     plot_schematic_HPGL.cpp
     plot_schematic_PS.cpp
@@ -149,16 +149,20 @@ set( EESCHEMA_SRCS
     sch_collectors.cpp
     sch_component.cpp
     sch_field.cpp
+    sch_io_mgr.cpp
     sch_item_struct.cpp
     sch_junction.cpp
+    sch_legacy_plugin.cpp
     sch_line.cpp
     sch_marker.cpp
     sch_no_connect.cpp
+    sch_plugin.cpp
     sch_screen.cpp
     sch_sheet.cpp
     sch_sheet_path.cpp
     sch_sheet_pin.cpp
     sch_text.cpp
+    sch_validators.cpp
     schedit.cpp
     schematic_undo_redo.cpp
     schframe.cpp
@@ -192,6 +196,29 @@ set( EESCHEMA_COMMON_SRCS
     ../common/class_page_info.cpp
     ../common/base_units.cpp
     )
+
+
+if( KICAD_SPICE )
+    set( EESCHEMA_SRCS
+        ${EESCHEMA_SRCS}
+        sim/simulate.cpp
+        sim/sim_plot_frame_base.cpp
+        sim/sim_plot_frame.cpp
+        sim/sim_plot_panel.cpp
+        sim/spice_simulator.cpp
+        sim/spice_value.cpp
+        sim/ngspice.cpp
+        sim/netlist_exporter_pspice_sim.cpp
+        dialogs/dialog_signal_list.cpp
+        dialogs/dialog_signal_list_base.cpp
+        dialogs/dialog_sim_settings.cpp
+        dialogs/dialog_sim_settings_base.cpp
+        dialogs/dialog_spice_model.cpp
+        dialogs/dialog_spice_model_base.cpp
+        widgets/tuner_slider.cpp
+        widgets/tuner_slider_base.cpp
+    )
+endif()
 
 
 if( MINGW )
@@ -258,8 +285,10 @@ target_link_libraries( eeschema_kiface
     common
     bitmaps
     polygon
+    gal
     ${wxWidgets_LIBRARIES}
     ${GDI_PLUS_LIBRARIES}
+    ${NGSPICE_LIBRARY}
     )
 set_target_properties( eeschema_kiface PROPERTIES
     # Decorate OUTPUT_NAME with PREFIX and SUFFIX, creating something like
@@ -303,6 +332,7 @@ if( APPLE )
         DESTINATION ${KICAD_BIN}
         COMPONENT binary
         )
+
     install( CODE "
             # override default embedded path settings
             ${OSX_BUNDLE_OVERRIDE_PATHS}

@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,7 +39,7 @@
 // The translated string is used only when displaying the help window.
 // Therefore translation tools have to use the "_" and the "_HKI" prefix to extract
 // strings to translate
-#define _HKI( x ) wxT( x )
+#include <i18n_utility.h>       // _HKI definition
 
 class EDA_BASE_FRAME;
 
@@ -56,6 +56,9 @@ extern wxString g_CommonSectionTag;
  */
 class EDA_HOTKEY
 {
+private:
+    int m_defaultKeyCode;   // Key code assigned upon object construction, to be used as default value
+
 public:
     int      m_KeyCode;      // Key code (ascii value for ascii keys or wxWidgets code for function key
     wxString m_InfoMsg;      // info message.
@@ -65,6 +68,7 @@ public:
 public:
     EDA_HOTKEY( const wxChar* infomsg, int idcommand, int keycode, int idmenuevent = 0 );
     EDA_HOTKEY( const EDA_HOTKEY* base);
+    void ResetKeyCodeToDefault() { m_KeyCode = m_defaultKeyCode; }
 };
 
 
@@ -239,6 +243,7 @@ enum common_hotkey_id_commnand {
     HK_ZOOM_REDRAW,
     HK_ZOOM_CENTER,
     HK_ZOOM_AUTO,
+    HK_ZOOM_SELECTION,
     HK_UNDO,
     HK_REDO,
     HK_COMMON_END

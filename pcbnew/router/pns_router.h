@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -23,11 +24,11 @@
 
 #include <list>
 
+#include <memory>
 #include <boost/optional.hpp>
 #include <boost/unordered_set.hpp>
 
 #include <geometry/shape_line_chain.h>
-#include <class_undoredo_container.h>
 
 #include "pns_routing_settings.h"
 #include "pns_sizes_settings.h"
@@ -35,34 +36,32 @@
 #include "pns_itemset.h"
 #include "pns_node.h"
 
-class BOARD;
-class BOARD_ITEM;
-class D_PAD;
-class TRACK;
-class VIA;
-class GRID_HELPER;
-class PNS_NODE;
-class PNS_DIFF_PAIR_PLACER;
-class PNS_PLACEMENT_ALGO;
-class PNS_LINE_PLACER;
-class PNS_ITEM;
-class PNS_LINE;
-class PNS_SOLID;
-class PNS_SEGMENT;
-class PNS_JOINT;
-class PNS_VIA;
-class PNS_CLEARANCE_FUNC;
-class PNS_SHOVE;
-class PNS_DRAGGER;
-
 namespace KIGFX
 {
-    class VIEW;
-    class VIEW_GROUP;
+
+class VIEW;
+class VIEW_GROUP;
+
 };
 
+namespace PNS {
 
-enum PNS_ROUTER_MODE {
+class DEBUG_DECORATOR;
+class NODE;
+class DIFF_PAIR_PLACER;
+class PLACEMENT_ALGO;
+class LINE_PLACER;
+class ITEM;
+class LINE;
+class SOLID;
+class SEGMENT;
+class JOINT;
+class VIA;
+class RULE_RESOLVER;
+class SHOVE;
+class DRAGGER;
+
+enum ROUTER_MODE {
     PNS_MODE_ROUTE_SINGLE = 1,
     PNS_MODE_ROUTE_DIFF_PAIR,
     PNS_MODE_TUNE_SINGLE,
@@ -71,11 +70,34 @@ enum PNS_ROUTER_MODE {
 };
 
 /**
- * Class PNS_ROUTER
+ * Class ROUTER
  *
  * Main router class.
  */
-class PNS_ROUTER
+
+ class ROUTER_IFACE
+ {
+ public:
+        ROUTER_IFACE() {};
+        virtual ~ROUTER_IFACE() {};
+
+        virtual void SetRouter( ROUTER* aRouter ) = 0;
+        virtual void SyncWorld( NODE* aNode ) = 0;
+        virtual void AddItem( ITEM* aItem ) = 0;
+        virtual void RemoveItem( ITEM* aItem ) = 0;
+        virtual void DisplayItem( const ITEM* aItem, int aColor = -1, int aClearance = -1 ) = 0;
+        virtual void HideItem( ITEM* aItem ) = 0;
+        virtual void Commit() = 0;
+//        virtual void Abort () = 0;
+
+        virtual void EraseView() = 0;
+        virtual void UpdateNet( int aNetCode ) = 0;
+
+        virtual RULE_RESOLVER* GetRuleResolver() = 0;
+        virtual DEBUG_DECORATOR* GetDebugDecorator() = 0;
+};
+
+class ROUTER
 {
 private:
     enum RouterState
@@ -86,63 +108,60 @@ private:
     };
 
 public:
-    PNS_ROUTER();
-    ~PNS_ROUTER();
+    ROUTER();
+    ~ROUTER();
 
-    void SetMode ( PNS_ROUTER_MODE aMode );
-    PNS_ROUTER_MODE Mode() const { return m_mode; }
+    void SetInterface( ROUTER_IFACE* aIface );
+    void SetMode ( ROUTER_MODE aMode );
+    ROUTER_MODE Mode() const { return m_mode; }
 
-    static PNS_ROUTER* GetInstance();
+    static ROUTER* GetInstance();
 
     void ClearWorld();
-    void SetBoard( BOARD* aBoard );
     void SyncWorld();
 
     void SetView( KIGFX::VIEW* aView );
 
     bool RoutingInProgress() const;
-    bool StartRouting( const VECTOR2I& aP, PNS_ITEM* aItem, int aLayer );
-    void Move( const VECTOR2I& aP, PNS_ITEM* aItem );
-    bool FixRoute( const VECTOR2I& aP, PNS_ITEM* aItem );
+    bool StartRouting( const VECTOR2I& aP, ITEM* aItem, int aLayer );
+    void Move( const VECTOR2I& aP, ITEM* aItem );
+    bool FixRoute( const VECTOR2I& aP, ITEM* aItem );
 
     void StopRouting();
 
-    int GetClearance( const PNS_ITEM* aA, const PNS_ITEM* aB ) const;
+    int GetClearance( const ITEM* aA, const ITEM* aB ) const;
 
-    PNS_NODE* GetWorld() const
+    NODE* GetWorld() const
     {
-        return m_world;
+        return m_world.get();
     }
 
     void FlipPosture();
 
-    void DisplayItem( const PNS_ITEM* aItem, int aColor = -1, int aClearance = -1 );
-    void DisplayItems( const PNS_ITEMSET& aItems );
-
-    void DisplayDebugLine( const SHAPE_LINE_CHAIN& aLine, int aType = 0, int aWidth = 0 );
-    void DisplayDebugPoint( const VECTOR2I aPos, int aType = 0 );
-    void DisplayDebugBox( const BOX2I& aBox, int aType = 0, int aWidth = 0 );
-
+    void DisplayItem( const ITEM* aItem, int aColor = -1, int aClearance = -1 );
+    void DisplayItems( const ITEM_SET& aItems );
+    void DeleteTraces( ITEM* aStartItem, bool aWholeTrack );
     void SwitchLayer( int layer );
 
     void ToggleViaPlacement();
-    void SetOrthoMode ( bool aEnable );
+    void SetOrthoMode( bool aEnable );
 
     int GetCurrentLayer() const;
     const std::vector<int> GetCurrentNets() const;
 
     void DumpLog();
 
-    PNS_CLEARANCE_FUNC* GetClearanceFunc() const
+    RULE_RESOLVER* GetRuleResolver() const
     {
-        return m_clearanceFunc;
+        return m_iface->GetRuleResolver();
     }
+
     bool IsPlacingVia() const;
 
-    const PNS_ITEMSET   QueryHoverItems( const VECTOR2I& aP );
-    const VECTOR2I      SnapToItem( PNS_ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment );
+    const ITEM_SET   QueryHoverItems( const VECTOR2I& aP );
+    const VECTOR2I      SnapToItem( ITEM* aItem, VECTOR2I aP, bool& aSplitsSegment );
 
-    bool StartDragging( const VECTOR2I& aP, PNS_ITEM* aItem );
+    bool StartDragging( const VECTOR2I& aP, ITEM* aItem );
 
     void SetIterLimit( int aX ) { m_iterLimit = aX; }
     int GetIterLimit() const { return m_iterLimit; };
@@ -156,130 +175,93 @@ public:
     bool GetShowIntermediateSteps() const { return m_showInterSteps; }
     int GetShapshotIter() const { return m_snapshotIter; }
 
-    PNS_ROUTING_SETTINGS& Settings() { return m_settings; }
+    ROUTING_SETTINGS& Settings() { return m_settings; }
 
-    void CommitRouting( PNS_NODE* aNode );
-
-    /**
-     * Returns the last changes introduced by the router (since the last time ClearLastChanges()
-     * was called or a new track has been started).
-     */
-    const PICKED_ITEMS_LIST& GetUndoBuffer() const
-    {
-        return m_undoBuffer;
-    }
-
-    /**
-     * Clears the list of recent changes, saved to be stored in the undo buffer.
-     */
-    void ClearUndoBuffer()
-    {
-        m_undoBuffer.ClearItemsList();
-    }
+    void CommitRouting( NODE* aNode );
 
     /**
      * Applies stored settings.
      * @see Settings()
      */
-    void UpdateSizes( const PNS_SIZES_SETTINGS& aSizes );
+    void UpdateSizes( const SIZES_SETTINGS& aSizes );
 
     /**
      * Changes routing settings to ones passed in the parameter.
      * @param aSettings are the new settings.
      */
-    void LoadSettings( const PNS_ROUTING_SETTINGS& aSettings )
+    void LoadSettings( const ROUTING_SETTINGS& aSettings )
     {
         m_settings = aSettings;
     }
 
-    void EnableSnapping( bool aEnable )
-    {
-        m_snappingEnabled = aEnable;
-    }
-
-    bool SnappingEnabled() const
-    {
-        return m_snappingEnabled;
-    }
-
-    PNS_SIZES_SETTINGS& Sizes()
+    SIZES_SETTINGS& Sizes()
     {
         return m_sizes;
     }
 
-    PNS_ITEM *QueryItemByParent ( const BOARD_ITEM *aItem ) const;
+    ITEM* QueryItemByParent( const BOARD_ITEM* aItem ) const;
 
-    BOARD *GetBoard();
-
-    void SetFailureReason ( const wxString& aReason ) { m_failureReason = aReason; }
+    void SetFailureReason( const wxString& aReason ) { m_failureReason = aReason; }
     const wxString& FailureReason() const { return m_failureReason; }
 
-    PNS_PLACEMENT_ALGO *Placer() { return m_placer; }
+    PLACEMENT_ALGO* Placer() { return m_placer.get(); }
 
-    void SetGrid( GRID_HELPER *aGridHelper )
+    ROUTER_IFACE* GetInterface() const
     {
-        m_gridHelper = aGridHelper;
+        return m_iface;
     }
 
 private:
-    void movePlacing( const VECTOR2I& aP, PNS_ITEM* aItem );
-    void moveDragging( const VECTOR2I& aP, PNS_ITEM* aItem );
+    void movePlacing( const VECTOR2I& aP, ITEM* aItem );
+    void moveDragging( const VECTOR2I& aP, ITEM* aItem );
 
     void eraseView();
-    void updateView( PNS_NODE* aNode, PNS_ITEMSET& aCurrent );
+    void updateView( NODE* aNode, ITEM_SET& aCurrent );
 
     void clearViewFlags();
 
     // optHoverItem queryHoverItemEx(const VECTOR2I& aP);
 
-    PNS_ITEM* pickSingleItem( PNS_ITEMSET& aItems ) const;
-    void splitAdjacentSegments( PNS_NODE* aNode, PNS_ITEM* aSeg, const VECTOR2I& aP );
+    ITEM* pickSingleItem( ITEM_SET& aItems ) const;
+    void splitAdjacentSegments( NODE* aNode, ITEM* aSeg, const VECTOR2I& aP );
 
-    PNS_ITEM* syncPad( D_PAD* aPad );
-    PNS_ITEM* syncTrack( TRACK* aTrack );
-    PNS_ITEM* syncVia( VIA* aVia );
+    ITEM* syncPad( D_PAD* aPad );
+    ITEM* syncTrack( TRACK* aTrack );
+    ITEM* syncVia( VIA* aVia );
 
-    void commitPad( PNS_SOLID* aPad );
-    void commitSegment( PNS_SEGMENT* aTrack );
-    void commitVia( PNS_VIA* aVia );
+    void commitPad( SOLID* aPad );
+    void commitSegment( SEGMENT* aTrack );
+    void commitVia( VIA* aVia );
 
     void highlightCurrent( bool enabled );
 
-    void markViolations( PNS_NODE* aNode, PNS_ITEMSET& aCurrent, PNS_NODE::ITEM_VECTOR& aRemoved );
+    void markViolations( NODE* aNode, ITEM_SET& aCurrent, NODE::ITEM_VECTOR& aRemoved );
 
     VECTOR2I m_currentEnd;
     RouterState m_state;
 
-    BOARD* m_board;
-    PNS_NODE* m_world;
-    PNS_NODE* m_lastNode;
-    PNS_PLACEMENT_ALGO * m_placer;
-    PNS_DRAGGER* m_dragger;
-    PNS_SHOVE* m_shove;
+    std::unique_ptr< NODE > m_world;
+    NODE*                   m_lastNode;
+
+    std::unique_ptr< PLACEMENT_ALGO > m_placer;
+    std::unique_ptr< DRAGGER >        m_dragger;
+    std::unique_ptr< SHOVE >          m_shove;
+
+    ROUTER_IFACE* m_iface;
+
     int m_iterLimit;
     bool m_showInterSteps;
     int m_snapshotIter;
-
-    KIGFX::VIEW* m_view;
-    KIGFX::VIEW_GROUP* m_previewItems;
-
-    bool m_snappingEnabled;
     bool m_violation;
 
-    PNS_ROUTING_SETTINGS m_settings;
-    PNS_PCBNEW_CLEARANCE_FUNC* m_clearanceFunc;
-
-    boost::unordered_set<BOARD_CONNECTED_ITEM*> m_hiddenItems;
-
-    ///> Stores list of modified items in the current operation
-    PICKED_ITEMS_LIST m_undoBuffer;
-    PNS_SIZES_SETTINGS m_sizes;
-    PNS_ROUTER_MODE m_mode;
+    ROUTING_SETTINGS m_settings;
+    SIZES_SETTINGS m_sizes;
+    ROUTER_MODE m_mode;
 
     wxString m_toolStatusbarName;
     wxString m_failureReason;
-
-    GRID_HELPER *m_gridHelper;
 };
+
+}
 
 #endif
