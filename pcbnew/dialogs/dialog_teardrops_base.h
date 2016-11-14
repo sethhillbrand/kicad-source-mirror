@@ -68,7 +68,7 @@ class DIALOG_TEARDROPS_BASE : public DIALOG_SHIM
 	public:
 		
 		DIALOG_TEARDROPS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxT("Teardrops"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 615,329 ), long style = wxDEFAULT_DIALOG_STYLE );
-		~DIALOG_TEARDROPS_BASE();
+		virtual ~DIALOG_TEARDROPS_BASE();
 	
 };
 

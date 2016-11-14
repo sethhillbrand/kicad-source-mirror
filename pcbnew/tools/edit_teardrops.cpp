@@ -26,6 +26,8 @@
 #include "router/pns_router.h"
 #include "tool/tool_manager.h"
 
+#include <boost/foreach.hpp>
+
 TEARDROPS_EDITOR::TEARDROPS_EDITOR() :
     TOOL_BASE( BATCH, TOOL_MANAGER::MakeToolId( "pcbnew.TeardropsEditor" ),
             "pcbnew.TeardropsEditor" )
@@ -117,6 +119,7 @@ bool TEARDROPS_EDITOR::EditTeardrops(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS&
 bool TEARDROPS_EDITOR::addToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS& aSettings )
 {
     bool added = false;
+
 
     // Iterate through all vias and add teardrops to connected tracks
     if( (aSettings.m_scope & DIALOG_TEARDROPS::TEARDROPS_SCOPE_VIAS) ==
@@ -286,7 +289,7 @@ bool TEARDROPS_EDITOR::drawSegments(TEARDROP& aTeardrop, TRACK& aTrack )
     bool tracksAdded = true;
     bool proceedBuild = true;
     ITEM_PICKER picker( NULL, UR_NEW );
-    PNS_NODE* world = PNS_ROUTER::GetInstance()->GetWorld();
+    PNS::NODE* world = PNS::ROUTER::GetInstance()->GetWorld();
     BOARD* board = aTrack.GetBoard();
     std::vector<TRACK*> tracks;
     std::vector<VECTOR2I> coordinates;
@@ -301,13 +304,13 @@ bool TEARDROPS_EDITOR::drawSegments(TEARDROP& aTeardrop, TRACK& aTrack )
     {
         if( m_strategy != DRC_IGNORE )
         {
-            PNS_SEGMENT segment( SEG( coordinates[i - 1], coordinates[i] ), aTrack.GetNetCode() );
+            PNS::SEGMENT segment( SEG( coordinates[i - 1], coordinates[i] ), aTrack.GetNetCode() );
             segment.SetWidth( aTrack.GetWidth() );
-            segment.SetLayers( PNS_LAYERSET( aTrack.GetLayer() ) );
+            segment.SetLayers( LAYER_RANGE( aTrack.GetLayer() ) );
             segment.SetParent( &aTrack );
-            PNS_NODE::OBSTACLES obstacles;
+            PNS::NODE::OBSTACLES obstacles;
 
-            if( world->QueryColliding( &segment, obstacles, PNS_ITEM::ANY, 1 ) > 0 )
+            if( world->QueryColliding( &segment, obstacles, PNS::ITEM::ANY_T, 1 ) > 0 )
             {
                 // DRC violation found, the segment of a teadrop can not be placed
                 tracksAdded = false;

@@ -108,15 +108,15 @@ public:
 
     DIALOG_TEARDROPS( PCB_EDIT_FRAME *aParent, TEARDROPS_SETTINGS *aSettings );
 
-    void OnModeAdd( wxCommandEvent &aEvent );
-    void OnModeRemove( wxCommandEvent &aEvent );
-    void OnTracksAll( wxCommandEvent &aEvent );
-    void OnTracksSelected( wxCommandEvent &aEvent );
-    void OnStyleChanged( wxCommandEvent &aEvent );
-    void OnClearSelection( wxCommandEvent &aEvent );
-    void OnIgnoreDrc( wxCommandEvent &aEvent );
-    void OnScopeVias( wxCommandEvent &aEvent );
-    void OnScopePads( wxCommandEvent &aEvent );
+    void OnModeAdd( wxCommandEvent &aEvent ) override;
+    void OnModeRemove( wxCommandEvent &aEvent ) override;
+    void OnTracksAll( wxCommandEvent &aEvent ) override;
+    void OnTracksSelected( wxCommandEvent &aEvent ) override;
+    void OnStyleChanged( wxCommandEvent &aEvent ) override;
+    void OnClearSelection( wxCommandEvent &aEvent ) override;
+    void OnIgnoreDrc( wxCommandEvent &aEvent ) override;
+    void OnScopeVias( wxCommandEvent &aEvent ) override;
+    void OnScopePads( wxCommandEvent &aEvent ) override;
 
 private:
     PCB_EDIT_FRAME *m_parent;

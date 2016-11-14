@@ -46,7 +46,7 @@ public:
     bool EditTeardrops( const DIALOG_TEARDROPS::TEARDROPS_SETTINGS& aSettings );
 
     /// @copydoc TOOL_INTERACTIVE::Reset
-    void Reset( RESET_REASON aReason );
+    void Reset( RESET_REASON aReason ) override;
 
 private:
     /**
