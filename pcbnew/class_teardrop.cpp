@@ -373,7 +373,7 @@ BOARD_CONNECTED_ITEM* TEARDROP::getObjectOnEnd(TRACK& aTrack, ENDPOINT_T aEndPoi
             PAD_SHAPE_T shape = (*iter)->GetShape();
             bool hitTest = (*iter)->HitTest( trackPoint );
 
-            if( shape == PAD_CIRCLE && hitTest == true )
+            if( shape == PAD_SHAPE_CIRCLE && hitTest == true )
             {
                 item = *iter;
             }

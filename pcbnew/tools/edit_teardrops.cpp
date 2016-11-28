@@ -147,7 +147,7 @@ bool TEARDROPS_EDITOR::addToAll(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS& aSet
 
             while( pad != NULL )
             {
-                if( (pad->GetShape() == PAD_CIRCLE) && iterateTracks( pad ) == true )
+                if( (pad->GetShape() == PAD_SHAPE_CIRCLE) && iterateTracks( pad ) == true )
                 {
                     added = true;
                 }
