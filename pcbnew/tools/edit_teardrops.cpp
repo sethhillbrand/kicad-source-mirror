@@ -55,15 +55,13 @@ void TEARDROPS_EDITOR::Reset( RESET_REASON aReason )
 
 void TEARDROPS_EDITOR::filterSelection(SELECTION& aSelection )
 {
-    EDA_ITEM* item = NULL;
+    BOARD_ITEM* item = NULL;
 
-    for( size_t i = 0; i < aSelection.items.GetCount(); i++ )
+    for( auto& item : aSelection )
     {
-        item = aSelection.items.GetPickedItem( i );
-
         if( (item != NULL) && (item->Type() != PCB_TRACE_T) )
         {
-            aSelection.items.RemovePicker( i );
+            aSelection.Remove( item );
         }
     }
 }
@@ -174,9 +172,9 @@ bool TEARDROPS_EDITOR::addToSelected(SELECTION& aSelection,
     bool added      = false;
     int addedNum    = 0;
 
-    for( size_t i = 0; i < aSelection.items.GetCount(); i++ )
+    for( size_t i = 0; i < aSelection.GetSize(); i++ )
     {
-        TRACK* track = static_cast<TRACK*>( aSelection.items.GetPickedItem( i ) );
+        TRACK* track = static_cast<TRACK*>( aSelection[i] );
         TEARDROP teardropEnd;
         retVal = teardropEnd.Create( *track, ENDPOINT_END, m_type );
 
