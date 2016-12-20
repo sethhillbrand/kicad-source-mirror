@@ -88,6 +88,7 @@ public:
      * @param parent The dialog's parent
      */
     DIALOG_EESCHEMA_OPTIONS( SCH_EDIT_FRAME* parent );
+    virtual ~DIALOG_EESCHEMA_OPTIONS(){};
 
     virtual SCH_EDIT_FRAME* GetParent();
 
