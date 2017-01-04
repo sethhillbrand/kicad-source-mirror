@@ -55,8 +55,6 @@ void TEARDROPS_EDITOR::Reset( RESET_REASON aReason )
 
 void TEARDROPS_EDITOR::filterSelection(SELECTION& aSelection )
 {
-    BOARD_ITEM* item = NULL;
-
     for( auto& item : aSelection )
     {
         if( (item != NULL) && (item->Type() != PCB_TRACE_T) )
