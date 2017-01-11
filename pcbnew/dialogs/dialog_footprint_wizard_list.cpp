@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012-2014 Miguel Angel Ajo <miguelangel@nbee.es>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,9 +34,19 @@
 #include <dialog_footprint_wizard_list.h>
 #include <class_footprint_wizard.h>
 
+#if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_WXPYTHON)
+#include <python_scripting.h>
+#else
+// Dummy functions, actually defined in python_scripting.h when KICAD_SCRIPTING is enabled
+static void pcbnewGetWizardsBackTrace( wxString& aText ) {};
+static void pcbnewGetScriptsSearchPaths( wxString& aText ) {};
+static void pcbnewGetUnloadableScriptNames( wxString& aText ) {};
+#endif
+
 enum FPGeneratorRowNames
 {
-    FP_GEN_ROW_NAME = 0,
+    FP_GEN_ROW_NUMBER = 0,
+    FP_GEN_ROW_NAME,
     FP_GEN_ROW_DESCR,
 };
 
@@ -46,11 +56,41 @@ enum FPGeneratorRowNames
 DIALOG_FOOTPRINT_WIZARD_LIST::DIALOG_FOOTPRINT_WIZARD_LIST( wxWindow* aParent )
     : DIALOG_FOOTPRINT_WIZARD_LIST_BASE( aParent )
 {
-    int n_wizards = FOOTPRINT_WIZARDS::GetWizardsCount();
     m_config = Kiface().KifaceSettings();
+    initLists();
 
+    if( m_config )
+    {
+        wxSize size;
+        m_config->Read( FPWIZARTDLIST_WIDTH_KEY, &size.x, -1 );
+        m_config->Read( FPWIZARTDLIST_HEIGHT_KEY, &size.y, -1 );
+        SetSize( size );
+    }
+
+
+    m_sdbSizerOK->SetDefault();
+    FinishDialogSettings();
+
+    Center();
+}
+
+
+DIALOG_FOOTPRINT_WIZARD_LIST::~DIALOG_FOOTPRINT_WIZARD_LIST()
+{
+    if( m_config && !IsIconized() )
+    {
+        m_config->Write( FPWIZARTDLIST_WIDTH_KEY, GetSize().x );
+        m_config->Write( FPWIZARTDLIST_HEIGHT_KEY, GetSize().y );
+    }
+}
+
+
+void DIALOG_FOOTPRINT_WIZARD_LIST::initLists()
+{
     // Current wizard selection, empty or first
     m_footprintWizard = NULL;
+
+    int n_wizards = FOOTPRINT_WIZARDS::GetWizardsCount();
 
     if( n_wizards )
         m_footprintWizard = FOOTPRINT_WIZARDS::GetWizard( 0 );
@@ -58,18 +98,23 @@ DIALOG_FOOTPRINT_WIZARD_LIST::DIALOG_FOOTPRINT_WIZARD_LIST( wxWindow* aParent )
     // Choose selection mode and insert the needed rows
 
     m_footprintGeneratorsGrid->SetSelectionMode( wxGrid::wxGridSelectRows );
-    m_footprintGeneratorsGrid->InsertRows( 0, n_wizards, true );
+
+    int curr_row_cnt = m_footprintGeneratorsGrid->GetNumberRows();
+    m_footprintGeneratorsGrid->DeleteRows( 0, curr_row_cnt );
+    m_footprintGeneratorsGrid->InsertRows( 0, n_wizards );
 
     // Put all wizards in the list
-    for( int i=0; i<n_wizards; i++ )
+    for( int ii = 0; ii < n_wizards; ii++ )
     {
-        FOOTPRINT_WIZARD *wizard = FOOTPRINT_WIZARDS::GetWizard( i );
+        wxString num = wxString::Format( "%d", ii+1 );
+        FOOTPRINT_WIZARD *wizard = FOOTPRINT_WIZARDS::GetWizard( ii );
         wxString name = wizard->GetName();
         wxString description = wizard->GetDescription();
         wxString image = wizard->GetImage();
 
-        m_footprintGeneratorsGrid->SetCellValue( i, FP_GEN_ROW_NAME, name );
-        m_footprintGeneratorsGrid->SetCellValue( i, FP_GEN_ROW_DESCR, description );
+        m_footprintGeneratorsGrid->SetCellValue( ii, FP_GEN_ROW_NUMBER, num );
+        m_footprintGeneratorsGrid->SetCellValue( ii, FP_GEN_ROW_NAME, name );
+        m_footprintGeneratorsGrid->SetCellValue( ii, FP_GEN_ROW_DESCR, description );
 
     }
 
@@ -87,27 +132,35 @@ DIALOG_FOOTPRINT_WIZARD_LIST::DIALOG_FOOTPRINT_WIZARD_LIST( wxWindow* aParent )
     m_footprintGeneratorsGrid->ClearSelection();
     m_footprintGeneratorsGrid->SelectRow( 0, false );
 
-    if( m_config )
+    // Display info about scripts: Search paths
+    wxString message;
+    pcbnewGetScriptsSearchPaths( message );
+    m_tcSearchPaths->SetValue( message );
+    // Display info about scripts: unloadable scripts (due to syntax errors is python source)
+    pcbnewGetUnloadableScriptNames( message );
+    if( message.IsEmpty() )
     {
-        wxSize size;
-        m_config->Read( FPWIZARTDLIST_WIDTH_KEY, &size.x, -1 );
-        m_config->Read( FPWIZARTDLIST_HEIGHT_KEY, &size.y, -1 );
-        SetSize( size );
+        m_tcNotLoaded->SetValue( _( "All footprint generator scripts were loaded" ) );
+        m_buttonShowTrace->Show( false );
     }
-
-    Center();
+    else
+        m_tcNotLoaded->SetValue( message );
 }
 
 
-DIALOG_FOOTPRINT_WIZARD_LIST::~DIALOG_FOOTPRINT_WIZARD_LIST()
+void DIALOG_FOOTPRINT_WIZARD_LIST::onUpdatePythonModulesClick( wxCommandEvent& event )
 {
-    if( m_config && !IsIconized() )
-    {
-        m_config->Write( FPWIZARTDLIST_WIDTH_KEY, GetSize().x );
-        m_config->Write( FPWIZARTDLIST_HEIGHT_KEY, GetSize().y );
-    }
-}
+#if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_WXPYTHON)
+    char cmd[1024];
+    snprintf( cmd, sizeof(cmd),
+              "pcbnew.LoadPlugins(\"%s\")", TO_UTF8( PyScriptingPath() ) );
+    PyLOCK lock;
+    // ReRun the Python method pcbnew.LoadPlugins (already called when starting Pcbnew)
+    PyRun_SimpleString( cmd );
 
+    initLists();
+#endif
+}
 
 
 void DIALOG_FOOTPRINT_WIZARD_LIST::OnCellFpGeneratorClick( wxGridEvent& event )
@@ -115,6 +168,48 @@ void DIALOG_FOOTPRINT_WIZARD_LIST::OnCellFpGeneratorClick( wxGridEvent& event )
     int click_row = event.GetRow();
     m_footprintWizard = FOOTPRINT_WIZARDS::GetWizard( click_row );
     m_footprintGeneratorsGrid->SelectRow( event.GetRow(), false );
+    // Move the grid cursor to the active line, mainly for aesthetic reasons:
+    m_footprintGeneratorsGrid->GoToCell( event.GetRow(), FP_GEN_ROW_NUMBER );
+}
+
+
+void DIALOG_FOOTPRINT_WIZARD_LIST::OnCellFpGeneratorDoubleClick( wxGridEvent& event )
+{
+    EndModal( wxID_OK );
+}
+
+void DIALOG_FOOTPRINT_WIZARD_LIST::onShowTrace( wxCommandEvent& event )
+{
+    wxString trace;
+    pcbnewGetWizardsBackTrace( trace );
+
+    // Filter message before displaying them
+    // a trace starts by "Traceback" and is followed by 2 useless lines
+    // for our purpose
+    wxArrayString traces;
+    wxStringSplit( trace, traces, '\n' );
+
+    // Build the filtered message (remove useless lines)
+    trace.Clear();
+
+    for( unsigned ii = 0; ii < traces.Count(); ++ii )
+    {
+        if( traces[ii].Contains( "Traceback" ) )
+        {
+            ii += 2;    // Skip this line and next lines which are related to pcbnew.py module
+
+            if( !trace.IsEmpty() )  // Add separator for the next trace block
+                trace << "\n**********************************\n";
+        }
+        else
+            trace += traces[ii] + "\n";
+    }
+
+    // Now display the filtered trace in our dialog
+    // (a simple wxMessageBox is really not suitable for long messages)
+    DIALOG_FOOTPRINT_WIZARD_LOG logWindow( this );
+    logWindow.m_Message->SetValue( trace );
+    logWindow.ShowModal();
 }
 
 

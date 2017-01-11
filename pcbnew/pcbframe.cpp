@@ -341,7 +341,9 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     // Create GAL canvas
     EDA_DRAW_PANEL_GAL* galCanvas = new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ),
-                                                m_FrameSize, EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE );
+                                                m_FrameSize,
+                                                GetGalDisplayOptions(),
+                                                EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE );
 
     SetGalCanvas( galCanvas );
 
@@ -490,7 +492,6 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     if( !appK2S.FileExists() )
         GetMenuBar()->FindItem( ID_GEN_EXPORT_FILE_STEP )->Enable( false );
-
 }
 
 
