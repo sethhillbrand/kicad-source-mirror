@@ -276,6 +276,7 @@ set( PCBNEW_CLASS_SRCS
     zones_polygons_test_connections.cpp
     zones_test_and_combine_areas.cpp
     class_footprint_wizard.cpp
+    class_action_plugin.cpp
 
     tools/selection_tool.cpp
     tools/selection_area.cpp
@@ -297,6 +298,7 @@ set( PCBNEW_CLASS_SRCS
     tools/picker_tool.cpp
     tools/zoom_tool.cpp
     tools/tools_common.cpp
+    tools/tool_menu.cpp
 
     tools/grid_menu.cpp
     tools/zoom_menu.cpp
@@ -322,6 +324,7 @@ set( PCBNEW_SCRIPTING_PYTHON_HELPERS
     swig/python_scripting.cpp
     swig/pcbnew_scripting_helpers.cpp
     swig/pcbnew_footprint_wizards.cpp
+    swig/pcbnew_action_plugins.cpp
     )
 
 if( KICAD_SCRIPTING )

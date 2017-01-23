@@ -326,7 +326,6 @@ set( BMAPS_MID
     leave_sheet
     left
     libedit
-    libedprt
     lib_next
     lib_previous
     library_browse

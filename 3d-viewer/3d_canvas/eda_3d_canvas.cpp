@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015-2016 Mario Luzeiro <mrluzeiro@ua.pt>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -439,40 +439,42 @@ void EDA_3D_CANVAS::OnMouseWheel( wxMouseEvent &event )
     float delta_move = m_delta_move_step_factor * m_settings.CameraGet().ZoomGet();
 
     if( m_settings.GetFlag( FL_MOUSEWHEEL_PANNING ) )
-        delta_move *= (0.05f * event.GetWheelRotation());
+        delta_move *= (0.01f * event.GetWheelRotation());
     else
         if( event.GetWheelRotation() < 0 )
             delta_move = -delta_move;
 
-    if( m_settings.GetFlag( FL_MOUSEWHEEL_PANNING ) )
+    // mousewheel_panning enabled:
+    //      wheel           -> pan;
+    //      wheel + shift   -> horizontal scrolling;
+    //      wheel + ctrl    -> zooming;
+    // mousewheel_panning disabled:
+    //      wheel + shift   -> vertical scrolling;
+    //      wheel + ctrl    -> horizontal scrolling;
+    //      wheel           -> zooming.
+
+    if( m_settings.GetFlag( FL_MOUSEWHEEL_PANNING ) && !event.ControlDown() )
     {
-        if( event.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL )
+        if( event.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL || event.ShiftDown() )
             m_settings.CameraGet().Pan( SFVEC3F( -delta_move, 0.0f, 0.0f ) );
         else
             m_settings.CameraGet().Pan( SFVEC3F( 0.0f, -delta_move, 0.0f ) );
 
         mouseActivity = true;
     }
-    else if( event.ShiftDown() )
+    else if( event.ShiftDown() && !m_settings.GetFlag( FL_MOUSEWHEEL_PANNING ) )
     {
         m_settings.CameraGet().Pan( SFVEC3F( 0.0f, -delta_move, 0.0f ) );
         mouseActivity = true;
     }
-    else if( event.ControlDown() )
+    else if( event.ControlDown() && !m_settings.GetFlag( FL_MOUSEWHEEL_PANNING ) )
     {
         m_settings.CameraGet().Pan( SFVEC3F( delta_move, 0.0f, 0.0f ) );
         mouseActivity = true;
     }
     else
     {
-        if( event.GetWheelRotation() > 0 )
-        {
-            mouseActivity = m_settings.CameraGet().ZoomIn( 1.1f );
-        }
-        else
-        {
-            mouseActivity = m_settings.CameraGet().ZoomOut( 1.1f );
-        }
+        mouseActivity = m_settings.CameraGet().Zoom( event.GetWheelRotation() > 0 ? 1.1f : 1/1.1f );
     }
 
     // If it results on a camera movement
@@ -503,7 +505,7 @@ void EDA_3D_CANVAS::OnMagnify( wxMouseEvent& event )
 
     float magnification = ( event.GetMagnification() + 1.0f );
 
-    m_settings.CameraGet().ZoomIn( magnification );
+    m_settings.CameraGet().Zoom( magnification );
 
     DisplayStatus();
     Request_refresh();
@@ -909,14 +911,14 @@ void EDA_3D_CANVAS::SetView3D( int keycode )
     case WXK_F1:
         m_settings.CameraGet().SetInterpolateMode( INTERPOLATION_BEZIER );
         m_settings.CameraGet().SetT0_and_T1_current_T();
-        if( m_settings.CameraGet().ZoomIn_T1( 1.4f ) )
+        if( m_settings.CameraGet().Zoom_T1( 1.4f ) )
             request_start_moving_camera( 3.0f );
         return;
 
     case WXK_F2:
         m_settings.CameraGet().SetInterpolateMode( INTERPOLATION_BEZIER );
         m_settings.CameraGet().SetT0_and_T1_current_T();
-        if( m_settings.CameraGet().ZoomOut_T1( 1.4f ) )
+        if( m_settings.CameraGet().Zoom_T1( 1/1.4f ) )
             request_start_moving_camera( 3.0f );
         return;
 

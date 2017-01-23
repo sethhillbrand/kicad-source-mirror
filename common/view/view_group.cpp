@@ -41,17 +41,14 @@
 using namespace KIGFX;
 
 VIEW_GROUP::VIEW_GROUP( VIEW* aView ) :
-    m_layer( ITEM_GAL_LAYER( GP_OVERLAY ) ),
-    m_view( aView )
+    m_layer( ITEM_GAL_LAYER( GP_OVERLAY ) )
 {
-
 }
 
 
 VIEW_GROUP::~VIEW_GROUP()
 {
-    if( m_view && viewPrivData() )
-        m_view->Remove( this );
+    // VIEW_ITEM destructor removes the object from its parent view
 }
 
 
@@ -141,11 +138,8 @@ void VIEW_GROUP::ViewGetLayers( int aLayers[], int& aCount ) const
 
 void VIEW_GROUP::FreeItems()
 {
-    for(unsigned int i = 0 ; i < GetSize(); i++)
-    {
-        VIEW_ITEM* item = GetItem(i);
-        delete item;
-    }
+    for( unsigned int i = 0 ; i < GetSize(); i++ )
+        delete GetItem( i );
 
     Clear();
 }

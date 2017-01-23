@@ -43,6 +43,7 @@
 #include <router/direction.h>
 #include <ratsnest_data.h>
 #include <board_commit.h>
+#include <scoped_set_reset.h>
 
 #include <class_board.h>
 #include <class_edge_mod.h>
@@ -50,11 +51,6 @@
 #include <class_dimension.h>
 #include <class_zone.h>
 #include <class_module.h>
-
-#include <scoped_set_reset.h>
-
-#include "zoom_menu.h"
-#include "grid_menu.h"
 
 #include <tools/selection_tool.h>
 
@@ -66,8 +62,7 @@ DRAWING_TOOL::DRAWING_TOOL() :
     m_view( nullptr ), m_controls( nullptr ),
     m_board( nullptr ), m_frame( nullptr ), m_mode( MODE::NONE ),
     m_lineWidth( 1 ),
-    m_menu( this ), m_contextMenu( nullptr ),
-    m_gridMenu( nullptr), m_zoomMenu( nullptr)
+    m_menu( *this )
 {
 }
 
@@ -80,19 +75,7 @@ DRAWING_TOOL::~DRAWING_TOOL()
 bool DRAWING_TOOL::Init()
 {
     // Drawing type-specific options will be added by the PCB control tool
-
-    m_menu.AddItem( COMMON_ACTIONS::zoomCenter, SELECTION_CONDITIONS::ShowAlways, 1000 );
-    m_menu.AddItem( COMMON_ACTIONS::zoomIn, SELECTION_CONDITIONS::ShowAlways, 1000  );
-    m_menu.AddItem( COMMON_ACTIONS::zoomOut , SELECTION_CONDITIONS::ShowAlways, 1000 );
-    m_menu.AddItem( COMMON_ACTIONS::zoomFitScreen , SELECTION_CONDITIONS::ShowAlways, 1000 );
-
-    PCB_BASE_FRAME* frame = getEditFrame<PCB_BASE_FRAME>();
-
-    m_zoomMenu = new ZOOM_MENU( frame );
-    m_menu.AddMenu( m_zoomMenu, _( "Zoom" ), false, SELECTION_CONDITIONS::ShowAlways, 1000 );
-
-    m_gridMenu = new GRID_MENU( frame );
-    m_menu.AddMenu( m_gridMenu, _( "Grid" ), false, SELECTION_CONDITIONS::ShowAlways, 1000 );
+    m_menu.AddStandardSubMenus( *getEditFrame<PCB_BASE_FRAME>() );
 
     return true;
 }
@@ -211,7 +194,7 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
     BOARD_COMMIT commit( m_frame );
 
     // Add a VIEW_GROUP that serves as a preview for the new item
-    SELECTION preview( m_view );
+    SELECTION preview;
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -268,7 +251,7 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
 
         else if ( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
 
         else if( evt->IsClick( BUT_LEFT ) )
@@ -381,7 +364,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
     int maxThickness;
 
     // Add a VIEW_GROUP that serves as a preview for the new item
-    SELECTION preview( m_view );
+    SELECTION preview;
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -442,7 +425,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
 
         else if ( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
 
         else if( evt->IsClick( BUT_LEFT ) )
@@ -594,7 +577,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
     VECTOR2I delta = cursorPos - list.front()->GetPosition();
 
     // Add a VIEW_GROUP that serves as a preview for the new item
-    SELECTION preview( m_view );
+    SELECTION preview;
     BOARD_COMMIT commit( m_frame );
 
     // Build the undo list & add items to the current view
@@ -658,7 +641,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
 
         else if ( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
 
         else if( evt->IsClick( BUT_LEFT ) )
@@ -790,7 +773,7 @@ int DRAWING_TOOL::SetAnchor( const TOOL_EVENT& aEvent )
         }
         else if ( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
         else if( evt->IsCancel() || evt->IsActivate() )
             break;
@@ -807,17 +790,6 @@ int DRAWING_TOOL::SetAnchor( const TOOL_EVENT& aEvent )
 }
 
 
-void DRAWING_TOOL::showContextMenu()
-{
-    // Dummy selection - the drawing tool doesn't depend on a selection
-    SELECTION aSelection;
-    m_contextMenu = m_menu.Generate( aSelection );
-
-    if( m_contextMenu->GetMenuItemCount() > 0 )
-        SetContextMenu( m_contextMenu, CMENU_NOW );
-}
-
-
 bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
                                 boost::optional<VECTOR2D> aStartingPoint )
 {
@@ -827,7 +799,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
     DRAWSEGMENT line45;
 
     // Add a VIEW_GROUP that serves as a preview for the new item
-    SELECTION preview( m_view );
+    SELECTION preview;
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -898,7 +870,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
         }
         else if( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
         else if( evt->IsClick( BUT_LEFT ) || evt->IsDblClick( BUT_LEFT ) )
         {
@@ -1015,7 +987,7 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
     helperLine.SetWidth( 1 );
 
     // Add a VIEW_GROUP that serves as a preview for the new item
-    SELECTION preview( m_view );
+    SELECTION preview;
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -1047,7 +1019,7 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
         }
         else if( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
         else if( evt->IsClick( BUT_LEFT ) )
         {
@@ -1194,7 +1166,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
     BOARD_COMMIT commit( m_frame );
 
     // Add a VIEW_GROUP that serves as a preview for the new item
-    SELECTION preview( m_view );
+    SELECTION preview;
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
@@ -1260,7 +1232,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout )
         }
         else if( evt->IsClick( BUT_RIGHT ) )
         {
-            showContextMenu();
+            m_menu.ShowContextMenu();
         }
         else if( evt->IsClick( BUT_LEFT ) || evt->IsDblClick( BUT_LEFT ) )
         {

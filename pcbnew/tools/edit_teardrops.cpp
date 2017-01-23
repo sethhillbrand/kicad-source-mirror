@@ -68,7 +68,7 @@ void TEARDROPS_EDITOR::filterSelection(SELECTION& aSelection )
 bool TEARDROPS_EDITOR::EditTeardrops(const DIALOG_TEARDROPS::TEARDROPS_SETTINGS& aSettings )
 {
     bool retVal = false;
-    SELECTION selection = GetManager()->GetTool<SELECTION_TOOL>()->GetSelection();
+    SELECTION& selection = GetManager()->GetTool<SELECTION_TOOL>()->GetSelection();
 
     switch( aSettings.m_type )
     {

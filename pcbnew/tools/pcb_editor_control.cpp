@@ -60,7 +60,8 @@ public:
     ZONE_CONTEXT_MENU()
     {
         SetIcon( add_zone_xpm );
-        SetUpdateHandler( std::bind( &ZONE_CONTEXT_MENU::update, this ) );
+        SetTitle( _( "Zones" ) );
+
         Add( COMMON_ACTIONS::zoneFill );
         Add( COMMON_ACTIONS::zoneFillAll );
         Add( COMMON_ACTIONS::zoneUnfill );
@@ -68,8 +69,14 @@ public:
         Add( COMMON_ACTIONS::zoneMerge );
     }
 
+protected:
+    CONTEXT_MENU* create() const override
+    {
+        return new ZONE_CONTEXT_MENU();
+    }
+
 private:
-    void update()
+    void update() override
     {
         SELECTION_TOOL* selTool = getToolManager()->GetTool<SELECTION_TOOL>();
 
@@ -96,16 +103,23 @@ public:
     LOCK_CONTEXT_MENU()
     {
         SetIcon( locked_xpm );
+        SetTitle( _( "Locking" ) );
+
         Add( COMMON_ACTIONS::lock );
         Add( COMMON_ACTIONS::unlock );
         Add( COMMON_ACTIONS::toggleLock );
+    }
+
+    CONTEXT_MENU* create() const override
+    {
+        return new LOCK_CONTEXT_MENU();
     }
 };
 
 
 PCB_EDITOR_CONTROL::PCB_EDITOR_CONTROL() :
     TOOL_INTERACTIVE( "pcbnew.EditorControl" ),
-    m_frame( NULL ), m_zoneMenu( NULL ), m_lockMenu( NULL )
+    m_frame( nullptr )
 {
     m_placeOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D( 0.8, 0.0, 0.0, 1.0 ),
                                                 KIGFX::ORIGIN_VIEWITEM::CIRCLE_CROSS );
@@ -118,8 +132,6 @@ PCB_EDITOR_CONTROL::~PCB_EDITOR_CONTROL()
     getView()->Remove( m_placeOrigin );
 
     delete m_placeOrigin;
-    delete m_zoneMenu;
-    delete m_lockMenu;
 }
 
 
@@ -138,11 +150,11 @@ void PCB_EDITOR_CONTROL::Reset( RESET_REASON aReason )
 
 bool PCB_EDITOR_CONTROL::Init()
 {
-    m_zoneMenu = new ZONE_CONTEXT_MENU;
-    m_zoneMenu->SetTool( this );
+    auto zoneMenu = std::make_shared<ZONE_CONTEXT_MENU>();
+    zoneMenu->SetTool( this );
 
-    m_lockMenu = new LOCK_CONTEXT_MENU;
-    m_lockMenu->SetTool( this );
+    auto lockMenu = std::make_shared<LOCK_CONTEXT_MENU>();
+    lockMenu->SetTool( this );
 
     // Add the PCB control menus to relevant other tools
 
@@ -150,17 +162,28 @@ bool PCB_EDITOR_CONTROL::Init()
 
     if( selTool )
     {
-        selTool->GetMenu().AddMenu( m_zoneMenu, _( "Zones" ), false,
-                                    SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) );
+        auto& toolMenu = selTool->GetToolMenu();
+        auto& menu = toolMenu.GetMenu();
 
-        selTool->GetMenu().AddMenu( m_lockMenu, _( "Locking" ), false,
-                                    SELECTION_CONDITIONS::OnlyTypes( GENERAL_COLLECTOR::Tracks ) );
+        toolMenu.AddSubMenu( zoneMenu );
+        toolMenu.AddSubMenu( lockMenu );
+
+        menu.AddMenu( zoneMenu.get(), false,
+                SELECTION_CONDITIONS::OnlyType( PCB_ZONE_AREA_T ) );
+
+        menu.AddMenu( lockMenu.get(), false,
+                SELECTION_CONDITIONS::OnlyTypes( GENERAL_COLLECTOR::Tracks ) );
     }
 
     DRAWING_TOOL* drawingTool = m_toolMgr->GetTool<DRAWING_TOOL>();
 
     if( drawingTool )
     {
+        auto& toolMenu = drawingTool->GetToolMenu();
+        auto& menu = toolMenu.GetMenu();
+
+        toolMenu.AddSubMenu( zoneMenu );
+
         // Functor to say if the PCB_EDIT_FRAME is in a given mode
         // Capture the tool pointer and tool mode by value
         auto toolActiveFunctor = [=]( DRAWING_TOOL::MODE aMode )
@@ -171,8 +194,7 @@ bool PCB_EDITOR_CONTROL::Init()
             };
         };
 
-        drawingTool->GetMenu().AddMenu( m_zoneMenu, _( "Zones" ), false,
-                                        toolActiveFunctor( DRAWING_TOOL::MODE::ZONE ) );
+        menu.AddMenu( zoneMenu.get(), false, toolActiveFunctor( DRAWING_TOOL::MODE::ZONE ) );
     }
 
     return true;
