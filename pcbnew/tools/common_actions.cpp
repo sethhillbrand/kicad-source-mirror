@@ -125,6 +125,10 @@ TOOL_ACTION COMMON_ACTIONS::flip( "pcbnew.InteractiveEdit.flip",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_FLIP_ITEM ),
         _( "Flip" ), _( "Flips selected item(s)" ), swap_layer_xpm );
 
+TOOL_ACTION COMMON_ACTIONS::mirror( "pcbnew.InteractiveEdit.mirror",
+        AS_GLOBAL, 0,
+        _( "Mirror" ), _( "Mirrors selected item" ), mirror_h_xpm );
+
 TOOL_ACTION COMMON_ACTIONS::remove( "pcbnew.InteractiveEdit.remove",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_DELETE ),
         _( "Remove" ), _( "Deletes selected item(s)" ), delete_xpm );
@@ -459,6 +463,24 @@ TOOL_ACTION COMMON_ACTIONS::moduleTextOutlines( "pcbnew.ModuleEditor.textOutline
        AS_GLOBAL, 0,
        "", "" );
 
+// Pad tools
+TOOL_ACTION COMMON_ACTIONS::exportPadSettings(
+        "pcbnew.PadTool.ExportPadSettings",
+        AS_GLOBAL, 0,
+        _( "Export pad settings" ), _( "Copy current pad's settings to the board design settings" ),
+        export_options_pad_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::importPadSettings(
+        "pcbnew.PadTool.ImportPadSettings",
+        AS_GLOBAL, 0,
+        _( "Import pad settings" ), _( "Copy the board design settings pad properties to the current pad" ),
+        options_new_pad_xpm );
+
+TOOL_ACTION COMMON_ACTIONS::pushPadSettings(
+        "pcbnew.PadTool.PushPadSettings",
+        AS_GLOBAL, 0,
+        _( "Push pad settings" ), _( "Copy the current pad settings to other pads" ),
+        global_options_pad_xpm );
 
 // Cursor control
 TOOL_ACTION COMMON_ACTIONS::cursorUp( "pcbnew.Control.cursorUp",
