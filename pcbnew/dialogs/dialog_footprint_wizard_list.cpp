@@ -33,6 +33,7 @@
 #include <kiface_i.h>
 #include <dialog_footprint_wizard_list.h>
 #include <class_footprint_wizard.h>
+#include <footprint_wizard_frame.h>
 
 #if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_WXPYTHON)
 #include <python_scripting.h>
@@ -100,8 +101,12 @@ void DIALOG_FOOTPRINT_WIZARD_LIST::initLists()
     m_footprintGeneratorsGrid->SetSelectionMode( wxGrid::wxGridSelectRows );
 
     int curr_row_cnt = m_footprintGeneratorsGrid->GetNumberRows();
-    m_footprintGeneratorsGrid->DeleteRows( 0, curr_row_cnt );
-    m_footprintGeneratorsGrid->InsertRows( 0, n_wizards );
+
+    if( curr_row_cnt )
+        m_footprintGeneratorsGrid->DeleteRows( 0, curr_row_cnt );
+
+    if( n_wizards )
+        m_footprintGeneratorsGrid->InsertRows( 0, n_wizards );
 
     // Put all wizards in the list
     for( int ii = 0; ii < n_wizards; ii++ )
@@ -138,6 +143,7 @@ void DIALOG_FOOTPRINT_WIZARD_LIST::initLists()
     m_tcSearchPaths->SetValue( message );
     // Display info about scripts: unloadable scripts (due to syntax errors is python source)
     pcbnewGetUnloadableScriptNames( message );
+
     if( message.IsEmpty() )
     {
         m_tcNotLoaded->SetValue( _( "All footprint generator scripts were loaded" ) );
@@ -150,13 +156,9 @@ void DIALOG_FOOTPRINT_WIZARD_LIST::initLists()
 
 void DIALOG_FOOTPRINT_WIZARD_LIST::onUpdatePythonModulesClick( wxCommandEvent& event )
 {
-#if defined(KICAD_SCRIPTING) || defined(KICAD_SCRIPTING_WXPYTHON)
-    char cmd[1024];
-    snprintf( cmd, sizeof(cmd),
-              "pcbnew.LoadPlugins(\"%s\")", TO_UTF8( PyScriptingPath() ) );
-    PyLOCK lock;
-    // ReRun the Python method pcbnew.LoadPlugins (already called when starting Pcbnew)
-    PyRun_SimpleString( cmd );
+#if defined(KICAD_SCRIPTING)
+    FOOTPRINT_WIZARD_FRAME* fpw_frame = static_cast<FOOTPRINT_WIZARD_FRAME*>( GetParent() );
+    fpw_frame->PythonPluginsReload();
 
     initLists();
 #endif

@@ -1,10 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2017 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013-2016 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2013-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2013-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,6 +53,7 @@
 #include <module_editor_frame.h>
 #include <dialog_helpers.h>
 #include <dialog_plot.h>
+#include <dialog_exchange_modules.h>
 #include <convert_to_biu.h>
 #include <view/view.h>
 #include <view/view_controls.h>
@@ -573,8 +574,7 @@ void PCB_EDIT_FRAME::setupTools()
 
     // Register tools
     registerAllTools( m_toolManager );
-
-    m_toolManager->ResetTools( TOOL_BASE::RUN );
+    m_toolManager->InitTools();
 
     // Run the selection tool, it is supposed to be always active
     m_toolManager->InvokeTool( "pcbnew.InteractiveSelection" );
@@ -895,14 +895,14 @@ void PCB_EDIT_FRAME::SetActiveLayer( LAYER_ID aLayer )
 {
     PCB_BASE_FRAME::SetActiveLayer( aLayer );
 
-    GetGalCanvas()->SetHighContrastLayer( aLayer );
-
     syncLayerWidgetLayer();
 
     if( IsGalCanvasActive() )
     {
         m_toolManager->RunAction( COMMON_ACTIONS::layerChanged );       // notify other tools
         GetGalCanvas()->SetFocus();                 // otherwise hotkeys are stuck somewhere
+
+        GetGalCanvas()->SetHighContrastLayer( aLayer );
         GetGalCanvas()->Refresh();
     }
 }
@@ -1073,7 +1073,6 @@ void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
     else
         wxMessageBox( wxT( "Error: unable to create the Python Console" ) );
 }
-
 #endif
 
 
@@ -1175,4 +1174,30 @@ void PCB_EDIT_FRAME::OnFlipPcbView( wxCommandEvent& evt )
     view->SetMirror( evt.IsChecked(), false );
     view->RecacheAllItems();
     Refresh();
+}
+
+
+void PCB_EDIT_FRAME::PythonPluginsReload()
+{
+    // Reload Python plugins if they are newer than
+    // the already loaded, and load new plugins
+#if defined(KICAD_SCRIPTING)
+    //Reload plugin list: reload Python plugins if they are newer than
+    // the already loaded, and load new plugins
+    PythonPluginsReloadBase();
+
+    #if defined(KICAD_SCRIPTING_ACTION_MENU)
+        // Action plugins can be modified, therefore the plugins menu
+        // must be updated:
+        RebuildActionPluginMenus();
+    #endif
+#endif
+}
+
+
+int PCB_EDIT_FRAME::InstallExchangeModuleFrame( MODULE* Module )
+{
+    DIALOG_EXCHANGE_MODULE dialog( this, Module );
+
+    return dialog.ShowQuasiModal();
 }

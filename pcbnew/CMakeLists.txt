@@ -62,6 +62,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_enum_pads.cpp
     dialogs/dialog_enum_pads_base.cpp
     dialogs/dialog_exchange_modules_base.cpp
+    dialogs/dialog_exchange_modules.cpp
     dialogs/dialog_export_idf.cpp
     dialogs/dialog_export_idf_base.cpp
     dialogs/dialog_export_vrml_base.cpp
@@ -266,7 +267,6 @@ set( PCBNEW_CLASS_SRCS
     tracepcb.cpp
     tr_modif.cpp
     undo_redo.cpp
-    xchgmod.cpp
     zones_convert_brd_items_to_polygons_with_Boost.cpp
     zones_convert_to_polygons_aux_functions.cpp
     zones_by_polygon.cpp
@@ -292,7 +292,7 @@ set( PCBNEW_CLASS_SRCS
     tools/edit_tool.cpp
     tools/pcbnew_control.cpp
     tools/pcb_editor_control.cpp
-    tools/module_tools.cpp
+    tools/module_editor_tools.cpp
     tools/placement_tool.cpp
     tools/common_actions.cpp
     tools/grid_helper.cpp

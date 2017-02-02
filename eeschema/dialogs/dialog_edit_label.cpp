@@ -110,8 +110,6 @@ DIALOG_LABEL_EDITOR::DIALOG_LABEL_EDITOR( SCH_EDIT_FRAME* aParent, SCH_TEXT* aTe
     m_CurrentText = aTextItem;
     InitDialog();
 
-    FixOSXCancelButtonIssue();
-
     // Now all widgets have the size fixed, call FinishDialogSettings
     FinishDialogSettings();
 }
@@ -205,8 +203,8 @@ void DIALOG_LABEL_EDITOR::InitDialog()
     textWidth.Append( 'M', MINTEXTWIDTH );
     EnsureTextCtrlWidth( m_textLabel, &textWidth );
 
-    // Set validators
-    m_TextOrient->SetSelection( m_CurrentText->GetTextAngle() );
+    // Set text options:
+    m_TextOrient->SetSelection( m_CurrentText->GetLabelSpinStyle() );
     m_TextShape->SetSelection( m_CurrentText->GetShape() );
 
     int style = 0;
