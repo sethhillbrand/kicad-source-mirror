@@ -49,8 +49,8 @@ public:
         SetIcon( pad_xpm );
         SetTitle( _( "Pads" ) );
 
-        Add( COMMON_ACTIONS::importPadSettings );
-        Add( COMMON_ACTIONS::exportPadSettings );
+        Add( COMMON_ACTIONS::copyPadSettings );
+        Add( COMMON_ACTIONS::applyPadSettings );
         Add( COMMON_ACTIONS::pushPadSettings );
     }
 
@@ -74,15 +74,15 @@ private:
                                 && SELECTION_CONDITIONS::OnlyType( PCB_PAD_T );
         auto emptySel = SELECTION_CONDITIONS::Count( 0 );
 
-        // Import pads enabled when any pads selected (it applies to each one
+        // Apply pads enabled when any pads selected (it applies to each one
         // individually)
         const bool canImport = ( anyPadSel )( selection );
-        Enable( getMenuId( COMMON_ACTIONS::importPadSettings ), canImport );
+        Enable( getMenuId( COMMON_ACTIONS::applyPadSettings ), canImport );
 
-        // Export pads item enabled only when there is a single pad selected
-        // (otherwise how would we know which one to export?)
+        // Copy pads item enabled only when there is a single pad selected
+        // (otherwise how would we know which one to copy?)
         const bool canExport = ( singlePadSel )( selection );
-        Enable( getMenuId( COMMON_ACTIONS::exportPadSettings ), canExport );
+        Enable( getMenuId( COMMON_ACTIONS::copyPadSettings ), canExport );
 
         // Push pads available when nothing selected, or a single pad
         const bool canPush = ( singlePadSel || emptySel ) ( selection );
@@ -132,77 +132,7 @@ bool PAD_TOOL::Init()
 }
 
 
-/**
- * Function doExportPadSettings
- *
- * Export a given pad to the destination pad. Normally, the destination
- * would be a board reference settings master pad.
- */
-static void doExportPadSettings( const D_PAD& aSrc, D_PAD& aDest )
-{
-    // Copy all settings. Some of them are not used, but they break anything
-    aDest = aSrc;
-
-    // The pad orientation, for historical reasons is the
-    // pad rotation + parent rotation.
-    // store only the pad rotation.
-    aDest.SetOrientation( aSrc.GetOrientation() - aSrc.GetParent()->GetOrientation() );
-}
-
-
-/**
- * Function doImportPadSettings
- *
- * Import pad settings from a "reference" source to a destination.
- * Often, the reference source will be a board reference settings
- * master pad.
- */
-static void doImportPadSettings( const D_PAD& aSrc, D_PAD& aDest )
-{
-    const auto& destParent = *aDest.GetParent();
-
-    aDest.SetShape( aSrc.GetShape() );
-    aDest.SetLayerSet( aSrc.GetLayerSet() );
-    aDest.SetAttribute( aSrc.GetAttribute() );
-    aDest.SetOrientation( aSrc.GetOrientation() + destParent.GetOrientation() );
-    aDest.SetSize( aSrc.GetSize() );
-    aDest.SetDelta( wxSize( 0, 0 ) );
-    aDest.SetOffset( aSrc.GetOffset() );
-    aDest.SetDrillSize( aSrc.GetDrillSize() );
-    aDest.SetDrillShape( aSrc.GetDrillShape() );
-    aDest.SetRoundRectRadiusRatio( aSrc.GetRoundRectRadiusRatio() );
-
-    switch( aSrc.GetShape() )
-    {
-    case PAD_SHAPE_TRAPEZOID:
-        aDest.SetDelta( aSrc.GetDelta() );
-        break;
-
-    case PAD_SHAPE_CIRCLE:
-        // ensure size.y == size.x
-        aDest.SetSize( wxSize( aDest.GetSize().x, aDest.GetSize().x ) );
-        break;
-
-    default:
-        ;
-    }
-
-    switch( aSrc.GetAttribute() )
-    {
-    case PAD_ATTRIB_SMD:
-    case PAD_ATTRIB_CONN:
-        // These pads do not have hole (they are expected to be only on one
-        // external copper layer)
-        aDest.SetDrillSize( wxSize( 0, 0 ) );
-        break;
-
-    default:
-        ;
-    }
-}
-
-
-int PAD_TOOL::importPadSettings( const TOOL_EVENT& aEvent )
+int PAD_TOOL::applyPadSettings( const TOOL_EVENT& aEvent )
 {
     auto& selTool = *m_toolMgr->GetTool<SELECTION_TOOL>();
     const auto& selection = selTool.GetSelection();
@@ -220,13 +150,12 @@ int PAD_TOOL::importPadSettings( const TOOL_EVENT& aEvent )
         {
             commit.Modify( item );
 
-            auto& destPad = static_cast<D_PAD&>( *item );
-
-            doImportPadSettings( masterPad, destPad );
+            D_PAD& destPad = static_cast<D_PAD&>( *item );
+            destPad.ImportSettingsFromMaster( masterPad );
         }
     }
 
-    commit.Push( _( "Import Pad Settings" ) );
+    commit.Push( _( "Apply Pad Settings" ) );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::editModifiedSelection, true );
     frame.Refresh();
@@ -235,7 +164,7 @@ int PAD_TOOL::importPadSettings( const TOOL_EVENT& aEvent )
 }
 
 
-int PAD_TOOL::exportPadSettings( const TOOL_EVENT& aEvent )
+int PAD_TOOL::copyPadSettings( const TOOL_EVENT& aEvent )
 {
     auto& selTool = *m_toolMgr->GetTool<SELECTION_TOOL>();
     const auto& selection = selTool.GetSelection();
@@ -244,7 +173,7 @@ int PAD_TOOL::exportPadSettings( const TOOL_EVENT& aEvent )
 
     D_PAD& masterPad = frame.GetDesignSettings().m_Pad_Master;
 
-    // can only export from a single pad
+    // can only copy from a single pad
     if( selection.Size() == 1 )
     {
         auto item = selection[0];
@@ -252,8 +181,7 @@ int PAD_TOOL::exportPadSettings( const TOOL_EVENT& aEvent )
         if( item->Type() == PCB_PAD_T )
         {
             const auto& selPad = static_cast<const D_PAD&>( *item );
-
-            doExportPadSettings( selPad, masterPad );
+            masterPad.ImportSettingsFromMaster( selPad );
         }
     }
 
@@ -271,8 +199,8 @@ static void globalChangePadSettings( BOARD& board,
 {
     const MODULE* moduleRef = aSrcPad.GetParent();
 
-    // if there is no module, we can't make the comparisons to see which
-    // pads to aply the src pad settings to
+    // If there is no module, we can't make the comparisons to see which
+    // pads to apply the source pad settings to
     if( moduleRef == nullptr )
     {
         wxLogDebug( "globalChangePadSettings() Error: NULL module" );
@@ -308,8 +236,8 @@ static void globalChangePadSettings( BOARD& board,
 
             commit.Modify( pad );
 
-            // copy source pad settings to this pad
-            doImportPadSettings( aSrcPad, *pad );
+            // Apply source pad settings to this pad
+            pad->ImportSettingsFromMaster( aSrcPad );
         }
     }
 }
@@ -342,7 +270,7 @@ int PAD_TOOL::pushPadSettings( const TOOL_EVENT& aEvent )
     else
     {
         // multiple selected what to do?
-        // maybe master->selection? same as import multiple?
+        // maybe master->selection? same as apply multiple?
     }
 
     // no valid selection, nothing to do
@@ -380,7 +308,7 @@ int PAD_TOOL::pushPadSettings( const TOOL_EVENT& aEvent )
                               DIALOG_GLOBAL_PADS_EDITION::m_Pad_Orient_Filter,
                               DIALOG_GLOBAL_PADS_EDITION::m_Pad_Layer_Filter );
 
-    commit.Push( _( "Import Pad Settings" ) );
+    commit.Push( _( "Apply Pad Settings" ) );
 
     m_toolMgr->RunAction( COMMON_ACTIONS::editModifiedSelection, true );
     frame.Refresh();
@@ -388,10 +316,9 @@ int PAD_TOOL::pushPadSettings( const TOOL_EVENT& aEvent )
     return 0;
 }
 
-
 void PAD_TOOL::SetTransitions()
 {
-    Go( &PAD_TOOL::importPadSettings, COMMON_ACTIONS::importPadSettings.MakeEvent() );
-    Go( &PAD_TOOL::exportPadSettings, COMMON_ACTIONS::exportPadSettings.MakeEvent() );
-    Go( &PAD_TOOL::pushPadSettings,   COMMON_ACTIONS::pushPadSettings.MakeEvent() );
+    Go( &PAD_TOOL::applyPadSettings, COMMON_ACTIONS::applyPadSettings.MakeEvent() );
+    Go( &PAD_TOOL::copyPadSettings,  COMMON_ACTIONS::copyPadSettings.MakeEvent() );
+    Go( &PAD_TOOL::pushPadSettings,  COMMON_ACTIONS::pushPadSettings.MakeEvent() );
 }

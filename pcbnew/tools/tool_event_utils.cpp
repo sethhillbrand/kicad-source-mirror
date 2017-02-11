@@ -1,6 +1,6 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
- *
+
  * Copyright (C) 2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
@@ -21,44 +21,27 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef __PAD_TOOL_H
-#define __PAD_TOOL_H
+#include <tools/tool_event_utils.h>
+
+#include <tools/common_actions.h>
+
+#include <pcb_base_edit_frame.h>
 
 
-#include <tools/pcb_tool.h>
-
-class CONTEXT_MENU;
-
-/**
- * Class PAD_TOOL
- *
- * Tools relating to pads and pad settings
- */
-class PAD_TOOL : public PCB_TOOL
+bool TOOL_EVT_UTILS::IsRotateToolEvt( const TOOL_EVENT& aEvt )
 {
-public:
-    PAD_TOOL();
-    ~PAD_TOOL();
-
-    ///> React to model/view changes
-    void Reset( RESET_REASON aReason ) override;
-
-    ///> Basic initalization
-    bool Init() override;
-
-    ///> Bind handlers to corresponding TOOL_ACTIONs
-    void SetTransitions() override;
-
-private:
-    ///> Apply pad settings from board design settings to a pad
-    int applyPadSettings( const TOOL_EVENT& aEvent );
-
-    ///> Copy pad settings from a pad to the board design settings
-    int copyPadSettings( const TOOL_EVENT& aEvent );
-
-    ///> Push pad settings from a pad to other pads on board or module
-    int pushPadSettings( const TOOL_EVENT& aEvent );
-};
+    return aEvt.IsAction( &COMMON_ACTIONS::rotateCw )
+            || aEvt.IsAction( &COMMON_ACTIONS::rotateCcw );
+}
 
 
-#endif // __PAD_TOOL_H
+int TOOL_EVT_UTILS::GetEventRotationAngle( const PCB_BASE_EDIT_FRAME& aFrame,
+                                           const TOOL_EVENT& aEvt )
+{
+    wxASSERT_MSG( IsRotateToolEvt( aEvt ), "Expected rotation event" );
+
+    const int rotAngle = aFrame.GetRotationAngle();
+    const int angleMultiplier = aEvt.Parameter<intptr_t>();
+
+    return rotAngle * angleMultiplier;
+}

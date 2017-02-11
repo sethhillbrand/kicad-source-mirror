@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013-2016 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -64,14 +64,10 @@ PCB_RENDER_SETTINGS::PCB_RENDER_SETTINGS()
 void PCB_RENDER_SETTINGS::ImportLegacyColors( const COLORS_DESIGN_SETTINGS* aSettings )
 {
     for( int i = 0; i < LAYER_ID_COUNT; i++ )
-    {
         m_layerColors[i] = m_legacyColorMap[aSettings->GetLayerColor( i )];
-    }
 
     for( int i = 0; i < END_PCB_VISIBLE_LIST; i++ )
-    {
         m_layerColors[ITEM_GAL_LAYER( i )] = m_legacyColorMap[aSettings->GetItemColor( i )];
-    }
 
     m_layerColors[ITEM_GAL_LAYER( MOD_TEXT_FR_VISIBLE )]            = m_layerColors[F_SilkS];
     m_layerColors[ITEM_GAL_LAYER( MOD_TEXT_BK_VISIBLE )]            = m_layerColors[B_SilkS];
@@ -87,9 +83,11 @@ void PCB_RENDER_SETTINGS::ImportLegacyColors( const COLORS_DESIGN_SETTINGS* aSet
     m_layerColors[NETNAMES_GAL_LAYER( PAD_FR_NETNAMES_VISIBLE )]    = COLOR4D( 1.0, 1.0, 1.0, 0.9 );
     m_layerColors[NETNAMES_GAL_LAYER( PAD_BK_NETNAMES_VISIBLE )]    = COLOR4D( 1.0, 1.0, 1.0, 0.9 );
     m_layerColors[ITEM_GAL_LAYER( ANCHOR_VISIBLE )]                 = COLOR4D( 0.3, 0.3, 1.0, 0.9 );
-    m_layerColors[ITEM_GAL_LAYER( RATSNEST_VISIBLE )]               = COLOR4D( 0.4, 0.4, 0.4, 0.8 );
     m_layerColors[ITEM_GAL_LAYER( WORKSHEET )]                      = COLOR4D( 0.5, 0.0, 0.0, 0.8 );
     m_layerColors[ITEM_GAL_LAYER( DRC_VISIBLE )]                    = COLOR4D( 1.0, 0.0, 0.0, 0.8 );
+
+    // Make ratsnest lines slightly transparent
+    m_layerColors[ITEM_GAL_LAYER( RATSNEST_VISIBLE )].a = 0.8;
 
     // Netnames for copper layers
     for( LSEQ cu = LSET::AllCuMask().CuStack();  cu;  ++cu )
@@ -244,6 +242,18 @@ void PCB_RENDER_SETTINGS::update()
 PCB_PAINTER::PCB_PAINTER( GAL* aGal ) :
     PAINTER( aGal )
 {
+}
+
+
+int PCB_PAINTER::getLineThickness( int aActualThickness ) const
+{
+    // if items have 0 thickness, draw them with the outline
+    // width, otherwise respect the set value (which, no matter
+    // how small will produce something)
+    if( aActualThickness == 0 )
+        return m_pcbSettings.m_outlineWidth;
+
+    return aActualThickness;
 }
 
 
@@ -784,7 +794,7 @@ void PCB_PAINTER::draw( const DRAWSEGMENT* aSegment, int aLayer )
     if( m_pcbSettings.m_sketchMode[aLayer] )
         m_gal->SetLineWidth( m_pcbSettings.m_outlineWidth );    // Outline mode
     else
-        m_gal->SetLineWidth( aSegment->GetWidth() );            // Filled mode
+        m_gal->SetLineWidth( getLineThickness( aSegment->GetWidth() ) );     // Filled mode
 
     switch( aSegment->GetShape() )
     {
@@ -871,7 +881,7 @@ void PCB_PAINTER::draw( const TEXTE_PCB* aText, int aLayer )
     else
     {
         // Filled mode
-        m_gal->SetLineWidth( aText->GetThickness() );
+        m_gal->SetLineWidth( getLineThickness( aText->GetThickness() ) );
     }
 
     m_gal->SetStrokeColor( color );
@@ -899,7 +909,7 @@ void PCB_PAINTER::draw( const TEXTE_MODULE* aText, int aLayer )
     else
     {
         // Filled mode
-        m_gal->SetLineWidth( aText->GetThickness() );
+        m_gal->SetLineWidth( getLineThickness( aText->GetThickness() ) );
     }
 
     m_gal->SetStrokeColor( color );
@@ -1021,7 +1031,7 @@ void PCB_PAINTER::draw( const DIMENSION* aDimension, int aLayer )
     m_gal->SetStrokeColor( strokeColor );
     m_gal->SetIsFill( false );
     m_gal->SetIsStroke( true );
-    m_gal->SetLineWidth( aDimension->GetWidth() );
+    m_gal->SetLineWidth( getLineThickness( aDimension->GetWidth() ) );
 
     // Draw an arrow
     m_gal->DrawLine( VECTOR2D( aDimension->m_crossBarO ), VECTOR2D( aDimension->m_crossBarF ) );
@@ -1050,7 +1060,7 @@ void PCB_PAINTER::draw( const PCB_TARGET* aTarget )
     VECTOR2D position( aTarget->GetPosition() );
     double   size, radius;
 
-    m_gal->SetLineWidth( aTarget->GetWidth() );
+    m_gal->SetLineWidth( getLineThickness( aTarget->GetWidth() ) );
     m_gal->SetStrokeColor( strokeColor );
     m_gal->SetIsFill( false );
     m_gal->SetIsStroke( true );
