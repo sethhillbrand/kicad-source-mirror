@@ -60,6 +60,16 @@ static inline wxString FROM_UTF8( const char* cstring )
     return line;
 }
 
+
+/// Utility to build comma separated lists in messages
+inline void AccumulateDescription( wxString &aDesc, const wxString &aItem )
+{
+    if( !aDesc.IsEmpty() )
+        aDesc << wxT(", ");
+
+    aDesc << aItem;
+}
+
 /**
  * Function GetChars
  * returns a wxChar* to the actual wxChar* data within a wxString, and is
@@ -93,9 +103,14 @@ static inline const wxChar* GetChars( const wxString& s )
  * Mirror @a aPoint in @a aMirrorRef.
  */
 template<typename T>
+T Mirror( T aPoint, T aMirrorRef )
+{
+    return -( aPoint - aMirrorRef ) + aMirrorRef;
+}
+template<typename T>
 void MIRROR( T& aPoint, const T& aMirrorRef )
 {
-    aPoint = -( aPoint - aMirrorRef ) + aMirrorRef;
+    aPoint = Mirror( aPoint, aMirrorRef );
 }
 
 

@@ -62,6 +62,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_enum_pads.cpp
     dialogs/dialog_enum_pads_base.cpp
     dialogs/dialog_exchange_modules_base.cpp
+    dialogs/dialog_exchange_modules.cpp
     dialogs/dialog_export_idf.cpp
     dialogs/dialog_export_idf_base.cpp
     dialogs/dialog_export_vrml_base.cpp
@@ -87,6 +88,7 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_global_modules_fields_edition.cpp
     dialogs/dialog_global_modules_fields_edition_base.cpp
     dialogs/dialog_global_pads_edition_base.cpp
+    dialogs/dialog_global_pads_edition.cpp
     dialogs/dialog_graphic_items_options.cpp
     dialogs/dialog_graphic_items_options_base.cpp
     dialogs/dialog_graphic_item_properties.cpp
@@ -263,7 +265,6 @@ set( PCBNEW_CLASS_SRCS
     tracepcb.cpp
     tr_modif.cpp
     undo_redo.cpp
-    xchgmod.cpp
     zones_convert_brd_items_to_polygons_with_Boost.cpp
     zones_convert_to_polygons_aux_functions.cpp
     zones_by_polygon.cpp
@@ -274,6 +275,7 @@ set( PCBNEW_CLASS_SRCS
     zones_polygons_test_connections.cpp
     zones_test_and_combine_areas.cpp
     class_footprint_wizard.cpp
+    class_action_plugin.cpp
 
     tools/selection_tool.cpp
     tools/selection_area.cpp
@@ -287,13 +289,16 @@ set( PCBNEW_CLASS_SRCS
     tools/edit_tool.cpp
     tools/pcbnew_control.cpp
     tools/pcb_editor_control.cpp
-    tools/module_tools.cpp
+    tools/module_editor_tools.cpp
     tools/placement_tool.cpp
     tools/common_actions.cpp
     tools/grid_helper.cpp
+    tools/pad_tool.cpp
     tools/picker_tool.cpp
     tools/zoom_tool.cpp
     tools/tools_common.cpp
+    tools/tool_event_utils.cpp
+    tools/tool_menu.cpp
 
     tools/grid_menu.cpp
     tools/zoom_menu.cpp
@@ -319,6 +324,7 @@ set( PCBNEW_SCRIPTING_PYTHON_HELPERS
     swig/python_scripting.cpp
     swig/pcbnew_scripting_helpers.cpp
     swig/pcbnew_footprint_wizards.cpp
+    swig/pcbnew_action_plugins.cpp
     )
 
 if( KICAD_SCRIPTING )

@@ -28,16 +28,10 @@
 
 #include <math/vector2d.h>
 #include <tools/pcb_tool.h>
-#include <view/view_group.h>
 
 class BOARD_COMMIT;
 class BOARD_ITEM;
 class SELECTION_TOOL;
-
-namespace KIGFX
-{
-class VIEW_GROUP;
-}
 
 /**
  * Class EDIT_TOOL
@@ -87,6 +81,13 @@ public:
     int Flip( const TOOL_EVENT& aEvent );
 
     /**
+     * Function Mirror
+     *
+     * Mirrors the current selection. The mirror axis passes through the current point.
+     */
+    int Mirror( const TOOL_EVENT& aEvent );
+
+    /**
      * Function Remove()
      *
      * Deletes currently selected items. The rotation point is the current cursor position.
@@ -115,6 +116,13 @@ public:
      */
     int CreateArray( const TOOL_EVENT& aEvent );
 
+    /**
+     * Function ExchangeFootprints()
+     *
+     * Invoke the dialog used to change the footprints used for modules
+     * and update module footprints based on result
+     */
+    int ExchangeFootprints( const TOOL_EVENT& aEvent );
 
     ///> Sets up handlers for various events.
     void SetTransitions() override;
@@ -133,16 +141,6 @@ private:
     ///> of edit reference point).
     VECTOR2I m_cursor;
 
-    ///> The required update flag for modified items
-    KIGFX::VIEW_ITEM::VIEW_UPDATE_FLAGS m_updateFlag;
-
-    ///> Enables higher order update flag
-    void enableUpdateFlag( KIGFX::VIEW_ITEM::VIEW_UPDATE_FLAGS aFlag )
-    {
-        if( m_updateFlag < aFlag )
-            m_updateFlag = aFlag;
-    }
-
     ///> Updates ratsnest for selected items.
     ///> @param aRedraw says if selected items should be drawn using the simple mode (e.g. one line
     ///> per item).
@@ -152,23 +150,64 @@ private:
     ///> selected items.
     wxPoint getModificationPoint( const SELECTION& aSelection );
 
-    ///> If there are no items currently selected, it tries to choose the item that is under
-    ///> the cursor or displays a disambiguation menu if there are multiple items.
-    bool hoverSelection( bool aSanitize = true );
-
     int editFootprintInFpEditor( const TOOL_EVENT& aEvent );
 
     bool invokeInlineRouter();
 
-    template<class T> T* uniqueSelected()
+    /**
+     * Function hoverSelection()
+     *
+     * If there are no items currently selected, it tries to choose the
+     * item that is under he cursor or displays a disambiguation menu
+     * if there are multiple items.
+     *
+     * @param aSanitize sanitize selection using SanitizeSelection()
+     * @return true if the eventual selection contains any items, or
+     * false if it fails to select any items.
+     */
+    bool hoverSelection( bool aSanitize = true );
+
+    /**
+     * Function uniqueSelected()
+     *
+     * Get a single selected item of a certain type
+     *
+     * @tparam T type of item to select
+     * @return pointer to the item (of type T), or nullptr if there isn't
+     * a single selected item, or it's not of the right type.
+     */
+    template<class T>
+    T* uniqueSelected()
     {
         const SELECTION& selection = m_selectionTool->GetSelection();
 
-        if( selection.items.GetCount() != 1 )
-            return NULL;
+        if( selection.Size() != 1 )
+            return nullptr;
 
-        BOARD_ITEM* item = selection.Item<BOARD_ITEM>( 0 );
+        auto item = selection[0];
         return dyn_cast<T*>( item );
+    }
+
+    /**
+     * Function uniqueHoverSelection()
+     *
+     * Get a single unique selection of an item, either from the
+     * current selection, or from the items under cursor via
+     * hoverSelection()
+     *
+     * @tparam T type of item to select
+     * @return pointer to a selected item, or nullptr if none could
+     * be found.
+     */
+    template<class T>
+    T* uniqueHoverSelection( bool aSanitize = true )
+    {
+        if( !hoverSelection( aSanitize ) )
+            return nullptr;
+
+        T* item = uniqueSelected<T>();
+
+        return item;
     }
 
     std::unique_ptr<BOARD_COMMIT> m_commit;

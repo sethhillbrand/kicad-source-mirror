@@ -111,14 +111,13 @@ public:
 
     BITMAP_DEF GetMenuImage() const override { return  drc_xpm; }
 
-    ///> @copydoc VIEW_ITEM::ViewBBox()
-    virtual const BOX2I ViewBBox() const override
+    const BOX2I ViewBBox() const override
     {
-        return GetParent()->ViewBBox();
+        // The following is based on the PCB_PAINTER::draw( const MARKER_PCB* )
+        return BOX2I( m_Pos, VECTOR2I( 1300000, 1300000 ) );
     }
 
-    ///> @copydoc VIEW_ITEM::ViewGetLayers()
-    virtual void ViewGetLayers( int aLayers[], int& aCount ) const override;
+    void ViewGetLayers( int aLayers[], int& aCount ) const override;
 
 #if defined(DEBUG)
     void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }

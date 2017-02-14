@@ -46,6 +46,10 @@ class MODULE;
 class TRACK;
 class MSG_PANEL_INFO;
 
+namespace KIGFX
+{
+    class VIEW;
+};
 
 // Helper class to store parameters used to draw a pad
 class PAD_DRAWINFO
@@ -104,10 +108,18 @@ public:
     MODULE* GetParent() const { return (MODULE*) m_Parent; }
 
     /**
+     * Imports the pad settings from aMasterPad.
+     * The result is "this" has the same settinds (sizes, shapes ... )
+     * as aMasterPad
+     * @param aMasterPad = the template pad
+     */
+    void ImportSettingsFromMaster( const D_PAD& aMasterPad );
+
+    /**
      * @return true if the pad has a footprint parent flipped
      * (on the back/bottom layer)
      */
-    bool IsFlipped();
+    bool IsFlipped() const;
 
     /**
      * Set the pad name (sometimes called pad number, although
@@ -120,7 +132,7 @@ public:
      * @return the pad name
      * the pad name is limited to 4 ASCII chars
      */
-    const wxString GetPadName() const;
+    wxString GetPadName() const;
 
     /**
      * @return the pad name in a wxUint32 which is possible
@@ -128,7 +140,7 @@ public:
      * The packed pad name should be used only to compare 2
      * pad names, not to try to print this name
      */
-    const wxUint32 GetPackedPadName() const { return m_NumPadName; }
+    wxUint32 GetPackedPadName() const { return m_NumPadName; }
 
     /**
      * Function IncrementPadName
@@ -426,7 +438,7 @@ public:
         return m_boundingRadius;
     }
 
-    const wxPoint ShapePos() const;
+    wxPoint ShapePos() const;
 
     /**
      * has meaning only for rounded rect pads
@@ -435,7 +447,7 @@ public:
      * Cannot be > 0.5
      * the normalized IPC-7351C value is 0.25
      */
-    double GetRoundRectRadiusRatio()
+    double GetRoundRectRadiusRatio() const
     {
         return m_padRoundRectRadiusScale;
     }
@@ -540,7 +552,7 @@ public:
     virtual void ViewGetLayers( int aLayers[], int& aCount ) const override;
 
     /// @copydoc VIEW_ITEM::ViewGetLOD()
-    virtual unsigned int ViewGetLOD( int aLayer ) const override;
+    virtual unsigned int ViewGetLOD( int aLayer, KIGFX::VIEW* aView ) const override;
 
     /// @copydoc VIEW_ITEM::ViewBBox()
     virtual const BOX2I ViewBBox() const override;

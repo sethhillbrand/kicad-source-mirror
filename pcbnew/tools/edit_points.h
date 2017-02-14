@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KICAD, a free EDA CAD application.
  *
- * Copyright (C) 2014 CERN
+ * Copyright (C) 2014-2017 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -35,6 +35,7 @@
 
 #include <memory>
 
+#include <view/view.h>
 
 /**
  * Class EDIT_POINT
@@ -317,7 +318,7 @@ public:
      * Returns a point that is at given coordinates or NULL if there is no such point.
      * @param aLocation is the location for searched point.
      */
-    EDIT_POINT* FindPoint( const VECTOR2I& aLocation );
+    EDIT_POINT* FindPoint( const VECTOR2I& aLocation, KIGFX::VIEW *aView );
 
     /**
      * Function GetParent()
@@ -492,13 +493,10 @@ public:
     }
 
     ///> @copydoc VIEW_ITEM::ViewBBox()
-    virtual const BOX2I ViewBBox() const override
-    {
-        return m_parent->ViewBBox();
-    }
+    virtual const BOX2I ViewBBox() const override;
 
     ///> @copydoc VIEW_ITEM::ViewDraw()
-    virtual void ViewDraw( int aLayer, KIGFX::GAL* aGal ) const override;
+    virtual void ViewDraw( int aLayer, KIGFX::VIEW* aView ) const override;
 
     ///> @copydoc VIEW_ITEM::ViewGetLayers()
     virtual void ViewGetLayers( int aLayers[], int& aCount ) const override

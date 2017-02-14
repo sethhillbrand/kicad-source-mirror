@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,7 +37,7 @@
 #include <layers_id_colors_and_visibility.h>       // ALL_LAYERS definition.
 #include <class_board_item.h>
 #include <board_item_container.h>
-#include <fpid.h>
+#include <lib_id.h>
 
 #include <class_text_mod.h>
 #include <PolyLine.h>
@@ -53,6 +53,10 @@ class D_PAD;
 class BOARD;
 class MSG_PANEL_ITEM;
 
+namespace KIGFX
+{
+    class VIEW;
+};
 
 enum INCLUDE_NPTH_T
 {
@@ -144,8 +148,8 @@ public:
     double GetOrientationDegrees() const   { return m_Orient/10.0; }
     double GetOrientationRadians() const   { return m_Orient*M_PI/1800; }
 
-    const FPID& GetFPID() const { return m_fpid; }
-    void SetFPID( const FPID& aFPID ) { m_fpid = aFPID; }
+    const LIB_ID& GetFPID() const { return m_fpid; }
+    void SetFPID( const LIB_ID& aFPID ) { m_fpid = aFPID; }
 
     const wxString& GetDescription() const { return m_Doc; }
     void SetDescription( const wxString& aDoc ) { m_Doc = aDoc; }
@@ -557,14 +561,12 @@ public:
      */
     void RunOnChildren( std::function<void (BOARD_ITEM*)> aFunction );
 
-    /// @copydoc VIEW_ITEM::ViewUpdate()
-    void ViewUpdate( int aUpdateFlags = KIGFX::VIEW_ITEM::ALL ) override;
 
     /// @copydoc VIEW_ITEM::ViewGetLayers()
     virtual void ViewGetLayers( int aLayers[], int& aCount ) const override;
 
     /// @copydoc VIEW_ITEM::ViewGetLOD()
-    virtual unsigned int ViewGetLOD( int aLayer ) const override;
+    virtual unsigned int ViewGetLOD( int aLayer, KIGFX::VIEW* aView ) const override;
 
     /// @copydoc VIEW_ITEM::ViewBBox()
     virtual const BOX2I ViewBBox() const override;
@@ -650,7 +652,7 @@ private:
     wxPoint           m_Pos;            ///< Position of module on the board in internal units.
     TEXTE_MODULE*     m_Reference;      ///< Component reference designator value (U34, R18..)
     TEXTE_MODULE*     m_Value;          ///< Component value (74LS00, 22K..)
-    FPID              m_fpid;           ///< The #FPID of the MODULE.
+    LIB_ID            m_fpid;           ///< The #LIB_ID of the MODULE.
     int               m_Attributs;      ///< Flag bits ( see Mod_Attribut )
     int               m_ModuleStatus;   ///< For autoplace: flags (LOCKED, AUTOPLACED)
     EDA_RECT          m_BoundaryBox;    ///< Bounding box : coordinates on board, real orientation.

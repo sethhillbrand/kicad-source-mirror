@@ -204,7 +204,7 @@ bool EXCELLON_WRITER::GenDrillMapFile( const wxString& aFullFileName,
     plotter->SetCurrentLineWidth( -1 );
 
     // Plot board outlines and drill map
-    PlotDrillMarks( plotter );
+    plotDrillMarks( plotter );
 
     // Print a list of symbols used.
     int     charSize    = 3 * IU_PER_MM;                    // text size in IUs
@@ -297,7 +297,7 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
     unsigned    totalHoleCount;
     wxString    brdFilename = m_pcb->GetFileName();
 
-    std::vector<LAYER_PAIR> hole_sets = getUniqueLayerPairs();
+    std::vector<DRILL_LAYER_PAIR> hole_sets = getUniqueLayerPairs();
 
     out.Print( 0, "Drill report for %s\n", TO_UTF8( brdFilename ) );
     out.Print( 0, "Created on %s\n\n", TO_UTF8( DateAndTime() ) );
@@ -331,11 +331,11 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
     // in this loop are plated only:
     for( unsigned pair_ndx = 0;  pair_ndx < hole_sets.size();  ++pair_ndx )
     {
-        LAYER_PAIR  pair = hole_sets[pair_ndx];
+        DRILL_LAYER_PAIR  pair = hole_sets[pair_ndx];
 
-        BuildHolesList( pair, buildNPTHlist );
+        buildHolesList( pair, buildNPTHlist );
 
-        if( pair == LAYER_PAIR( F_Cu, B_Cu ) )
+        if( pair == DRILL_LAYER_PAIR( F_Cu, B_Cu ) )
         {
             out.Print( 0, "Drill file '%s' contains\n",
                 TO_UTF8( drillFileName( pair, false, m_merge_PTH_NPTH ) ) );
@@ -369,14 +369,15 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
     if( !m_merge_PTH_NPTH )
         buildNPTHlist = true;
 
-    BuildHolesList( LAYER_PAIR( F_Cu, B_Cu ), buildNPTHlist );
+    buildHolesList( DRILL_LAYER_PAIR( F_Cu, B_Cu ), buildNPTHlist );
 
     // nothing wrong with an empty NPTH file in report.
     if( m_merge_PTH_NPTH )
         out.Print( 0, "Not plated through holes are merged with plated holes\n" );
     else
         out.Print( 0, "Drill file '%s' contains\n",
-                    TO_UTF8( drillFileName( LAYER_PAIR( F_Cu, B_Cu ), true, m_merge_PTH_NPTH ) ) );
+                   TO_UTF8( drillFileName( DRILL_LAYER_PAIR( F_Cu, B_Cu ),
+                   true, m_merge_PTH_NPTH ) ) );
 
     out.Print( 0, "    unplated through holes:\n" );
     out.Print( 0, separator );
@@ -387,7 +388,7 @@ bool EXCELLON_WRITER::GenDrillReportFile( const wxString& aFullFileName )
 }
 
 
-bool EXCELLON_WRITER::PlotDrillMarks( PLOTTER* aPlotter )
+bool EXCELLON_WRITER::plotDrillMarks( PLOTTER* aPlotter )
 {
     // Plot the drill map:
     wxPoint pos;

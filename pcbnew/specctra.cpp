@@ -571,7 +571,7 @@ void SPECCTRA_DB::doUNIT( UNIT_RES* growth ) throw( IO_ERROR )
 }
 
 
-void SPECCTRA_DB::doLAYER_PAIR( LAYER_PAIR* growth ) throw( IO_ERROR )
+void SPECCTRA_DB::doSPECCTRA_LAYER_PAIR( SPECCTRA_LAYER_PAIR* growth ) throw( IO_ERROR )
 {
     NeedSYMBOL();
     growth->layer_id0 = CurText();
@@ -600,9 +600,9 @@ void SPECCTRA_DB::doLAYER_NOISE_WEIGHT( LAYER_NOISE_WEIGHT* growth )
         if( NextTok() != T_layer_pair )
             Expecting( T_layer_pair );
 
-        LAYER_PAIR* layer_pair = new LAYER_PAIR( growth );
+        SPECCTRA_LAYER_PAIR* layer_pair = new SPECCTRA_LAYER_PAIR( growth );
         growth->layer_pairs.push_back( layer_pair );
-        doLAYER_PAIR( layer_pair );
+        doSPECCTRA_LAYER_PAIR( layer_pair );
     }
 }
 
@@ -2549,7 +2549,7 @@ void SPECCTRA_DB::doCLASS( CLASS* growth ) throw( IO_ERROR, boost::bad_pointer )
             {
                 std::string     builder;
                 int             bracketNesting = 1; // we already saw the opening T_LEFT
-                T               tok = T_NONE;
+                tok = T_NONE;
 
                 while( bracketNesting!=0 && tok!=T_EOF )
                 {
@@ -2563,9 +2563,9 @@ void SPECCTRA_DB::doCLASS( CLASS* growth ) throw( IO_ERROR, boost::bad_pointer )
 
                     if( bracketNesting >= 1 )
                     {
-                        T     prevTok = (T) PrevTok();
+                        T     previousTok = (T) PrevTok();
 
-                        if( prevTok!=T_LEFT && prevTok!=T_circuit && tok!=T_RIGHT )
+                        if( previousTok!=T_LEFT && previousTok!=T_circuit && tok!=T_RIGHT )
                             builder += ' ';
 
                         if( tok==T_STRING )

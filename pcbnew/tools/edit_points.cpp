@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KICAD, a free EDA CAD application.
  *
- * Copyright (C) 2014 CERN
+ * Copyright (C) 2014-2017 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -42,9 +42,9 @@ EDIT_POINTS::EDIT_POINTS( EDA_ITEM* aParent ) :
 }
 
 
-EDIT_POINT* EDIT_POINTS::FindPoint( const VECTOR2I& aLocation )
+EDIT_POINT* EDIT_POINTS::FindPoint( const VECTOR2I& aLocation, KIGFX::VIEW *aView ) // fixme: ugly
 {
-    float size = m_view->ToWorld( EDIT_POINT::POINT_SIZE );
+    float size = aView->ToWorld( EDIT_POINT::POINT_SIZE );
 
     std::deque<EDIT_POINT>::iterator pit, pitEnd;
     for( pit = m_points.begin(), pitEnd = m_points.end(); pit != pitEnd; ++pit )
@@ -203,23 +203,62 @@ EDIT_LINE* EDIT_POINTS::Next( const EDIT_LINE& aLine )
 }
 
 
-void EDIT_POINTS::ViewDraw( int aLayer, KIGFX::GAL* aGal ) const
+const BOX2I EDIT_POINTS::ViewBBox() const
 {
-    aGal->SetFillColor( KIGFX::COLOR4D( 1.0, 1.0, 1.0, 1.0 ) );
-    aGal->SetIsFill( true );
-    aGal->SetIsStroke( false );
-    aGal->PushDepth();
-    aGal->SetLayerDepth( aGal->GetMinDepth() );
+    BOX2I box;
+    bool empty = true;
 
-    float size = m_view->ToWorld( EDIT_POINT::POINT_SIZE );
+    for( const auto& point : m_points )
+    {
+        if( empty )
+        {
+            box.SetOrigin( point.GetPosition() );
+            empty = false;
+        }
+        else
+        {
+            box.Merge( point.GetPosition() );
+        }
+    }
+
+    for( const auto& line : m_lines )
+    {
+        if( empty )
+        {
+            box.SetOrigin( line.GetOrigin().GetPosition() );
+            box.SetEnd( line.GetEnd().GetPosition() );
+            empty = false;
+        }
+        else
+        {
+            box.Merge( line.GetOrigin().GetPosition() );
+            box.Merge( line.GetEnd().GetPosition() );
+        }
+    }
+
+    return box;
+}
+
+
+void EDIT_POINTS::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
+{
+    auto gal = aView->GetGAL();
+
+    gal->SetFillColor( KIGFX::COLOR4D( 1.0, 1.0, 1.0, 1.0 ) );
+    gal->SetIsFill( true );
+    gal->SetIsStroke( false );
+    gal->PushDepth();
+    gal->SetLayerDepth( gal->GetMinDepth() );
+
+    float size = aView->ToWorld( EDIT_POINT::POINT_SIZE );
 
     for( const EDIT_POINT& point : m_points )
-        aGal->DrawRectangle( point.GetPosition() - size / 2, point.GetPosition() + size / 2 );
+        gal->DrawRectangle( point.GetPosition() - size / 2, point.GetPosition() + size / 2 );
 
     for( const EDIT_LINE& line : m_lines )
     {
-        aGal->DrawCircle( line.GetPosition(), size / 2 );
+        gal->DrawCircle( line.GetPosition(), size / 2 );
     }
 
-    aGal->PopDepth();
+    gal->PopDepth();
 }

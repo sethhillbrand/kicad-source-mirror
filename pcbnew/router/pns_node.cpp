@@ -347,7 +347,7 @@ NODE::OPT_OBSTACLE NODE::NearestObstacle( const LINE* aItem, int aKindMask,
 
         if( aLine.EndsWithVia() )
         {
-            int clearance = GetClearance( obs.m_item, &aLine.Via() );
+            clearance = GetClearance( obs.m_item, &aLine.Via() );
 
             SHAPE_LINE_CHAIN viaHull = aLine.Via().Hull( clearance, aItem->Width() );
 
@@ -757,8 +757,14 @@ void NODE::Remove( ITEM* aItem )
         break;
 
     case ITEM::LINE_T:
-        assert( false );
+    {
+        auto l = static_cast<LINE *> ( aItem );
+
+        for ( auto s : l->LinkedSegments() )
+            Remove( s );
+
         break;
+    }
 
     case ITEM::VIA_T:
         Remove( static_cast<VIA*>( aItem ) );

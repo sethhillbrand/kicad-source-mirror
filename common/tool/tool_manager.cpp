@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -28,7 +28,6 @@
 #include <stack>
 #include <algorithm>
 
-#include <boost/scoped_ptr.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/adaptor/map.hpp>
 
@@ -164,13 +163,11 @@ struct TOOL_MANAGER::TOOL_STATE
             *this = *stateStack.top();
             delete stateStack.top();
             stateStack.pop();
-
             return true;
         }
         else
         {
             cofunc = NULL;
-
             return false;
         }
     }
@@ -236,23 +233,6 @@ void TOOL_MANAGER::RegisterTool( TOOL_BASE* aTool )
     m_toolTypes[typeid( *aTool ).name()] = st->theTool;
 
     aTool->attachManager( this );
-
-    if( !aTool->Init() )
-    {
-        std::string msg = StrPrintf( "Initialization of the %s tool failed",
-                                     aTool->GetName().c_str() );
-
-        DisplayError( NULL, wxString::FromUTF8( msg.c_str() ) );
-
-        // Unregister the tool
-        m_toolState.erase( aTool );
-        m_toolNameIndex.erase( aTool->GetName() );
-        m_toolIdIndex.erase( aTool->GetId() );
-        m_toolTypes.erase( typeid( *aTool ).name() );
-
-        delete st;
-        delete aTool;
-    }
 }
 
 
@@ -427,11 +407,13 @@ TOOL_BASE* TOOL_MANAGER::FindTool( const std::string& aName ) const
     return NULL;
 }
 
+
 void TOOL_MANAGER::DeactivateTool()
 {
     TOOL_EVENT evt( TC_COMMAND, TA_ACTIVATE, "" );      // deactivate the active tool
     ProcessEvent( evt );
 }
+
 
 void TOOL_MANAGER::ResetTools( TOOL_BASE::RESET_REASON aReason )
 {
@@ -442,6 +424,34 @@ void TOOL_MANAGER::ResetTools( TOOL_BASE::RESET_REASON aReason )
         tool->Reset( aReason );
         tool->SetTransitions();
     }
+}
+
+
+void TOOL_MANAGER::InitTools()
+{
+    for( auto it = m_toolState.begin(); it != m_toolState.end(); /* iteration in the loop */ )
+    {
+        TOOL_BASE* tool = it->first;
+        TOOL_STATE* state = it->second;
+        ++it;   // keep the iterator valid if the element is going to be erased
+
+        if( !tool->Init() )
+        {
+            DisplayError( nullptr,
+                    wxString::Format( "Initialization of tool '%s' failed", tool->GetName() ) );
+
+            // Unregister the tool
+            m_toolState.erase( tool );
+            m_toolNameIndex.erase( tool->GetName() );
+            m_toolIdIndex.erase( tool->GetId() );
+            m_toolTypes.erase( typeid( *tool ).name() );
+
+            delete state;
+            delete tool;
+        }
+    }
+
+    ResetTools( TOOL_BASE::RUN );
 }
 
 
@@ -534,9 +544,11 @@ void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
 
     for( TOOL_STATE* st : ( m_toolState | boost::adaptors::map_values ) )
     {
+        bool finished = false;
+
         // no state handler in progress - check if there are any transitions (defined by
         // Go() method that match the event.
-        if( !st->pendingWait && !st->transitions.empty() )
+        if( !st->transitions.empty() )
         {
             for( TRANSITION& tr : st->transitions )
             {
@@ -559,11 +571,17 @@ void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
                     if( !st->cofunc->Running() )
                         finishTool( st ); // The couroutine has finished immediately?
 
+                    // if it is a message, continue processing
+                    finished = !( aEvent.Category() == TC_MESSAGE );
+
                     // there is no point in further checking, as transitions got cleared
                     break;
                 }
             }
         }
+
+        if( finished )
+            break;      // only the first tool gets the event
     }
 }
 
@@ -626,10 +644,11 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
             VECTOR2D cursorPos = m_viewControls->GetCursorPosition();
             m_viewControls->ForceCursorPosition( true, m_viewControls->GetCursorPosition() );
 
-            // Run update handlers
-            m->UpdateAll();
+            // Display a copy of menu
+            std::unique_ptr<CONTEXT_MENU> menu( m->Clone() );
 
-            boost::scoped_ptr<CONTEXT_MENU> menu( new CONTEXT_MENU( *m ) );
+            // Run update handlers on the created copy
+            menu->UpdateAll();
             GetEditFrame()->PopupMenu( menu.get() );
 
             // If nothing was chosen from the context menu, we must notify the tool as well
@@ -640,12 +659,12 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
                 dispatchInternal( evt );
             }
 
+            // Notify the tools that menu has been closed
             TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CLOSED );
             evt.SetParameter( m );
             dispatchInternal( evt );
 
             m_viewControls->ForceCursorPosition( forcedCursor, cursorPos );
-
             break;
         }
     }
@@ -656,10 +675,6 @@ bool TOOL_MANAGER::finishTool( TOOL_STATE* aState, bool aDeactivate )
 {
     bool shouldDeactivate = false;
 
-    // Reset VIEW_CONTROLS only if the most recent tool is finished
-    if( m_activeTools.empty() || m_activeTools.front() == aState->theTool->GetId() )
-        m_viewControls->Reset();
-
     if( !aState->Pop() )        // if there are no other contexts saved on the stack
     {
         // find the tool and deactivate it
@@ -669,12 +684,14 @@ bool TOOL_MANAGER::finishTool( TOOL_STATE* aState, bool aDeactivate )
         if( tool != m_activeTools.end() )
         {
             shouldDeactivate = true;
+            m_viewControls->Reset();
 
             if( aDeactivate )
                 m_activeTools.erase( tool );
         }
     }
 
+    // Set transitions to be ready for future TOOL_EVENTs
     aState->theTool->SetTransitions();
 
     return shouldDeactivate;

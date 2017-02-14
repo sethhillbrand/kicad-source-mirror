@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2008-2017 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -211,6 +211,7 @@ static EDA_HOTKEY HkFindNextDrcMarker( _HKI( "Find Next DRC Marker" ), HK_FIND_N
 static EDA_HOTKEY HkZoomSelection( _HKI( "Zoom to Selection" ), HK_ZOOM_SELECTION, '@', ID_ZOOM_SELECTION );
 
 // Special keys for library editor:
+static EDA_HOTKEY HkLoadPart( _HKI( "Load Component" ), HK_LIBEDIT_LOAD_PART, 'L' + GR_KB_CTRL );
 static EDA_HOTKEY HkCreatePin( _HKI( "Create Pin" ), HK_LIBEDIT_CREATE_PIN, 'P' );
 static EDA_HOTKEY HkInsertPin( _HKI( "Repeat Pin" ), HK_REPEAT_LAST, WXK_INSERT );
 static EDA_HOTKEY HkMoveLibItem( _HKI( "Move Library Item" ), HK_LIBEDIT_MOVE_GRAPHIC_ITEM, 'M' );
@@ -224,7 +225,12 @@ static EDA_HOTKEY HkLoadSchematic( _HKI( "Load Schematic" ), HK_LOAD_SCH, 'L' + 
 static EDA_HOTKEY HkAutoplaceFields( _HKI( "Autoplace Fields" ), HK_AUTOPLACE_FIELDS, 'O',
                                         ID_AUTOPLACE_FIELDS );
 
-static EDA_HOTKEY HkUpdatePcbFromSch( _HKI( "Update PCB from Schematics" ), HK_UPDATE_PCB_FROM_SCH, WXK_F8 );
+static EDA_HOTKEY HkUpdatePcbFromSch( _HKI( "Update PCB from Schematics" ), HK_UPDATE_PCB_FROM_SCH,
+                                      WXK_F8 );
+
+// Higtlight connection
+static EDA_HOTKEY HkHighlightConnection( _HKI( "Highlight Connection" ), ID_HOTKEY_HIGHLIGHT,
+                                         'X' + GR_KB_CTRL );
 
 // List of common hotkey descriptors
 static EDA_HOTKEY* common_Hotkey_List[] =
@@ -303,6 +309,7 @@ static EDA_HOTKEY* schematic_Hotkey_List[] =
     &HkAutoplaceFields,
     &HkLeaveSheet,
     &HkDeleteNode,
+    &HkHighlightConnection,
     NULL
 };
 
@@ -310,6 +317,7 @@ static EDA_HOTKEY* schematic_Hotkey_List[] =
 static EDA_HOTKEY* libEdit_Hotkey_List[] =
 {
     &HkSaveLib,
+    &HkLoadPart,
     &HkCreatePin,
     &HkInsertPin,
     &HkMoveLibItem,
@@ -433,6 +441,11 @@ bool SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
 
     case HK_RESET_LOCAL_COORD:         // Reset the relative coord
         GetScreen()->m_O_Curseur = GetCrossHairPosition();
+        break;
+
+    case ID_HOTKEY_HIGHLIGHT:
+        if( notBusy )
+            HighlightConnectionAtPosition( GetCrossHairPosition() );
         break;
 
     case HK_LEFT_CLICK:
@@ -562,7 +575,7 @@ bool SCH_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
 
         if( aItem == NULL )
         {
-            aItem = LocateAndShowItem( aPosition, SCH_COLLECTOR::MovableItems );
+            aItem = LocateAndShowItem( aPosition, SCH_COLLECTOR::CopyableItems );
 
             if( aItem == NULL )
                 break;
@@ -634,8 +647,6 @@ bool LIB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
 
     cmd.SetEventObject( this );
 
-    bool itemInEdit = m_drawItem && m_drawItem->InEditMode();
-
     /* Convert lower to upper case (the usual toupper function has problem
      * with non ascii codes like function keys */
     if( (aHotKey >= 'a') && (aHotKey <= 'z') )
@@ -648,6 +659,10 @@ bool LIB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
 
     if( hotKey == NULL )
         return false;
+
+    bool itemInEdit = m_drawItem && m_drawItem->InEditMode();
+
+    bool blocInProgress = GetScreen()->m_BlockLocate.GetState() != STATE_NO_BLOCK;
 
     switch( hotKey->m_Idcommand )
     {
@@ -700,7 +715,7 @@ bool LIB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
         break;
 
     case HK_EDIT:
-        if( ! itemInEdit )
+        if( !itemInEdit )
             m_drawItem = LocateItemUsingCursor( aPosition );
 
         if( m_drawItem )
@@ -733,14 +748,26 @@ bool LIB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
         break;
 
     case HK_ROTATE:
-        if( ! itemInEdit )
-            m_drawItem = LocateItemUsingCursor( aPosition );
-
-        if( m_drawItem )
+        if( blocInProgress )
         {
-            cmd.SetId( ID_LIBEDIT_ROTATE_ITEM );
-            GetEventHandler()->ProcessEvent( cmd );
+            GetScreen()->m_BlockLocate.SetCommand( BLOCK_ROTATE );
+            HandleBlockPlace( aDC );
         }
+        else
+        {
+            if ( !itemInEdit )
+                m_drawItem = LocateItemUsingCursor( aPosition );
+
+            if( m_drawItem )
+            {
+                cmd.SetId( ID_LIBEDIT_ROTATE_ITEM );
+                GetEventHandler()->ProcessEvent( cmd );
+            }
+        }
+        break;
+
+    case HK_LIBEDIT_LOAD_PART:
+        LoadOneLibraryPart( cmd );
         break;
 
     case HK_LIBEDIT_CREATE_PIN:
@@ -787,14 +814,19 @@ bool LIB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
             }
         }
         break;
+
     case HK_MIRROR_Y:                       // Mirror Y
-        m_drawItem = LocateItemUsingCursor( aPosition );
+        if( !itemInEdit )
+            m_drawItem = LocateItemUsingCursor( aPosition );
+
         cmd.SetId( ID_LIBEDIT_MIRROR_Y );
         GetEventHandler()->ProcessEvent( cmd );
         break;
 
     case HK_MIRROR_X:                       // Mirror X
-        m_drawItem = LocateItemUsingCursor( aPosition );
+        if( !itemInEdit )
+            m_drawItem = LocateItemUsingCursor( aPosition );
+
         cmd.SetId( ID_LIBEDIT_MIRROR_X );
         GetEventHandler()->ProcessEvent( cmd );
         break;
@@ -816,8 +848,7 @@ EDA_HOTKEY* LIB_VIEW_FRAME::GetHotKeyDescription( int aCommand ) const
 }
 
 
-bool LIB_VIEW_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition,
-                                     EDA_ITEM* aItem )
+bool LIB_VIEW_FRAME::OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem )
 {
     if( aHotKey == 0 )
         return false;

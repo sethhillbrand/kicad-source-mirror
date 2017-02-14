@@ -238,7 +238,7 @@ static int find_vias_and_tracks_at( TRACKS& at_next, TRACKS& in_net, LSET& lset,
         {
             lset |= t->GetLayerSet();
             at_next.push_back( t );
-            in_net.erase( it );
+            it = in_net.erase( it );
         }
         else
             ++it;
@@ -2549,6 +2549,16 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                         // if "false", the default library values of the new footprint
                         // will be used
                         footprint->CopyNetlistSettings( newFootprint, false );
+
+                        // Compare the footprint name only, in case the nickname is empty or in case
+                        // user moved the footprint to a new library.  Chances are if footprint name is
+                        // same then the footprint is very nearly the same and the two texts should
+                        // be kept at same size, position, and rotation.
+                        if( newFootprint->GetFPID().GetLibItemName() == footprint->GetFPID().GetLibItemName() )
+                        {
+                            newFootprint->Reference().SetEffects( footprint->Reference() );
+                            newFootprint->Value().SetEffects( footprint->Value() );
+                        }
 
                         Remove( footprint );
                         Add( newFootprint, ADD_APPEND );

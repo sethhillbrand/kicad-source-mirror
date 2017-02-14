@@ -49,9 +49,6 @@ DIALOG_EDIT_COMPONENT_IN_LIBRARY::DIALOG_EDIT_COMPONENT_IN_LIBRARY( LIB_EDIT_FRA
 
     initDlg();
 
-
-    FixOSXCancelButtonIssue();
-
     // Now all widgets have the size fixed, call FinishDialogSettings
     FinishDialogSettings();
 }
@@ -577,4 +574,13 @@ void DIALOG_EDIT_COMPONENT_IN_LIBRARY::EditOneFootprintFilter( wxCommandEvent& e
         return;    // do not accept blank filter.
 
     m_FootprintFilterListBox->SetString( idx, filter );
+}
+
+
+void DIALOG_EDIT_COMPONENT_IN_LIBRARY::OnUpdateInterchangeableUnits( wxUpdateUIEvent& event )
+{
+    if( m_SelNumberOfUnits->GetValue() <= 1 )
+        m_OptionPartsLocked->Enable( false );
+    else
+        m_OptionPartsLocked->Enable( true );
 }

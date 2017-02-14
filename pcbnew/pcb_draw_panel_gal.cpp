@@ -98,8 +98,8 @@ const LAYER_NUM GAL_LAYER_ORDER[] =
 
 PCB_DRAW_PANEL_GAL::PCB_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId,
                                         const wxPoint& aPosition, const wxSize& aSize,
-                                        GAL_TYPE aGalType ) :
-EDA_DRAW_PANEL_GAL( aParentWindow, aWindowId, aPosition, aSize, aGalType )
+                                        KIGFX::GAL_DISPLAY_OPTIONS& aOptions, GAL_TYPE aGalType ) :
+EDA_DRAW_PANEL_GAL( aParentWindow, aWindowId, aPosition, aSize, aOptions, aGalType )
 {
     m_worksheet = NULL;
     m_ratsnest = NULL;
@@ -380,6 +380,14 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerOrder()
 }
 
 
+bool PCB_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
+{
+    bool rv = EDA_DRAW_PANEL_GAL::SwitchBackend( aGalType );
+    setDefaultLayerDeps();
+    return rv;
+}
+
+
 void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
 {
     for( LAYER_NUM i = 0; (unsigned) i < sizeof( GAL_LAYER_ORDER ) / sizeof( LAYER_NUM ); ++i )
@@ -398,6 +406,13 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
             m_view->SetLayerDisplayOnly( layer );
             m_view->SetLayerTarget( layer, KIGFX::TARGET_CACHED );
         }
+    }
+
+    // caching makes no sense for Cairo and other software renderers
+    if ( m_backend != GAL_TYPE_OPENGL )
+    {
+        for( int i = 0; i < KIGFX::VIEW::VIEW_MAX_LAYERS; i++ )
+           m_view->SetLayerTarget( i, KIGFX::TARGET_NONCACHED );
     }
 
     m_view->SetLayerTarget( ITEM_GAL_LAYER( ANCHOR_VISIBLE ), KIGFX::TARGET_NONCACHED );

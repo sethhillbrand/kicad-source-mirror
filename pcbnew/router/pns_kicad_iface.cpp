@@ -68,7 +68,8 @@ public:
     PNS_PCBNEW_RULE_RESOLVER( BOARD* aBoard, PNS::ROUTER* aRouter );
     virtual ~PNS_PCBNEW_RULE_RESOLVER();
 
-    virtual int Clearance( const PNS::ITEM* aA, const PNS::ITEM* aB ) override;
+    virtual int Clearance( const PNS::ITEM* aA, const PNS::ITEM* aB ) const override;
+    virtual int Clearance( int aNetCode ) const override;
     virtual void OverrideClearance( bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0 ) override;
     virtual void UseDpGap( bool aUseDpGap ) override { m_useDpGap = aUseDpGap; }
     virtual int DpCoupledNet( int aNet ) override;
@@ -107,6 +108,7 @@ PNS_PCBNEW_RULE_RESOLVER::PNS_PCBNEW_RULE_RESOLVER( BOARD* aBoard, PNS::ROUTER* 
     PNS::TOPOLOGY topo( world );
     m_netClearanceCache.resize( m_board->GetNetCount() );
 
+    // Build clearance cache for net classes
     for( unsigned int i = 0; i < m_board->GetNetCount(); i++ )
     {
         NETINFO_ITEM* ni = m_board->FindNet( i );
@@ -127,6 +129,7 @@ PNS_PCBNEW_RULE_RESOLVER::PNS_PCBNEW_RULE_RESOLVER( BOARD* aBoard, PNS::ROUTER* 
         wxLogTrace( "PNS", "Add net %u netclass %s clearance %d", i, netClassName.mb_str(), clearance );
     }
 
+    // Build clearance cache for pads
     for( MODULE* mod = m_board->m_Modules; mod ; mod = mod->Next() )
     {
         auto moduleClearance = mod->GetLocalClearance();
@@ -174,7 +177,7 @@ int PNS_PCBNEW_RULE_RESOLVER::localPadClearance( const PNS::ITEM* aItem ) const
 }
 
 
-int PNS_PCBNEW_RULE_RESOLVER::Clearance( const PNS::ITEM* aA, const PNS::ITEM* aB )
+int PNS_PCBNEW_RULE_RESOLVER::Clearance( const PNS::ITEM* aA, const PNS::ITEM* aB ) const
 {
     int net_a = aA->Net();
     int cl_a = ( net_a >= 0 ? m_netClearanceCache[net_a].clearance : m_defaultClearance );
@@ -199,6 +202,15 @@ int PNS_PCBNEW_RULE_RESOLVER::Clearance( const PNS::ITEM* aA, const PNS::ITEM* a
         cl_b = pad_b;
 
     return std::max( cl_a, cl_b );
+}
+
+
+int PNS_PCBNEW_RULE_RESOLVER::Clearance( int aNetCode ) const
+{
+    if( aNetCode > 0 && aNetCode < (int) m_netClearanceCache.size() )
+        return m_netClearanceCache[aNetCode].clearance;
+
+    return m_defaultClearance;
 }
 
 
@@ -326,6 +338,7 @@ public:
     ~PNS_PCBNEW_DEBUG_DECORATOR()
     {
         Clear();
+        m_view->Remove( m_items );
         delete m_items;
     }
 
@@ -342,7 +355,6 @@ public:
         m_items = new KIGFX::VIEW_GROUP( m_view );
         m_items->SetLayer( ITEM_GAL_LAYER( GP_OVERLAY ) );
         m_view->Add( m_items );
-        m_items->ViewSetVisible( true );
     }
 
     void AddPoint( VECTOR2I aP, int aColor ) override
@@ -404,12 +416,11 @@ public:
 
     void AddLine( const SHAPE_LINE_CHAIN& aLine, int aType, int aWidth ) override
     {
-        ROUTER_PREVIEW_ITEM* pitem = new ROUTER_PREVIEW_ITEM( NULL, m_items );
+        ROUTER_PREVIEW_ITEM* pitem = new ROUTER_PREVIEW_ITEM( NULL, m_view );
 
         pitem->Line( aLine, aWidth, aType );
         m_items->Add( pitem ); // Should not be needed, as m_items has been passed as a parent group in alloc;
-        pitem->ViewSetVisible( true );
-        m_items->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY | KIGFX::VIEW_ITEM::APPEARANCE );
+        m_view->Update( m_items );
     }
 
     void Clear() override
@@ -417,7 +428,7 @@ public:
         if( m_view && m_items )
         {
             m_items->FreeItems();
-            m_items->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
+            m_view->Update( m_items );
         }
     }
 
@@ -443,6 +454,7 @@ PNS_KICAD_IFACE::PNS_KICAD_IFACE()
     m_world = nullptr;
     m_router = nullptr;
     m_debugDecorator = nullptr;
+    m_dispOptions = nullptr;
 }
 
 
@@ -459,7 +471,7 @@ PNS_KICAD_IFACE::~PNS_KICAD_IFACE()
 }
 
 
-std::unique_ptr< PNS::SOLID > PNS_KICAD_IFACE::syncPad( D_PAD* aPad )
+std::unique_ptr<PNS::SOLID> PNS_KICAD_IFACE::syncPad( D_PAD* aPad )
 {
     LAYER_RANGE layers( 0, MAX_CU_LAYERS - 1 );
 
@@ -518,7 +530,7 @@ std::unique_ptr< PNS::SOLID > PNS_KICAD_IFACE::syncPad( D_PAD* aPad )
     RotatePoint( &offset, aPad->GetOrientation() );
 
     solid->SetPos( VECTOR2I( c.x - offset.x, c.y - offset.y ) );
-    solid->SetOffset ( VECTOR2I ( offset.x, offset.y ) );
+    solid->SetOffset( VECTOR2I( offset.x, offset.y ) );
 
     double orient = aPad->GetOrientation() / 10.0;
 
@@ -698,7 +710,7 @@ std::unique_ptr< PNS::SOLID > PNS_KICAD_IFACE::syncPad( D_PAD* aPad )
 }
 
 
-std::unique_ptr< PNS::SEGMENT > PNS_KICAD_IFACE::syncTrack( TRACK* aTrack )
+std::unique_ptr<PNS::SEGMENT> PNS_KICAD_IFACE::syncTrack( TRACK* aTrack )
 {
     std::unique_ptr< PNS::SEGMENT > segment(
         new PNS::SEGMENT( SEG( aTrack->GetStart(), aTrack->GetEnd() ), aTrack->GetNetCode() )
@@ -708,15 +720,14 @@ std::unique_ptr< PNS::SEGMENT > PNS_KICAD_IFACE::syncTrack( TRACK* aTrack )
     segment->SetLayers( LAYER_RANGE( aTrack->GetLayer() ) );
     segment->SetParent( aTrack );
 
-    if( aTrack->IsLocked() ) {
+    if( aTrack->IsLocked() )
         segment->Mark( PNS::MK_LOCKED );
-    }
 
     return segment;
 }
 
 
-std::unique_ptr< PNS::VIA > PNS_KICAD_IFACE::syncVia( VIA* aVia )
+std::unique_ptr<PNS::VIA> PNS_KICAD_IFACE::syncVia( VIA* aVia )
 {
     LAYER_ID top, bottom;
     aVia->LayerPair( &top, &bottom );
@@ -731,9 +742,8 @@ std::unique_ptr< PNS::VIA > PNS_KICAD_IFACE::syncVia( VIA* aVia )
 
     via->SetParent( aVia );
 
-    if( aVia->IsLocked() ) {
+    if( aVia->IsLocked() )
         via->Mark( PNS::MK_LOCKED );
-    }
 
     return via;
 }
@@ -795,14 +805,14 @@ void PNS_KICAD_IFACE::SyncWorld( PNS::NODE *aWorld )
 void PNS_KICAD_IFACE::EraseView()
 {
     for( auto item : m_hiddenItems )
-        item->ViewSetVisible( true );
+        m_view->SetVisible( item, true );
 
     m_hiddenItems.clear();
 
     if( m_previewItems )
     {
         m_previewItems->FreeItems();
-        m_previewItems->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY );
+        m_view->Update( m_previewItems );
     }
 
     if( m_debugDecorator )
@@ -814,18 +824,27 @@ void PNS_KICAD_IFACE::DisplayItem( const PNS::ITEM* aItem, int aColor, int aClea
 {
     wxLogTrace( "PNS", "DisplayItem %p", aItem );
 
-    ROUTER_PREVIEW_ITEM* pitem = new ROUTER_PREVIEW_ITEM( aItem, m_previewItems );
+    ROUTER_PREVIEW_ITEM* pitem = new ROUTER_PREVIEW_ITEM( aItem, m_view );
 
     if( aColor >= 0 )
         pitem->SetColor( KIGFX::COLOR4D( aColor ) );
 
     if( aClearance >= 0 )
+    {
         pitem->SetClearance( aClearance );
 
-    m_previewItems->Add( pitem );
+        if( m_dispOptions )
+        {
+            auto clearanceDisp = m_dispOptions->m_ShowTrackClearanceMode;
+            pitem->ShowTrackClearance( clearanceDisp != DO_NOT_SHOW_CLEARANCE );
+            pitem->ShowViaClearance( clearanceDisp != DO_NOT_SHOW_CLEARANCE
+                    && clearanceDisp != SHOW_CLEARANCE_NEW_TRACKS );
+        }
+    }
 
-    pitem->ViewSetVisible( true );
-    m_previewItems->ViewUpdate( KIGFX::VIEW_ITEM::GEOMETRY | KIGFX::VIEW_ITEM::APPEARANCE );
+
+    m_previewItems->Add( pitem );
+    m_view->Update( m_previewItems );
 }
 
 
@@ -835,11 +854,11 @@ void PNS_KICAD_IFACE::HideItem( PNS::ITEM* aItem )
 
     if( parent )
     {
-        if( parent->ViewIsVisible() )
+        if( m_view->IsVisible( parent ) )
             m_hiddenItems.insert( parent );
 
-        parent->ViewSetVisible( false );
-        parent->ViewUpdate( KIGFX::VIEW_ITEM::APPEARANCE );
+        m_view->SetVisible( parent, false );
+        m_view->Update( parent, KIGFX::APPEARANCE );
     }
 }
 
@@ -906,12 +925,13 @@ void PNS_KICAD_IFACE::AddItem( PNS::ITEM* aItem )
 
 void PNS_KICAD_IFACE::Commit()
 {
+    EraseView();
     m_commit->Push( wxT( "Added a track" ) );
-    m_commit.reset( new BOARD_COMMIT ( m_frame ) );
+    m_commit.reset( new BOARD_COMMIT( m_frame ) );
 }
 
 
-void PNS_KICAD_IFACE::SetView( KIGFX::VIEW *aView )
+void PNS_KICAD_IFACE::SetView( KIGFX::VIEW* aView )
 {
     wxLogTrace( "PNS", "SetView %p", aView );
 
@@ -925,7 +945,6 @@ void PNS_KICAD_IFACE::SetView( KIGFX::VIEW *aView )
     m_previewItems = new KIGFX::VIEW_GROUP( m_view );
     m_previewItems->SetLayer( ITEM_GAL_LAYER( GP_OVERLAY ) );
     m_view->Add( m_previewItems );
-    m_previewItems->ViewSetVisible( true );
 
     delete m_debugDecorator;
     m_debugDecorator = new PNS_PCBNEW_DEBUG_DECORATOR();
@@ -938,10 +957,12 @@ void PNS_KICAD_IFACE::UpdateNet( int aNetCode )
     wxLogTrace( "PNS", "Update-net %d", aNetCode );
 }
 
+
 PNS::RULE_RESOLVER* PNS_KICAD_IFACE::GetRuleResolver()
 {
     return m_ruleResolver;
 }
+
 
 void PNS_KICAD_IFACE::SetRouter( PNS::ROUTER* aRouter )
 {
@@ -953,5 +974,6 @@ void PNS_KICAD_IFACE::SetHostFrame( PCB_EDIT_FRAME* aFrame )
 {
     m_frame = aFrame;
 
-    m_commit.reset( new BOARD_COMMIT ( m_frame ) );
+    m_commit.reset( new BOARD_COMMIT( m_frame ) );
+    m_dispOptions = (DISPLAY_OPTIONS*) m_frame->GetDisplayOptions();
 }

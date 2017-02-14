@@ -27,6 +27,8 @@
 #include <pcb_draw_panel_gal.h>
 #include <gal/graphics_abstraction_layer.h>
 #include <class_board.h>
+#include <view/view.h>
+
 
 void PCB_BASE_EDIT_FRAME::SetRotationAngle( int aRotationAngle )
 {
@@ -34,21 +36,6 @@ void PCB_BASE_EDIT_FRAME::SetRotationAngle( int aRotationAngle )
                   wxT( "Invalid rotation angle, defaulting to 90." ) );
 
     m_rotationAngle = aRotationAngle;
-}
-
-
-bool PCB_BASE_EDIT_FRAME::PostCommandMenuEvent( int evt_type )
-{
-    if( evt_type != 0 )
-    {
-        wxCommandEvent evt( wxEVT_COMMAND_MENU_SELECTED );
-        evt.SetEventObject( this );
-        evt.SetId( evt_type );
-        wxPostEvent( this, evt );
-        return true;
-    }
-
-    return false;
 }
 
 

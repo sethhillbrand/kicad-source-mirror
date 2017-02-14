@@ -1,10 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2017 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013-2016 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2013-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2013-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,6 +53,7 @@
 #include <module_editor_frame.h>
 #include <dialog_helpers.h>
 #include <dialog_plot.h>
+#include <dialog_exchange_modules.h>
 #include <convert_to_biu.h>
 #include <view/view.h>
 #include <view/view_controls.h>
@@ -115,6 +116,7 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
 
     // Menu Files:
     EVT_MENU( ID_MAIN_MENUBAR, PCB_EDIT_FRAME::Process_Special_Functions )
+    EVT_MENU( ID_MENU_PCB_FLIP_VIEW, PCB_EDIT_FRAME::OnFlipPcbView )
 
     EVT_MENU( ID_APPEND_FILE, PCB_EDIT_FRAME::Files_io )
     EVT_MENU( ID_SAVE_BOARD_AS, PCB_EDIT_FRAME::Files_io )
@@ -216,6 +218,11 @@ BEGIN_EVENT_TABLE( PCB_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_MODULE, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_MODE_TRACKS, PCB_EDIT_FRAME::OnSelectAutoPlaceMode )
     EVT_TOOL( ID_TOOLBARH_PCB_FREEROUTE_ACCESS, PCB_EDIT_FRAME::Access_to_External_Tool )
+
+
+#if defined(KICAD_SCRIPTING) && defined(KICAD_SCRIPTING_ACTION_MENU)
+    EVT_TOOL( ID_TOOLBARH_PCB_ACTION_PLUGIN_REFRESH, PCB_EDIT_FRAME::OnActionPluginRefresh )
+#endif
 
 #if defined( KICAD_SCRIPTING_WXPYTHON )
     // has meaning only with KICAD_SCRIPTING_WXPYTHON enabled
@@ -335,7 +342,9 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     // Create GAL canvas
     EDA_DRAW_PANEL_GAL* galCanvas = new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ),
-                                                m_FrameSize, EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE );
+                                                m_FrameSize,
+                                                GetGalDisplayOptions(),
+                                                EDA_DRAW_PANEL_GAL::GAL_TYPE_NONE );
 
     SetGalCanvas( galCanvas );
 
@@ -484,7 +493,6 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     if( !appK2S.FileExists() )
         GetMenuBar()->FindItem( ID_GEN_EXPORT_FILE_STEP )->Enable( false );
-
 }
 
 
@@ -561,8 +569,7 @@ void PCB_EDIT_FRAME::setupTools()
 
     // Register tools
     registerAllTools( m_toolManager );
-
-    m_toolManager->ResetTools( TOOL_BASE::RUN );
+    m_toolManager->InitTools();
 
     // Run the selection tool, it is supposed to be always active
     m_toolManager->InvokeTool( "pcbnew.InteractiveSelection" );
@@ -623,6 +630,17 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
             Files_io_from_id( ID_SAVE_BOARD );
             break;
         }
+    }
+
+    if( IsGalCanvasActive() )
+    {
+        // On Windows 7 / 32 bits, on OpenGL mode only, Pcbnew crashes
+        // when closing this frame if a footprint was selected, and the footprint editor called
+        // to edit this footprint, and when closing pcbnew if this footprint is still selected
+        // See https://bugs.launchpad.net/kicad/+bug/1655858
+        // I think this is certainly a OpenGL event fired after frame deletion, so this workaround
+        // avoid the crash (JPC)
+        GetGalCanvas()->SetEvtHandlerEnabled( false );
     }
 
     GetGalCanvas()->StopDrawing();
@@ -716,7 +734,8 @@ void PCB_EDIT_FRAME::enableGALSpecificMenus()
             ID_TUNE_SINGLE_TRACK_LEN_BUTT,
             ID_TUNE_DIFF_PAIR_LEN_BUTT,
             ID_TUNE_DIFF_PAIR_SKEW_BUTT,
-            ID_MENU_DIFF_PAIR_DIMENSIONS
+            ID_MENU_DIFF_PAIR_DIMENSIONS,
+            ID_MENU_PCB_FLIP_VIEW
         };
 
         bool enbl = IsGalCanvasActive();
@@ -859,14 +878,14 @@ void PCB_EDIT_FRAME::SetActiveLayer( LAYER_ID aLayer )
 {
     PCB_BASE_FRAME::SetActiveLayer( aLayer );
 
-    GetGalCanvas()->SetHighContrastLayer( aLayer );
-
     syncLayerWidgetLayer();
 
     if( IsGalCanvasActive() )
     {
         m_toolManager->RunAction( COMMON_ACTIONS::layerChanged );       // notify other tools
         GetGalCanvas()->SetFocus();                 // otherwise hotkeys are stuck somewhere
+
+        GetGalCanvas()->SetHighContrastLayer( aLayer );
         GetGalCanvas()->Refresh();
     }
 }
@@ -1037,7 +1056,6 @@ void PCB_EDIT_FRAME::ScriptingConsoleEnableDisable( wxCommandEvent& aEvent )
     else
         wxMessageBox( wxT( "Error: unable to create the Python Console" ) );
 }
-
 #endif
 
 
@@ -1130,4 +1148,39 @@ void PCB_EDIT_FRAME::OnUpdatePCBFromSch( wxCommandEvent& event )
 
         Kiway().ExpressMail( FRAME_SCH, MAIL_SCH_PCB_UPDATE_REQUEST, "", this );
     }
+}
+
+
+void PCB_EDIT_FRAME::OnFlipPcbView( wxCommandEvent& evt )
+{
+    auto view = GetGalCanvas()->GetView();
+    view->SetMirror( evt.IsChecked(), false );
+    view->RecacheAllItems();
+    Refresh();
+}
+
+
+void PCB_EDIT_FRAME::PythonPluginsReload()
+{
+    // Reload Python plugins if they are newer than
+    // the already loaded, and load new plugins
+#if defined(KICAD_SCRIPTING)
+    //Reload plugin list: reload Python plugins if they are newer than
+    // the already loaded, and load new plugins
+    PythonPluginsReloadBase();
+
+    #if defined(KICAD_SCRIPTING_ACTION_MENU)
+        // Action plugins can be modified, therefore the plugins menu
+        // must be updated:
+        RebuildActionPluginMenus();
+    #endif
+#endif
+}
+
+
+int PCB_EDIT_FRAME::InstallExchangeModuleFrame( MODULE* Module )
+{
+    DIALOG_EXCHANGE_MODULE dialog( this, Module );
+
+    return dialog.ShowQuasiModal();
 }

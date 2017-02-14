@@ -131,10 +131,12 @@ set( BMAPS_MID
     add_tracks
     add_zone_cutout
     add_zone
+    align_items
     anchor
     annotate_down_right
     annotate_right_down
     annotate
+    apply_pad_settings
     array_line
     array_module
     array_pad
@@ -170,6 +172,7 @@ set( BMAPS_MID
     copycomponent
     copy_button
     copy_library
+    copy_pad_settings
     copper_layers_setup
     cursor_shape
     cursor
@@ -202,6 +205,8 @@ set( BMAPS_MID
     directory
     dismiss
     display_options
+    distribute_horizontal
+    distribute_vertical
     down
     drag_module
     drag_outline_segment
@@ -238,7 +243,6 @@ set( BMAPS_MID
     export_idf
     export_footprint_names
     export_module
-    export_options_pad
     export
     fabrication
     file_footprint
@@ -246,6 +250,7 @@ set( BMAPS_MID
     find
     find_replace
     flag
+    flip_board
     fonts
     footprint_text
     gbr_select_mode0
@@ -257,12 +262,12 @@ set( BMAPS_MID
     gerbview_drill_file
     gerbview_clear_layers
     gerbview_open_recent_drill_files
+    gerbview_open_recent_ziparchive_files
     general_deletions
     general_ratsnest
     glabel2label
     glabel2text
     gl_change
-    global_options_pad
     green
     grid_select
     grid_select_axis
@@ -273,6 +278,8 @@ set( BMAPS_MID
     hierarchy_cursor
     hierarchy_nav
     hotkeys
+    hotkeys_import
+    hotkeys_export
     html
     icon_cvpcb_small
     icon_gerbview_small
@@ -284,6 +291,7 @@ set( BMAPS_MID
     import_footprint_names
     import_hierarchical_label
     import_module
+    import_setup
     import
     info
     insert_module_board
@@ -319,7 +327,6 @@ set( BMAPS_MID
     leave_sheet
     left
     libedit
-    libedprt
     lib_next
     lib_previous
     library_browse
@@ -379,6 +386,7 @@ set( BMAPS_MID
     mw_add_stub
     mw_toolbar
     net_highlight
+    net_highlight_schematic
     netlist
     net_locked
     net_unlocked
@@ -404,7 +412,6 @@ set( BMAPS_MID
     options_arc
     options_circle
     options_module
-    options_new_pad
     options_pad
     options_pinsheet
     options_pin
@@ -460,6 +467,7 @@ set( BMAPS_MID
     ps_diff_pair_tune_phase
     ps_diff_pair_via_gap
     ps_tune_length
+    push_pad_settings
     py_script
     ratsnest
     read_setup

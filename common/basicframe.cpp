@@ -200,6 +200,25 @@ bool EDA_BASE_FRAME::Enable( bool enable )
 }
 
 
+void EDA_BASE_FRAME::SetAutoSaveInterval( int aInterval )
+{
+    m_autoSaveInterval = aInterval;
+
+    if( m_autoSaveTimer->IsRunning() )
+    {
+        if( m_autoSaveInterval > 0 )
+        {
+            m_autoSaveTimer->Start( m_autoSaveInterval * 1000, wxTIMER_ONE_SHOT );
+        }
+        else
+        {
+            m_autoSaveTimer->Stop();
+            m_autoSaveState = false;
+        }
+    }
+}
+
+
 void EDA_BASE_FRAME::onAutoSaveTimer( wxTimerEvent& aEvent )
 {
     if( !doAutoSave() )
@@ -611,4 +630,19 @@ void EDA_BASE_FRAME::CheckForAutoSaveFile( const wxFileName& aFileName,
         // Remove the auto save file when using the previous file as is.
         wxRemoveFile( autoSaveFileName.GetFullPath() );
     }
+}
+
+
+bool EDA_BASE_FRAME::PostCommandMenuEvent( int evt_type )
+{
+    if( evt_type != 0 )
+    {
+        wxCommandEvent evt( wxEVT_COMMAND_MENU_SELECTED );
+        evt.SetEventObject( this );
+        evt.SetId( evt_type );
+        wxPostEvent( this, evt );
+        return true;
+    }
+
+    return false;
 }

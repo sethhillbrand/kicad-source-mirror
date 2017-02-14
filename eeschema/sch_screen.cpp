@@ -646,7 +646,7 @@ LIB_PIN* SCH_SCREEN::GetPin( const wxPoint& aPosition, SCH_COMPONENT** aComponen
         {
             pin = NULL;
 
-            LIB_PART* part = Prj().SchLibs()->FindLibPart( component->GetPartName() );
+            LIB_PART* part = Prj().SchLibs()->FindLibPart( component->GetLibId() );
 
             if( !part )
                 continue;
@@ -1104,13 +1104,13 @@ bool SCH_SCREEN::SetComponentFootprint( SCH_SHEET_PATH* aSheetPath, const wxStri
              */
             SCH_FIELD * fpfield = component->GetField( FOOTPRINT );
             if( fpfield->GetText().IsEmpty()
-              && ( fpfield->GetTextPosition() == component->GetPosition() ) )
+              && ( fpfield->GetTextPos() == component->GetPosition() ) )
             {
-                fpfield->SetOrientation( component->GetField( VALUE )->GetOrientation() );
-                fpfield->SetTextPosition( component->GetField( VALUE )->GetTextPosition() );
-                fpfield->SetSize( component->GetField( VALUE )->GetSize() );
+                fpfield->SetTextAngle( component->GetField( VALUE )->GetTextAngle() );
+                fpfield->SetTextPos( component->GetField( VALUE )->GetTextPos() );
+                fpfield->SetTextSize( component->GetField( VALUE )->GetTextSize() );
 
-                if( fpfield->GetOrientation() == 0 )
+                if( fpfield->GetTextAngle() == 0.0 )
                     fpfield->Offset( wxPoint( 0, 100 ) );
                 else
                     fpfield->Offset( wxPoint( 100, 0 ) );

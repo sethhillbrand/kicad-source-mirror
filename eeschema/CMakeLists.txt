@@ -105,6 +105,7 @@ set( EESCHEMA_SRCS
     getpart.cpp
     component_tree_search_container.cpp
     hierarch.cpp
+    highlight_connection.cpp
     hotkeys.cpp
     libarch.cpp
     libedit.cpp
@@ -171,6 +172,7 @@ set( EESCHEMA_SRCS
     sheetlab.cpp
     symbdraw.cpp
     symbedit.cpp
+    symbol_lib_table.cpp
     template_fieldnames_keywords.cpp
     template_fieldnames.cpp
     tool_lib.cpp

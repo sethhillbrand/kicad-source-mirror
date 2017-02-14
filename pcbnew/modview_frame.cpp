@@ -37,7 +37,7 @@
 #include <dialog_helpers.h>
 #include <msgpanel.h>
 #include <fp_lib_table.h>
-#include <fpid.h>
+#include <lib_id.h>
 #include <confirm.h>
 
 #include <class_board.h>
@@ -187,6 +187,7 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
 
     // Create GAL canvas
     PCB_DRAW_PANEL_GAL* drawPanel = new PCB_DRAW_PANEL_GAL( this, -1, wxPoint( 0, 0 ), m_FrameSize,
+                                                            parentFrame->GetGalDisplayOptions(),
                                                             parentFrame->GetGalCanvas()->GetBackend() );
     SetGalCanvas( drawPanel );
 
@@ -198,15 +199,15 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
     drawPanel->SetEventDispatcher( m_toolDispatcher );
 
     m_toolManager->RegisterTool( new PCBNEW_CONTROL );
-    m_toolManager->ResetTools( TOOL_BASE::RUN );
+    m_toolManager->InitTools();
 
     // If a footprint was previously loaded, reload it
     if( getCurNickname().size() && getCurFootprintName().size() )
     {
-        FPID id;
+        LIB_ID id;
 
         id.SetLibNickname( getCurNickname() );
-        id.SetFootprintName( getCurFootprintName() );
+        id.SetLibItemName( getCurFootprintName() );
         GetBoard()->Add( loadFootprint( id ) );
     }
 
@@ -449,9 +450,9 @@ void FOOTPRINT_VIEWER_FRAME::ClickOnFootprintList( wxCommandEvent& event )
         // Delete the current footprint
         GetBoard()->m_Modules.DeleteAll();
 
-        FPID id;
+        LIB_ID id;
         id.SetLibNickname( getCurNickname() );
-        id.SetFootprintName( getCurFootprintName() );
+        id.SetLibItemName( getCurFootprintName() );
 
         try
         {
@@ -511,10 +512,10 @@ void FOOTPRINT_VIEWER_FRAME::ExportSelectedFootprint( wxCommandEvent& event )
     {
         wxString fp_name = m_footprintList->GetString( ii );
 
-        FPID fpid;
+        LIB_ID fpid;
 
         fpid.SetLibNickname( getCurNickname() );
-        fpid.SetFootprintName( fp_name );
+        fpid.SetLibItemName( fp_name );
 
         DismissModal( true, fpid.Format() );
     }
@@ -727,7 +728,7 @@ void FOOTPRINT_VIEWER_FRAME::UpdateTitle()
     if( getCurNickname().size() )
     {
         FP_LIB_TABLE* libtable = Prj().PcbFootprintLibs();
-        const FP_LIB_TABLE_ROW* row = libtable->FindRow( getCurNickname() );
+        const LIB_TABLE_ROW* row = libtable->FindRow( getCurNickname() );
 
         if( row )
             title << L" \u2014 " << row->GetFullURI( true );
@@ -773,7 +774,7 @@ void FOOTPRINT_VIEWER_FRAME::SelectCurrentFootprint( wxCommandEvent& event )
             delete oldmodule;
         }
 
-        setCurFootprintName( module->GetFPID().GetFootprintName() );
+        setCurFootprintName( module->GetFPID().GetLibItemName() );
 
         wxString nickname = module->GetFPID().GetLibNickname();
 

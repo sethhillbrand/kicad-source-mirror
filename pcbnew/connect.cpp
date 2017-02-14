@@ -32,6 +32,7 @@
 #include <common.h>
 #include <macros.h>
 #include <wxBasePcbFrame.h>
+#include <view/view.h>
 
 #include <pcbnew.h>
 
@@ -95,6 +96,7 @@ void CONNECTIONS::SearchConnectionsPadsToIntersectingPads()
 
             if( !( pad->GetLayerSet() & candidate_pad->GetLayerSet() ).any() )
                 continue;
+
             if( pad->HitTest( item->GetPoint() ) )
             {
                 pad->m_PadsConnected.push_back( candidate_pad );
@@ -226,6 +228,7 @@ void CONNECTIONS::BuildPadsCandidatesList()
 {
     m_candidates.clear();
     m_candidates.reserve( m_sortedPads.size() );
+
     for( unsigned ii = 0; ii < m_sortedPads.size(); ii++ )
     {
         D_PAD * pad = m_sortedPads[ii];
@@ -942,9 +945,12 @@ void PCB_BASE_FRAME::RecalculateAllTracksNetcode()
         }
     }
 
+    if( IsGalCanvasActive() )
+    {
     /// @todo LEGACY tracks might have changed their nets, so we need to refresh labels in GAL
-    for( TRACK* track = m_Pcb->m_Track; track; track = track->Next() )
-        track->ViewUpdate();
+        for( TRACK* track = m_Pcb->m_Track; track; track = track->Next() )
+            GetGalCanvas()->GetView()->Update( track );
+    }
 
     // Sort the track list by net codes:
     RebuildTrackChain( m_Pcb );

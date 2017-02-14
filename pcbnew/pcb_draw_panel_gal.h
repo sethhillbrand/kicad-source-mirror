@@ -38,7 +38,8 @@ class PCB_DRAW_PANEL_GAL : public EDA_DRAW_PANEL_GAL
 {
 public:
     PCB_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWindowId, const wxPoint& aPosition,
-                        const wxSize& aSize, GAL_TYPE aGalType = GAL_TYPE_OPENGL );
+                        const wxSize& aSize, KIGFX::GAL_DISPLAY_OPTIONS& aOptions,
+                        GAL_TYPE aGalType = GAL_TYPE_OPENGL );
 
     virtual ~PCB_DRAW_PANEL_GAL();
 
@@ -82,6 +83,8 @@ public:
 
     ///> @copydoc EDA_DRAW_PANEL_GAL::OnShow()
     void OnShow() override;
+
+    bool SwitchBackend( GAL_TYPE aGalType ) override;
 
 protected:
     ///> Reassigns layer order to the initial settings.

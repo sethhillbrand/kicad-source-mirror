@@ -36,7 +36,6 @@
 #include <confirm.h>
 #include <pcbnew.h>
 #include <wxBasePcbFrame.h>
-#include <pcbcommon.h>
 #include <base_units.h>
 #include <board_commit.h>
 
@@ -151,15 +150,17 @@ DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aP
     TransferDataToWindow();
 
     m_sdbSizerOK->SetDefault();
-    m_PadNumCtrl->SetFocus();
     m_canUpdate = true;
-
-    FixOSXCancelButtonIssue();
 
     // Now all widgets have the size fixed, call FinishDialogSettings
     FinishDialogSettings();
 }
 
+void DIALOG_PAD_PROPERTIES::OnInitDialog( wxInitDialogEvent& event )
+{
+    m_PadNumCtrl->SetFocus();
+    m_PadNumCtrl->SetSelection( -1, -1 );
+}
 
 void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
 {
@@ -346,14 +347,19 @@ void DIALOG_PAD_PROPERTIES::initValues()
 
     if( m_currentPad )
     {
-        MODULE* footprint = m_currentPad->GetParent();
         m_isFlipped = m_currentPad->IsFlipped();
 
         if( m_isFlipped )
             m_staticModuleSideValue->SetLabel( _( "Back side (footprint is mirrored)" ) );
 
         // Diplay footprint rotation ( angles are in 0.1 degree )
-        msg.Printf( wxT( "%.1f" ), footprint->GetOrientation() / 10.0 );
+        MODULE* footprint = m_currentPad->GetParent();
+
+        if( footprint )
+            msg.Printf( "%.1f", footprint->GetOrientationDegrees() );
+        else
+            msg = _("No footprint" );
+
         m_staticModuleRotValue->SetLabel( msg );
     }
 
@@ -458,8 +464,11 @@ void DIALOG_PAD_PROPERTIES::initValues()
 
     if( m_currentPad )
     {
+        angle = m_currentPad->GetOrientation();
         MODULE* footprint = m_currentPad->GetParent();
-        angle = m_currentPad->GetOrientation() - footprint->GetOrientation();
+
+        if( footprint )
+            angle -= footprint->GetOrientation();
 
         if( m_isFlipped )
             angle = -angle;
@@ -877,7 +886,7 @@ void DIALOG_PAD_PROPERTIES::redraw()
 {
     if( m_parent->IsGalCanvasActive() )
     {
-        m_dummyPad->ViewUpdate();
+        m_parent->GetGalCanvas()->GetView()->Update( m_dummyPad );
 
         BOX2I bbox = m_dummyPad->ViewBBox();
 
@@ -944,14 +953,15 @@ bool DIALOG_PAD_PROPERTIES::TransferDataFromWindow()
     m_padMaster->SetNetCode( NETINFO_LIST::UNCONNECTED );
 
     if( !m_currentPad )   // Set current Pad parameters
-        return false;
+        return true;
 
     commit.Modify( m_currentPad );
 
     wxSize  size;
     MODULE* footprint = m_currentPad->GetParent();
 
-    footprint->SetLastEditTime();
+    if( footprint )
+        footprint->SetLastEditTime();
 
     // redraw the area where the pad was, without pad (delete pad on screen)
     m_currentPad->SetFlags( DO_NOT_DRAW );

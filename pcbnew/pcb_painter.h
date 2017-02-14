@@ -65,14 +65,25 @@ class PCB_RENDER_SETTINGS : public RENDER_SETTINGS
 public:
     friend class PCB_PAINTER;
 
-    enum ClearanceMode {
-        CL_VIAS     = 0x1,
-        CL_PADS     = 0x2,
-        CL_TRACKS   = 0x4
+    ///> Flags to control clearance lines visibility
+    enum CLEARANCE_MODE
+    {
+        CL_NONE             = 0x00,
+
+        // Object type
+        CL_PADS             = 0x01,
+        CL_VIAS             = 0x02,
+        CL_TRACKS           = 0x04,
+
+        // Existence
+        CL_NEW              = 0x08,
+        CL_EDITED           = 0x10,
+        CL_EXISTING         = 0x20
     };
 
     ///> Determines how zones should be displayed
-    enum DisplayZonesMode {
+    enum DISPLAY_ZONE_MODE
+    {
         DZ_HIDE_FILLED = 0,
         DZ_SHOW_FILLED,
         DZ_SHOW_OUTLINED
@@ -171,7 +182,10 @@ protected:
     static const double MAX_FONT_SIZE;
 
     ///> Option for different display modes for zones
-    DisplayZonesMode m_displayZoneMode;
+    DISPLAY_ZONE_MODE m_displayZone;
+
+    ///> Clearance visibility settings
+    int m_clearance;
 };
 
 
@@ -191,7 +205,7 @@ public:
     }
 
     /// @copydoc PAINTER::GetSettings()
-    virtual RENDER_SETTINGS* GetSettings() override
+    virtual PCB_RENDER_SETTINGS* GetSettings() override
     {
         return &m_pcbSettings;
     }
@@ -214,6 +228,15 @@ protected:
     void draw( const DIMENSION* aDimension, int aLayer );
     void draw( const PCB_TARGET* aTarget );
     void draw( const MARKER_PCB* aMarker );
+
+    /**
+     * Function getLineThickness()
+     * Get the thickness to draw for a line (e.g. 0 thickness lines
+     * get a minimum value).
+     * @param aActualThickness line own thickness
+     * @return the thickness to draw
+     */
+    int getLineThickness( int aActualThickness ) const;
 };
 } // namespace KIGFX
 

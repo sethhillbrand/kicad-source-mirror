@@ -4,6 +4,7 @@ include_directories(
     ./widgets
     ./dialog_about
     ${CAIRO_INCLUDE_DIR}
+    ${PIXMAN_INCLUDE_DIR}
     ${GLEW_INCLUDE_DIR}
     ${GLM_INCLUDE_DIR}
     ${CURL_INCLUDE_DIRS}
@@ -18,24 +19,6 @@ if( NOT APPLE )     # windows and linux use openssl under curl
     find_package( OpenSSL REQUIRED )
 endif()
 
-
-# Generate header files containing shader programs
-# Order of input files is significant
-add_custom_command(
-    OUTPUT gal/opengl/shader_src.h
-    COMMAND ${CMAKE_COMMAND}
-        -DinputFiles="${PROJECT_SOURCE_DIR}/common/gal/opengl/shader.vert\\;${PROJECT_SOURCE_DIR}/common/gal/opengl/shader.frag"
-        -DoutputFile="shader_src.h"
-        -P ${CMAKE_MODULE_PATH}/Shaders.cmake
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/common/gal/opengl
-    COMMENT "Generating headers containing GLSL source code"
-    )
-
-add_custom_target(
-    shader_headers ALL
-    DEPENDS gal/opengl/shader_src.h
-    )
-
 set( GAL_SRCS
     # Common part
     basic_gal.cpp
@@ -45,6 +28,7 @@ set( GAL_SRCS
     worksheet_viewitem.cpp
     origin_viewitem.cpp
     gl_context_mgr.cpp
+    gal/gal_display_options.cpp
     gal/graphics_abstraction_layer.cpp
     gal/stroke_font.cpp
     gal/color4d.cpp
@@ -54,6 +38,8 @@ set( GAL_SRCS
 
     # OpenGL GAL
     gal/opengl/opengl_gal.cpp
+    gal/opengl/gl_resources.cpp
+    gal/opengl/gl_builtin_shaders.cpp
     gal/opengl/shader.cpp
     gal/opengl/vertex_item.cpp
     gal/opengl/vertex_container.cpp
@@ -61,6 +47,7 @@ set( GAL_SRCS
     gal/opengl/noncached_container.cpp
     gal/opengl/vertex_manager.cpp
     gal/opengl/gpu_manager.cpp
+    gal/opengl/antialiasing.cpp
     gal/opengl/opengl_compositor.cpp
     gal/opengl/utils.cpp
 
@@ -70,13 +57,12 @@ set( GAL_SRCS
     )
 
 add_library( gal STATIC ${GAL_SRCS} )
-add_dependencies( gal shader_headers )
 add_dependencies( gal lib-dependencies )
 
 target_link_libraries( gal
     ${GLEW_LIBRARIES}
     ${CAIRO_LIBRARIES}
-    ${PIXMAN_LIBRARY}
+    ${PIXMAN_LIBRARIES}
     ${OPENGL_LIBRARIES}
 )
 
@@ -128,17 +114,20 @@ install( TARGETS lib_kicad
 endif()
 
 
-# KiCad build version string defaults to undefined which forces the build version header
-# command to look for Bazaar to create the version string header.
-set( KICAD_BUILD_VERSION "" CACHE STRING "Version string defined at configuration time." )
-set( KICAD_REPO_NAME     "" CACHE STRING "KiCad repository name." )
+# KiCad build version string defaults to "no-vcs-found" which forces the build version header
+# command to look for git to create the version string header when the .git path is found in
+# the source path.
+set( KICAD_BRANCH_NAME "" CACHE STRING "KiCad repository name." )
+set( KICAD_VERSION_EXTRA "" CACHE STRING
+    "User defined configuration string to append to KiCad version." )
 
 # Generate version header file.
 add_custom_target(
     version_header ALL
     COMMAND ${CMAKE_COMMAND}
-        -DKICAD_BUILD_VERSION=${KICAD_BUILD_VERSION}
-        -DKICAD_REPO_NAME=${KICAD_REPO_NAME}
+        -DKICAD_VERSION=${KICAD_VERSION}
+        -DKICAD_BRANCH_NAME=${KICAD_BRANCH_NAME}
+        -DKICAD_VERSION_EXTRA=${KICAD_VERSION_EXTRA}
         -DOUTPUT_FILE=${CMAKE_BINARY_DIR}/kicad_build_version.h
         -DSRC_PATH=${PROJECT_SOURCE_DIR}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
@@ -229,6 +218,8 @@ set( COMMON_SRCS
     eda_pattern_match.cpp
     exceptions.cpp
     filter_reader.cpp
+    lib_id.cpp
+    lib_table_keywords.cpp
 #    findkicadhelppath.cpp.notused      deprecated, use searchhelpfilefullpath.cpp
     gbr_metadata.cpp
     gestfich.cpp
@@ -242,9 +233,11 @@ set( COMMON_SRCS
     kiway_express.cpp
     kiway_holder.cpp
     kiway_player.cpp
+    lib_table_base.cpp
     lockfile.cpp
     msgpanel.cpp
     netlist_keywords.cpp
+    observable.cpp
     prependpath.cpp
     project.cpp
     properties.cpp
@@ -321,7 +314,6 @@ set( PCB_COMMON_SRCS
     base_screen.cpp
     eda_text.cpp
     class_page_info.cpp
-    pcbcommon.cpp
     lset.cpp
     footprint_info.cpp
     ../pcbnew/basepcbframe.cpp
@@ -368,8 +360,6 @@ set( PCB_COMMON_SRCS
     pcb_plot_params_keywords.cpp
     pcb_keywords.cpp
     ../pcbnew/pcb_parser.cpp
-    fp_lib_table_keywords.cpp
-    fpid.cpp
     fp_lib_table.cpp
 )
 
@@ -467,22 +457,23 @@ add_custom_target(
 
 add_dependencies( pcbcommon pcb_lexer_source_files )
 
-# auto-generate pcbnew s-expression footprint library table code.
+# auto-generate s-expression library table code.
 make_lexer(
-    ${CMAKE_CURRENT_SOURCE_DIR}/fp_lib_table.keywords
-    ${PROJECT_SOURCE_DIR}/include/fp_lib_table_lexer.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/fp_lib_table_keywords.cpp
-    FP_LIB_TABLE_T
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib_table.keywords
+    ${PROJECT_SOURCE_DIR}/include/lib_table_lexer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib_table_keywords.cpp
+    LIB_TABLE_T
     )
 
 add_custom_target(
-    fp_lib_table_lexer_source_files ALL
+    lib_table_lexer_source_files ALL
     DEPENDS
-        ${PROJECT_SOURCE_DIR}/include/fp_lib_table_lexer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/fp_lib_table_keywords.cpp
+        ${PROJECT_SOURCE_DIR}/include/lib_table_lexer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib_table_keywords.cpp
     )
 
-add_dependencies( pcbcommon fp_lib_table_lexer_source_files )
+add_dependencies( common lib_table_lexer_source_files )
+add_dependencies( pcbcommon lib_table_lexer_source_files )
 
 # auto-generate page layout reader s-expression page_layout_reader_lexer.h
 # and title_block_reader_keywords.cpp.

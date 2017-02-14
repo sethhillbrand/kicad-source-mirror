@@ -244,10 +244,8 @@ void PCB_PARSER::parseEDA_TEXT( EDA_TEXT* aText ) throw( PARSE_ERROR, IO_ERROR )
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
-        if( token != T_LEFT )
-            Expecting( T_LEFT );
-
-        token = NextTok();
+        if( token == T_LEFT )
+            token = NextTok();
 
         switch( token )
         {
@@ -260,14 +258,14 @@ void PCB_PARSER::parseEDA_TEXT( EDA_TEXT* aText ) throw( PARSE_ERROR, IO_ERROR )
                 switch( token )
                 {
                 case T_size:
-                {
-                    wxSize sz;
-                    sz.SetHeight( parseBoardUnits( "text height" ) );
-                    sz.SetWidth( parseBoardUnits( "text width" ) );
-                    aText->SetSize( sz );
-                    NeedRIGHT();
+                    {
+                        wxSize sz;
+                        sz.SetHeight( parseBoardUnits( "text height" ) );
+                        sz.SetWidth( parseBoardUnits( "text width" ) );
+                        aText->SetTextSize( sz );
+                        NeedRIGHT();
+                    }
                     break;
-                }
 
                 case T_thickness:
                     aText->SetThickness( parseBoardUnits( "text thickness" ) );
@@ -286,7 +284,6 @@ void PCB_PARSER::parseEDA_TEXT( EDA_TEXT* aText ) throw( PARSE_ERROR, IO_ERROR )
                     Expecting( "size, bold, or italic" );
                 }
             }
-
             break;
 
         case T_justify:
@@ -1518,14 +1515,14 @@ TEXTE_PCB* PCB_PARSER::parseTEXTE_PCB() throw( IO_ERROR, PARSE_ERROR )
 
     pt.x = parseBoardUnits( "X coordinate" );
     pt.y = parseBoardUnits( "Y coordinate" );
-    text->SetTextPosition( pt );
+    text->SetTextPos( pt );
 
     // If there is no orientation defined, then it is the default value of 0 degrees.
     token = NextTok();
 
     if( token == T_NUMBER )
     {
-        text->SetOrientation( parseDouble() * 10.0 );
+        text->SetTextAngle( parseDouble() * 10.0 );
         NeedRIGHT();
     }
     else if( token != T_RIGHT )
@@ -1607,7 +1604,7 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
         {
             TEXTE_PCB* text = parseTEXTE_PCB();
             dimension->Text() = *text;
-            dimension->SetPosition( text->GetTextPosition() );
+            dimension->SetPosition( text->GetTextPos() );
             delete text;
             break;
         }
@@ -1743,7 +1740,7 @@ MODULE* PCB_PARSER::parseMODULE_unchecked( wxArrayString* aInitialComments )
     wxString name;
     wxPoint  pt;
     T        token;
-    FPID     fpid;
+    LIB_ID   fpid;
 
     std::unique_ptr<MODULE> module( new MODULE( m_board ) );
 
@@ -1919,9 +1916,9 @@ MODULE* PCB_PARSER::parseMODULE_unchecked( wxArrayString* aInitialComments )
             {
                 TEXTE_MODULE* text = parseTEXTE_MODULE();
                 text->SetParent( module.get() );
-                double orientation = text->GetOrientation();
+                double orientation = text->GetTextAngle();
                 orientation -= module->GetOrientation();
-                text->SetOrientation( orientation );
+                text->SetTextAngle( orientation );
                 text->SetDrawCoord();
 
                 switch( text->GetType() )
@@ -2034,7 +2031,7 @@ TEXTE_MODULE* PCB_PARSER::parseTEXTE_MODULE() throw( IO_ERROR, PARSE_ERROR )
     // If there is no orientation defined, then it is the default value of 0 degrees.
     if( token == T_NUMBER )
     {
-        text->SetOrientation( parseDouble() * 10.0 );
+        text->SetTextAngle( parseDouble() * 10.0 );
         NeedRIGHT();
     }
     else if( token != T_RIGHT )

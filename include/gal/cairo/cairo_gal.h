@@ -120,10 +120,12 @@ public:
     /// @copydoc GAL::DrawPolyline()
     virtual void DrawPolyline( const std::deque<VECTOR2D>& aPointList ) override { drawPoly( aPointList ); }
     virtual void DrawPolyline( const VECTOR2D aPointList[], int aListSize ) override { drawPoly( aPointList, aListSize ); }
+    virtual void DrawPolyline( const SHAPE_LINE_CHAIN& aLineChain ) override { drawPoly( aLineChain ); }
 
     /// @copydoc GAL::DrawPolygon()
     virtual void DrawPolygon( const std::deque<VECTOR2D>& aPointList ) override { drawPoly( aPointList ); }
     virtual void DrawPolygon( const VECTOR2D aPointList[], int aListSize ) override { drawPoly( aPointList, aListSize ); }
+    virtual void DrawPolygon( const SHAPE_POLY_SET& aPolySet ) override;
 
     /// @copydoc GAL::DrawCurve()
     virtual void DrawCurve( const VECTOR2D& startPoint, const VECTOR2D& controlPointA,
@@ -296,7 +298,7 @@ private:
     wxBitmap*               cursorPixelsSaved;      ///< Saved cursor pixels
 
     /// Maximum number of arguments for one command
-    static const int MAX_CAIRO_ARGUMENTS = 6;
+    static const int MAX_CAIRO_ARGUMENTS = 4;
 
     /// Definitions for the command recorder
     enum GRAPHICS_COMMAND
@@ -308,7 +310,7 @@ private:
         CMD_SET_LINE_WIDTH,                         ///< Set the line width
         CMD_STROKE_PATH,                            ///< Set the stroke path
         CMD_FILL_PATH,                              ///< Set the fill path
-        CMD_TRANSFORM,                              ///< Transform the actual context
+        //CMD_TRANSFORM,                              ///< Transform the actual context
         CMD_ROTATE,                                 ///< Rotate the context
         CMD_TRANSLATE,                              ///< Translate the context
         CMD_SCALE,                                  ///< Scale the context
@@ -321,9 +323,11 @@ private:
     typedef struct
     {
         GRAPHICS_COMMAND command;                   ///< Command to execute
-        double arguments[MAX_CAIRO_ARGUMENTS];      ///< Arguments for Cairo commands
-        bool boolArgument;                          ///< A bool argument
-        int intArgument;                            ///< An int argument
+        union {
+            double dblArg[MAX_CAIRO_ARGUMENTS];     ///< Arguments for Cairo commands
+            bool boolArg;                           ///< A bool argument
+            int intArg;                             ///< An int argument
+        } argument;
         cairo_path_t* cairoPath;                    ///< Pointer to a Cairo path
     } GROUP_ELEMENT;
 
@@ -346,6 +350,9 @@ private:
     bool                isInitialized;          ///< Are Cairo image & surface ready to use
     COLOR4D             backgroundColor;        ///< Background color
 
+    int wxBufferWidth;
+
+    void flushPath();
     // Methods
     void storePath();                           ///< Store the actual path
 
@@ -372,7 +379,7 @@ private:
     /**
      * @brief Blits cursor into the current screen.
      */
-    virtual void blitCursor( wxBufferedDC& clientDC );
+    virtual void blitCursor( wxMemoryDC& clientDC );
 
     /// Prepare Cairo surfaces for drawing
     void initSurface();
@@ -392,6 +399,7 @@ private:
     /// Drawing polygons & polylines is the same in cairo, so here is the common code
     void drawPoly( const std::deque<VECTOR2D>& aPointList );
     void drawPoly( const VECTOR2D aPointList[], int aListSize );
+    void drawPoly( const SHAPE_LINE_CHAIN& aLineChain );
 
     /**
      * @brief Returns a valid key that can be used as a new group number.

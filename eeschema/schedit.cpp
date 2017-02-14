@@ -299,7 +299,7 @@ void SCH_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         {
             if( PART_LIBS* libs = Prj().SchLibs() )
             {
-                LIB_ALIAS* entry = libs->FindLibraryAlias( ( (SCH_COMPONENT*) item )->GetPartName() );
+                LIB_ALIAS* entry = libs->FindLibraryAlias( ( (SCH_COMPONENT*) item )->GetLibId() );
 
                 if( entry && !!entry->GetDocFileName() )
                 {
@@ -527,6 +527,10 @@ void SCH_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
     {
     case ID_NO_TOOL_SELECTED:
         SetToolID( id, m_canvas->GetDefaultCursor(), _( "No tool selected" ) );
+        break;
+
+    case ID_HIGHLIGHT:
+        SetToolID( id, wxCURSOR_HAND, _("Highlight net") );
         break;
 
     case ID_ZOOM_SELECTION:

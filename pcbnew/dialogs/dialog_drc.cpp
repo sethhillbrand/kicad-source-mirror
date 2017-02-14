@@ -36,6 +36,7 @@
 #include <base_units.h>
 #include <class_board_design_settings.h>
 #include <class_draw_panel_gal.h>
+#include <view/view.h>
 
 /* class DIALOG_DRC_CONTROL: a dialog to set DRC parameters (clearance, min cooper size)
  * and run DRC tests
@@ -51,8 +52,6 @@ DIALOG_DRC_CONTROL::DIALOG_DRC_CONTROL( DRC* aTester, PCB_EDIT_FRAME* aEditorFra
     m_BrdSettings = m_brdEditor->GetBoard()->GetDesignSettings();
 
     InitValues();
-
-    FixOSXCancelButtonIssue();
 
     // Now all widgets have the size fixed, call FinishDialogSettings
     FinishDialogSettings();
@@ -672,4 +671,3 @@ void DIALOG_DRC_CONTROL::UpdateDisplayedCounts()
     m_MarkerCount->SetLabelText( wxString::Format( "%d", marker_count ) );
     m_UnconnectedCount->SetLabelText( wxString::Format( "%d", unconnected_count ) );
 }
-

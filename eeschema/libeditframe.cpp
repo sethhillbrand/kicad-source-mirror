@@ -71,7 +71,7 @@ LIB_ITEM* LIB_EDIT_FRAME::m_drawItem = NULL;
 bool LIB_EDIT_FRAME::          m_showDeMorgan    = false;
 wxSize LIB_EDIT_FRAME::        m_clientSize      = wxSize( -1, -1 );
 int LIB_EDIT_FRAME::           m_textSize        = -1;
-int LIB_EDIT_FRAME::           m_textOrientation = TEXT_ORIENT_HORIZ;
+double LIB_EDIT_FRAME::        m_current_text_angle = TEXT_ANGLE_HORIZ;
 int LIB_EDIT_FRAME::           m_drawLineWidth   = 0;
 
 // these values are overridden when reading the config
@@ -986,7 +986,7 @@ LIB_PART* LIB_EDIT_FRAME::GetCurPart()
         wxString    name = Prj().GetRString( PROJECT::SCH_LIBEDIT_CUR_PART );
         LIB_PART*   part;
 
-        if( !!name && ( part = Prj().SchLibs()->FindLibPart( name ) ) )
+        if( !!name && ( part = Prj().SchLibs()->FindLibPart( LIB_ID( wxEmptyString, name ) ) ) )
         {
             // clone it from the PART_LIB and own it.
             m_my_part = new LIB_PART( *part );

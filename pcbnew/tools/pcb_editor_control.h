@@ -32,8 +32,6 @@ namespace KIGFX {
 }
 
 class PCB_EDIT_FRAME;
-class ZONE_CONTEXT_MENU;
-class LOCK_CONTEXT_MENU;
 
 /**
  * Class PCB_EDITOR_CONTROL
@@ -64,6 +62,9 @@ public:
     int ZoneUnfill( const TOOL_EVENT& aEvent );
     int ZoneUnfillAll( const TOOL_EVENT& aEvent );
     int ZoneMerge( const TOOL_EVENT& aEvent );
+
+    ///> Duplicates a zone onto a layer (prompts for new layer)
+    int ZoneDuplicate( const TOOL_EVENT& aEvent );
 
     /**
      * Function PlaceTarget()
@@ -121,9 +122,6 @@ private:
 
     // How does line width change after one -/+ key press.
     static const int WIDTH_STEP;
-
-    ZONE_CONTEXT_MENU* m_zoneMenu;
-    LOCK_CONTEXT_MENU* m_lockMenu;
 };
 
 #endif

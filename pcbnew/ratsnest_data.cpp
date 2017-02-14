@@ -499,6 +499,9 @@ bool RN_NET::AddItem( const ZONE_CONTAINER* aZone )
     // Prepare a list of polygons (every zone can contain one or more polygons)
     const SHAPE_POLY_SET& polySet = aZone->GetFilledPolysList();
 
+    // This ensures that we record aZone as added even if it contains no polygons.
+    (void) m_zones[aZone];
+
     for( int i = 0; i < polySet.OutlineCount(); ++i )
     {
         const SHAPE_LINE_CHAIN& path = polySet.COutline( i );
@@ -1269,8 +1272,7 @@ void RN_DATA::Recalculate( int aNet )
     if( aNet <= 0 && netCount > 1 )              // Recompute everything
     {
 #ifdef PROFILE
-    prof_counter totalRealTime;
-    prof_start( &totalRealTime );
+    PROF_COUNTER totalRealTime;
 #endif
 
         unsigned int i;
@@ -1290,9 +1292,8 @@ void RN_DATA::Recalculate( int aNet )
             }
         }  /* end of parallel section */
 #ifdef PROFILE
-    prof_end( &totalRealTime );
-
-    wxLogDebug( wxT( "Recalculate all nets: %.1f ms" ), totalRealTime.msecs() );
+    totalRealTime.Stop();
+    wxLogDebug( "Recalculate all nets: %.1f ms", totalRealTime.msecs() );
 #endif /* PROFILE */
     }
     else if( aNet > 0 )         // Recompute only specific net

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 CERN
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -300,7 +300,7 @@ void FP_CACHE::Load()
             MODULE*     footprint = (MODULE*) m_owner->m_parser->Parse();
 
             // The footprint name is the file name without the extension.
-            footprint->SetFPID( FPID( fullPath.GetName() ) );
+            footprint->SetFPID( LIB_ID( fullPath.GetName() ) );
             m_modules.insert( name, new FP_CACHE_ITEM( footprint, fullPath ) );
 
         } while( dir.GetNext( &fpFileName ) );
@@ -1355,10 +1355,10 @@ void PCB_IO::format( TEXTE_PCB* aText, int aNestLevel ) const
 {
     m_out->Print( aNestLevel, "(gr_text %s (at %s",
                   m_out->Quotew( aText->GetText() ).c_str(),
-                  FMT_IU( aText->GetTextPosition() ).c_str() );
+                  FMT_IU( aText->GetTextPos() ).c_str() );
 
-    if( aText->GetOrientation() != 0.0 )
-        m_out->Print( 0, " %s", FMT_ANGLE( aText->GetOrientation() ).c_str() );
+    if( aText->GetTextAngle() != 0.0 )
+        m_out->Print( 0, " %s", FMT_ANGLE( aText->GetTextAngle() ).c_str() );
 
     m_out->Print( 0, ")" );
 
@@ -1378,26 +1378,43 @@ void PCB_IO::format( TEXTE_PCB* aText, int aNestLevel ) const
 void PCB_IO::format( TEXTE_MODULE* aText, int aNestLevel ) const
     throw( IO_ERROR )
 {
-    MODULE*  parent = (MODULE*) aText->GetParent();
-    double   orient = aText->GetOrientation();
     wxString type;
 
     switch( aText->GetType() )
     {
-    case TEXTE_MODULE::TEXT_is_REFERENCE: type = wxT( "reference" );     break;
-    case TEXTE_MODULE::TEXT_is_VALUE:     type = wxT( "value" );         break;
-    case TEXTE_MODULE::TEXT_is_DIVERS:    type = wxT( "user" );
+    case TEXTE_MODULE::TEXT_is_REFERENCE: type = "reference";   break;
+    case TEXTE_MODULE::TEXT_is_VALUE:     type = "value";       break;
+    case TEXTE_MODULE::TEXT_is_DIVERS:    type = "user";
     }
-
-    // Due to the Pcbnew history, m_Orient is saved in screen value
-    // but it is handled as relative to its parent footprint
-    if( parent )
-        orient += parent->GetOrientation();
 
     m_out->Print( aNestLevel, "(fp_text %s %s (at %s",
                   m_out->Quotew( type ).c_str(),
                   m_out->Quotew( aText->GetText() ).c_str(),
                   FMT_IU( aText->GetPos0() ).c_str() );
+
+    // Due to Pcbnew history, fp_text angle is saved as an absolute on screen angle,
+    // but internally the angle is held relative to its parent footprint.  parent
+    // may be NULL when saving a footprint outside a BOARD.
+    double   orient = aText->GetTextAngle();
+    MODULE*  parent = (MODULE*) aText->GetParent();
+
+    if( parent )
+    {
+        // GetTextAngle() is always in -360..+360 range because of
+        // TEXTE_MODULE::SetTextAngle(), but summing that angle with an
+        // additional board angle could kick sum up >= 360 or <= -360, so to have
+        // consistent results, normalize again for the BOARD save.  A footprint
+        // save does not use this code path since parent is NULL.
+#if 0
+        // This one could be considered reasonable if you like positive angles
+        // in your board text.
+        orient = NormalizeAnglePos( orient + parent->GetOrientation() );
+#else
+        // Choose compatibility for now, even though this is only a 720 degree clamp
+        // with two possible values for every angle.
+        orient = NormalizeAngle360( orient + parent->GetOrientation() );
+#endif
+    }
 
     if( orient != 0.0 )
         m_out->Print( 0, " %s", FMT_ANGLE( orient ).c_str() );
@@ -1410,7 +1427,7 @@ void PCB_IO::format( TEXTE_MODULE* aText, int aNestLevel ) const
 
     m_out->Print( 0, "\n" );
 
-    aText->EDA_TEXT::Format( m_out, aNestLevel, m_ctl );
+    aText->EDA_TEXT::Format( m_out, aNestLevel, m_ctl | CTL_OMIT_HIDE );
 
     m_out->Print( aNestLevel, ")\n" );
 }
@@ -1879,12 +1896,13 @@ void PCB_IO::FootprintSave( const wxString& aLibraryPath, const MODULE* aFootpri
         THROW_IO_ERROR( msg );
     }
 
-    std::string footprintName = aFootprint->GetFPID().GetFootprintName();
+    std::string footprintName = aFootprint->GetFPID().GetLibItemName();
 
     MODULE_MAP& mods = m_cache->GetModules();
 
     // Quietly overwrite module and delete module file from path for any by same name.
-    wxFileName fn( aLibraryPath, aFootprint->GetFPID().GetFootprintName(), KiCadFootprintFileExtension );
+    wxFileName fn( aLibraryPath, aFootprint->GetFPID().GetLibItemName(),
+                   KiCadFootprintFileExtension );
 
     if( !fn.IsOk() )
     {

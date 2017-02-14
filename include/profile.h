@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2013 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
+ * 2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,61 +31,105 @@
 #ifndef __TPROFILE_H
 #define __TPROFILE_H
 
-#include <sys/time.h>
-#include <stdint.h>
+#include <chrono>
+#include <string>
+#include <iostream>
+#include <iomanip>
 
 /**
- * Function get_tics
- * Returns the number of microseconds that have elapsed since the system was started.
- * @return uint64_t Number of microseconds.
+ * The class PROF_COUNTER is a small class to help profiling.
+ * It allows the calculation of the elapsed time (in millisecondes) between
+ * its creation (or the last call to Start() ) and the last call to Stop()
  */
-static inline uint64_t get_tics()
+class PROF_COUNTER
 {
-    struct timeval tv;
-    gettimeofday( &tv, NULL );
-
-    return (uint64_t) tv.tv_sec * 1000000ULL + (uint64_t) tv.tv_usec;
-}
-
-/**
- * Structure for storing data related to profiling counters.
- */
-struct prof_counter
-{
-    uint64_t start, end;         // Stored timer value
-
-    uint64_t usecs() const
+public:
+    /**
+     * Creates a PROF_COUNTER for measuring an elapsed time in milliseconds
+     * @param aName = a string that will be printed in message.
+     * @param aAutostart = true (default) to immediately start the timer
+     */
+    PROF_COUNTER( const std::string& aName, bool aAutostart = true ) :
+        m_name( aName ), m_running( false )
     {
-        return end - start;
+        if( aAutostart )
+            Start();
     }
 
-    float msecs() const
+    /**
+     * Creates a PROF_COUNTER for measuring an elapsed time in milliseconds
+     * The counter is started and the string to print in message is left empty.
+     */
+    PROF_COUNTER()
     {
-        return ( end - start ) / 1000.0;
+        Start();
     }
+
+    /**
+     * Starts or restarts the counter
+     */
+    void Start()
+    {
+        m_running = true;
+        m_starttime = std::chrono::high_resolution_clock::now();
+    }
+
+
+    /**
+     * save the time when this function was called, and set the counter stane to stop
+     */
+    void Stop()
+    {
+        if( !m_running )
+            return;
+
+        m_stoptime = std::chrono::high_resolution_clock::now();
+    }
+
+    /**
+     * Print the elapsed time (in ms) to STDERR.
+     */
+    void Show()
+    {
+        TIME_POINT display_stoptime = m_running ?
+                    std::chrono::high_resolution_clock::now() :
+                    m_stoptime;
+
+        std::chrono::duration<double, std::milli> elapsed = display_stoptime - m_starttime;
+        std::cerr << m_name << " took " << elapsed.count() << " milliseconds." << std::endl;
+    }
+
+    /**
+     * @return the elapsed time in ms
+     */
+    double msecs() const
+    {
+        TIME_POINT stoptime = m_running ?
+                    std::chrono::high_resolution_clock::now() :
+                    m_stoptime;
+
+        std::chrono::duration<double, std::milli> elapsed = stoptime - m_starttime;
+
+        return elapsed.count();
+    }
+
+private:
+    std::string m_name;     // a string printed in message
+    bool m_running;
+
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> TIME_POINT;
+
+    TIME_POINT m_starttime, m_stoptime;
 };
 
-/**
- * Function prof_start
- * Begins code execution time counting for a given profiling counter.
- * @param aCnt is the counter which should be started.
- * use_rdtsc tells if processor's time-stamp counter should be used for time counting.
- *      Otherwise is system tics method will be used. IMPORTANT: time-stamp counter should not
- *      be used on multicore machines executing threaded code.
- */
-static inline void prof_start( prof_counter* aCnt )
-{
-    aCnt->start = get_tics();
-}
 
 /**
- * Function prof_stop
- * Ends code execution time counting for a given profiling counter.
- * @param aCnt is the counter which should be stopped.
+ * Function GetRunningMicroSecs
+ * An alternate way to calculate an elapset time (in microsecondes) to class PROF_COUNTER
+ * @return an ever increasing indication of elapsed microseconds.
+ * Use this by computing differences between two calls.
+ * @author Dick Hollenbeck
  */
-static inline void prof_end( prof_counter* aCnt )
-{
-    aCnt->end = get_tics();
-}
+unsigned GetRunningMicroSecs();
 
 #endif

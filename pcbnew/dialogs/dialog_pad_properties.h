@@ -32,12 +32,9 @@
 #ifndef _DIALOG_PAD_PROPERTIES_H_
 #define _DIALOG_PAD_PROPERTIES_H_
 
-#include <fctsys.h>
-#include <common.h>
 #include <class_drawpanel.h>
 #include <pcbnew.h>
 #include <wxBasePcbFrame.h>
-#include <pcbcommon.h>
 #include <base_units.h>
 #include <wx/valnum.h>
 
@@ -47,6 +44,7 @@
 #include <origin_viewitem.h>
 
 #include <dialog_pad_properties_base.h>
+#include <pcb_draw_panel_gal.h>
 
 
 
@@ -58,6 +56,7 @@ class DIALOG_PAD_PROPERTIES : public DIALOG_PAD_PROPERTIES_BASE
 {
 public:
     DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aPad );
+    void OnInitDialog( wxInitDialogEvent& event ) override;
     ~DIALOG_PAD_PROPERTIES()
     {
         delete m_dummyPad;

@@ -38,6 +38,9 @@
 #include <gal/stroke_font.h>
 #include <newstroke_font.h>
 
+class SHAPE_LINE_CHAIN;
+class SHAPE_POLY_SET;
+
 namespace KIGFX
 {
 /**
@@ -48,6 +51,7 @@ enum GRID_STYLE
     GRID_STYLE_LINES,   ///< Use lines for the grid
     GRID_STYLE_DOTS     ///< Use dots for the grid
 };
+
 
 /**
  * @brief Class GAL is the abstract interface for drawing on a 2D-surface.
@@ -116,6 +120,7 @@ public:
      */
     virtual void DrawPolyline( const std::deque<VECTOR2D>& aPointList ) {};
     virtual void DrawPolyline( const VECTOR2D aPointList[], int aListSize ) {};
+    virtual void DrawPolyline( const SHAPE_LINE_CHAIN& aLineChain ) {};
 
     /**
      * @brief Draw a circle using world coordinates.
@@ -151,6 +156,7 @@ public:
      */
     virtual void DrawPolygon( const std::deque<VECTOR2D>& aPointList ) {};
     virtual void DrawPolygon( const VECTOR2D aPointList[], int aListSize ) {};
+    virtual void DrawPolygon( const SHAPE_POLY_SET& aPolySet ) {};
 
     /**
      * @brief Draw a cubic bezier spline.
@@ -309,7 +315,15 @@ public:
                              double aRotationAngle )
     {
         // Fallback: use stroke font
+
+        // Handle flipped view
+        if( globalFlipX )
+            textProperties.m_mirrored = !textProperties.m_mirrored;
+
         StrokeText( aText, aPosition, aRotationAngle );
+
+        if( globalFlipX )
+            textProperties.m_mirrored = !textProperties.m_mirrored;
     }
 
     /**
@@ -690,16 +704,10 @@ public:
      */
     inline void SetFlip( bool xAxis, bool yAxis )
     {
-        if( xAxis )
-            flipX = -1.0;   // flipped
-        else
-            flipX = 1.0;    // regular
-
-        if( yAxis )
-            flipY = -1.0;   // flipped
-        else
-            flipY = 1.0;    // regular
+        globalFlipX = xAxis;
+        globalFlipY = yAxis;
     }
+
 
     // ---------------------------
     // Buffer manipulation methods
@@ -978,8 +986,9 @@ protected:
     MATRIX3x3D         worldScreenMatrix;      ///< World transformation
     MATRIX3x3D         screenWorldMatrix;      ///< Screen transformation
     double             worldScale;             ///< The scale factor world->screen
-    double             flipX;                  ///< Flag for X axis flipping
-    double             flipY;                  ///< Flag for Y axis flipping
+
+    bool globalFlipX;                          ///< Flag for X axis flipping
+    bool globalFlipY;                          ///< Flag for Y axis flipping
 
     double             lineWidth;              ///< The line width
 

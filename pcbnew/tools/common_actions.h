@@ -66,15 +66,23 @@ public:
     /// Selects all connections belonging to a single net.
     static TOOL_ACTION selectNet;
 
+    /// Selects all components on the same sheet.
+    static TOOL_ACTION selectSameSheet;
     // Edit Tool
     /// Activation of the edit tool
     static TOOL_ACTION editActivate;
 
-    /// Rotation of selected objects
-    static TOOL_ACTION rotate;
+    /// Rotation of selected objects clockwise
+    static TOOL_ACTION rotateCw;
+
+    /// Rotation of selected objects counter-clockwise
+    static TOOL_ACTION rotateCcw;
 
     /// Flipping of selected objects
     static TOOL_ACTION flip;
+
+    /// Mirroring of selected items
+    static TOOL_ACTION mirror;
 
     /// Activation of the edit tool
     static TOOL_ACTION properties;
@@ -90,6 +98,9 @@ public:
 
     /// Activation of the duplication tool with incrementing (e.g. pad number)
     static TOOL_ACTION duplicateIncrement;
+
+    /// Exchange footprints of modules
+    static TOOL_ACTION exchangeFootprints;
 
     /// Deleting a BOARD_ITEM
     static TOOL_ACTION remove;
@@ -116,6 +127,12 @@ public:
 
     /// Activation of the drawing tool (drawing a keepout area)
     static TOOL_ACTION drawKeepout;
+
+    /// Activation of the drawing tool (drawing a ZONE cutout)
+    static TOOL_ACTION drawZoneCutout;
+
+    /// Activation of the drawing tool (drawing a similar ZONE to another one)
+    static TOOL_ACTION drawSimilarZone;
 
     /// Activation of the drawing tool (placing a TARGET)
     static TOOL_ACTION placeTarget;
@@ -250,6 +267,9 @@ public:
     static TOOL_ACTION zoneUnfillAll;
     static TOOL_ACTION zoneMerge;
 
+    /// Duplicate zone onto another layer
+    static TOOL_ACTION zoneDuplicate;
+
     // Module editor tools
     /// Activation of the drawing tool (placing a PAD)
     static TOOL_ACTION placePad;
@@ -271,6 +291,16 @@ public:
 
     /// Display module texts as outlines
     static TOOL_ACTION moduleTextOutlines;
+
+    // Pad tools
+    /// Copy the selected pad's settings to the board design settings
+    static TOOL_ACTION copyPadSettings;
+
+    /// Copy the pad settings in the board design settings to the selected pad
+    static TOOL_ACTION applyPadSettings;
+
+    /// Copy the current pad's settings to other pads in the module or on the board
+    static TOOL_ACTION pushPadSettings;
 
     /// Cursor control with keyboard
     static TOOL_ACTION cursorUp;
@@ -337,6 +367,9 @@ public:
     ///> Cursor control event types
     enum CURSOR_EVENT_TYPE { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
                              CURSOR_CLICK, CURSOR_DBL_CLICK, CURSOR_FAST_MOVE = 0x8000 };
+
+    ///> Remove event modifier flags
+    enum class REMOVE_FLAGS { NORMAL = 0x00, ALT = 0x01 };
 };
 
 void registerAllTools( TOOL_MANAGER* aToolManager );

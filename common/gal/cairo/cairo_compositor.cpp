@@ -89,7 +89,7 @@ unsigned int CAIRO_COMPOSITOR::CreateBuffer()
 #endif /* __WXDEBUG__ */
 
     // Set default settings for the buffer
-    cairo_set_antialias( context, CAIRO_ANTIALIAS_SUBPIXEL );
+    cairo_set_antialias( context, CAIRO_ANTIALIAS_NONE );
     cairo_set_line_join( context, CAIRO_LINE_JOIN_ROUND );
     cairo_set_line_cap( context, CAIRO_LINE_CAP_ROUND );
 
@@ -119,6 +119,9 @@ void CAIRO_COMPOSITOR::SetBuffer( unsigned int aBufferHandle )
     cairo_set_matrix( *m_currentContext, &m_matrix );
 }
 
+void CAIRO_COMPOSITOR::Begin()
+{
+}
 
 void CAIRO_COMPOSITOR::ClearBuffer()
 {
@@ -144,6 +147,9 @@ void CAIRO_COMPOSITOR::DrawBuffer( unsigned int aBufferHandle )
     cairo_set_matrix( m_mainContext, &m_matrix );
 }
 
+void CAIRO_COMPOSITOR::Present()
+{
+}
 
 void CAIRO_COMPOSITOR::clean()
 {

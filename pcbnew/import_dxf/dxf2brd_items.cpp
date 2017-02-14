@@ -61,6 +61,7 @@ DXF2BRD_CONVERTER::DXF2BRD_CONVERTER() : DRW_Interface()
     m_version   = 0;
     m_defaultThickness = 0.1;
     m_brdLayer = Dwgs_User;
+    m_useModuleItems = true;
 }
 
 
@@ -377,12 +378,12 @@ void DXF2BRD_CONVERTER::addText( const DRW_Text& aData )
 
     wxString text = toNativeString( wxString::FromUTF8( aData.text.c_str() ) );
 
-    textItem->SetTextPosition( refPoint );
-    textItem->SetOrientation( aData.angle * 10 );
+    textItem->SetTextPos( refPoint );
+    textItem->SetTextAngle( aData.angle * 10 );
 
     // The 0.8 factor gives a better height/width ratio with our font
-    textItem->SetWidth( mapDim( aData.height * 0.8 ) );
-    textItem->SetHeight( mapDim( aData.height ) );
+    textItem->SetTextWidth( mapDim( aData.height * 0.8 ) );
+    textItem->SetTextHeight( mapDim( aData.height ) );
     textItem->SetThickness( mapDim( aData.thickness == 0 ? m_defaultThickness : aData.thickness ) );
     textItem->SetText( text );
 
@@ -439,12 +440,12 @@ void DXF2BRD_CONVERTER::addMText( const DRW_MText& aData )
     brdItem->SetLayer( ToLAYER_ID( m_brdLayer ) );
     wxPoint     textpos( mapX( aData.basePoint.x ), mapY( aData.basePoint.y ) );
 
-    textItem->SetTextPosition( textpos );
-    textItem->SetOrientation( aData.angle * 10 );
+    textItem->SetTextPos( textpos );
+    textItem->SetTextAngle( aData.angle * 10 );
 
     // The 0.8 factor gives a better height/width ratio with our font
-    textItem->SetWidth( mapDim( aData.height * 0.8 ) );
-    textItem->SetHeight( mapDim( aData.height ) );
+    textItem->SetTextWidth( mapDim( aData.height * 0.8 ) );
+    textItem->SetTextHeight( mapDim( aData.height ) );
     textItem->SetThickness( mapDim( aData.thickness == 0 ? m_defaultThickness : aData.thickness ) );
     textItem->SetText( text );
 

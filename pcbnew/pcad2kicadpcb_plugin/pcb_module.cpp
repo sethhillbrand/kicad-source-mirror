@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2007, 2008 Lubo Racko <developer@lura.sk>
  * Copyright (C) 2007, 2008, 2012-2013 Alexander Lunev <al.lunev@yahoo.com>
- * Copyright (C) 2012 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2012-2016 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -522,7 +522,7 @@ void PCB_MODULE::AddToBoard()
     module->SetTimeStamp( 0 );
     module->SetLastEditTime( 0 );
 
-    module->SetFPID( FPID( m_compRef ) );
+    module->SetFPID( LIB_ID( m_compRef ) );
 
     module->SetAttributes( MOD_DEFAULT | MOD_CMS );
 
@@ -536,7 +536,7 @@ void PCB_MODULE::AddToBoard()
     SetTextSizeFromStrokeFontHeight( ref_text, m_name.textHeight );
 
     r = m_name.textRotation - m_rotation;
-    ref_text->SetOrientation( r );
+    ref_text->SetTextAngle( r );
 
     ref_text->SetThickness( m_name.textstrokeWidth );
 
@@ -558,7 +558,7 @@ void PCB_MODULE::AddToBoard()
     SetTextSizeFromStrokeFontHeight( val_text, m_value.textHeight );
 
     r = m_value.textRotation - m_rotation;
-    val_text->SetOrientation( r );
+    val_text->SetTextAngle( r );
 
     val_text->SetThickness( m_value.textstrokeWidth );
 
