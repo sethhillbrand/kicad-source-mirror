@@ -1306,7 +1306,7 @@ SCH_COMPONENT* SCH_LEGACY_PLUGIN::loadComponent( FILE_LINE_READER& aReader )
             parseUnquotedString( libName, aReader, line, &line );
             libName.Replace( "~", " " );
 
-            LIB_ID libId( libName );
+            LIB_ID libId( wxEmptyString, libName );
 
             component->SetLibId( libId );
 
@@ -2060,7 +2060,10 @@ bool SCH_LEGACY_PLUGIN_CACHE::IsFile( const wxString& aFullPathAndFileName ) con
 
 bool SCH_LEGACY_PLUGIN_CACHE::IsFileChanged() const
 {
-    return m_libFileName.GetModificationTime() != m_fileModTime;
+    if( m_fileModTime.IsValid() && m_libFileName.IsOk() && m_libFileName.FileExists() )
+        return m_libFileName.GetModificationTime() != m_fileModTime;
+
+    return false;
 }
 
 
@@ -2382,10 +2385,6 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
         value.SetVisible( false );
     }
 
-    // Add the root alias to the alias list.
-    part->m_aliases.push_back( new LIB_ALIAS( name, part.get() ) );
-    m_aliases[ part->GetName() ] = part->GetAlias( name );
-
     LIB_FIELD& reference = part->GetReferenceField();
 
     if( prefix == "~" )
@@ -2450,7 +2449,13 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
         else if( strCompare( "$FPLIST", line, &line ) )  // Footprint filter list
             loadFootprintFilters( part, aReader );
         else if( strCompare( "ENDDEF", line, &line ) )   // End of part description
+        {
+            // Add the root alias to the alias list.
+            part->m_aliases.push_back( new LIB_ALIAS( name, part.get() ) );
+            m_aliases[ part->GetName() ] = part->GetAlias( name );
+
             return part.release();
+        }
 
         line = aReader.ReadLine();
     }
@@ -3525,20 +3530,20 @@ bool SCH_LEGACY_PLUGIN::DeleteSymbolLib( const wxString& aLibraryPath,
 
 void SCH_LEGACY_PLUGIN::SaveLibrary( const wxString& aLibraryPath, const PROPERTIES* aProperties )
 {
-    if( m_cache )
+    if( !m_cache )
+        m_cache = new SCH_LEGACY_PLUGIN_CACHE( aLibraryPath );
+
+    wxString oldFileName = m_cache->GetFileName();
+
+    if( !m_cache->IsFile( aLibraryPath ) )
     {
-        wxString oldFileName = m_cache->GetFileName();
-
-        if( !m_cache->IsFile( aLibraryPath ) )
-        {
-            m_cache->SetFileName( aLibraryPath );
-        }
-
-        // This is a forced save.
-        m_cache->SetModified();
-        m_cache->Save( writeDocFile( aProperties ) );
-        m_cache->SetFileName( oldFileName );
+        m_cache->SetFileName( aLibraryPath );
     }
+
+    // This is a forced save.
+    m_cache->SetModified();
+    m_cache->Save( writeDocFile( aProperties ) );
+    m_cache->SetFileName( oldFileName );
 }
 
 

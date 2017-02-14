@@ -61,11 +61,16 @@ bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
     wxString        msg;
     SCH_SCREENS     screens;
     PART_LIBS*      libs = Prj().SchLibs();
+    PART_LIB*       cacheLib = libs->FindLibraryByFullFileName( aFileName );
 
-    std::unique_ptr<PART_LIB> libCache( new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName ) );
+    if( !cacheLib )
+    {
+        cacheLib = new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName );
+        libs->push_back( cacheLib );
+    }
 
-    libCache->SetCache();
-    libCache->EnableBuffering();
+    cacheLib->SetCache();
+    cacheLib->EnableBuffering();
 
     /* Examine all screens (not hierarchical sheets) used in the schematic and build a
      * library of unique symbols found in all screens.  Complex hierarchies are not a
@@ -80,8 +85,7 @@ bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
 
             SCH_COMPONENT* component = (SCH_COMPONENT*) item;
 
-            // If not already saved in the new cache, add it.
-            if( !libCache->FindAlias( component->GetLibId().GetLibItemName() ) )
+            if( !cacheLib->FindAlias( component->GetLibId().GetLibItemName() ) )
             {
                 LIB_PART* part = NULL;
 
@@ -92,7 +96,7 @@ bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
                     if( part )
                     {
                         // AddPart() does first clone the part before adding.
-                        libCache->AddPart( part );
+                        cacheLib->AddPart( part );
                     }
                 }
                 catch( ... /* IO_ERROR ioe */ )
@@ -108,7 +112,7 @@ bool SCH_EDIT_FRAME::CreateArchiveLibrary( const wxString& aFileName )
 
     try
     {
-        libCache->Save( false );
+        cacheLib->Save( false );
     }
     catch( ... /* IO_ERROR ioe */ )
     {

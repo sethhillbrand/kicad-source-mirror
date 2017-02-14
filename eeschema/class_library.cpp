@@ -97,6 +97,7 @@ void PART_LIB::Save( bool aSaveDocFile )
     }
 
     m_plugin->SaveLibrary( fileName.GetFullPath(), props.get() );
+    isModified = false;
 }
 
 
@@ -165,7 +166,20 @@ void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames )
 
 LIB_ALIAS* PART_LIB::FindAlias( const wxString& aName )
 {
-    return m_plugin->LoadSymbol( fileName.GetFullPath(), aName );
+    std::unique_ptr< PROPERTIES > props;
+
+    if( isCache || m_buffering )
+    {
+        props.reset( new PROPERTIES );
+
+        if( isCache )
+            (*props.get())[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
+
+        if( m_buffering )
+            (*props.get())[ SCH_LEGACY_PLUGIN::PropBuffering ] = "";
+    }
+
+    return m_plugin->LoadSymbol( fileName.GetFullPath(), aName, props.get() );
 }
 
 
@@ -372,6 +386,18 @@ PART_LIB* PART_LIBS::FindLibrary( const wxString& aName )
 }
 
 
+PART_LIB* PART_LIBS::FindLibraryByFullFileName( const wxString& aFullFileName )
+{
+    for( PART_LIBS::iterator it = begin();  it!=end();  ++it )
+    {
+        if( it->GetFullFileName() == aFullFileName )
+            return &*it;
+    }
+
+    return NULL;
+}
+
+
 wxArrayString PART_LIBS::GetLibraryNames( bool aSorted )
 {
     wxArrayString cacheNames;
@@ -548,7 +574,8 @@ const wxString PART_LIBS::CacheName( const wxString& aFullProjectFilename )
 }
 
 
-void PART_LIBS::LoadAllLibraries( PROJECT* aProject, bool aShowProgress ) throw( IO_ERROR, boost::bad_pointer )
+void PART_LIBS::LoadAllLibraries( PROJECT* aProject, bool aShowProgress )
+    throw( IO_ERROR, boost::bad_pointer )
 {
     wxString        filename;
     wxString        libs_not_found;
