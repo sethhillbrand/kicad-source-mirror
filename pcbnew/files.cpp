@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2004-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2011-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2011-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,7 +35,7 @@
 #include <gestfich.h>
 #include <wxPcbStruct.h>
 #include <macros.h>
-#include <3d_viewer.h>
+#include <3d_viewer/eda_3d_viewer.h>
 #include <richio.h>
 #include <filter_reader.h>
 #include <pgm_base.h>
@@ -64,6 +64,12 @@ static const wxChar backupSuffix[]   = wxT( "-bak" );
 static const wxChar autosavePrefix[] = wxT( "_autosave-" );
 
 
+wxString PCB_EDIT_FRAME::GetAutoSaveFilePrefix()
+{
+    return wxString( autosavePrefix );
+}
+
+
 /**
  * Function AskLoadBoardFileName
  * puts up a wxFileDialog asking for a BOARD filename to open.
@@ -72,11 +78,11 @@ static const wxChar autosavePrefix[] = wxT( "_autosave-" );
  * @param aCtl is where to put the OpenProjectFiles() control bits.
  *
  * @param aFileName on entry is a probable choice, on return is the chosen filename.
- * @param aKicadFilesOnly true to list kiacad pcb files plugins only, false to list all plugins.
+ * @param aKicadFilesOnly true to list kiacad pcb files plugins only, false to list import plugins.
  *
  * @return bool - true if chosen, else false if user aborted.
  */
-bool AskLoadBoardFileName( wxWindow* aParent, int* aCtl, wxString* aFileName, bool aKicadFilesOnly = false )
+bool AskLoadBoardFileName( wxWindow* aParent, int* aCtl, wxString* aFileName, bool aKicadFilesOnly )
 {
     // This is a subset of all PLUGINs which are trusted to be able to
     // load a BOARD. User may occasionally use the wrong plugin to load a
@@ -88,23 +94,34 @@ bool AskLoadBoardFileName( wxWindow* aParent, int* aCtl, wxString* aFileName, bo
         IO_MGR::PCB_FILE_T  pluginType;
     } loaders[] =
     {
-        { PcbFileWildcard,          IO_MGR::KICAD },
-        { LegacyPcbFileWildcard,    IO_MGR::LEGACY },
-        { EaglePcbFileWildcard,     IO_MGR::EAGLE },
-        { PCadPcbFileWildcard,      IO_MGR::PCAD },
+        { PcbFileWildcard,          IO_MGR::KICAD },    // Current Kicad board files
+        { LegacyPcbFileWildcard,    IO_MGR::LEGACY },   // Old Kicad board files
+        { EaglePcbFileWildcard,     IO_MGR::EAGLE },    // Import board files
+        { PCadPcbFileWildcard,      IO_MGR::PCAD },     // Import board files
     };
 
     wxFileName  fileName( *aFileName );
     wxString    fileFilters;
 
-    unsigned pluginsCount = aKicadFilesOnly ? 2 : DIM( loaders );
-
-    for( unsigned i=0; i < pluginsCount; ++i )
+    if( aKicadFilesOnly )
     {
-        if( i > 0 )
-            fileFilters += wxChar( '|' );
+        for( unsigned ii = 0; ii < 2; ++ii )
+        {
+            if( !fileFilters.IsEmpty() )
+                fileFilters += wxChar( '|' );
 
-        fileFilters += wxGetTranslation( loaders[i].filter );
+            fileFilters += wxGetTranslation( loaders[ii].filter );
+        }
+    }
+    else
+    {
+        for( unsigned ii = 2; ii < DIM( loaders ); ++ii )
+        {
+            if( !fileFilters.IsEmpty() )
+                fileFilters += wxChar( '|' );
+
+            fileFilters += wxGetTranslation( loaders[ii].filter );
+        }
     }
 
     wxString    path;
@@ -121,19 +138,18 @@ bool AskLoadBoardFileName( wxWindow* aParent, int* aCtl, wxString* aFileName, bo
         // leave name empty
     }
 
-    wxFileDialog dlg( aParent, _( "Open Board File" ), path, name, fileFilters,
+    wxFileDialog dlg( aParent,
+                      aKicadFilesOnly ? _( "Open Board File" ) : _( "Import Non Kicad Board File" ),
+                      path, name, fileFilters,
                       wxFD_OPEN | wxFD_FILE_MUST_EXIST );
 
-    if( dlg.ShowModal() != wxID_CANCEL )
+    if( dlg.ShowModal() == wxID_OK )
     {
-        int chosenFilter = dlg.GetFilterIndex();
-
-        // if Eagle, tell OpenProjectFiles() to use Eagle plugin.  It's the only special
-        // case because of the duplicate use of the *.brd file extension.  Other cases
-        // are clear because of unique file extensions.
-        *aCtl = chosenFilter == 2  ? KICTL_EAGLE_BRD : 0;
+        // For import option, if Eagle (*.brd files), tell OpenProjectFiles() to use Eagle plugin.
+        // It's the only special case because of the duplicate use of the *.brd file extension.
+        // Other cases are clear because of unique file extensions.
+        *aCtl = aKicadFilesOnly ? 0 : KICTL_EAGLE_BRD;
         *aFileName = dlg.GetPath();
-
         return true;
     }
     else
@@ -163,11 +179,7 @@ bool AskSaveBoardFileName( wxWindow* aParent, wxString* aFileName )
             fn.GetPath(),
             fn.GetFullName(),
             wildcard,
-            wxFD_SAVE
-            /* wxFileDialog is not equipped to handle multiple wildcards and
-               wxFD_OVERWRITE_PROMPT both together.
-               | wxFD_OVERWRITE_PROMPT
-            */
+            wxFD_SAVE | wxFD_OVERWRITE_PROMPT
             );
 
     if( dlg.ShowModal() != wxID_OK )
@@ -177,23 +189,6 @@ bool AskSaveBoardFileName( wxWindow* aParent, wxString* aFileName )
 
     // always enforce filename extension, user may not have entered it.
     fn.SetExt( KiCadPcbFileExtension );
-
-    // Since the file overwrite test was removed from wxFileDialog because it doesn't work
-    // when multiple wildcards are defined, we have to check it ourselves to prevent an
-    // existing board file from silently being over written.
-    if( fn.FileExists() )
-    {
-        wxString ask = wxString::Format( _(
-                "The file '%s' already exists.\n\n"
-                "Do you want to overwrite it?" ),
-                 GetChars( fn.GetFullPath() )
-                 );
-
-        if( !IsOK( aParent, ask ) )
-        {
-            return false;
-        }
-    }
 
     *aFileName = fn.GetFullPath();
 
@@ -213,7 +208,7 @@ void PCB_EDIT_FRAME::OnFileHistory( wxCommandEvent& event )
 
         if( !wxFileName::IsFileReadable( fn ) )
         {
-            if( !AskLoadBoardFileName( this, &open_ctl, &fn ) )
+            if( !AskLoadBoardFileName( this, &open_ctl, &fn, true ) )
                 return;
         }
 
@@ -243,12 +238,22 @@ void PCB_EDIT_FRAME::Files_io_from_id( int id )
     {
     case ID_LOAD_FILE:
         {
-            // LoadOnePcbFile( GetBoard()->GetFileName(), append=false, aForceFileDialog=true );
-
-            int         open_ctl;
+            int         open_ctl = 0;
             wxString    fileName = Prj().AbsolutePath( GetBoard()->GetFileName() );
 
-            if( !AskLoadBoardFileName( this, &open_ctl, &fileName ) )
+            if( !AskLoadBoardFileName( this, &open_ctl, &fileName, true ) )
+                return;
+
+            OpenProjectFiles( std::vector<wxString>( 1, fileName ), open_ctl );
+        }
+        break;
+
+    case ID_IMPORT_NON_KICAD_BOARD:
+        {
+            int         open_ctl = 1;
+            wxString    fileName;// = Prj().AbsolutePath( GetBoard()->GetFileName() );
+
+            if( !AskLoadBoardFileName( this, &open_ctl, &fileName, false ) )
                 return;
 
             OpenProjectFiles( std::vector<wxString>( 1, fileName ), open_ctl );
@@ -326,6 +331,7 @@ void PCB_EDIT_FRAME::Files_io_from_id( int id )
         GetBoard()->SetFileName( fn.GetFullPath() );
         UpdateTitle();
         ReCreateLayerBox();
+        OnModify();
         break;
     }
 
@@ -369,21 +375,27 @@ IO_MGR::PCB_FILE_T plugin_type( const wxString& aFileName, int aCtl )
 
     wxFileName fn = aFileName;
 
-    if( fn.GetExt() == IO_MGR::GetFileExtension( IO_MGR::LEGACY ) )
+    // Note: file extensions are expected to be in ower case.
+    // This is not always true, especially when importing files, so the string
+    // comparisons are case insensitive to try to find the suitable plugin.
+
+    if( fn.GetExt().CmpNoCase( IO_MGR::GetFileExtension( IO_MGR::LEGACY ) ) == 0 )
     {
         // both legacy and eagle share a common file extension.
         pluginType = ( aCtl & KICTL_EAGLE_BRD ) ? IO_MGR::EAGLE : IO_MGR::LEGACY;
     }
-    else if( fn.GetExt() == IO_MGR::GetFileExtension( IO_MGR::LEGACY ) + backupSuffix )
+    else if( fn.GetExt().CmpNoCase(  IO_MGR::GetFileExtension( IO_MGR::LEGACY ) + backupSuffix ) == 0 )
     {
         pluginType = IO_MGR::LEGACY;
     }
-    else if( fn.GetExt() == IO_MGR::GetFileExtension( IO_MGR::PCAD ) )
+    else if( fn.GetExt().CmpNoCase(  IO_MGR::GetFileExtension( IO_MGR::PCAD ) ) == 0 )
     {
         pluginType = IO_MGR::PCAD;
     }
     else
+    {
         pluginType = IO_MGR::KICAD;
+    }
 
     return pluginType;
 }
@@ -510,10 +522,9 @@ bool PCB_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         {
             wxString msg = wxString::Format( _(
                     "Error loading board.\n%s" ),
-                    GetChars( ioe.errorText )
+                    GetChars( ioe.What() )
                     );
             DisplayError( this, msg );
-
             return false;
         }
 
@@ -566,8 +577,17 @@ bool PCB_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     // Rebuild the new pad list (for drc and ratsnet control ...)
     GetBoard()->m_Status_Pcb = 0;
 
-    // Update info shown by the horizontal toolbars
+    // Select netclass Default as current netclass (it always exists)
     SetCurrentNetClass( NETCLASS::Default );
+
+    // Rebuild list of nets (full ratsnest rebuild)
+    {
+        wxBusyCursor dummy;    // Displays an Hourglass while building connectivity
+        Compile_Ratsnest( NULL, true );
+        GetBoard()->GetRatsnest()->ProcessBoard();
+    }
+
+    // Update info shown by the horizontal toolbars
     ReFillLayerWidget();
     ReCreateLayerBox();
 
@@ -587,17 +607,10 @@ bool PCB_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     // Display the loaded board:
     Zoom_Automatique( false );
 
-    // Compile ratsnest and displays net info
-    {
-        wxBusyCursor dummy;    // Displays an Hourglass while building connectivity
-        Compile_Ratsnest( NULL, true );
-        GetBoard()->GetRatsnest()->ProcessBoard();
-    }
-
     SetMsgPanel( GetBoard() );
 
     // Refresh the 3D view, if any
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
         draw3DFrame->NewDisplay();
@@ -714,7 +727,7 @@ bool PCB_EDIT_FRAME::SavePcbFile( const wxString& aFileName, bool aCreateBackupF
         wxString msg = wxString::Format( _(
                 "Error saving board file '%s'.\n%s" ),
                 GetChars( pcbFileName.GetFullPath() ),
-                GetChars( ioe.errorText )
+                GetChars( ioe.What() )
                 );
         DisplayError( this, msg );
 
@@ -794,7 +807,7 @@ bool PCB_EDIT_FRAME::SavePcbCopy( const wxString& aFileName )
         wxString msg = wxString::Format( _(
                 "Error saving board file '%s'.\n%s" ),
                 GetChars( pcbFileName.GetFullPath() ),
-                GetChars( ioe.errorText )
+                GetChars( ioe.What() )
                 );
         DisplayError( this, msg );
 
@@ -802,7 +815,7 @@ bool PCB_EDIT_FRAME::SavePcbCopy( const wxString& aFileName )
     }
 
     DisplayInfoMessage( this, wxString::Format( _( "Board copied to:\n'%s'" ),
-                                GetChars( pcbFileName.GetFullPath() ) ) );
+                                                GetChars( pcbFileName.GetFullPath() ) ) );
 
     return true;
 }
@@ -810,19 +823,40 @@ bool PCB_EDIT_FRAME::SavePcbCopy( const wxString& aFileName )
 
 bool PCB_EDIT_FRAME::doAutoSave()
 {
-    wxFileName tmpFileName = Prj().AbsolutePath( GetBoard()->GetFileName() );
-    wxFileName fn = tmpFileName;
+    wxFileName tmpFileName;
 
-    // Auto save file name is the normal file name prepended with
-    // autosaveFilePrefix string.
-    fn.SetName( wxString( autosavePrefix ) + fn.GetName() );
+    if( GetBoard()->GetFileName().IsEmpty() )
+    {
+        tmpFileName = wxFileName( wxStandardPaths::Get().GetDocumentsDir(), wxT( "noname" ),
+                                  KiCadPcbFileExtension );
+        GetBoard()->SetFileName( tmpFileName.GetFullPath() );
+    }
+    else
+    {
+        tmpFileName = Prj().AbsolutePath( GetBoard()->GetFileName() );
+    }
 
-    wxLogTrace( traceAutoSave,
-                wxT( "Creating auto save file <" + fn.GetFullPath() ) + wxT( ">" ) );
+    wxFileName autoSaveFileName = tmpFileName;
 
-    if( !fn.IsOk() )
+    // Auto save file name is the board file name prepended with autosaveFilePrefix string.
+    autoSaveFileName.SetName( wxString( autosavePrefix ) + autoSaveFileName.GetName() );
+
+    if( !autoSaveFileName.IsOk() )
         return false;
-    else if( SavePcbFile( fn.GetFullPath(), NO_BACKUP_FILE ) )
+
+    // If the board file path is not writable, try writing to a platform specific temp file
+    // path.  If that path isn't writabe, give up.
+    if( !autoSaveFileName.IsDirWritable() )
+    {
+        autoSaveFileName.SetPath( wxFileName::GetTempDir() );
+
+        if( !autoSaveFileName.IsOk() || !autoSaveFileName.IsDirWritable() )
+            return false;
+    }
+
+    wxLogTrace( traceAutoSave, "Creating auto save file <" + autoSaveFileName.GetFullPath() + ">" );
+
+    if( SavePcbFile( autoSaveFileName.GetFullPath(), NO_BACKUP_FILE ) )
     {
         GetScreen()->SetModify();
         GetBoard()->SetFileName( tmpFileName.GetFullPath() );

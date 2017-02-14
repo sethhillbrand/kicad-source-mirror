@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2008-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2008-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,13 +42,12 @@
 
 #include <general.h>
 #include <class_library.h>
-
-#include <boost/foreach.hpp>
+#include <sch_legacy_plugin.h>
 
 #include <wx/tokenzr.h>
 #include <wx/regex.h>
 
-#define duplicate_name_msg  \
+#define DUPLICATE_NAME_MSG  \
     _(  "Library '%s' has duplicate entry name '%s'.\n" \
         "This may cause some unexpected behavior when loading components into a schematic." )
 
@@ -69,7 +68,7 @@ PART_LIB::PART_LIB( int aType, const wxString& aFileName ) :
     fileName = aFileName;
 
     if( !fileName.IsOk() )
-        fileName = wxT( "unnamed.lib" );
+        fileName = "unnamed.lib";
 }
 
 
@@ -78,7 +77,7 @@ PART_LIB::~PART_LIB()
     // When the library is destroyed, all of the alias objects on the heap should be deleted.
     for( LIB_ALIAS_MAP::iterator it = m_amap.begin();  it != m_amap.end();  ++it )
     {
-        wxLogTrace( traceSchLibMem, wxT( "Removing alias %s from library %s." ),
+        wxLogTrace( traceSchLibMem, "Removing alias %s from library %s.",
                     GetChars( it->second->GetName() ), GetChars( GetLogicalName() ) );
         LIB_PART* part = it->second->GetPart();
         LIB_ALIAS* alias = it->second;
@@ -94,28 +93,18 @@ PART_LIB::~PART_LIB()
 }
 
 
-void PART_LIB::GetEntryNames( wxArrayString& aNames, bool aSort, bool aMakeUpperCase )
+void PART_LIB::GetAliasNames( wxArrayString& aNames )
 {
     for( LIB_ALIAS_MAP::iterator it = m_amap.begin();  it!=m_amap.end();  it++ )
     {
-        if( aMakeUpperCase )
-        {
-            wxString tmp = (*it).first;
-            tmp.MakeUpper();
-            aNames.Add( tmp );
-        }
-        else
-        {
-            aNames.Add( (*it).first );
-        }
+        aNames.Add( (*it).first );
     }
 
-    if( aSort )
-        aNames.Sort();
+    aNames.Sort();
 }
 
 
-void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames, bool aSort, bool aMakeUpperCase )
+void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames )
 {
     for( LIB_ALIAS_MAP::iterator it = m_amap.begin();  it!=m_amap.end();  it++ )
     {
@@ -125,105 +114,14 @@ void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames, bool aSort, bool a
         if( !root || !root->IsPower() )
             continue;
 
-        if( aMakeUpperCase )
-        {
-            wxString tmp = (*it).first;
-            tmp.MakeUpper();
-            aNames.Add( tmp );
-        }
-        else
-        {
-            aNames.Add( (*it).first );
-        }
+        aNames.Add( (*it).first );
     }
 
-    if( aSort )
-        aNames.Sort();
+    aNames.Sort();
 }
 
 
-/**
- * Function sortFunction
- * simple function used as comparator to sort a std::vector<wxArrayString>&.
- *
- * @param aItem1 is the first comparison parameter.
- * @param aItem2 is the second.
- * @return bool - which item should be put first in the sorted list.
- */
-bool sortFunction( wxArrayString aItem1, wxArrayString aItem2 )
-{
-    return( aItem1.Item( 0 ) < aItem2.Item( 0 ) );
-}
-
-
-void PART_LIB::SearchEntryNames( std::vector<wxArrayString>& aNames,
-                                    const wxString& aNameSearch,
-                                    const wxString& aKeySearch,
-                                    bool aSort )
-{
-    for( LIB_ALIAS_MAP::iterator it = m_amap.begin();  it != m_amap.end();  ++it )
-    {
-        if( !!aKeySearch && KeyWordOk( aKeySearch, it->second->GetKeyWords() ) )
-        {
-            wxArrayString item;
-
-            item.Add( it->first );
-            item.Add( GetLogicalName() );
-            aNames.push_back( item );
-        }
-
-        if( !aNameSearch.IsEmpty() &&
-                WildCompareString( aNameSearch, it->second->GetName(), false ) )
-        {
-            wxArrayString item;
-
-            item.Add( it->first );
-            item.Add( GetLogicalName() );
-            aNames.push_back( item );
-        }
-    }
-
-    if( aSort )
-        std::sort( aNames.begin(), aNames.end(), sortFunction );
-}
-
-
-void PART_LIB::SearchEntryNames( wxArrayString& aNames, const wxRegEx& aRe, bool aSort )
-{
-    if( !aRe.IsValid() )
-        return;
-
-    LIB_ALIAS_MAP::iterator it;
-
-    for( it = m_amap.begin();  it!=m_amap.end();  it++ )
-    {
-        if( aRe.Matches( it->second->GetKeyWords() ) )
-            aNames.Add( it->first );
-    }
-
-    if( aSort )
-        aNames.Sort();
-}
-
-
-bool PART_LIB::Conflicts( LIB_PART* aPart )
-{
-    wxCHECK_MSG( aPart != NULL, false,
-                 wxT( "Cannot test NULL component for conflicts in library " ) + GetName() );
-
-    for( size_t i=0;  i<aPart->m_aliases.size();  i++ )
-    {
-        LIB_ALIAS_MAP::iterator it = m_amap.find( aPart->m_aliases[i]->GetName() );
-
-        if( it != m_amap.end() )
-            return true;
-    }
-
-    return false;
-}
-
-
-LIB_ALIAS* PART_LIB::FindEntry( const wxString& aName )
+LIB_ALIAS* PART_LIB::FindAlias( const wxString& aName )
 {
     LIB_ALIAS_MAP::iterator it = m_amap.find( aName );
 
@@ -234,26 +132,17 @@ LIB_ALIAS* PART_LIB::FindEntry( const wxString& aName )
 }
 
 
-LIB_ALIAS* PART_LIB::GetFirstEntry()
-{
-    if( m_amap.size() )
-        return m_amap.begin()->second;
-    else
-        return NULL;
-}
-
-
 LIB_PART* PART_LIB::FindPart( const wxString& aName )
 {
 #if 0 && defined(DEBUG)
-    if( !aName.Cmp( wxT( "TI_STELLARIS_BOOSTERPACK" ) ) )
+    if( !aName.Cmp( "TI_STELLARIS_BOOSTERPACK" ) )
     {
         int breakhere = 1;
         (void) breakhere;
     }
 #endif
 
-    if( LIB_ALIAS* alias = FindEntry( aName ) )
+    if( LIB_ALIAS* alias = FindAlias( aName ) )
     {
         return alias->GetPart();
     }
@@ -283,7 +172,7 @@ bool PART_LIB::AddAlias( LIB_ALIAS* aAlias )
     wxASSERT( aAlias );
 
 #if defined(DEBUG) && 0
-    if( !aAlias->GetName().Cmp( wxT( "TI_STELLARIS_BOOSTERPACK" ) ) )
+    if( !aAlias->GetName().Cmp( "TI_STELLARIS_BOOSTERPACK" ) )
     {
         int breakhere = 1;
         (void) breakhere;
@@ -312,43 +201,29 @@ bool PART_LIB::AddAlias( LIB_ALIAS* aAlias )
 }
 
 
-bool PART_LIB::AddPart( LIB_PART* aPart )
+void PART_LIB::AddPart( LIB_PART* aPart )
 {
-    // Conflict detection: See if already existing aliases exist,
-    // and if yes, ask user for continue or abort
-    // Special case: if the library is the library cache of the project,
-    // old aliases are always removed to avoid conflict,
-    //      and user is not prompted )
-    if( Conflicts( aPart ) && !IsCache() )
-    {
-        wxFAIL_MSG( wxT( "Cannot add component <" ) + aPart->GetName() +
-                    wxT( "> to library <" ) + GetName() + wxT( "> due to name conflict." ) );
-        return false;
-    }
-
     // add a clone, not the caller's copy
-    LIB_PART* my_part = new LIB_PART( *aPart, this );
+    LIB_PART* my_part = new LIB_PART( *aPart );
 
     for( size_t i = 0; i < my_part->m_aliases.size(); i++ )
     {
         wxString aliasname = my_part->m_aliases[i]->GetName();
 
         if( LIB_ALIAS* alias = FindAlias( aliasname ) )
-            RemoveEntry( alias );
+            RemoveAlias( alias );
 
         m_amap[ aliasname ] = my_part->m_aliases[i];
     }
 
     isModified = true;
     ++m_mod_hash;
-
-    return true;
 }
 
 
-LIB_ALIAS* PART_LIB::RemoveEntry( LIB_ALIAS* aEntry )
+LIB_ALIAS* PART_LIB::RemoveAlias( LIB_ALIAS* aEntry )
 {
-    wxCHECK_MSG( aEntry != NULL, NULL, wxT( "NULL pointer cannot be removed from library." ) );
+    wxCHECK_MSG( aEntry != NULL, NULL, "NULL pointer cannot be removed from library." );
 
     LIB_ALIAS_MAP::iterator it = m_amap.find( aEntry->GetName() );
 
@@ -358,8 +233,8 @@ LIB_ALIAS* PART_LIB::RemoveEntry( LIB_ALIAS* aEntry )
     // If the entry pointer doesn't match the name it is mapped to in the library, we
     // have done something terribly wrong.
     wxCHECK_MSG( *it->second == aEntry, NULL,
-                 wxT( "Pointer mismatch while attempting to remove entry <" ) +
-                 aEntry->GetName() + wxT( "> from library <" ) + GetName() + wxT( ">." ) );
+                 "Pointer mismatch while attempting to remove entry <" +
+                 aEntry->GetName() + "> from library <" + GetName() +  ">." );
 
     LIB_ALIAS*  alias = aEntry;
     LIB_PART*   part = alias->GetPart();
@@ -397,7 +272,7 @@ LIB_PART* PART_LIB::ReplacePart( LIB_PART* aOldPart, LIB_PART* aNewPart )
     /* Remove the old root component.  The component will automatically be deleted
      * when all it's aliases are deleted.  Do not place any code that accesses
      * aOldPart inside this loop that gets evaluated after the last alias is
-     * removed in RemoveEntry().  Failure to heed this warning will result in a
+     * removed in RemoveAlias().  Failure to heed this warning will result in a
      * segfault.
      */
     size_t i = aOldPart->m_aliases.size();
@@ -405,7 +280,7 @@ LIB_PART* PART_LIB::ReplacePart( LIB_PART* aOldPart, LIB_PART* aNewPart )
     while( i > 0 )
     {
         i -= 1;
-        RemoveEntry( aOldPart->m_aliases[ i ] );
+        RemoveAlias( aOldPart->m_aliases[ i ] );
     }
 
     LIB_PART* my_part = new LIB_PART( *aNewPart, this );
@@ -423,51 +298,15 @@ LIB_PART* PART_LIB::ReplacePart( LIB_PART* aOldPart, LIB_PART* aNewPart )
 }
 
 
-LIB_ALIAS* PART_LIB::GetNextEntry( const wxString& aName )
-{
-    if( m_amap.empty() )
-        return NULL;
-
-    LIB_ALIAS_MAP::iterator it = m_amap.find( aName );
-
-    it++;
-
-    if( it == m_amap.end() )
-        it = m_amap.begin();
-
-    return it->second;
-}
-
-
-LIB_ALIAS* PART_LIB::GetPreviousEntry( const wxString& aName )
-{
-    if( m_amap.empty() )
-        return NULL;
-
-    LIB_ALIAS_MAP::iterator it = m_amap.find( aName );
-
-    if( it == m_amap.begin() )
-        it = m_amap.end();
-
-    it--;
-
-    return it->second;
-}
-
-
 bool PART_LIB::Load( wxString& aErrorMsg )
 {
-    FILE*          file;
-    char*          line;
-    wxString       msg;
-
     if( fileName.GetFullPath().IsEmpty() )
     {
         aErrorMsg = _( "The component library file name is not set." );
         return false;
     }
 
-    file = wxFopen( fileName.GetFullPath(), wxT( "rt" ) );
+    FILE* file = wxFopen( fileName.GetFullPath(), "rt" );
 
     if( file == NULL )
     {
@@ -486,7 +325,7 @@ bool PART_LIB::Load( wxString& aErrorMsg )
     // There is no header if this is a symbol library.
     if( type == LIBRARY_TYPE_EESCHEMA )
     {
-        line = reader.Line();
+        char* line = reader.Line();
 
         header = FROM_UTF8( line );
 
@@ -500,7 +339,7 @@ bool PART_LIB::Load( wxString& aErrorMsg )
          * backwards compatibility is no longer required.
          */
         if( !tkn.HasMoreTokens()
-            || !tkn.GetNextToken().Upper().StartsWith(wxT( "EESCHEMA-LIB" ) ) )
+            || !tkn.GetNextToken().Upper().StartsWith( "EESCHEMA-LIB" ) )
         {
             aErrorMsg = _( "The file is NOT an Eeschema library!" );
             return false;
@@ -512,14 +351,14 @@ bool PART_LIB::Load( wxString& aErrorMsg )
             return false;
         }
 
-        if( tkn.GetNextToken() != wxT( "Version" ) || !tkn.HasMoreTokens() )
+        if( tkn.GetNextToken() != "Version" || !tkn.HasMoreTokens() )
         {
-            aErrorMsg = wxT( "The file header version information is invalid." );
+            aErrorMsg = "The file header version information is invalid.";
             return false;
         }
 
         long major, minor;
-        wxStringTokenizer vers( tkn.GetNextToken(), wxT( "." ) );
+        wxStringTokenizer vers( tkn.GetNextToken(), "." );
 
         if( !vers.HasMoreTokens() || !vers.GetNextToken().ToLong( &major )
             || major < 1L || !vers.HasMoreTokens()
@@ -528,12 +367,12 @@ bool PART_LIB::Load( wxString& aErrorMsg )
         {
 #if 0       // Note for developers:
             // Not sure this warning is very useful: old designs *must* be always loadable
-            wxLogWarning( wxT(
+            wxLogWarning(
                 "The component library '%s' header version "
                 "number is invalid.\n\nIn future versions of Eeschema this library may not "
                 "load correctly.  To resolve this problem open the library in the library "
                 "editor and save it.  If this library is the project cache library, save "
-                "the current schematic." ),
+                "the current schematic.",
                 GetChars( GetName() ) );
 #endif
         }
@@ -546,9 +385,9 @@ bool PART_LIB::Load( wxString& aErrorMsg )
 
     while( reader.ReadLine() )
     {
-        line = reader.Line();
+        char * line = reader.Line();
 
-        if( type == LIBRARY_TYPE_EESCHEMA && strnicmp( line, "$HEADER", 7 ) == 0 )
+        if( type == LIBRARY_TYPE_EESCHEMA && strncasecmp( line, "$HEADER", 7 ) == 0 )
         {
             if( !LoadHeader( reader ) )
             {
@@ -559,7 +398,9 @@ bool PART_LIB::Load( wxString& aErrorMsg )
             continue;
         }
 
-        if( strnicmp( line, "DEF", 3 ) == 0 )
+        wxString msg;
+
+        if( strncasecmp( line, "DEF", 3 ) == 0 )
         {
             // Read one DEF/ENDDEF part entry from library:
             LIB_PART* part = new LIB_PART( wxEmptyString, this );
@@ -568,11 +409,9 @@ bool PART_LIB::Load( wxString& aErrorMsg )
             {
                 // Check for duplicate entry names and warn the user about
                 // the potential conflict.
-                if( FindEntry( part->GetName() ) != NULL )
+                if( FindAlias( part->GetName() ) != NULL )
                 {
-                    wxString msg = duplicate_name_msg;
-
-                    wxLogWarning( msg,
+                    wxLogWarning( DUPLICATE_NAME_MSG,
                                   GetChars( fileName.GetName() ),
                                   GetChars( part->GetName() ) );
                 }
@@ -598,15 +437,13 @@ bool PART_LIB::Load( wxString& aErrorMsg )
 
 void PART_LIB::LoadAliases( LIB_PART* aPart )
 {
-    wxCHECK_RET( aPart, wxT( "Cannot load aliases of NULL part.  Bad programmer!" ) );
+    wxCHECK_RET( aPart, "Cannot load aliases of NULL part.  Bad programmer!" );
 
     for( size_t i = 0; i < aPart->m_aliases.size(); i++ )
     {
-        if( FindEntry( aPart->m_aliases[i]->GetName() ) != NULL )
+        if( FindAlias( aPart->m_aliases[i]->GetName() ) != NULL )
         {
-            wxString msg = duplicate_name_msg;
-
-            wxLogError( msg,
+            wxLogError( DUPLICATE_NAME_MSG,
                         GetChars( fileName.GetName() ),
                         GetChars( aPart->m_aliases[i]->GetName() ) );
         }
@@ -628,10 +465,10 @@ bool PART_LIB::LoadHeader( LINE_READER& aLineReader )
         text = strtok( line, " \t\r\n" );
         data = strtok( NULL, " \t\r\n" );
 
-        if( stricmp( text, "TimeStamp" ) == 0 )
+        if( strcasecmp( text, "TimeStamp" ) == 0 )
             timeStamp = atol( data );
 
-        if( stricmp( text, "$ENDHEADER" ) == 0 )
+        if( strcasecmp( text, "$ENDHEADER" ) == 0 )
             return true;
     }
 
@@ -649,7 +486,7 @@ bool PART_LIB::LoadDocs( wxString& aErrorMsg )
 
     fn.SetExt( DOC_EXT );
 
-    file = wxFopen( fn.GetFullPath(), wxT( "rt" ) );
+    file = wxFopen( fn.GetFullPath(), "rt" );
 
     if( file == NULL )
     {
@@ -666,7 +503,7 @@ bool PART_LIB::LoadDocs( wxString& aErrorMsg )
         return false;
     }
 
-    if( strnicmp( line, DOCFILE_IDENT, 10 ) != 0 )
+    if( strncasecmp( line, DOCFILE_IDENT, 10 ) != 0 )
     {
         aErrorMsg.Printf( _( "File '%s' is not a valid component library document file." ),
                           GetChars( fn.GetFullPath() ) );
@@ -678,7 +515,7 @@ bool PART_LIB::LoadDocs( wxString& aErrorMsg )
     {
         if( strncmp( line, "$CMP", 4 ) != 0 )
         {
-            aErrorMsg.Printf( wxT( "$CMP command expected in line %d, aborted." ), lineNumber );
+            aErrorMsg.Printf( "$CMP command expected in line %d, aborted.", lineNumber );
             fclose( file );
             return false;
         }
@@ -688,7 +525,7 @@ bool PART_LIB::LoadDocs( wxString& aErrorMsg )
 
         wxString cmpname = FROM_UTF8( name );
 
-        entry = FindEntry( cmpname );
+        entry = FindAlias( cmpname );
 
         while( GetLine( file, line, &lineNumber, sizeof(line) ) )
         {
@@ -746,7 +583,7 @@ bool PART_LIB::Save( OUTPUTFORMATTER& aFormatter )
 
         aFormatter.Print( 0, "#\n#End Library\n" );
     }
-    catch( const IO_ERROR& ioe )
+    catch( const IO_ERROR& )
     {
         success = false;
     }
@@ -771,7 +608,7 @@ bool PART_LIB::SaveDocs( OUTPUTFORMATTER& aFormatter )
 
         aFormatter.Print( 0, "#\n#End Doc Library\n" );
     }
-    catch( const IO_ERROR& ioe )
+    catch( const IO_ERROR& )
     {
         success = false;
     }
@@ -800,12 +637,20 @@ bool PART_LIB::SaveHeader( OUTPUTFORMATTER& aFormatter )
 
 PART_LIB* PART_LIB::LoadLibrary( const wxString& aFileName ) throw( IO_ERROR, boost::bad_pointer )
 {
-    std::auto_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName ) );
+    std::unique_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName ) );
 
-    wxBusyCursor ShowWait;
+    wxBusyCursor ShowWait;  // Do we want UI elements in PART_LIB?
 
     wxString errorMsg;
 
+#ifdef KICAD_USE_SCH_IO_MANAGER
+    SCH_PLUGIN::SCH_PLUGIN_RELEASER pi( SCH_IO_MGR::FindPlugin( SCH_IO_MGR::SCH_LEGACY ) );
+
+    wxArrayString tmp;
+
+    pi->EnumerateSymbolLib( tmp, aFileName );
+    pi->TransferCache( *lib.get() );
+#else
     if( !lib->Load( errorMsg ) )
         THROW_IO_ERROR( errorMsg );
 
@@ -819,6 +664,7 @@ PART_LIB* PART_LIB::LoadLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
             THROW_IO_ERROR( errorMsg );
 #endif
     }
+#endif
 
     PART_LIB* ret = lib.release();
 
@@ -830,13 +676,12 @@ PART_LIB* PART_LIBS::AddLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
 {
     PART_LIB* lib;
 
-#if 1
     wxFileName fn = aFileName;
     // Don't reload the library if it is already loaded.
     lib = FindLibrary( fn.GetName() );
+
     if( lib )
         return lib;
-#endif
 
     lib = PART_LIB::LoadLibrary( aFileName );
 
@@ -849,14 +694,12 @@ PART_LIB* PART_LIBS::AddLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
 PART_LIB* PART_LIBS::AddLibrary( const wxString& aFileName, PART_LIBS::iterator& aIterator )
     throw( IO_ERROR, boost::bad_pointer )
 {
-#if 1
     // Don't reload the library if it is already loaded.
     wxFileName fn( aFileName );
     PART_LIB* lib = FindLibrary( fn.GetName() );
 
     if( lib )
         return lib;
-#endif
 
     lib = PART_LIB::LoadLibrary( aFileName );
 
@@ -866,22 +709,6 @@ PART_LIB* PART_LIBS::AddLibrary( const wxString& aFileName, PART_LIBS::iterator&
         push_back( lib );
 
     return lib;
-}
-
-
-void PART_LIBS::RemoveLibrary( const wxString& aName )
-{
-    if( aName.IsEmpty() )
-        return;
-
-    for( PART_LIBS::iterator it = begin(); it < end();  ++it )
-    {
-        if( it->GetName().CmpNoCase( aName ) == 0 )
-        {
-            erase( it );
-            return;
-        }
-    }
 }
 
 
@@ -902,7 +729,7 @@ wxArrayString PART_LIBS::GetLibraryNames( bool aSorted )
     wxArrayString cacheNames;
     wxArrayString names;
 
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( lib.IsCache() && aSorted )
             cacheNames.Add( lib.GetName() );
@@ -925,7 +752,7 @@ LIB_PART* PART_LIBS::FindLibPart( const wxString& aPartName, const wxString& aLi
 {
     LIB_PART* part = NULL;
 
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( !aLibraryName.IsEmpty() && lib.GetName() != aLibraryName )
             continue;
@@ -940,16 +767,16 @@ LIB_PART* PART_LIBS::FindLibPart( const wxString& aPartName, const wxString& aLi
 }
 
 
-LIB_ALIAS* PART_LIBS::FindLibraryEntry( const wxString& aEntryName, const wxString& aLibraryName )
+LIB_ALIAS* PART_LIBS::FindLibraryAlias( const wxString& aEntryName, const wxString& aLibraryName )
 {
     LIB_ALIAS* entry = NULL;
 
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( !!aLibraryName && lib.GetName() != aLibraryName )
             continue;
 
-        entry = lib.FindEntry( aEntryName );
+        entry = lib.FindAlias( aEntryName );
 
         if( entry )
             break;
@@ -958,16 +785,6 @@ LIB_ALIAS* PART_LIBS::FindLibraryEntry( const wxString& aEntryName, const wxStri
     return entry;
 }
 
-void PART_LIBS::FindLibraryEntries( const wxString& aEntryName, std::vector<LIB_ALIAS*>& aEntries )
-{
-    BOOST_FOREACH( PART_LIB& lib, *this )
-    {
-        LIB_ALIAS* entry = lib.FindEntry( aEntryName );
-
-        if( entry )
-            aEntries.push_back( entry );
-    }
-}
 
 /* searches all libraries in the list for an entry, using a case insensitive comparison.
  * Used to find an entry, when the normal (case sensitive) search fails.
@@ -976,29 +793,22 @@ void PART_LIBS::FindLibraryNearEntries( std::vector<LIB_ALIAS*>& aCandidates,
                                         const wxString& aEntryName,
                                         const wxString& aLibraryName )
 {
-    BOOST_FOREACH( PART_LIB& lib, *this )
+    for( PART_LIB& lib : *this )
     {
         if( !!aLibraryName && lib.GetName() != aLibraryName )
             continue;
 
-        LIB_ALIAS* entry = lib.GetFirstEntry();
+        wxArrayString aliasNames;
 
-        if( ! entry )
+        lib.GetAliasNames( aliasNames );
+
+        if( aliasNames.IsEmpty() )
             continue;
 
-        wxString first_entry_name = entry->GetName();
-        wxString entry_name = first_entry_name;
-
-        for( ;; )
+        for( size_t i = 0;  i < aliasNames.size();  i++ )
         {
-            if( entry_name.CmpNoCase( aEntryName ) == 0 )
-                aCandidates.push_back( entry );
-
-            entry = lib.GetNextEntry( entry_name );
-            entry_name = entry->GetName();
-
-            if( first_entry_name == entry_name )
-                break;
+            if( aliasNames[i].CmpNoCase( aEntryName ) == 0 )
+                aCandidates.push_back( lib.FindAlias( aliasNames[i] ) );
         }
     }
 }
@@ -1020,18 +830,6 @@ int PART_LIBS::GetModifyHash()
 }
 
 
-/*
-void PART_LIBS::RemoveCacheLibrary()
-{
-    for( PART_LIBS::iterator it = begin(); it < end();  ++it )
-    {
-        if( it->IsCache() )
-            erase( it-- );
-    }
-}
-*/
-
-
 void PART_LIBS::LibNamesAndPaths( PROJECT* aProject, bool doSave,
                                   wxString* aPaths, wxArrayString* aNames )
     throw( IO_ERROR, boost::bad_pointer )
@@ -1041,7 +839,7 @@ void PART_LIBS::LibNamesAndPaths( PROJECT* aProject, bool doSave,
     PARAM_CFG_ARRAY ca;
 
     if( aPaths )
-        ca.push_back( new PARAM_CFG_FILENAME( wxT( "LibDir" ), aPaths ) );
+        ca.push_back( new PARAM_CFG_FILENAME( "LibDir", aPaths ) );
 
     if( aNames )
         ca.push_back( new PARAM_CFG_LIBNAME_LIST( wxT( "LibName" ),  aNames, GROUP_SCH_LIBS ) );
@@ -1082,7 +880,7 @@ const wxString PART_LIBS::CacheName( const wxString& aFullProjectFilename )
      */
     wxFileName  new_name = aFullProjectFilename;
 
-    new_name.SetName( new_name.GetName() + wxT( "-cache" ) );
+    new_name.SetName( new_name.GetName() + "-cache" );
     new_name.SetExt( SchematicLibraryFileExtension );
 
     if( new_name.FileExists() )
@@ -1090,7 +888,7 @@ const wxString PART_LIBS::CacheName( const wxString& aFullProjectFilename )
     else
     {
         wxFileName old_name = aFullProjectFilename;
-        old_name.SetExt( wxT( "cache.lib" ) );
+        old_name.SetExt( "cache.lib" );
 
         if( old_name.FileExists() )
         {
@@ -1104,7 +902,6 @@ const wxString PART_LIBS::CacheName( const wxString& aFullProjectFilename )
 
 void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::bad_pointer )
 {
-    wxFileName      fn;
     wxString        filename;
     wxString        libs_not_found;
     SEARCH_STACK*   lib_search = aProject->SchSearchS();
@@ -1119,14 +916,14 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
 
     // If the list is empty, force loading the standard power symbol library.
     if( !lib_names.GetCount() )
-        lib_names.Add( wxT( "power" ) );
+        lib_names.Add( "power" );
 
     wxASSERT( !size() );    // expect to load into "this" empty container.
 
     for( unsigned i = 0; i < lib_names.GetCount();  ++i )
     {
-        fn.Clear();
-        fn.SetName( lib_names[i] );
+        wxFileName fn = lib_names[i];
+        // lib_names[] does not store the file extension. Set it:
         fn.SetExt( SchematicLibraryFileExtension );
 
         // Skip if the file name is not valid..
@@ -1139,13 +936,19 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
 
             if( !filename )
             {
-                libs_not_found += fn.GetName();
-                libs_not_found += wxT( '\n' );
+                libs_not_found += fn.GetFullPath();
+                libs_not_found += '\n';
                 continue;
             }
         }
         else
-        {
+        {   // ensure the lib filename has a absolute path.
+            // If the lib has no absolute path, and is found in the cwd by fn.FileExists(),
+            // make a full absolute path, to avoid issues with load library functions which
+            // expects an absolute path.
+            if( !fn.IsAbsolute() )
+                fn.MakeAbsolute();
+
             filename = fn.GetFullPath();
         }
 
@@ -1156,13 +959,10 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
         catch( const IO_ERROR& ioe )
         {
             wxString msg = wxString::Format( _(
-                    "Part library '%s' failed to load. Error:\n"
-                    "%s" ),
-                    GetChars( filename ),
-                    GetChars( ioe.errorText )
-                    );
+                    "Part library '%s' failed to load. Error:\n %s" ),
+                    GetChars( filename ), GetChars( ioe.What() ) );
 
-            THROW_IO_ERROR( msg );
+            wxLogError( msg );
         }
     }
 
@@ -1175,6 +975,7 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
         try
         {
             cache_lib = AddLibrary( cache_name );
+
             if( cache_lib )
                 cache_lib->SetCache();
         }
@@ -1183,7 +984,7 @@ void PART_LIBS::LoadAllLibraries( PROJECT* aProject ) throw( IO_ERROR, boost::ba
             wxString msg = wxString::Format( _(
                     "Part library '%s' failed to load.\nError: %s" ),
                     GetChars( cache_name ),
-                    GetChars( ioe.errorText )
+                    GetChars( ioe.What() )
                     );
 
             THROW_IO_ERROR( msg );

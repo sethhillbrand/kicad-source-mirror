@@ -41,6 +41,7 @@
 #include <class_libentry.h>
 #include <lib_pin.h>
 #include <general.h>
+#include <confirm.h>
 
 #include <../common/dialogs/dialog_display_info_HTML_base.h>
 #include <dialog_lib_edit_pin.h>
@@ -55,9 +56,9 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
 
 static wxPoint OldPos;
 static wxPoint PinPreviousPos;
-static int     LastPinType          = PIN_INPUT;
+static ELECTRICAL_PINTYPE LastPinType   = PIN_INPUT;
 static int     LastPinOrient        = PIN_RIGHT;
-static int     LastPinShape         = NONE;
+static GRAPHIC_PINSHAPE LastPinShape = PINSHAPE_LINE;
 static bool    LastPinCommonConvert = false;
 static bool    LastPinCommonUnit    = false;
 static bool    LastPinVisible       = true;
@@ -102,22 +103,20 @@ void LIB_EDIT_FRAME::OnEditPin( wxCommandEvent& event )
     DIALOG_LIB_EDIT_PIN dlg( this, pin );
 
     wxString units = GetUnitsLabel( g_UserUnit );
+    dlg.SetDlgUnitsLabel( units );
+
     dlg.SetOrientationList( LIB_PIN::GetOrientationNames(), LIB_PIN::GetOrientationSymbols() );
     dlg.SetOrientation( LIB_PIN::GetOrientationCodeIndex( pin->GetOrientation() ) );
-    dlg.SetStyleList( LIB_PIN::GetStyleNames(), LIB_PIN::GetStyleSymbols() );
-    dlg.SetStyle( LIB_PIN::GetStyleCodeIndex( pin->GetShape() ) );
-    dlg.SetElectricalTypeList( LIB_PIN::GetElectricalTypeNames(),
-                               LIB_PIN::GetElectricalTypeSymbols() );
+    dlg.SetStyle( pin->GetShape() );
     dlg.SetElectricalType( pin->GetType() );
     dlg.SetPinName( pin->GetName() );
     dlg.SetPinNameTextSize( StringFromValue( g_UserUnit, pin->GetNameTextSize() ) );
-    dlg.SetPinNameTextSizeUnits( units );
+    dlg.SetPinPositionX( StringFromValue( g_UserUnit, pin->GetPosition().x ) );
+    dlg.SetPinPositionY( StringFromValue( g_UserUnit, -pin->GetPosition().y ) );
     dlg.SetPadName( pin->GetNumberString() );
     dlg.SetPadNameTextSize( StringFromValue( g_UserUnit, pin->GetNumberTextSize() ) );
 
-    dlg.SetPadNameTextSizeUnits( units );
     dlg.SetLength( StringFromValue( g_UserUnit, pin->GetLength() ) );
-    dlg.SetLengthUnits( units );
     dlg.SetAddToAllParts( pin->GetUnit() == 0 );
     dlg.SetAddToAllBodyStyles( pin->GetConvert() == 0 );
     dlg.SetVisible( pin->IsVisible() );
@@ -142,12 +141,31 @@ void LIB_EDIT_FRAME::OnEditPin( wxCommandEvent& event )
         return;
     }
 
+    // Test the pin position validity: to avoid issues in schematic,
+    // it must be on a 50 mils grid
+    wxPoint pinpos;
+    pinpos.x = ValueFromString( g_UserUnit, dlg.GetPinPositionX() );
+    pinpos.y = -ValueFromString( g_UserUnit, dlg.GetPinPositionY() );
+    const int acceptable_mingrid = 50;
+
+    if( (pinpos.x % acceptable_mingrid) || (pinpos.y % acceptable_mingrid) )
+    {
+        wxString msg;
+        msg.Printf( _( "This pin is not on a %d mils grid\n"
+                       "It will be not easy to connect in schematic\n"
+                       "Do you want to continue?"), acceptable_mingrid );
+
+        if( !IsOK( this, msg ) )
+            return;
+    }
+
+
     // Save the pin properties to use for the next new pin.
     LastPinNameSize = ValueFromString( g_UserUnit, dlg.GetPinNameTextSize() );
     LastPinNumSize = ValueFromString( g_UserUnit, dlg.GetPadNameTextSize() );
     LastPinOrient = LIB_PIN::GetOrientationCode( dlg.GetOrientation() );
     LastPinLength = ValueFromString( g_UserUnit, dlg.GetLength() );
-    LastPinShape = LIB_PIN::GetStyleCode( dlg.GetStyle() );
+    LastPinShape = dlg.GetStyle();
     LastPinType = dlg.GetElectricalType();
     LastPinCommonConvert = dlg.GetAddToAllBodyStyles();
     LastPinCommonUnit = dlg.GetAddToAllParts();
@@ -160,6 +178,8 @@ void LIB_EDIT_FRAME::OnEditPin( wxCommandEvent& event )
     pin->SetNumberTextSize( GetLastPinNumSize() );
     pin->SetOrientation( LastPinOrient );
     pin->SetLength( GetLastPinLength() );
+    pin->SetPinPosition( pinpos );
+
     pin->SetType( LastPinType );
     pin->SetShape( LastPinShape );
     pin->SetConversion( ( LastPinCommonConvert ) ? 0 : m_convert );
@@ -367,20 +387,27 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
         return;
 
     wxPoint pinpos = cur_pin->GetPosition();
-    bool    showPinText = true;
+    int show_opts = PIN_DRAW_TEXTS | PIN_DRAW_DANGLING | PIN_DANGLING_HIDDEN;
+
+    if( parent->GetShowElectricalType() )
+        show_opts |= PIN_DRAW_ELECTRICAL_TYPE_NAME;
+
+    // In LIB_PIN::Draw() a void* parameter used as flag to pass show_opts.
+    // Build it:
+    void* showOptions = reinterpret_cast<void*>( show_opts );
 
     // Erase pin in old position
     if( aErase )
     {
         cur_pin->Move( PinPreviousPos );
         cur_pin->Draw( aPanel, aDC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode,
-                          &showPinText, DefaultTransform );
+                          showOptions, DefaultTransform );
     }
 
     // Redraw pin in new position
     cur_pin->Move( aPanel->GetParent()->GetCrossHairPosition( true ) );
     cur_pin->Draw( aPanel, aDC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, g_XorMode,
-                      &showPinText, DefaultTransform );
+                   showOptions, DefaultTransform );
 
     PinPreviousPos = cur_pin->GetPosition();
 
@@ -396,8 +423,6 @@ static void DrawMovePin( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aPosi
  */
 void LIB_EDIT_FRAME::CreatePin( wxDC* DC )
 {
-    bool     showPinText = true;
-
     LIB_PART*      part = GetCurPart();
 
     if( !part )
@@ -445,8 +470,19 @@ void LIB_EDIT_FRAME::CreatePin( wxDC* DC )
         m_canvas->SetMouseCapture( DrawMovePin, AbortPinMove );
 
         if( DC )
-            pin->Draw( m_canvas, DC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, GR_COPY, &showPinText,
-                       DefaultTransform );
+        {
+            int show_opts = PIN_DRAW_TEXTS | PIN_DRAW_DANGLING | PIN_DANGLING_HIDDEN;
+
+            if( GetShowElectricalType() )
+                show_opts |= PIN_DRAW_ELECTRICAL_TYPE_NAME;
+
+            // In LIB_PIN::Draw() a void* parameter used as flag to pass show_opts.
+            // Build it:
+            void* showOptions = reinterpret_cast<void*>( show_opts );
+
+            pin->Draw( m_canvas, DC, wxPoint( 0, 0 ), UNSPECIFIED_COLOR, GR_COPY,
+                       showOptions, DefaultTransform );
+        }
 
     }
 }

@@ -29,7 +29,6 @@
 #include <tool/tool_action.h>
 #include <tool/tool_manager.h>
 
-#include <boost/foreach.hpp>
 
 struct FlagString
 {
@@ -90,7 +89,8 @@ const std::string TOOL_EVENT::Format() const
         { TA_CANCEL_TOOL,           "cancel-tool"         },
         { TA_CONTEXT_MENU_UPDATE,   "context-menu-update" },
         { TA_CONTEXT_MENU_CHOICE,   "context-menu-choice" },
-        { TA_UNDO_REDO,             "undo-redo"           },
+        { TA_UNDO_REDO_PRE,         "undo-redo-pre"       },
+        { TA_UNDO_REDO_POST,        "undo-redo-post"      },
         { TA_ACTION,                "action"              },
         { TA_ACTIVATE,              "activate"            },
         { 0,                        ""                    }
@@ -155,7 +155,7 @@ const std::string TOOL_EVENT_LIST::Format() const
 {
     std::string s;
 
-    BOOST_FOREACH( TOOL_EVENT e, m_events )
+    for( TOOL_EVENT e : m_events )
         s += e.Format() + " ";
 
     return s;

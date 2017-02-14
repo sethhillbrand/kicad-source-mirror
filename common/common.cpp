@@ -28,14 +28,10 @@
  */
 
 #include <fctsys.h>
-#include <gr_basic.h>
-#include <trigo.h>
 #include <wxstruct.h>
 #include <base_struct.h>
 #include <common.h>
 #include <macros.h>
-#include <build_version.h>
-#include <confirm.h>
 #include <base_units.h>
 #include <reporter.h>
 
@@ -43,6 +39,8 @@
 #include <wx/config.h>
 #include <wx/utils.h>
 #include <wx/stdpaths.h>
+
+#include <pgm_base.h>
 
 
 /**
@@ -58,30 +56,36 @@ EDA_UNITS_T    g_UserUnit;
 EDA_COLOR_T    g_GhostColor;
 
 
-/**
- * Function to use local notation or C standard notation for floating point numbers
- * some countries use 1,5 and others (and C) 1.5
- * so we switch from local to C and C to local when reading or writing files
- * And other problem is a bug when cross compiling under linux:
- * a printf print 1,5 and the read functions expects 1.5
- * (depending on version print = 1.5 and read = 1,5
- * Very annoying and we detect this and use a stupid but necessary workaround
-*/
-bool g_DisableFloatingPointLocalNotation = false;
+/* Class LOCALE_IO
+ * is a class that can be instantiated within a scope in which you are expecting
+ * exceptions to be thrown.  Its constructor sets a "C" locale, to read/print files
+ * with fp numbers.
+ * Its destructor insures that the default locale is restored if an exception
+ * is thrown, or not.
+ */
 
+std::atomic<unsigned int> LOCALE_IO::m_c_count(0);
 
-int LOCALE_IO::C_count;
-
-
-void SetLocaleTo_C_standard()
+LOCALE_IO::LOCALE_IO()
 {
-    setlocale( LC_NUMERIC, "C" );    // Switch the locale to standard C
+    // use thread safe, atomic operation
+    if( m_c_count++ == 0 )
+    {
+        // Store the user locale name, to restore this locale later, in dtor
+        m_user_locale = setlocale( LC_ALL, 0 );
+        // Switch the locale to C locale, to read/write files with fp numbers
+        setlocale( LC_ALL, "C" );
+    }
 }
 
-void SetLocaleTo_Default()
+LOCALE_IO::~LOCALE_IO()
 {
-    if( !g_DisableFloatingPointLocalNotation )
-        setlocale( LC_NUMERIC, "" );      // revert to the current locale
+    // use thread safe, atomic operation
+    if( --m_c_count == 0 )
+    {
+        // revert to the user locale
+        setlocale( LC_ALL, m_user_locale.c_str() );
+    }
 }
 
 
@@ -180,7 +184,7 @@ wxString GetUnitsLabel( EDA_UNITS_T aUnit )
         break;
 
     case DEGREES:
-        wxASSERT( false );
+        label = _( "degrees" );
         break;
     }
 

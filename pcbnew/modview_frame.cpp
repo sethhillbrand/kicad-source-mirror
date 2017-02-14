@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2008-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2008-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 #include <class_drawpanel.h>
 #include <pcb_draw_panel_gal.h>
 #include <wxPcbStruct.h>
-#include <3d_viewer.h>
+#include <3d_viewer/eda_3d_viewer.h>
 #include <dialog_helpers.h>
 #include <msgpanel.h>
 #include <fp_lib_table.h>
@@ -57,7 +57,8 @@
 #include "tools/pcbnew_control.h"
 #include "tools/common_actions.h"
 
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 
 #define NEXT_PART       1
@@ -100,41 +101,38 @@ END_EVENT_TABLE()
  * FOOTPRINT_VIEWER_FRAME can be created in "modal mode", or as a usual frame.
  * In modal mode:
  *  a tool to export the selected footprint is shown in the toolbar
- *  the style is wxSTAY_ON_TOP on Windows and wxFRAME_FLOAT_ON_PARENT on unix
- * Reason:
- * the parent is usually the kicad window manager (not easy to change)
- * On windows, when the frame with stype wxFRAME_FLOAT_ON_PARENT is displayed
- * its parent frame is brought to the foreground, on the top of the calling frame.
- * and stays displayed when closing the FOOTPRINT_VIEWER_FRAME frame.
- * this issue does not happen on unix
- *
- * So we use wxSTAY_ON_TOP on Windows, and wxFRAME_FLOAT_ON_PARENT on unix
- * to force FOOTPRINT_VIEWER_FRAME to stay on parent when it is Modal.
+ *  the style is wxFRAME_FLOAT_ON_PARENT
+ * Note:
+ * On windows, when the frame with type wxFRAME_FLOAT_ON_PARENT is displayed
+ * its parent frame is sometimes brought to the foreground when closing the
+ * LIB_VIEW_FRAME frame.
+ * If it still happens, it could be better to use wxSTAY_ON_TOP
+ * instead of wxFRAME_FLOAT_ON_PARENT
  */
+#ifdef __WINDOWS__
+#define MODAL_MODE_EXTRASTYLE wxFRAME_FLOAT_ON_PARENT   // could be wxSTAY_ON_TOP if issues
+#else
+#define MODAL_MODE_EXTRASTYLE wxFRAME_FLOAT_ON_PARENT
+#endif
 
-
-#define FOOTPRINT_VIEWER_FRAME_NAME         wxT( "ModViewFrame" )
-#define FOOTPRINT_VIEWER_FRAME_NAME_MODAL   wxT( "ModViewFrameModal" )
+#define FOOTPRINT_VIEWER_FRAME_NAME         "ModViewFrame"
+#define FOOTPRINT_VIEWER_FRAME_NAME_MODAL   "ModViewFrameModal"
 
 
 FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrameType ) :
     PCB_BASE_FRAME( aKiway, aParent, aFrameType, _( "Footprint Library Browser" ),
             wxDefaultPosition, wxDefaultSize,
             aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL ?
-#ifdef __WINDOWS__
-                KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP
-#else
                     aParent ?
-                        KICAD_DEFAULT_DRAWFRAME_STYLE | wxFRAME_FLOAT_ON_PARENT
+                        KICAD_DEFAULT_DRAWFRAME_STYLE | MODAL_MODE_EXTRASTYLE
                         : KICAD_DEFAULT_DRAWFRAME_STYLE | wxSTAY_ON_TOP
-#endif
                 : KICAD_DEFAULT_DRAWFRAME_STYLE,
             aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL ?
                                 FOOTPRINT_VIEWER_FRAME_NAME_MODAL
                                 : FOOTPRINT_VIEWER_FRAME_NAME )
 {
-    wxASSERT( aFrameType==FRAME_PCB_MODULE_VIEWER ||
-              aFrameType==FRAME_PCB_MODULE_VIEWER_MODAL );
+    wxASSERT( aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL ||
+              aFrameType == FRAME_PCB_MODULE_VIEWER );
 
     if( aFrameType == FRAME_PCB_MODULE_VIEWER_MODAL )
         SetModal( true );
@@ -225,7 +223,7 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
     // most likely due to the fact that the other windows are not dockable and are preventing the
     // tool bar from docking on the right and left.
     wxAuiPaneInfo toolbarPaneInfo;
-    toolbarPaneInfo.Name( wxT( "m_mainToolBar" ) ).ToolbarPane().Top().CloseButton( false );
+    toolbarPaneInfo.Name( "m_mainToolBar" ).ToolbarPane().Top().CloseButton( false );
 
     EDA_PANEINFO info;
     info.InfoToolbarPane();
@@ -238,23 +236,23 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
 
     // Manage the list of libraries, left pane.
     m_auimgr.AddPane( m_libList,
-                      wxAuiPaneInfo( info ).Name( wxT( "m_libList" ) )
+                      wxAuiPaneInfo( info ).Name( "m_libList" )
                       .Left().Row( 1 ).MinSize( minsize ) );
 
     // Manage the list of footprints, center pane.
     m_auimgr.AddPane( m_footprintList,
-                      wxAuiPaneInfo( info ).Name( wxT( "m_footprintList" ) )
+                      wxAuiPaneInfo( info ).Name( "m_footprintList" )
                       .Left().Row( 2 ).MinSize( minsize ) );
 
     // Manage the draw panel, right pane.
     m_auimgr.AddPane( m_canvas,
-                      wxAuiPaneInfo().Name( wxT( "DrawFrame" ) ).CentrePane() );
+                      wxAuiPaneInfo().Name( "DrawFrame" ).CentrePane() );
     m_auimgr.AddPane( (wxWindow*) GetGalCanvas(),
-                      wxAuiPaneInfo().Name( wxT( "DrawFrameGal" ) ).CentrePane().Hide() );
+                      wxAuiPaneInfo().Name( "DrawFrameGal" ).CentrePane().Hide() );
 
     // Manage the message panel, bottom pane.
     m_auimgr.AddPane( m_messagePanel,
-                      wxAuiPaneInfo( mesg ).Name( wxT( "MsgPanel" ) ).Bottom() );
+                      wxAuiPaneInfo( mesg ).Name( "MsgPanel" ).Bottom() );
 
     if( !m_perspective.IsEmpty() )
     {
@@ -293,7 +291,7 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
 
 FOOTPRINT_VIEWER_FRAME::~FOOTPRINT_VIEWER_FRAME()
 {
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
         draw3DFrame->Destroy();
@@ -304,6 +302,11 @@ FOOTPRINT_VIEWER_FRAME::~FOOTPRINT_VIEWER_FRAME()
 void FOOTPRINT_VIEWER_FRAME::OnCloseWindow( wxCloseEvent& Event )
 {
     DBG(printf( "%s:\n", __func__ );)
+
+    // A workaround to avoid flicker, in modal mode when modview frame is destroyed,
+    // when the aui toolbar is not docked (i.e. shown in a miniframe)
+    // (usefull on windows only)
+    m_mainToolBar->SetFocus();
 
     if( IsGalCanvasActive() )
         GetGalCanvas()->StopDrawing();
@@ -391,7 +394,7 @@ void FOOTPRINT_VIEWER_FRAME::ReCreateFootprintList()
         return;
     }
 
-    BOOST_FOREACH( const FOOTPRINT_INFO& footprint, fp_info_list.GetList() )
+    for( const FOOTPRINT_INFO& footprint : fp_info_list.GetList() )
     {
         m_footprintList->Append( footprint.GetFootprintName() );
     }
@@ -460,7 +463,7 @@ void FOOTPRINT_VIEWER_FRAME::ClickOnFootprintList( wxCommandEvent& event )
                         _( "Could not load footprint \"%s\" from library \"%s\".\n\nError %s." ),
                         GetChars( getCurFootprintName() ),
                         GetChars( getCurNickname() ),
-                        GetChars( ioe.errorText ) );
+                        GetChars( ioe.What() ) );
 
             DisplayError( this, msg );
         }
@@ -625,7 +628,7 @@ bool FOOTPRINT_VIEWER_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPosition
 
 void FOOTPRINT_VIEWER_FRAME::Show3D_Frame( wxCommandEvent& event )
 {
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
     {
@@ -643,7 +646,7 @@ void FOOTPRINT_VIEWER_FRAME::Show3D_Frame( wxCommandEvent& event )
         return;
     }
 
-    draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, wxEmptyString );
+    draw3DFrame = new EDA_3D_VIEWER( &Kiway(), this, wxEmptyString );
     Update3D_Frame( false );
     draw3DFrame->Raise();     // Needed with some Window Managers
     draw3DFrame->Show( true );
@@ -652,16 +655,16 @@ void FOOTPRINT_VIEWER_FRAME::Show3D_Frame( wxCommandEvent& event )
 
 void FOOTPRINT_VIEWER_FRAME::Update3D_Frame( bool aForceReloadFootprint )
 {
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame == NULL )
         return;
 
-    wxString frm3Dtitle = wxString::Format(
-                _( "ModView: 3D Viewer [%s]" ),
-                GetChars( getCurFootprintName() ) );
+    wxString title = wxString::Format(
+                _( "3D Viewer" ) + L" \u2014 %s",
+                getCurFootprintName() );
 
-    draw3DFrame->SetTitle( frm3Dtitle );
+    draw3DFrame->SetTitle( title );
 
     if( aForceReloadFootprint )
     {
@@ -693,8 +696,8 @@ void FOOTPRINT_VIEWER_FRAME::OnIterateFootprintList( wxCommandEvent& event )
         break;
 
     default:
-        wxString id = wxString::Format(wxT("%i"),event.GetId());
-        wxFAIL_MSG( wxT( "FOOTPRINT_VIEWER_FRAME::OnIterateFootprintList error: id = " ) + id );
+        wxString id = wxString::Format( "%i", event.GetId() );
+        wxFAIL_MSG( "FOOTPRINT_VIEWER_FRAME::OnIterateFootprintList error: id = " + id );
     }
 }
 
@@ -712,19 +715,25 @@ bool FOOTPRINT_VIEWER_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopM
 
 void FOOTPRINT_VIEWER_FRAME::UpdateTitle()
 {
-    wxString     msg;
+    wxString title;
+    wxString path;
 
-    msg = _( "Library Browser" );
-    msg << wxT( " [" );
+    title.Printf( _( "Library Browser" ) + L" \u2014 %s",
+            getCurNickname().size()
+                ? getCurNickname()
+                : _( "no library selected" ) );
 
+    // Now, add the full path, for info
     if( getCurNickname().size() )
-        msg << getCurNickname();
-    else
-        msg += _( "no library selected" );
+    {
+        FP_LIB_TABLE* libtable = Prj().PcbFootprintLibs();
+        const FP_LIB_TABLE_ROW* row = libtable->FindRow( getCurNickname() );
 
-    msg << wxT( "]" );
+        if( row )
+            title << L" \u2014 " << row->GetFullURI( true );
+    }
 
-    SetTitle( msg );
+    SetTitle( title );
 }
 
 
@@ -749,16 +758,9 @@ void FOOTPRINT_VIEWER_FRAME::SelectCurrentLibrary( wxCommandEvent& event )
 
 void FOOTPRINT_VIEWER_FRAME::SelectCurrentFootprint( wxCommandEvent& event )
 {
-#if 0 // cannot remember why this is here
-    // The PCB_EDIT_FRAME may not be the FOOTPRINT_VIEW_FRAME's parent,
-    // so use Kiway().Player() to fetch.
-    PCB_EDIT_FRAME* parent = (PCB_EDIT_FRAME*) Kiway().Player( FRAME_PCB, true );
-    (void*) parent;
-#endif
-
-    wxString        nickname = getCurNickname();
-    MODULE*         oldmodule = GetBoard()->m_Modules;
-    MODULE*         module = LoadModuleFromLibrary( nickname, Prj().PcbFootprintLibs(), false );
+    wxString curr_nickname = getCurNickname();
+    MODULE*  oldmodule = GetBoard()->m_Modules;
+    MODULE*  module = LoadModuleFromLibrary( curr_nickname, Prj().PcbFootprintLibs(), false );
 
     if( module )
     {

@@ -10,7 +10,7 @@
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2015 Dick Hollenbeck, dick@softplc.com
  * Copyright (C) 2008-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,19 +37,24 @@
 #include <pcbnew.h>
 #include <kiface_i.h>
 #include <gestfich.h>
-#include <3d_struct.h>
 #include <3d_viewer.h>
 #include <wxPcbStruct.h>
 #include <base_units.h>
 #include <macros.h>
 #include <validators.h>
 #include <kicad_string.h>
+#include <board_commit.h>
 
 #include <class_module.h>
 #include <class_text_mod.h>
 #include <module_editor_frame.h>
 #include <dialog_edit_module_for_Modedit.h>
 #include <wildcards_and_files_ext.h>
+#include <pgm_base.h>
+#include "3d_cache/dialogs/panel_prev_model.h"
+#include "3d_cache/dialogs/3d_cache_dialogs.h"
+#include "3d_cache/3d_cache.h"
+#include "3d_cache/3d_filename_resolver.h"
 
 size_t DIALOG_MODULE_MODULE_EDITOR::m_page = 0;     // remember the last open page during session
 
@@ -66,31 +71,55 @@ DIALOG_MODULE_MODULE_EDITOR::DIALOG_MODULE_MODULE_EDITOR( FOOTPRINT_EDIT_FRAME* 
     icon.CopyFromBitmap( KiBitmap( icon_modedit_xpm ) );
     SetIcon( icon );
 
+    aParent->Prj().Get3DCacheManager()->GetResolver()->SetProgramBase( &Pgm() );
+
+    m_currentModuleCopy = new MODULE( *aModule );
+
+    m_PreviewPane = new PANEL_PREV_3D( m_Panel3D,
+                                       aParent->Prj().Get3DCacheManager(),
+                                       m_currentModuleCopy,
+                                       &m_shapes3D_list );
+
+    bLowerSizer3D->Add( m_PreviewPane, 1, wxEXPAND, 5 );
+
     m_FootprintNameCtrl->SetValidator( FILE_NAME_CHAR_VALIDATOR() );
     initModeditProperties();
 
     m_NoteBook->SetSelection( m_page );
 
     m_sdbSizerStdButtonsOK->SetDefault();
-    GetSizer()->SetSizeHints( this );
-    Centre();
+
+    Layout();
+
+    FixOSXCancelButtonIssue();
 }
 
 
 DIALOG_MODULE_MODULE_EDITOR::~DIALOG_MODULE_MODULE_EDITOR()
 {
-    m_page = m_NoteBook->GetSelection();
-
-    for( unsigned ii = 0; ii < m_shapes3D_list.size(); ii++ )
-        delete m_shapes3D_list[ii];
-
     m_shapes3D_list.clear();
 
+    // free the memory used by all models, otherwise models which were
+    // browsed but not used would consume memory
+    Prj().Get3DCacheManager()->FlushCache( false );
+
+    // the GL canvas has to be visible before it is destroyed
+    m_page = m_NoteBook->GetSelection();
+    m_NoteBook->SetSelection( 1 );
+
     delete m_referenceCopy;
+    m_referenceCopy = NULL;   // just in case, to avoid double-free
+
     delete m_valueCopy;
-    delete m_3D_Scale;
-    delete m_3D_Offset;
-    delete m_3D_Rotation;
+    m_valueCopy = NULL;
+
+    delete m_PreviewPane;
+    m_PreviewPane = NULL;   // just in case, to avoid double-free
+
+    // this is already deleted by the board used on preview pane so
+    // no need to delete here
+    // delete m_currentModuleCopy;
+    // m_currentModuleCopy = NULL;
 }
 
 
@@ -104,40 +133,54 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
 #ifdef __WINDOWS__
     default_path.Replace( wxT( "/" ), wxT( "\\" ) );
 #endif
-    m_textCtrl3DDefaultPath->SetValue( default_path );
 
     m_lastSelected3DShapeIndex = -1;
 
     // Init 3D shape list
-    S3D_MASTER* draw3D = m_currentModule->Models();
+    m_3D_ShapeNameListBox->Clear();
+    std::list<S3D_INFO>::iterator sM = m_currentModule->Models().begin();
+    std::list<S3D_INFO>::iterator eM = m_currentModule->Models().end();
+    m_shapes3D_list.clear();
 
-    while( draw3D )
+
+    wxString origPath;
+    wxString alias;
+    wxString shortPath;
+    S3D_FILENAME_RESOLVER* res = Prj().Get3DCacheManager()->GetResolver();
+
+    while( sM != eM )
     {
-        if( !draw3D->GetShape3DName().IsEmpty() )
+        m_shapes3D_list.push_back( *sM );
+        origPath = sM->m_Filename;
+
+        if( res && res->SplitAlias( origPath, alias, shortPath ) )
         {
-            S3D_MASTER* draw3DCopy = new S3D_MASTER(NULL);
-            draw3DCopy->Copy( draw3D );
-            m_shapes3D_list.push_back( draw3DCopy );
-            m_3D_ShapeNameListBox->Append( draw3DCopy->GetShape3DName() );
+            origPath = alias;
+            origPath.append( wxT( ":" ) );
+            origPath.append( shortPath );
         }
-        draw3D = (S3D_MASTER*) draw3D->Next();
+
+        m_3D_ShapeNameListBox->Append( origPath );
+        ++sM;
     }
 
     m_DocCtrl->SetValue( m_currentModule->GetDescription() );
     m_KeywordCtrl->SetValue( m_currentModule->GetKeywords() );
-    m_referenceCopy = new TEXTE_MODULE( NULL );
-    m_valueCopy = new TEXTE_MODULE( NULL );
-    m_referenceCopy->Copy( &m_currentModule->Reference() );
-    m_valueCopy->Copy( &m_currentModule->Value() );
+    m_referenceCopy = new TEXTE_MODULE( m_currentModule->Reference() );
+    m_referenceCopy->SetParent( m_currentModule );
+    m_valueCopy = new TEXTE_MODULE( m_currentModule->Value() );
+    m_valueCopy->SetParent( m_currentModule );
     m_ReferenceCtrl->SetValue( m_referenceCopy->GetText() );
     m_ValueCtrl->SetValue( m_valueCopy->GetText() );
     m_FootprintNameCtrl->SetValue( m_currentModule->GetFPID().Format() );
 
     m_AttributsCtrl->SetItemToolTip( 0, _( "Use this attribute for most non SMD components" ) );
     m_AttributsCtrl->SetItemToolTip( 1,
-                                    _( "Use this attribute for SMD components.\nOnly components with this option are put in the footprint position list file" ) );
+                                    _( "Use this attribute for SMD components.\n"
+                                       "Only components with this option are put in the footprint position list file" ) );
     m_AttributsCtrl->SetItemToolTip( 2,
-                                    _( "Use this attribute for \"virtual\" components drawn on board (like a old ISA PC bus connector)" ) );
+                                    _( "Use this attribute for \"virtual\" components drawn on board\n"
+                                       "like an edge connector (old ISA PC bus for instance)" ) );
 
     // Controls on right side of the dialog
     switch( m_currentModule->GetAttributes() & 255 )
@@ -165,11 +208,6 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
 
     m_CostRot90Ctrl->SetValue( m_currentModule->GetPlacementCost90() );
     m_CostRot180Ctrl->SetValue( m_currentModule->GetPlacementCost180() );
-
-    // Initialize 3D parameters
-    m_3D_Scale = new S3DPOINT_VALUE_CTRL( m_Panel3D, m_bSizerShapeScale );
-    m_3D_Offset = new S3DPOINT_VALUE_CTRL( m_Panel3D, m_bSizerShapeOffset );
-    m_3D_Rotation = new S3DPOINT_VALUE_CTRL( m_Panel3D, m_bSizerShapeRotation );
 
     // Initialize dialog relative to masks clearances
     m_NetClearanceUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
@@ -208,7 +246,13 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
     {
         m_lastSelected3DShapeIndex = 0;
         m_3D_ShapeNameListBox->SetSelection( m_lastSelected3DShapeIndex );
-        Transfert3DValuesToDisplay( m_shapes3D_list[m_lastSelected3DShapeIndex] );
+        if( m_PreviewPane )
+            m_PreviewPane->SetModelDataIdx( m_lastSelected3DShapeIndex, true );
+    }
+    else
+    {
+        if( m_PreviewPane )
+            m_PreviewPane->ResetModelData( true );
     }
 
     // We have modified the UI, so call Fit() for m_Panel3D
@@ -217,80 +261,66 @@ void DIALOG_MODULE_MODULE_EDITOR::initModeditProperties()
 }
 
 
-// Initialize 3D info displayed in dialog box from values in aStruct3DSource
-void DIALOG_MODULE_MODULE_EDITOR::Transfert3DValuesToDisplay( S3D_MASTER * aStruct3DSource )
-{
-    if( aStruct3DSource )
-    {
-        m_3D_Scale->SetValue( aStruct3DSource->m_MatScale );
-        m_3D_Offset->SetValue( aStruct3DSource->m_MatPosition );
-        m_3D_Rotation->SetValue( aStruct3DSource->m_MatRotation );
-    }
-    else
-    {
-        S3DPOINT dummy_vertex( 1.0, 1.0, 1.0 );
-        m_3D_Scale->SetValue( dummy_vertex );
-    }
-}
-
-
-/** Copy 3D info displayed in dialog box to values in a item in m_shapes3D_list
- * @param aIndexSelection = item index in m_shapes3D_list
- */
-void DIALOG_MODULE_MODULE_EDITOR::TransfertDisplayTo3DValues( int aIndexSelection  )
-{
-    if( aIndexSelection >= (int)m_shapes3D_list.size() )
-        return;
-
-    S3D_MASTER * struct3DDest = m_shapes3D_list[aIndexSelection];
-    struct3DDest->m_MatScale    = m_3D_Scale->GetValue();
-    struct3DDest->m_MatRotation = m_3D_Rotation->GetValue();
-    struct3DDest->m_MatPosition = m_3D_Offset->GetValue();
-}
-
-
 void DIALOG_MODULE_MODULE_EDITOR::On3DShapeNameSelected(wxCommandEvent& event)
 {
-    if( m_lastSelected3DShapeIndex >= 0 )
-        TransfertDisplayTo3DValues( m_lastSelected3DShapeIndex );
-
     m_lastSelected3DShapeIndex = m_3D_ShapeNameListBox->GetSelection();
 
     if( m_lastSelected3DShapeIndex < 0 )    // happens under wxGTK when deleting an item in m_3D_ShapeNameListBox wxListBox
-       return;
+    {
+        if( m_PreviewPane )
+            m_PreviewPane->ResetModelData();
+        return;
+    }
 
     if( m_lastSelected3DShapeIndex >= (int)m_shapes3D_list.size() )
     {
         wxMessageBox( wxT( "On3DShapeNameSelected() error" ) );
         m_lastSelected3DShapeIndex = -1;
+
+        if( m_PreviewPane )
+            m_PreviewPane->ResetModelData();
+
         return;
     }
 
-    Transfert3DValuesToDisplay( m_shapes3D_list[m_lastSelected3DShapeIndex] );
+    m_PreviewPane->SetModelDataIdx( m_lastSelected3DShapeIndex );
 }
 
 
 void DIALOG_MODULE_MODULE_EDITOR::Remove3DShape(wxCommandEvent& event)
 {
-    if( m_lastSelected3DShapeIndex >= 0 )
-        TransfertDisplayTo3DValues( m_lastSelected3DShapeIndex );
-
     int ii = m_3D_ShapeNameListBox->GetSelection();
 
     if( ii < 0 )
+    {
+        if( m_PreviewPane )
+            m_PreviewPane->ResetModelData( true );
+
         return;
+    }
 
     m_shapes3D_list.erase( m_shapes3D_list.begin() + ii );
     m_3D_ShapeNameListBox->Delete( ii );
 
-    if( m_3D_ShapeNameListBox->GetCount() == 0)
-        Transfert3DValuesToDisplay( NULL );
+    if( m_3D_ShapeNameListBox->GetCount() > 0 )
+    {
+        if( ii > 0 )
+            m_lastSelected3DShapeIndex = ii - 1;
+        else
+            m_lastSelected3DShapeIndex = 0;
+
+        m_3D_ShapeNameListBox->SetSelection( m_lastSelected3DShapeIndex );
+
+        if( m_PreviewPane )
+            m_PreviewPane->SetModelDataIdx( m_lastSelected3DShapeIndex, true );
+    }
     else
     {
-        m_lastSelected3DShapeIndex = 0;
-        m_3D_ShapeNameListBox->SetSelection( m_lastSelected3DShapeIndex );
-        Transfert3DValuesToDisplay( m_shapes3D_list[m_lastSelected3DShapeIndex] );
+        if( m_PreviewPane )
+            m_PreviewPane->ResetModelData( true );
     }
+
+    return;
 }
 
 
@@ -303,106 +333,103 @@ void DIALOG_MODULE_MODULE_EDITOR::Edit3DShapeFileName()
 
     // Edit filename
     wxString filename = m_3D_ShapeNameListBox->GetStringSelection();
-
     wxTextEntryDialog dlg( this, wxEmptyString, wxEmptyString, filename );
-    dlg.SetTextValidator( FILE_NAME_WITH_PATH_CHAR_VALIDATOR( &filename ) );
 
-    if( dlg.ShowModal() != wxID_OK || filename.IsEmpty() )
-        return;    //Aborted by user
+    bool hasAlias;
+    S3D_FILENAME_RESOLVER* res = Prj().Get3DCacheManager()->GetResolver();
 
-#ifdef __WINDOWS__
-    // In Kicad files, filenames and paths are stored using Unix notation
-    // So be sure the unix notation is still used
-    filename.Replace( wxT( "\\" ), wxT( "/" ) );
-#endif
+    if( dlg.ShowModal() != wxID_OK )
+        return;
+
+    filename = dlg.GetValue();
+
+    if( filename.empty() )
+        return;
+
+    if( !res->ValidateFileName( filename, hasAlias ) )
+    {
+        wxString msg = _( "Invalid filename: " );
+        msg.append( filename );
+        wxMessageBox( msg, _( "Edit 3D file name" ) );
+
+        return;
+    }
 
     m_3D_ShapeNameListBox->SetString( idx, filename );
 
-    S3D_MASTER* new3DShape = new S3D_MASTER( NULL );
-    new3DShape->SetShape3DName( filename );
-    delete m_shapes3D_list[idx];
-    m_shapes3D_list[idx] = new3DShape;
+    // if the user has specified an alias in the name then prepend ':'
+    if( hasAlias )
+        filename.insert( 0, wxT( ":" ) );
+
+    #ifdef __WINDOWS__
+    // In Kicad files, filenames and paths are stored using Unix notation
+    filename.Replace( wxT( "\\" ), wxT( "/" ) );
+    #endif
+
+    m_shapes3D_list[idx].m_Filename = filename;
+
+    // This assumes that the index didn't change and will just update the filename
+    if( m_PreviewPane )
+        m_PreviewPane->UpdateModelName( filename );
+
+    return;
 }
 
 
 void DIALOG_MODULE_MODULE_EDITOR::BrowseAndAdd3DShapeFile()
 {
     PROJECT&        prj = Prj();
-
-    // here, the KISYS3DMOD default path for 3D shape files is expected
-    // to be already defined (when starting Pcbnew, it is defined
-    // from the user defined env variable, or set to a default value)
-    wxFileName fn( wxGetenv( KISYS3DMOD ), wxEmptyString );
-    wxString default3DPath = fn.GetPathWithSep();
+    S3D_INFO model;
 
     wxString initialpath = prj.GetRString( PROJECT::VIEWER_3D_PATH );
+    wxString sidx = prj.GetRString( PROJECT::VIEWER_3D_FILTER_INDEX );
+    int filter = 0;
 
-    if( !initialpath )
-        initialpath = default3DPath;
-
-#ifdef __WINDOWS__
-    initialpath.Replace( wxT( "/" ), wxT( "\\" ) );
-#endif
-
-    wxString fileFilters = wxGetTranslation( Shapes3DFileWildcard );
-
-    fileFilters += wxChar(  '|' );
-    fileFilters += wxGetTranslation( IDF3DFileWildcard );
-
-    wxString filename = EDA_FILE_SELECTOR( _( "3D Shape:" ), initialpath,
-                                           wxEmptyString, wxEmptyString,
-                                           wxGetTranslation( fileFilters ),
-                                           this, wxFD_OPEN, true );
-
-    if( filename.IsEmpty() )
-        return;
-
-    fn = filename;
-
-    prj.SetRString( PROJECT::VIEWER_3D_PATH, fn.GetPath() );
-
-    /* If the file path is already in the 3D shape file default path
-     * just add the file name relative to this path to the list.
-     * Otherwise, add the file name with a full or relative path.
-     * The relative path, when possible, is preferable
-     * because it preserve use of default path, when the path is a sub path of this path
-     */
-    wxString rootpath = filename.SubString( 0, default3DPath.Length()-1 );
-    bool useRelPath = rootpath.IsSameAs( default3DPath, wxFileName::IsCaseSensitive() );
-
-    if( useRelPath )
-        fn.MakeRelativeTo( default3DPath );
-    else    // Absolute path given, not a subpath of the default path,
-            // therefore ask if the user wants a relative (to the default path) one
+    if( !sidx.empty() )
     {
-        wxString msg;
-        msg.Printf( _( "Use a path relative to '%s'?" ), GetChars( default3DPath ) );
-        int diag = wxMessageBox( msg, _( "Path type" ),
-                                 wxYES_NO | wxICON_QUESTION, this );
+        long tmp;
+        sidx.ToLong( &tmp );
 
-        if( diag == wxYES )     // Make it relative to the default 3D path
-            fn.MakeRelativeTo( default3DPath );
+        if( tmp > 0 && tmp <= 0x7FFFFFFF )
+            filter = (int) tmp;
     }
 
-    filename = fn.GetFullPath();
+    if( !S3D::Select3DModel( m_PreviewPane, Prj().Get3DCacheManager(),
+        initialpath, filter, &model ) || model.m_Filename.empty() )
+    {
+        return;
+    }
 
-    S3D_MASTER* new3DShape = new S3D_MASTER(NULL);
+    prj.SetRString( PROJECT::VIEWER_3D_PATH, initialpath );
+    sidx = wxString::Format( wxT( "%i" ), filter );
+    prj.SetRString( PROJECT::VIEWER_3D_FILTER_INDEX, sidx );
+    wxString origPath = model.m_Filename;
+    wxString alias;
+    wxString shortPath;
+    S3D_FILENAME_RESOLVER* res = Prj().Get3DCacheManager()->GetResolver();
 
-#ifdef __WINDOWS__
-    // Store filename in Unix notation
-    filename.Replace( wxT( "\\" ), wxT( "/" ) );
-#endif
+    if( res && res->SplitAlias( origPath, alias, shortPath ) )
+    {
+        origPath = alias;
+        origPath.append( wxT( ":" ) );
+        origPath.append( shortPath );
+    }
 
-    new3DShape->SetShape3DName( filename );
-    m_shapes3D_list.push_back( new3DShape );
-    m_3D_ShapeNameListBox->Append( filename );
+    m_3D_ShapeNameListBox->Append( origPath );
 
-    if( m_lastSelected3DShapeIndex >= 0 )
-        TransfertDisplayTo3DValues( m_lastSelected3DShapeIndex );
+    #ifdef __WINDOWS__
+    // In Kicad files, filenames and paths are stored using Unix notation
+    model.m_Filename.Replace( wxT( "\\" ), wxT( "/" ) );
+    #endif
 
+    m_shapes3D_list.push_back( model );
     m_lastSelected3DShapeIndex = m_3D_ShapeNameListBox->GetCount() - 1;
     m_3D_ShapeNameListBox->SetSelection( m_lastSelected3DShapeIndex );
-    Transfert3DValuesToDisplay( m_shapes3D_list[m_lastSelected3DShapeIndex] );
+
+    if( m_PreviewPane )
+        m_PreviewPane->SetModelDataIdx( m_lastSelected3DShapeIndex, true );
+
+    return;
 }
 
 
@@ -414,6 +441,9 @@ void DIALOG_MODULE_MODULE_EDITOR::OnCancelClick( wxCommandEvent& event )
 
 void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
 {
+    BOARD_COMMIT commit( m_parent );
+    wxString msg;
+
     // First, test for invalid chars in module name
     wxString footprintName = m_FootprintNameCtrl->GetValue();
 
@@ -421,17 +451,24 @@ void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
     {
         if( ! MODULE::IsLibNameValid( footprintName ) )
         {
-            wxString msg;
             msg.Printf( _( "Error:\none of invalid chars <%s> found\nin <%s>" ),
                         MODULE::StringLibNameInvalidChars( true ),
                         GetChars( footprintName ) );
 
             DisplayError( NULL, msg );
-                return;
+
+            return;
         }
     }
 
-    m_parent->SaveCopyInUndoList( m_currentModule, UR_MODEDIT );
+    if( !m_PreviewPane->ValidateWithMessage( msg ) )
+    {
+        DisplayError( NULL, msg );
+        return;
+    }
+
+    commit.Modify( m_currentModule );
+
     m_currentModule->SetLocked( m_AutoPlaceCtrl->GetSelection() == 1 );
 
     switch( m_AttributsCtrl->GetSelection() )
@@ -459,15 +496,17 @@ void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
         m_currentModule->SetFPID( FPID( footprintName ) );
 
     // Init Fields:
-    m_currentModule->Reference().Copy( m_referenceCopy );
-    m_currentModule->Value().Copy( m_valueCopy );
+    TEXTE_MODULE& reference = m_currentModule->Reference();
+    reference = *m_referenceCopy;
+    TEXTE_MODULE& value = m_currentModule->Value();
+    value = *m_valueCopy;
 
     // Initialize masks clearances
     m_currentModule->SetLocalClearance( ValueFromTextCtrl( *m_NetClearanceValueCtrl ) );
     m_currentModule->SetLocalSolderMaskMargin( ValueFromTextCtrl( *m_SolderMaskMarginCtrl ) );
     m_currentModule->SetLocalSolderPasteMargin( ValueFromTextCtrl( *m_SolderPasteMarginCtrl ) );
     double   dtmp;
-    wxString msg = m_SolderPasteMarginRatioCtrl->GetValue();
+    msg = m_SolderPasteMarginRatioCtrl->GetValue();
     msg.ToDouble( &dtmp );
 
     // A  -50% margin ratio means no paste on a pad, the ratio must be >= -50 %
@@ -480,52 +519,13 @@ void DIALOG_MODULE_MODULE_EDITOR::OnOkClick( wxCommandEvent& event )
 
     m_currentModule->SetLocalSolderPasteMarginRatio( dtmp / 100 );
 
-    // Update 3D shape list
-    int ii = m_3D_ShapeNameListBox->GetSelection();
-
-    if ( ii >= 0 )
-        TransfertDisplayTo3DValues( ii );
-
-    S3D_MASTER*   draw3D  = m_currentModule->Models();
-
-    for( unsigned ii = 0; ii < m_shapes3D_list.size(); ii++ )
-    {
-        S3D_MASTER*   draw3DCopy = m_shapes3D_list[ii];
-
-        if( draw3DCopy->GetShape3DName().IsEmpty() )
-            continue;
-
-        if( draw3D == NULL )
-        {
-            draw3D = new S3D_MASTER( draw3D );
-            m_currentModule->Models().Append( draw3D );
-        }
-
-        draw3D->SetShape3DName( draw3DCopy->GetShape3DName() );
-        draw3D->m_MatScale    = draw3DCopy->m_MatScale;
-        draw3D->m_MatRotation = draw3DCopy->m_MatRotation;
-        draw3D->m_MatPosition = draw3DCopy->m_MatPosition;
-
-        draw3D = draw3D->Next();
-    }
-
-    // Remove old extra 3D shapes
-    S3D_MASTER* nextdraw3D;
-
-    for( ; draw3D != NULL; draw3D = nextdraw3D )
-    {
-        nextdraw3D = (S3D_MASTER*) draw3D->Next();
-        delete m_currentModule->Models().Remove( draw3D );
-    }
-
-    // Fill shape list with one void entry, if no entry
-    if( m_currentModule->Models() == NULL )
-        m_currentModule->Models().PushBack( new S3D_MASTER( m_currentModule ) );
-
+    std::list<S3D_INFO>* draw3D  = &m_currentModule->Models();
+    draw3D->clear();
+    draw3D->insert( draw3D->end(), m_shapes3D_list.begin(), m_shapes3D_list.end() );
 
     m_currentModule->CalculateBoundingBox();
 
-    m_parent->OnModify();
+    commit.Push( _( "Modify module properties" ) );
 
     EndModal( 1 );
 }
@@ -548,4 +548,13 @@ void DIALOG_MODULE_MODULE_EDITOR::OnEditValue(wxCommandEvent& event)
     m_parent->InstallTextModOptionsFrame( m_valueCopy, NULL );
     m_parent->SetCrossHairPosition( tmp );
     m_ValueCtrl->SetValue( m_valueCopy->GetText() );
+}
+
+
+void DIALOG_MODULE_MODULE_EDITOR::Cfg3DPath( wxCommandEvent& event )
+{
+    if( S3D::Configure3DPaths( this, Prj().Get3DCacheManager()->GetResolver() ) )
+        if( m_lastSelected3DShapeIndex >= 0 )
+            if( m_PreviewPane )
+                m_PreviewPane->SetModelDataIdx( m_lastSelected3DShapeIndex, true );
 }

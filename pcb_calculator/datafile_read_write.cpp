@@ -5,8 +5,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras
- * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras
+ * Copyright (C) 1992-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,7 +53,7 @@ bool PCB_CALCULATOR_FRAME::ReadDataFile()
     if( file == NULL )
         return false;
 
-    // Switch the locale to standard C (needed to read/write floating point numbers
+    // Switch the locale to standard C (needed to read/write floating point numbers)
     LOCALE_IO   toggle;
 
     PCB_CALCULATOR_DATAFILE * datafile = new PCB_CALCULATOR_DATAFILE( &m_RegulatorList );
@@ -70,7 +70,7 @@ bool PCB_CALCULATOR_FRAME::ReadDataFile()
     {
         delete datafile;
 
-        wxString msg = ioe.errorText;
+        wxString msg = ioe.What();
 
         msg += wxChar('\n');
         msg += _("Data file error.");
@@ -86,10 +86,11 @@ bool PCB_CALCULATOR_FRAME::ReadDataFile()
 
 bool PCB_CALCULATOR_FRAME::WriteDataFile()
 {
-    // Switch the locale to standard C (needed to read/write floating point numbers
+    // Switch the locale to standard C (needed to read/write floating point numbers)
     LOCALE_IO   toggle;
 
-    std::auto_ptr<PCB_CALCULATOR_DATAFILE> datafile( new PCB_CALCULATOR_DATAFILE( &m_RegulatorList ) );
+    std::unique_ptr<PCB_CALCULATOR_DATAFILE>
+                datafile( new PCB_CALCULATOR_DATAFILE( &m_RegulatorList ) );
 
     try
     {
@@ -102,7 +103,7 @@ bool PCB_CALCULATOR_FRAME::WriteDataFile()
         while( nestlevel-- )
             formatter.Print( nestlevel, ")\n" );
     }
-    catch( const IO_ERROR& ioe )
+    catch( const IO_ERROR& )
     {
         return false;
     }
@@ -188,7 +189,6 @@ void PCB_CALCULATOR_DATAFILE_PARSER::Parse( PCB_CALCULATOR_DATAFILE* aDataList )
     T token;
     while( ( token = NextTok() ) != T_EOF)
     {
-
         if( token == T_LEFT )
         {
             token = NextTok();
@@ -255,9 +255,9 @@ void PCB_CALCULATOR_DATAFILE_PARSER::ParseRegulatorDescr( PCB_CALCULATOR_DATAFIL
 
                 case T_reg_type:   // type: normal or 3 terminal reg
                     token = NextTok();
-                   if( stricmp( CurText(), regtype_str[0] ) == 0 )
+                   if( strcasecmp( CurText(), regtype_str[0] ) == 0 )
                         type = 0;
-                    else if( stricmp( CurText(), regtype_str[1] ) == 0 )
+                    else if( strcasecmp( CurText(), regtype_str[1] ) == 0 )
                         type = 1;
                     else
                         Unexpected( CurText() );

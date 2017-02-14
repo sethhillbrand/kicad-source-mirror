@@ -1,11 +1,8 @@
-/**
- * @file pl_editor_frame.h
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * @author Jean-Pierre Charras, jp.charras at wanadoo.fr
  *
  * This program is free software; you can redistribute it and/or
@@ -24,6 +21,10 @@
  * or you may search the http://www.gnu.org website for the version 2 license,
  * or you may write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
+/**
+ * @file pl_editor_frame.h
  */
 
 #ifndef  _PL_EDITOR_FRAME_H
@@ -76,7 +77,7 @@ public:
     PL_EDITOR_FRAME( KIWAY* aKiway, wxWindow* aParent );
     ~PL_EDITOR_FRAME();
 
-    bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl );   // overload KIWAY_PLAYER
+    bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl ) override;
 
     /**
      * Function LoadPageLayoutDescrFile
@@ -103,12 +104,12 @@ public:
     void    OnCloseWindow( wxCloseEvent& Event );
 
     // Virtual basic functions:
-    void    RedrawActiveWindow( wxDC* DC, bool EraseBg );
-    void    ReCreateHToolbar();
+    void    RedrawActiveWindow( wxDC* DC, bool EraseBg ) override;
+    void    ReCreateHToolbar() override;
 
-    void SetPageSettings(const PAGE_INFO&);
-    const PAGE_INFO& GetPageSettings () const;                  // overload EDA_DRAW_FRAME
-    const wxSize GetPageSizeIU() const;                         // overload EDA_DRAW_FRAME
+    void SetPageSettings(const PAGE_INFO&) override;
+    const PAGE_INFO& GetPageSettings () const override;
+    const wxSize GetPageSizeIU() const override;
 
     /**
      * Function GetZoomLevelIndicator
@@ -116,33 +117,33 @@ public:
      * level indicator in dialogs.
      * Virtual from the base class
      */
-    const wxString GetZoomLevelIndicator() const;
+    const wxString GetZoomLevelIndicator() const override;
 
-    PL_EDITOR_SCREEN* GetScreen() const                         // overload EDA_DRAW_FRAME
+    PL_EDITOR_SCREEN* GetScreen() const override
     {
         return (PL_EDITOR_SCREEN*) EDA_DRAW_FRAME::GetScreen();
     }
 
-    const wxPoint& GetAuxOrigin() const                         // overload EDA_DRAW_FRAME
+    const wxPoint& GetAuxOrigin() const override
     {
         static wxPoint dummy;   // ( 0,0 );
         return dummy;
     }
-    void SetAuxOrigin( const wxPoint& aPosition ) {}            // overload EDA_DRAW_FRAME
+    void SetAuxOrigin( const wxPoint& aPosition ) override {}
 
-    const wxPoint& GetGridOrigin() const                        // overload EDA_DRAW_FRAME
+    const wxPoint& GetGridOrigin() const override
     {
         return m_grid_origin;
     }
-    void SetGridOrigin( const wxPoint& aPoint )                 // overload EDA_DRAW_FRAME
+    void SetGridOrigin( const wxPoint& aPoint ) override
     {
         m_grid_origin = aPoint;
     }
 
-    const TITLE_BLOCK& GetTitleBlock() const;                   // overload EDA_DRAW_FRAME
-    void SetTitleBlock( const TITLE_BLOCK& aTitleBlock );       // overload EDA_DRAW_FRAME
+    const TITLE_BLOCK& GetTitleBlock() const override;
+    void SetTitleBlock( const TITLE_BLOCK& aTitleBlock ) override;
 
-    void UpdateStatusBar();                                     // overload EDA_DRAW_FRAME
+    void UpdateStatusBar() override;
 
     /**
      * Must be called to initialize parameters when a new page layout
@@ -154,7 +155,7 @@ public:
      * creates or updates the right vertical toolbar.
      * @note This is currently not used.
      */
-    void    ReCreateVToolbar();
+    void    ReCreateVToolbar() override;
 
     /**
      * Create or update the left vertical toolbar (option toolbar
@@ -162,11 +163,11 @@ public:
      */
     void    ReCreateOptToolbar();
 
-    void    ReCreateMenuBar();
-    void    OnLeftClick( wxDC* aDC, const wxPoint& aMousePos );
-    void    OnLeftDClick( wxDC* aDC, const wxPoint& aMousePos );
-    bool    OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu );
-    double  BestZoom();
+    void    ReCreateMenuBar() override;
+    void    OnLeftClick( wxDC* aDC, const wxPoint& aMousePos ) override;
+    void    OnLeftDClick( wxDC* aDC, const wxPoint& aMousePos ) override;
+    bool    OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu ) override;
+    double  BestZoom() override;
 
     // Events created by clicking on the design tree list:
     void OnTreeSelection( wxTreeEvent& event );
@@ -204,9 +205,9 @@ public:
      */
     PARAM_CFG_ARRAY&    GetConfigurationSettings( void );
 
-    void LoadSettings( wxConfigBase* aCfg );    // override virtual
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );    // override virtual
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
     void                Process_Special_Functions( wxCommandEvent& event );
     void                OnSelectOptionToolbar( wxCommandEvent& event );
@@ -229,6 +230,43 @@ public:
 
     void OnUpdateTitleBlockDisplayNormalMode( wxUpdateUIEvent& event );
     void OnUpdateTitleBlockDisplaySpecialMode( wxUpdateUIEvent& event );
+    void OnUpdateSelectTool( wxUpdateUIEvent& aEvent );
+
+    /**
+     * Function BlockCommand
+     * returns the block command (BLOCK_MOVE, BLOCK_COPY...) corresponding to
+     * the \a aKey (ALT, SHIFT ALT ..)
+     */
+    virtual int         BlockCommand( EDA_KEY key ) override;
+
+    /**
+     * Function HandleBlockPlace
+     * handles the block place command.
+     */
+    virtual void        HandleBlockPlace( wxDC* DC ) override;
+
+    /**
+     * Function HandleBlockEnd( )
+     * handles the end of a block command,
+     * It is called at the end of the definition of the area of a block.
+     * Depending on the current block command, this command is executed
+     * or parameters are initialized to prepare a call to HandleBlockPlace
+     * in GetScreen()->m_BlockLocate
+     *
+     * @return false if no item selected, or command finished,
+     *         true if some items found and HandleBlockPlace must be called later.
+     */
+    virtual bool        HandleBlockEnd( wxDC* DC ) override;
+
+    /**
+     * Function Block_Move
+     * moves all items within the selected block.
+     * New location is determined by the current offset from the selected
+     * block's original location.
+     *
+     * @param DC A device context to draw on.
+     */
+    void                Block_Move( wxDC* DC );
 
     /**
      * Function OnQuit
@@ -237,7 +275,7 @@ public:
     void                OnQuit( wxCommandEvent& event );
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
-    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;
+    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const override;
 
     /**
      * Function OnHotKey.
@@ -248,7 +286,7 @@ public:
      * @param aPosition The cursor position in logical (drawing) units.
      * @param aItem = NULL or pointer on a EDA_ITEM under the mouse cursor
      */
-    bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
+    bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL ) override;
 
     void                Process_Settings( wxCommandEvent& event );
     void                Process_Config( wxCommandEvent& event );
@@ -267,7 +305,7 @@ public:
     void                ToPrinter( wxCommandEvent& event );
 
     void                Files_io( wxCommandEvent& event );
-    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
+    bool                GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 ) override;
 
     /** Virtual function PrintPage
      * used to print a page
@@ -277,7 +315,7 @@ public:
      * @param aData = a pointer on an auxiliary data (not always used, NULL if not used)
      */
     virtual void    PrintPage( wxDC* aDC, LSET aPrintMasklayer,
-                               bool aPrintMirrorMode, void * aData );
+                               bool aPrintMirrorMode, void * aData ) override;
 
     void OnFileHistory( wxCommandEvent& event );
 

@@ -29,6 +29,8 @@
 #ifndef CLASS_EDA_RECT_H
 #define CLASS_EDA_RECT_H
 
+#include <wx/gdicmn.h>
+
 /**
  * Class EDA_RECT
  * handles the component boundary box.
@@ -92,6 +94,13 @@ public:
     bool Contains( const EDA_RECT& aRect ) const;
 
     const wxSize& GetSize() const { return m_Size; }
+
+    /**
+     * @brief GetSizeMax
+     * @return the max size dimension
+     */
+    int GetSizeMax() const { return ( m_Size.x > m_Size.y )?m_Size.x:m_Size.y; }
+
     int GetX() const { return m_Pos.x; }
     int GetY() const { return m_Pos.y; }
 

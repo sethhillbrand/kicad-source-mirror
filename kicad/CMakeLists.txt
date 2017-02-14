@@ -94,7 +94,9 @@ if( APPLE )
     # make main bundle relocatable
     install( CODE "
         # find all libs and modules
-        file( GLOB BUNDLE_FIX_LIBS ${OSX_BUNDLE_INSTALL_KIFACE_DIR}/*.kiface )
+        file( GLOB PLUGINS_KIFACE ${OSX_BUNDLE_INSTALL_KIFACE_DIR}/*.kiface )
+        file( GLOB_RECURSE PLUGINS_SO ${OSX_BUNDLE_INSTALL_PLUGIN_DIR}/*.so )
+        set( BUNDLE_FIX_LIBS \${PLUGINS_KIFACE} \${PLUGINS_SO} )
         if( ${SCRIPTING_HELPER} )
             file( GLOB WXPYTHON_DIR RELATIVE ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR} ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR}/wx-?.?-osx_cocoa )
             file( GLOB PYTHON_SCRIPTING_SO ${OSX_BUNDLE_INSTALL_LIB_DIR}/${PYTHON_LIB_DIR}/*.so )
@@ -108,9 +110,6 @@ if( APPLE )
 
         # do all the work
         include( BundleUtilities )
-
-        # If `BU_CHMOD_BUNDLE_ITEMS` is not set, `install_name_tool` will fail to re-write some loader paths due to lack of writable permissions if the build dependencies were installed by brew (or didn't have writable permissions)
-        set(BU_CHMOD_BUNDLE_ITEMS ON)
 
         fixup_bundle( ${OSX_BUNDLE_INSTALL_BIN_DIR}/kicad
             \"\${BUNDLE_FIX_LIBS}\"

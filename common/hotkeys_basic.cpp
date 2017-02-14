@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, j-p.charras at wanadoo.fr
  * Copyright (C) 2010-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -55,22 +55,16 @@ wxString g_CommonSectionTag( wxT( "[common]" ) );
  * file.
  */
 
-EDA_HOTKEY::EDA_HOTKEY( const wxChar* infomsg, int idcommand, int keycode, int idmenuevent )
+EDA_HOTKEY::EDA_HOTKEY( const wxChar* infomsg, int idcommand, int keycode, int idmenuevent ) :
+            m_defaultKeyCode( keycode ), m_KeyCode( keycode ), m_InfoMsg( infomsg ),
+            m_Idcommand( idcommand ), m_IdMenuEvent( idmenuevent )
 {
-    m_KeyCode = keycode;            // Key code (ascii value for ascii keys
-
-    // or wxWidgets code for function key
-    m_InfoMsg   = infomsg;          // info message.
-    m_Idcommand = idcommand;        // internal id for the corresponding
-
-    // command (see hotkey_id_commnand list)
-    m_IdMenuEvent = idmenuevent;    // id to call the corresponding event
-    // (if any) (see id.h)
 }
 
 
 EDA_HOTKEY::EDA_HOTKEY( const EDA_HOTKEY* base )
 {
+    m_defaultKeyCode = base->m_defaultKeyCode;  // initialize default key code
     m_KeyCode     = base->m_KeyCode;
     m_InfoMsg     = base->m_InfoMsg;
     m_Idcommand   = base->m_Idcommand;
@@ -810,13 +804,6 @@ void AddHotkeyConfigMenu( wxMenu* aMenu )
         return;
 
     wxMenu*     HotkeySubmenu = new wxMenu();
-
-    // List existing hotkey menu
-    AddMenuItem( HotkeySubmenu,
-                 ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
-                 _( "&List Current Keys" ),
-                 _( "Displays the current hotkeys list and corresponding commands" ),
-                 KiBitmap( info_xpm ) );
 
     // Call hotkeys editor
     AddMenuItem( HotkeySubmenu, ID_PREFERENCES_HOTKEY_SHOW_EDITOR,

@@ -32,7 +32,6 @@
 #include <gal/graphics_abstraction_layer.h>
 #include <painter.h>
 #include <layers_id_colors_and_visibility.h>
-#include <boost/foreach.hpp>
 #include <class_page_info.h>
 
 using namespace KIGFX;
@@ -160,7 +159,7 @@ void WORKSHEET_VIEWITEM::draw( const WS_DRAW_ITEM_RECT* aItem, GAL* aGal ) const
 void WORKSHEET_VIEWITEM::draw( const WS_DRAW_ITEM_POLYGON* aItem, GAL* aGal ) const
 {
     std::deque<VECTOR2D> corners;
-    BOOST_FOREACH( wxPoint point, aItem->m_Corners )
+    for( wxPoint point : aItem->m_Corners )
     {
         corners.push_back( VECTOR2D( point ) );
     }
@@ -205,6 +204,8 @@ void WORKSHEET_VIEWITEM::drawBorder( GAL* aGal ) const
                              m_pageInfo->GetHeightMils() * 25400 );
 
     aGal->SetIsStroke( true );
+    // Use a gray color for the border color
+    aGal->SetStrokeColor( COLOR4D( 0.4, 0.4, 0.4, 1.0 ) );
     aGal->SetIsFill( false );
     aGal->DrawRectangle( origin, end );
 }

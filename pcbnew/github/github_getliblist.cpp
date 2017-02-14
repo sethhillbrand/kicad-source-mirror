@@ -191,8 +191,11 @@ bool GITHUB_GETLIBLIST::repoURL2listURL( const wxString& aRepoURL,
 
     if( repo.HasServer() && repo.HasPath() )
     {
-        // goal: "https://api.github.com/orgs/KiCad"
-        wxString target_url( wxT( "https://api.github.com/orgs" ) );
+        // goal: "https://api.github.com/users/KiCad"
+        //    or "https://api.github.com/orgs/KiCad"
+        // "https://api.github.com/users/..." works both for orgs and users
+        // if we just retrieve the .pretty list
+        wxString target_url( wxT( "https://api.github.com/users" ) );
         target_url  += repo.GetPath();
         target_url  += wxT( "/repos" );
 
@@ -233,7 +236,7 @@ bool GITHUB_GETLIBLIST::remoteGetJSON( const std::string& aFullURLCommand, wxStr
 
             std::string msg = StrPrintf( fmt.c_str(),
                                          aFullURLCommand.c_str(),
-                                         TO_UTF8( ioe.errorText ) );
+                                         TO_UTF8( ioe.What() ) );
 
             *aMsgError = FROM_UTF8( msg.c_str() );
         }

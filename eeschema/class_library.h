@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2008-2016 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,8 +37,11 @@
 
 #include <project.h>
 
+#include <map>
+
 class LINE_READER;
 class OUTPUTFORMATTER;
+class SCH_LEGACY_PLUGIN;
 
 
 /*
@@ -70,7 +73,7 @@ class OUTPUTFORMATTER;
 /* Must be the first line of part library document (.dcm) files. */
 #define DOCFILE_IDENT     "EESchema-DOCLIB  Version 2.0"
 
-#define DOC_EXT           wxT( "dcm" )
+#define DOC_EXT           "dcm"
 
 // Helper class to filter a list of libraries, and/or a list of PART_LIB
 // in dialogs
@@ -169,7 +172,7 @@ struct AliasMapSort
 {
     bool operator() ( const wxString& aItem1, const wxString& aItem2 ) const
     {
-        return Cmp_KEEPCASE( aItem1, aItem2 ) < 0;
+        return aItem1 < aItem2;
     }
 };
 
@@ -221,16 +224,6 @@ public:
      */
     PART_LIB* AddLibrary( const wxString& aFileName, PART_LIBS::iterator& aIterator )
         throw( IO_ERROR, boost::bad_pointer );
-
-    /**
-     * Function RemoveLibrary
-     * removes a part library from the library list.
-     *
-     * @param aName - Name of part library to remove.
-     */
-    void RemoveLibrary( const wxString& aName );
-
-    void RemoveAllLibraries()       { clear(); }
 
     /**
      * Function LoadAllLibraries
@@ -286,7 +279,8 @@ public:
      * @param aLibraryName - Name of the library to search for part.
      * @return LIB_PART* - The part object if found, otherwise NULL.
      */
-    LIB_PART* FindLibPart( const wxString& aPartName, const wxString& aLibraryName = wxEmptyString );
+    LIB_PART* FindLibPart( const wxString& aPartName,
+                           const wxString& aLibraryName = wxEmptyString );
 
     /**
      * Function FindLibraryEntry
@@ -298,17 +292,8 @@ public:
      * @param aLibraryName - Name of the library to search.
      * @return The entry object if found, otherwise NULL.
      */
-    LIB_ALIAS* FindLibraryEntry( const wxString& aEntryName,
-            const wxString& aLibraryName = wxEmptyString );
-
-    /**
-     * Function FindLibraryEntries
-     * searches all libraries in the list for an entry, returns all matches.
-     *
-     * @param aEntryName - Name of entry to search for (case sensitive).
-     * @param aEntries - a std::vector to store entries
-     */
-    void FindLibraryEntries( const wxString& aEntryName, std::vector<LIB_ALIAS*>& aEntries );
+    LIB_ALIAS* FindLibraryAlias( const wxString& aEntryName,
+                                 const wxString& aLibraryName = wxEmptyString );
 
     /**
      * Function FindLibraryNearEntries
@@ -324,16 +309,9 @@ public:
      * @param aCandidates - a std::vector to store candidates
      */
     void FindLibraryNearEntries( std::vector<LIB_ALIAS*>& aCandidates, const wxString& aEntryName,
-            const wxString& aLibraryName = wxEmptyString );
-
-    /**
-     * Function RemoveCacheLibrary
-     * removes all cache libraries from library list.
-     */
-    //void RemoveCacheLibrary();
+                                 const wxString& aLibraryName = wxEmptyString );
 
     int GetLibraryCount() { return size(); }
-
 };
 
 
@@ -358,6 +336,7 @@ class PART_LIB
 
     friend class LIB_PART;
     friend class PART_LIBS;
+    friend class SCH_LEGACY_PLUGIN;
 
 public:
     PART_LIB( int aType, const wxString& aFileName );
@@ -438,63 +417,23 @@ public:
      * Load a string array with the names of all the entries in this library.
      *
      * @param aNames - String array to place entry names into.
-     * @param aSort - Sort names if true.
-     * @param aMakeUpperCase - Force entry names to upper case.
      */
-    void GetEntryNames( wxArrayString& aNames, bool aSort = true,
-                        bool aMakeUpperCase = false );
+    void GetAliasNames( wxArrayString& aNames );
 
     /**
      * Load a string array with the names of  entries of type POWER in this library.
      *
      * @param aNames - String array to place entry names into.
-     * @param aSort - Sort names if true.
-     * @param aMakeUpperCase - Force entry names to upper case.
      */
-    void GetEntryTypePowerNames( wxArrayString& aNames, bool aSort = true,
-                        bool aMakeUpperCase = false );
+    void GetEntryTypePowerNames( wxArrayString& aNames );
 
     /**
-     * Load string array with entry names matching name and/or key word.
-     *
-     * This currently mimics the old behavior of calling KeyWordOk() and
-     * WildCompareString().  The names array will be populated with the
-     * library entry names that meat the search criteria on exit.
-     *
-     * @param aNames - String array to place entry names into.
-     * @param aNameSearch - Name wild card search criteria.
-     * @param aKeySearch - Key word search criteria.
-     * @param aSort - Sort names if true.
-     */
-    void SearchEntryNames( std::vector<wxArrayString>& aNames,
-                           const wxString& aNameSearch = wxEmptyString,
-                           const wxString& aKeySearch = wxEmptyString,
-                           bool aSort = true );
-
-    /**
-     * Find parts in library by key word regular expression search.
-     *
-     * @param aNames - String array to place found part names into.
-     * @param aRe - Regular expression used to search part key words.
-     * @param aSort - Sort part name list.
-     */
-    void SearchEntryNames( wxArrayString& aNames, const wxRegEx& aRe, bool aSort = true );
-
-    /**
-     * Checks \a aPart for name conflict in the library.
-     *
-     * @param aPart - The part to check.
-     * @return True if a conflict exists.  Otherwise false.
-     */
-    bool Conflicts( LIB_PART* aPart );
-
-    /**
-     * Find entry by name.
+     * Find #LIB_ALIAS by \a aName.
      *
      * @param aName - Name of entry, case sensitive.
-     * @return Entry if found.  NULL if not found.
+     * @return #LIB_ALIAS* if found.  NULL if not found.
      */
-    LIB_ALIAS* FindEntry( const wxString& aName );
+    LIB_ALIAS* FindAlias( const wxString& aName );
 
     /**
      * Find part by \a aName.
@@ -506,17 +445,6 @@ public:
      * @return LIB_PART* - part if found, else NULL.
      */
     LIB_PART* FindPart( const wxString& aName );
-
-    /**
-     * Find alias by \a nName.
-     *
-     * @param aName - Name of alias, case sensitive.
-     * @return Alias if found.  NULL if not found.
-     */
-    LIB_ALIAS* FindAlias( const wxString& aName )
-    {
-        return (LIB_ALIAS*) FindEntry( aName );
-    }
 
     /**
      * Add a new \a aAlias entry to the library.
@@ -534,15 +462,13 @@ public:
 
     /**
      * Add \a aPart entry to library.
-     * Note a part can have an alias list,
-     * so these alias will be added in library.
-     * Conflicts can happen if aliases are already existing.
-     * User is asked to choose what alias is removed (existing, or new)
+     *
+     * @note A #LIB_PART can have an alias list so these alias will be added in library.
+     *       and the any existing duplicate aliases will be removed from the library.
      *
      * @param aPart - Part to add, caller retains ownership, a clone is added.
-     * @return bool - true iff successful.
      */
-    bool AddPart( LIB_PART* aPart );
+    void AddPart( LIB_PART* aPart );
 
     /**
      * Safely remove \a aEntry from the library and return the next entry.
@@ -555,7 +481,7 @@ public:
      * @param aEntry - Entry to remove from library.
      * @return The next entry in the library or NULL if the library is empty.
      */
-    LIB_ALIAS* RemoveEntry( LIB_ALIAS* aEntry );
+    LIB_ALIAS* RemoveAlias( LIB_ALIAS* aEntry );
 
     /**
      * Replace an existing part entry in the library.
@@ -565,35 +491,6 @@ public:
      * @param aNewPart - The new part.
      */
     LIB_PART* ReplacePart( LIB_PART* aOldPart, LIB_PART* aNewPart );
-
-    /**
-     * Return the first entry in the library.
-     *
-     * @return The first entry or NULL if the library has no entries.
-     */
-    LIB_ALIAS* GetFirstEntry();
-
-    /**
-     * Find next library entry by \a aName.
-     *
-     * If the name of the entry is the last entry in the library, the first
-     * entry in the list is returned.
-     *
-     * @param aName - Name of current entry.
-     * @return Next entry if entry name is found. Otherwise NULL.
-     */
-    LIB_ALIAS* GetNextEntry( const wxString& aName );
-
-    /**
-     * Find previous library entry by \a aName.
-     *
-     * If the name of the entry is the first entry in the library, the last
-     * entry in the list is returned.
-     *
-     * @param aName - Name of current entry.
-     * @return Previous entry if entry name is found, otherwise NULL.
-     */
-    LIB_ALIAS* GetPreviousEntry( const wxString& aName );
 
     /**
      * Return the file name without path or extension.
@@ -628,18 +525,6 @@ public:
         return fileName.GetName();
     }
 
-
-    /**
-     * Function SetFileName
-     * sets the part library file name.
-     *
-     * @param aFileName - New library file name.
-     */
-    void SetFileName( const wxString& aFileName )
-    {
-        if( aFileName != fileName.GetFullName() )
-            fileName = aFileName;
-    }
 
     /**
      * Function LoadLibrary

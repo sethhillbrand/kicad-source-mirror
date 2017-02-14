@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2009 Jean-Pierre Charras, jp.charras@wanadoo.fr
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -49,65 +49,6 @@
  */
 
 
-void PCB_EDIT_FRAME::RecordMacros(wxDC* aDC, int aNumber)
-{
-    wxASSERT( aNumber >= 0 && aNumber < 10 );
-    wxString msg;
-
-    if( m_RecordingMacros < 0 )
-    {
-        m_RecordingMacros = aNumber;
-        m_Macros[aNumber].m_StartPosition = GetCrossHairPosition( false );
-        m_Macros[aNumber].m_Record.clear();
-
-        msg.Printf( _( "Recording macro %d" ), aNumber );
-        SetStatusText( msg );
-    }
-    else
-    {
-        m_RecordingMacros = -1;
-
-        msg.Printf( _( "Macro %d recorded" ), aNumber );
-        SetStatusText( msg );
-    }
-}
-
-
-void PCB_EDIT_FRAME::CallMacros( wxDC* aDC, const wxPoint& aPosition, int aNumber )
-{
-    wxPoint tPosition;
-
-    wxString msg;
-
-    msg.Printf( _( "Call macro %d" ), aNumber );
-    SetStatusText( msg );
-
-    wxCommandEvent cmd( wxEVT_COMMAND_MENU_SELECTED );
-    cmd.SetEventObject( this );
-
-    tPosition = GetNearestGridPosition( aPosition );
-
-    m_canvas->CrossHairOff( aDC );
-    SetMousePosition( tPosition );
-    GeneralControl( aDC, tPosition );
-
-    for( std::list<MACROS_RECORD>::iterator i = m_Macros[aNumber].m_Record.begin();
-         i != m_Macros[aNumber].m_Record.end(); ++i )
-    {
-        wxPoint tmpPos = GetNearestGridPosition( tPosition + i->m_Position );
-
-        SetMousePosition( tmpPos );
-
-        GeneralControl( aDC, tmpPos, i->m_HotkeyCode );
-    }
-
-    cmd.SetId( ID_ZOOM_REDRAW );
-    GetEventHandler()->ProcessEvent( cmd );
-
-    m_canvas->CrossHairOn( aDC );
-}
-
-
 EDA_HOTKEY* PCB_EDIT_FRAME::GetHotKeyDescription( int aCommand ) const
 {
     EDA_HOTKEY* HK_Descr = GetDescriptorFromCommand( aCommand, common_Hotkey_List );
@@ -147,20 +88,6 @@ bool PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
 
     int hk_id = HK_Descr->m_Idcommand;
 
-    if( (m_RecordingMacros != -1) &&
-        !( hk_id > HK_MACRO_ID_BEGIN && hk_id < HK_MACRO_ID_END) )
-    {
-        MACROS_RECORD macros_record;
-        macros_record.m_HotkeyCode = aHotkeyCode;
-        macros_record.m_Idcommand = HK_Descr->m_Idcommand;
-        macros_record.m_Position  = GetNearestGridPosition( aPosition ) -
-                                    m_Macros[m_RecordingMacros].m_StartPosition;
-        m_Macros[m_RecordingMacros].m_Record.push_back( macros_record );
-        wxString msg;
-        msg.Printf( _( "Add key [%c] in macro %d" ), aHotkeyCode, m_RecordingMacros );
-        SetStatusText( msg );
-    }
-
     // Create a wxCommandEvent that will be posted in some hot keys functions
     wxCommandEvent cmd( wxEVT_COMMAND_MENU_SELECTED );
     cmd.SetEventObject( this );
@@ -180,32 +107,6 @@ bool PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
     case HK_LEFT_DCLICK:    // Simulate a double left click: generate 2 events
         OnLeftClick( aDC, aPosition );
         OnLeftDClick( aDC, aPosition );
-        break;
-
-    case HK_RECORD_MACROS_0:
-    case HK_RECORD_MACROS_1:
-    case HK_RECORD_MACROS_2:
-    case HK_RECORD_MACROS_3:
-    case HK_RECORD_MACROS_4:
-    case HK_RECORD_MACROS_5:
-    case HK_RECORD_MACROS_6:
-    case HK_RECORD_MACROS_7:
-    case HK_RECORD_MACROS_8:
-    case HK_RECORD_MACROS_9:
-        RecordMacros( aDC, hk_id - HK_RECORD_MACROS_0 );
-        break;
-
-    case HK_CALL_MACROS_0:
-    case HK_CALL_MACROS_1:
-    case HK_CALL_MACROS_2:
-    case HK_CALL_MACROS_3:
-    case HK_CALL_MACROS_4:
-    case HK_CALL_MACROS_5:
-    case HK_CALL_MACROS_6:
-    case HK_CALL_MACROS_7:
-    case HK_CALL_MACROS_8:
-    case HK_CALL_MACROS_9:
-        CallMacros( aDC, GetCrossHairPosition( false ), hk_id - HK_CALL_MACROS_0 );
         break;
 
     case HK_SWITCH_TRACK_WIDTH_TO_NEXT:
@@ -336,6 +237,10 @@ bool PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
 
     case HK_ZOOM_CENTER:
         evt_type = ID_POPUP_ZOOM_CENTER;
+        break;
+
+    case HK_ZOOM_SELECTION:
+        evt_type = ID_ZOOM_SELECTION;
         break;
 
     case HK_ADD_MODULE:
@@ -589,13 +494,14 @@ bool PCB_EDIT_FRAME::OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosit
     case HK_CANVAS_LEGACY:
         evt_type = ID_MENU_CANVAS_LEGACY;
         break;
+
     case HK_ZONE_FILL_OR_REFILL:
         evt_type = ID_POPUP_PCB_FILL_ALL_ZONES;
         break;
+
     case HK_ZONE_REMOVE_FILLED:
         evt_type = ID_POPUP_PCB_REMOVE_FILLED_AREAS_IN_ALL_ZONES;
         break;
-
     }
 
     if( evt_type != 0 )
@@ -647,7 +553,7 @@ bool PCB_EDIT_FRAME::OnHotkeyDeleteItem( wxDC* aDC )
             wxPoint pos    = RefPos( false );
             MODULE* module = GetBoard()->GetFootprint( pos, UNDEFINED_LAYER, false );
 
-            if( module == NULL )
+            if( module == NULL || module->IsLocked() )
                 return false;
 
             RemoveStruct( module, aDC );
@@ -661,13 +567,14 @@ bool PCB_EDIT_FRAME::OnHotkeyDeleteItem( wxDC* aDC )
         {
             item = PcbGeneralLocateAndDisplay();
 
-            if( item == NULL )
+            // Shouldn't there be a check for locked tracks and vias here?
+            if( item == NULL || (item->Type() == PCB_MODULE_T && (MODULE*)item->IsLocked()) )
                 return false;
 
             RemoveStruct( item, aDC );
         }
         else
-        return false;
+            return false;
     }
 
     OnModify();
@@ -920,6 +827,7 @@ bool PCB_EDIT_FRAME::OnHotkeyMoveItem( int aIdCommand )
     return false;
 }
 
+
 bool PCB_EDIT_FRAME::OnHotkeyPlaceItem( wxDC* aDC )
 {
     BOARD_ITEM* item = GetCurItem();
@@ -1133,6 +1041,7 @@ bool PCB_EDIT_FRAME::OnHotkeyRotateItem( int aIdCommand )
     return false;
 }
 
+
 bool PCB_EDIT_FRAME::OnHotkeyDuplicateOrArrayItem( int aIdCommand )
 {
     BOARD_ITEM* item = GetCurItem();
@@ -1193,8 +1102,7 @@ bool PCB_EDIT_FRAME::OnHotkeyDuplicateOrArrayItem( int aIdCommand )
         break;
 
     default:
-        wxASSERT_MSG( false, wxString::Format( "Unhandled move, duplicate or array for "
-                      "object type %d", item->Type() ) );
+        evt_type = 0;
         break;
     }
 

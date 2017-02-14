@@ -29,20 +29,22 @@
 #include <vector>
 #include <dialog_edit_module_for_Modedit_base.h>
 
+class PANEL_PREV_3D;
+class MODULE;
+
 class DIALOG_MODULE_MODULE_EDITOR : public DIALOG_MODULE_MODULE_EDITOR_BASE
 {
 private:
 
-    FOOTPRINT_EDIT_FRAME*   m_parent;
-    MODULE* m_currentModule;
-    TEXTE_MODULE* m_referenceCopy;
-    TEXTE_MODULE* m_valueCopy;
-    std::vector <S3D_MASTER*> m_shapes3D_list;
-    int m_lastSelected3DShapeIndex;
-    S3DPOINT_VALUE_CTRL * m_3D_Scale;
-    S3DPOINT_VALUE_CTRL * m_3D_Offset;
-    S3DPOINT_VALUE_CTRL * m_3D_Rotation;
-    static size_t m_page;     // remember the last open page during session
+    FOOTPRINT_EDIT_FRAME*       m_parent;
+    MODULE*                     m_currentModule;
+    TEXTE_MODULE*               m_referenceCopy;
+    TEXTE_MODULE*               m_valueCopy;
+    std::vector<S3D_INFO>       m_shapes3D_list;
+    int                         m_lastSelected3DShapeIndex;
+    static size_t               m_page; // remember the last open page during session
+    PANEL_PREV_3D*              m_PreviewPane;
+    MODULE*                     m_currentModuleCopy;
 
 public:
 
@@ -53,26 +55,34 @@ public:
 private:
     void BrowseAndAdd3DShapeFile();
     void initModeditProperties();
-    void Transfert3DValuesToDisplay( S3D_MASTER * aStruct3DSource );
-    void TransfertDisplayTo3DValues( int aIndexSelection );
     void Edit3DShapeFileName();
 
     // virtual event functions
-    void OnEditValue( wxCommandEvent& event );
-    void OnEditReference( wxCommandEvent& event );
+    void OnEditValue( wxCommandEvent& event ) override;
+    void OnEditReference( wxCommandEvent& event ) override;
     void On3DShapeSelection( wxCommandEvent& event );
-    void On3DShapeNameSelected( wxCommandEvent& event );
-    void Add3DShape( wxCommandEvent& event )
+    void On3DShapeNameSelected( wxCommandEvent& event ) override;
+    void Add3DShape( wxCommandEvent& event ) override
     {
         BrowseAndAdd3DShapeFile();
     }
-    void Remove3DShape( wxCommandEvent& event );
-    void Edit3DShapeFilename( wxCommandEvent& event )
+    void Remove3DShape( wxCommandEvent& event ) override;
+    void Edit3DShapeFilename( wxCommandEvent& event ) override
     {
         Edit3DShapeFileName();
     }
-    void OnCancelClick( wxCommandEvent& event );
-    void OnOkClick( wxCommandEvent& event );
+    void OnCancelClick( wxCommandEvent& event ) override;
+    void OnOkClick( wxCommandEvent& event ) override;
+    void Cfg3DPath( wxCommandEvent& event ) override;
+
+    void OnInitDlg( wxInitDialogEvent& event ) override
+    {
+        // Call the default wxDialog handler of a wxInitDialogEvent
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
 };
 
 

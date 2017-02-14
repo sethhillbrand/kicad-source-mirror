@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2013 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,8 +53,6 @@
 #include <dialogs/dialog_lib_edit_pin_table.h>
 
 #include <menus_helpers.h>
-
-#include <boost/foreach.hpp>
 
 
 /* This method guarantees unique IDs for the library this run of Eeschema
@@ -118,8 +116,12 @@ BEGIN_EVENT_TABLE( LIB_EDIT_FRAME, EDA_DRAW_FRAME )
 
     // Right vertical toolbar.
     EVT_TOOL( ID_NO_TOOL_SELECTED, LIB_EDIT_FRAME::OnSelectTool )
+    EVT_TOOL( ID_ZOOM_SELECTION, LIB_EDIT_FRAME::OnSelectTool )
     EVT_TOOL_RANGE( ID_LIBEDIT_PIN_BUTT, ID_LIBEDIT_DELETE_ITEM_BUTT,
                     LIB_EDIT_FRAME::OnSelectTool )
+
+    // Left vertical toolbar (option toolbar).
+    EVT_TOOL( ID_LIBEDIT_SHOW_ELECTRICAL_TYPE, LIB_EDIT_FRAME::OnShowElectricalType )
 
     // menubar commands
     EVT_MENU( wxID_EXIT, LIB_EDIT_FRAME::CloseWindow )
@@ -128,6 +130,7 @@ BEGIN_EVENT_TABLE( LIB_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_MENU( ID_LIBEDIT_GEN_SVG_FILE, LIB_EDIT_FRAME::OnPlotCurrentComponent )
     EVT_MENU( wxID_HELP, EDA_DRAW_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, EDA_DRAW_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, EDA_DRAW_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, EDA_BASE_FRAME::GetKicadAbout )
 
     EVT_MENU( wxID_PREFERENCES, LIB_EDIT_FRAME::OnPreferencesOptions )
@@ -150,6 +153,8 @@ BEGIN_EVENT_TABLE( LIB_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_MENU_RANGE( ID_POPUP_GENERAL_START_RANGE, ID_POPUP_GENERAL_END_RANGE,
                     LIB_EDIT_FRAME::Process_Special_Functions )
 
+    EVT_MENU_RANGE( ID_LIBEDIT_MIRROR_X, ID_LIBEDIT_ORIENT_NORMAL,
+                    LIB_EDIT_FRAME::OnOrient )
     // Update user interface elements.
     EVT_UPDATE_UI( ExportPartId, LIB_EDIT_FRAME::OnUpdateEditingPart )
     EVT_UPDATE_UI( CreateNewLibAndSavePartId, LIB_EDIT_FRAME::OnUpdateEditingPart )
@@ -169,8 +174,11 @@ BEGIN_EVENT_TABLE( LIB_EDIT_FRAME, EDA_DRAW_FRAME )
     EVT_UPDATE_UI( ID_DE_MORGAN_NORMAL_BUTT, LIB_EDIT_FRAME::OnUpdateDeMorganNormal )
     EVT_UPDATE_UI( ID_DE_MORGAN_CONVERT_BUTT, LIB_EDIT_FRAME::OnUpdateDeMorganConvert )
     EVT_UPDATE_UI( ID_NO_TOOL_SELECTED, LIB_EDIT_FRAME::OnUpdateEditingPart )
+    EVT_UPDATE_UI( ID_ZOOM_SELECTION, LIB_EDIT_FRAME::OnUpdateEditingPart )
     EVT_UPDATE_UI_RANGE( ID_LIBEDIT_PIN_BUTT, ID_LIBEDIT_DELETE_ITEM_BUTT,
                          LIB_EDIT_FRAME::OnUpdateEditingPart )
+    EVT_UPDATE_UI( ID_LIBEDIT_SHOW_ELECTRICAL_TYPE, LIB_EDIT_FRAME::OnUpdateElectricalType )
+
 END_EVENT_TABLE()
 
 #define LIB_EDIT_FRAME_NAME wxT( "LibeditFrame" )
@@ -179,8 +187,6 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     SCH_BASE_FRAME( aKiway, aParent, FRAME_SCH_LIB_EDITOR, _( "Library Editor" ),
         wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, LIB_EDIT_FRAME_NAME )
 {
-    wxASSERT( aParent );
-
     m_showAxis   = true;            // true to draw axis
     SetShowDeMorgan( false );
     m_drawSpecificConvert = true;
@@ -188,6 +194,7 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_hotkeysDescrList    = g_Libedit_Hokeys_Descr;
     m_editPinsPerPartOrConvert = false;
     m_repeatPinStep = DEFAULT_REPEAT_OFFSET_PIN;
+    SetShowElectricalType( true );
 
     m_my_part = NULL;
     m_tempCopyComponent = NULL;
@@ -200,7 +207,7 @@ LIB_EDIT_FRAME::LIB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_LastGridSizeId = ID_POPUP_GRID_LEVEL_50 - ID_POPUP_GRID_LEVEL_1000;
 
     wxIcon icon;
-    icon.CopyFromBitmap( KiBitmap( libedit_icon_xpm ) );
+    icon.CopyFromBitmap( KiBitmap( icon_libedit_xpm ) );
     SetIcon( icon );
 
     LoadSettings( config() );
@@ -334,7 +341,7 @@ void LIB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
 
     PART_LIBS* libs = Prj().SchLibs();
 
-    BOOST_FOREACH( const PART_LIB& lib, *libs )
+    for( const PART_LIB& lib : *libs )
     {
         if( lib.IsModified() )
         {
@@ -369,7 +376,7 @@ double LIB_EDIT_FRAME::BestZoom()
 
     if( part )
     {
-        EDA_RECT boundingBox = part->GetBoundingBox( m_unit, m_convert );
+        EDA_RECT boundingBox = part->GetUnitBoundingBox( m_unit, m_convert );
 
         dx = boundingBox.GetWidth();
         dy = boundingBox.GetHeight();
@@ -456,6 +463,19 @@ void LIB_EDIT_FRAME::UpdatePartSelectList()
         m_unit = 1;
 
     m_partSelectBox->SetSelection( ( m_unit > 0 ) ? m_unit - 1 : 0 );
+}
+
+
+void LIB_EDIT_FRAME::OnShowElectricalType( wxCommandEvent& event )
+{
+    SetShowElectricalType( not GetShowElectricalType() );
+    GetCanvas()->Refresh();
+}
+
+
+void LIB_EDIT_FRAME::OnUpdateElectricalType( wxUpdateUIEvent& aEvent )
+{
+    aEvent.Check( GetShowElectricalType() );
 }
 
 
@@ -873,7 +893,7 @@ void LIB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         m_canvas->SetAutoPanRequest( false );
         GetScreen()->m_BlockLocate.SetCommand( BLOCK_COPY );
         m_canvas->MoveCursorToCrossHair();
-        HandleBlockPlace( &dc );
+        HandleBlockEnd( &dc );
         break;
 
     case ID_POPUP_SELECT_ITEMS_BLOCK:
@@ -1102,6 +1122,10 @@ void LIB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         SetToolID( id, m_canvas->GetDefaultCursor(), wxEmptyString );
         break;
 
+    case ID_ZOOM_SELECTION:
+        SetToolID( id, wxCURSOR_MAGNIFIER, _( "Zoom to selection" ) );
+        break;
+
     case ID_LIBEDIT_PIN_BUTT:
         if( part )
         {
@@ -1199,6 +1223,31 @@ void LIB_EDIT_FRAME::OnRotateItem( wxCommandEvent& aEvent )
 }
 
 
+void LIB_EDIT_FRAME::OnOrient( wxCommandEvent& aEvent )
+{
+    INSTALL_UNBUFFERED_DC( dc, m_canvas );
+    SCH_SCREEN* screen = GetScreen();
+    // Allows block rotate operation on hot key.
+    if( screen->m_BlockLocate.GetState() != STATE_NO_BLOCK )
+    {
+        if( aEvent.GetId() == ID_LIBEDIT_MIRROR_X )
+        {
+            m_canvas->MoveCursorToCrossHair();
+            screen->m_BlockLocate.SetMessageBlock( this );
+            screen->m_BlockLocate.SetCommand( BLOCK_MIRROR_X );
+            HandleBlockEnd( &dc );
+        }
+        else if( aEvent.GetId() == ID_LIBEDIT_MIRROR_Y )
+        {
+            m_canvas->MoveCursorToCrossHair();
+            screen->m_BlockLocate.SetMessageBlock( this );
+            screen->m_BlockLocate.SetCommand( BLOCK_MIRROR_Y );
+            HandleBlockEnd( &dc );
+        }
+    }
+}
+
+
 LIB_ITEM* LIB_EDIT_FRAME::LocateItemUsingCursor( const wxPoint& aPosition,
                                                  const KICAD_T aFilterList[] )
 {
@@ -1246,9 +1295,9 @@ LIB_ITEM* LIB_EDIT_FRAME::locateItem( const wxPoint& aPosition, const KICAD_T aF
                           wxT( "Select item clarification context menu size limit exceeded." ) );
 
             wxMenu selectMenu;
-            wxMenuItem* title = new wxMenuItem( &selectMenu, wxID_NONE, _( "Clarify Selection" ) );
+            AddMenuItem( &selectMenu, wxID_NONE, _( "Clarify Selection" ),
+                         KiBitmap( dismiss_xpm ) );
 
-            selectMenu.Append( title );
             selectMenu.AppendSeparator();
 
             for( int i = 0;  i < m_collectedItems.GetCount() && i < MAX_SELECT_ITEM_IDS;  i++ )

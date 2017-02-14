@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * Author: Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -24,14 +25,14 @@
 
 #include "pns_tool_base.h"
 
-class APIEXPORT ROUTER_TOOL : public PNS_TOOL_BASE
+class APIEXPORT ROUTER_TOOL : public PNS::TOOL_BASE
 {
 public:
     ROUTER_TOOL();
     ~ROUTER_TOOL();
 
-    bool Init();
-    void Reset( RESET_REASON aReason );
+    bool Init() override;
+    void Reset( RESET_REASON aReason ) override;
 
     int RouteSingleTrace ( const TOOL_EVENT& aEvent );
     int RouteDiffPair ( const TOOL_EVENT& aEvent );
@@ -42,7 +43,7 @@ public:
 
 private:
 
-    int mainLoop( PNS_ROUTER_MODE aMode );
+    int mainLoop( PNS::ROUTER_MODE aMode );
 
     int getDefaultWidth( int aNetCode );
 
@@ -52,7 +53,7 @@ private:
     void getNetclassDimensions( int aNetCode, int& aWidth, int& aViaDiameter, int& aViaDrill );
     void handleCommonEvents( const TOOL_EVENT& evt );
 
-    int getStartLayer( const PNS_ITEM* aItem );
+    int getStartLayer( const PNS::ITEM* aItem );
     void switchLayerOnViaPlacement();
     bool onViaCommand( TOOL_EVENT& aEvent, VIATYPE_T aType );
 

@@ -121,14 +121,26 @@ static inline bool Collide( const SHAPE_RECT& aA, const SHAPE_CIRCLE& aB, int aC
 
 static VECTOR2I pushoutForce( const SHAPE_CIRCLE& aA, const SEG& aB, int aClearance )
 {
-    VECTOR2I nearest = aB.NearestPoint( aA.GetCenter() );
-    VECTOR2I f (0, 0);
+    VECTOR2I f( 0, 0 );
 
-    int dist = ( nearest - aA.GetCenter() ).EuclideanNorm();
-    int min_dist = aClearance + aA.GetRadius();
+    const VECTOR2I c = aA.GetCenter();
+    const VECTOR2I nearest = aB.NearestPoint( c );
+
+    const int r = aA.GetRadius();
+
+    int dist = ( nearest - c ).EuclideanNorm();
+    int min_dist = aClearance + r;
 
     if( dist < min_dist )
-        f = ( aA.GetCenter() - nearest ).Resize ( min_dist - dist + 10 );
+    {
+        for( int corr = 0; corr < 5; corr++ )
+        {
+            f = ( aA.GetCenter() - nearest ).Resize( min_dist - dist + corr );
+
+            if( aB.Distance( c + f ) >= min_dist )
+                break;
+        }
+    }
 
     return f;
 }
@@ -454,31 +466,32 @@ bool SHAPE::Collide( const SHAPE* aShape, int aClerance ) const
     return CollideShapes( this, aShape, aClerance, false, dummy );
 }
 
+
 bool SHAPE_RECT::Collide( const SEG& aSeg, int aClearance ) const
+{
+    //VECTOR2I pmin = VECTOR2I( std::min( aSeg.a.x, aSeg.b.x ), std::min( aSeg.a.y, aSeg.b.y ) );
+    //VECTOR2I pmax = VECTOR2I( std::max( aSeg.a.x, aSeg.b.x ), std::max( aSeg.a.y, aSeg.b.y ));
+    //BOX2I r( pmin, VECTOR2I( pmax.x - pmin.x, pmax.y - pmin.y ) );
+
+    //if( BBox( 0 ).SquaredDistance( r ) > aClearance * aClearance )
+    //    return false;
+
+    if( BBox( 0 ).Contains( aSeg.A ) || BBox( 0 ).Contains( aSeg.B ) )
+        return true;
+
+    VECTOR2I vts[] = { VECTOR2I( m_p0.x, m_p0.y ),
+                        VECTOR2I( m_p0.x, m_p0.y + m_h ),
+                        VECTOR2I( m_p0.x + m_w, m_p0.y + m_h ),
+                        VECTOR2I( m_p0.x + m_w, m_p0.y ),
+                        VECTOR2I( m_p0.x, m_p0.y ) };
+
+    for( int i = 0; i < 4; i++ )
     {
-        //VECTOR2I pmin = VECTOR2I( std::min( aSeg.a.x, aSeg.b.x ), std::min( aSeg.a.y, aSeg.b.y ) );
-        //VECTOR2I pmax = VECTOR2I( std::max( aSeg.a.x, aSeg.b.x ), std::max( aSeg.a.y, aSeg.b.y ));
-        //BOX2I r( pmin, VECTOR2I( pmax.x - pmin.x, pmax.y - pmin.y ) );
+        SEG s( vts[i], vts[i + 1], i );
 
-        //if( BBox( 0 ).SquaredDistance( r ) > aClearance * aClearance )
-        //    return false;
-
-        if( BBox( 0 ).Contains( aSeg.A ) || BBox( 0 ).Contains( aSeg.B ) )
+        if( s.Distance( aSeg ) < aClearance )
             return true;
-
-        VECTOR2I vts[] = { VECTOR2I( m_p0.x, m_p0.y ),
-                           VECTOR2I( m_p0.x, m_p0.y + m_h ),
-                           VECTOR2I( m_p0.x + m_w, m_p0.y + m_h ),
-                           VECTOR2I( m_p0.x + m_w, m_p0.y ),
-                           VECTOR2I( m_p0.x, m_p0.y ) };
-
-        for( int i = 0; i < 4; i++ )
-        {
-            SEG s( vts[i], vts[i + 1], i );
-
-            if( s.Distance( aSeg ) < aClearance )
-                return true;
-        }
-
-        return false;
     }
+
+    return false;
+}

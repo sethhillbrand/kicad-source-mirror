@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2007-2010 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2007 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,6 +37,8 @@
 #include <wx/wx.h>
 #include <stdio.h>
 
+#include <ki_exception.h>
+
 
 /**
  * Function StrPrintf
@@ -66,141 +68,6 @@ std::string
     __attribute__ ((format (printf, 1, 2)))
 #endif
     StrPrintf( const char* format, ... );
-
-
-/**
- * @ingroup exception_types
- * @{
- */
-
-
-#define IO_FORMAT       _( "IO_ERROR: %s\nfrom %s : %s" )
-#define PARSE_FORMAT    _( "PARSE_ERROR: %s in input/source\n'%s'\nline %d  offset %d\nfrom %s : %s" )
-
-// references:
-// http://stackoverflow.com/questions/2670816/how-can-i-use-the-compile-time-constant-line-in-a-string
-#define STRINGIFY(x)    #x
-#define TOSTRING(x)     STRINGIFY(x)
-
-// use one of the following __LOC__ defs, depending on whether your
-// compiler supports __func__ or not, and how it handles __LINE__
-#define __LOC__         ((std::string(__FUNCTION__) + "() : line ") + TOSTRING(__LINE__)).c_str()
-//#define __LOC__         TOSTRING(__LINE__)
-
-/// macro which captures the "call site" values of __FILE_ & __LOC__
-#define THROW_IO_ERROR( msg )   throw IO_ERROR( __FILE__, __LOC__, msg )
-
-/**
- * Struct IO_ERROR
- * is a class used to hold an error message and may be used when throwing exceptions
- * containing meaningful error messages.
- * @author Dick Hollenbeck
- */
-struct IO_ERROR // : std::exception
-{
-    wxString    errorText;
-
-    /**
-     * Constructor
-     *
-     * @param aThrowersFile is the __FILE__ preprocessor macro but generated
-     *  at the source file of thrower.
-     *
-     * @param aThrowersLoc can be either a function name, such as __func__
-     *   or a stringified __LINE__ preprocessor macro but generated
-     *   at the source function of the thrower, or concatonation.  Use macro
-     *   THROW_IO_ERROR() to wrap a call to this constructor at the call site.
-     *
-     * @param aMsg is error text that will be streamed through wxString.Printf()
-     *  using the format string IO_FORMAT above.
-     */
-    explicit IO_ERROR( const char* aThrowersFile,
-              const char* aThrowersLoc,
-              const wxString& aMsg )
-    {
-        init( aThrowersFile, aThrowersLoc, aMsg );
-    }
-
-    explicit IO_ERROR( const char* aThrowersFile,
-              const char* aThrowersLoc,
-              const std::string& aMsg )
-    {
-        init( aThrowersFile, aThrowersLoc, wxString::FromUTF8( aMsg.c_str() ) );
-    }
-
-    explicit IO_ERROR( const char* aThrowersFile,
-              const char* aThrowersLoc,
-              const char* aMsg )
-    {
-        init( aThrowersFile, aThrowersLoc, wxString::FromUTF8( aMsg ) );
-    }
-
-    /// handle the case where _() is passed as aMsg.
-    explicit IO_ERROR( const char* aThrowersFile,
-              const char* aThrowersLoc,
-              const wxChar* aMsg )
-    {
-        init( aThrowersFile, aThrowersLoc, wxString( aMsg ) );
-    }
-
-    void init( const char* aThrowersFile, const char* aThrowersLoc, const wxString& aMsg );
-
-    IO_ERROR() {}
-
-    // Destructor is virtual because PARSE_ERROR is derived from it and
-    // boost::ptr_vector lists consisting of both will need a virtual destructor.
-    virtual ~IO_ERROR() throw ( /*none*/ ){}
-};
-
-
-/**
- * Struct PARSE_ERROR
- * contains a filename or source description, a problem input line, a line number,
- * a byte offset, and an error message which contains the the caller's report and his
- * call site information: CPP source file, function, and line number.
- * @author Dick Hollenbeck
- */
-struct PARSE_ERROR : public IO_ERROR
-{
-    // wxString errorText is still public from IO_ERROR
-
-    int         lineNumber;     ///< at which line number, 1 based index.
-    int         byteIndex;      ///< at which byte offset within the line, 1 based index
-
-    /// problem line of input [say, from a LINE_READER].
-    /// this is brought up in original byte format rather than wxString form, incase
-    /// there was a problem with the encoding, in which case converting to wxString is
-    /// not reliable in this context.
-    std::string inputLine;
-
-    /**
-     * Constructor
-     * which is normally called via the macro THROW_PARSE_ERROR so that
-     * __FILE__ and __LOC__ can be captured from the call site.
-     */
-    PARSE_ERROR( const char* aThrowersFile, const char* aThrowersLoc,
-                 const wxString& aMsg, const wxString& aSource,
-                 const char* aInputLine,
-                 int aLineNumber, int aByteIndex ) :
-        IO_ERROR()
-    {
-        init( aThrowersFile, aThrowersLoc, aMsg, aSource, aInputLine, aLineNumber, aByteIndex );
-    }
-
-    void init( const char* aThrowersFile, const char* aThrowersLoc,
-               const wxString& aMsg, const wxString& aSource,
-               const char* aInputLine,
-               int aLineNumber, int aByteIndex );
-
-    ~PARSE_ERROR() throw ( /*none*/ ){}
-};
-
-
-#define THROW_PARSE_ERROR( aMsg, aSource, aInputLine, aLineNumber, aByteIndex )  \
-        throw PARSE_ERROR( __FILE__, __LOC__, aMsg, aSource, aInputLine, aLineNumber, aByteIndex )
-
-
-/** @} exception_types */
 
 
 #define LINE_READER_LINE_DEFAULT_MAX        100000
@@ -365,7 +232,7 @@ public:
      */
     ~FILE_LINE_READER();
 
-    char* ReadLine() throw( IO_ERROR );   // see LINE_READER::ReadLine() description
+    char* ReadLine() throw( IO_ERROR ) override;
 
     /**
      * Function Rewind
@@ -412,7 +279,7 @@ public:
      */
     STRING_LINE_READER( const STRING_LINE_READER& aStartingPoint );
 
-    char* ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+    char* ReadLine() throw( IO_ERROR ) override;
 };
 
 
@@ -435,7 +302,7 @@ public:
      */
     INPUTSTREAM_LINE_READER( wxInputStream* aStream, const wxString& aSource );
 
-    char* ReadLine() throw( IO_ERROR );    // see LINE_READER::ReadLine() description
+    char* ReadLine() throw( IO_ERROR ) override;
 };
 
 
@@ -612,7 +479,7 @@ public:
 
 protected:
     //-----<OUTPUTFORMATTER>------------------------------------------------
-    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR );
+    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR ) override;
     //-----</OUTPUTFORMATTER>-----------------------------------------------
 };
 
@@ -644,7 +511,7 @@ public:
 
 protected:
     //-----<OUTPUTFORMATTER>------------------------------------------------
-    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR );
+    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR ) override;
     //-----</OUTPUTFORMATTER>-----------------------------------------------
 
     FILE*       m_fp;               ///< takes ownership
@@ -675,7 +542,7 @@ public:
 
 protected:
     //-----<OUTPUTFORMATTER>------------------------------------------------
-    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR );
+    void write( const char* aOutBuf, int aCount ) throw( IO_ERROR ) override;
     //-----</OUTPUTFORMATTER>-----------------------------------------------
 };
 

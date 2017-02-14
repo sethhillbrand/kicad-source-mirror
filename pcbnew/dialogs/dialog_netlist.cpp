@@ -84,7 +84,7 @@ void PCB_EDIT_FRAME::InstallNetlistFrame( wxDC* DC )
     if( configChanged && !GetBoard()->GetFileName().IsEmpty()
       && IsOK( NULL, _( "The project configuration has changed.  Do you want to save it?" ) ) )
     {
-        wxFileName fn = Prj().AbsolutePath( GetBoard()->GetFileName() );
+        fn = Prj().AbsolutePath( GetBoard()->GetFileName() );
         fn.SetExt( ProjectFileExtension );
 
         wxString pro_name = fn.GetFullPath();
@@ -424,12 +424,12 @@ bool DIALOG_NETLIST::verifyFootprints( const wxString&         aNetlistFilename,
             return false;
         }
 
-        std::auto_ptr< NETLIST_READER > nlr( netlistReader );
+        std::unique_ptr< NETLIST_READER > nlr( netlistReader );
         netlistReader->LoadNetlist();
     }
     catch( const IO_ERROR& ioe )
     {
-        msg.Printf( _( "Error loading netlist file:\n%s" ), ioe.errorText.GetData() );
+        msg.Printf( _( "Error loading netlist file:\n%s" ), ioe.What().GetData() );
         wxMessageBox( msg, _( "Netlist Load Error" ), wxOK | wxICON_ERROR );
         return false;
     }

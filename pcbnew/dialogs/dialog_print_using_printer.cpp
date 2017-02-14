@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2010-2014 Jean-Pierre Charras, jean-pierre.charras at wanadoo.fr
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2010-2016 Jean-Pierre Charras, jean-pierre.charras at wanadoo.fr
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -48,7 +48,6 @@
 extern int g_DrawDefaultLineThickness;
 
 // Local variables
-static LSET s_SelectedLayers;
 static double s_ScaleList[] =
 { 0, 0.5, 0.7, 0.999, 1.0, 1.4, 2.0, 3.0, 4.0 };
 
@@ -64,10 +63,10 @@ static PRINT_PARAMETERS  s_Parameters;
 
 
 /**
- * Dialog to print schematic. Class derived from DIALOG_PRINT_USING_PRINTER_base
+ * Dialog to print schematic. Class derived from DIALOG_PRINT_USING_PRINTER_BASE
  *  created by wxFormBuilder
  */
-class DIALOG_PRINT_USING_PRINTER : public DIALOG_PRINT_USING_PRINTER_base
+class DIALOG_PRINT_USING_PRINTER : public DIALOG_PRINT_USING_PRINTER_BASE
 {
 public:
     DIALOG_PRINT_USING_PRINTER( PCB_EDIT_FRAME* parent );
@@ -82,16 +81,28 @@ private:
 
     PCB_EDIT_FRAME* m_parent;
     wxConfigBase*   m_config;
-    wxCheckBox*     m_BoxSelectLayer[LAYER_ID_COUNT];
+    // the list of existing board layers in wxCheckListBox, with the
+    // board layers id:
+    std::pair<wxCheckListBox*, int> m_boxSelectLayer[LAYER_ID_COUNT];
     static bool     m_ExcludeEdgeLayer;
 
-    void OnCloseWindow( wxCloseEvent& event );
-    void OnPageSetup( wxCommandEvent& event );
-    void OnPrintPreview( wxCommandEvent& event );
-    void OnPrintButtonClick( wxCommandEvent& event );
-    void OnScaleSelectionClick( wxCommandEvent& event );
+    void OnCloseWindow( wxCloseEvent& event ) override;
+    void OnPageSetup( wxCommandEvent& event ) override;
+    void OnPrintPreview( wxCommandEvent& event ) override;
+    void OnPrintButtonClick( wxCommandEvent& event ) override;
+    void OnScaleSelectionClick( wxCommandEvent& event ) override;
 
-    void OnButtonCancelClick( wxCommandEvent& event ) { Close(); }
+    void OnButtonCancelClick( wxCommandEvent& event ) override { Close(); }
+
+    void OnInitDlg( wxInitDialogEvent& event ) override
+    {
+        // Call the default wxDialog handler of a wxInitDialogEvent
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
+
     void SetPrintParameters( );
     void SetPenWidth();
     void initValues( );
@@ -141,22 +152,17 @@ void PCB_EDIT_FRAME::ToPrinter( wxCommandEvent& event )
 
 
 DIALOG_PRINT_USING_PRINTER::DIALOG_PRINT_USING_PRINTER( PCB_EDIT_FRAME* parent ) :
-    DIALOG_PRINT_USING_PRINTER_base( parent )
+    DIALOG_PRINT_USING_PRINTER_BASE( parent )
 {
     m_parent = parent;
     m_config = Kiface().KifaceSettings();
-    memset( m_BoxSelectLayer, 0, sizeof( m_BoxSelectLayer ) );
+    memset( m_boxSelectLayer, 0, sizeof( m_boxSelectLayer ) );
 
     initValues( );
-
-    GetSizer()->SetSizeHints( this );
-    Center();
 #ifdef __WXMAC__
     /* Problems with modal on wx-2.9 - Anyway preview is standard for OSX */
    m_buttonPreview->Hide();
 #endif
-
-    GetSizer()->Fit( this );
 }
 
 
@@ -168,31 +174,32 @@ void DIALOG_PRINT_USING_PRINTER::initValues( )
     s_Parameters.m_PageSetupData = s_pageSetupData;
 
     // Create layer list.
-    wxString layerKey;
-
     LSEQ seq = board->GetEnabledLayers().UIOrder();
 
     for( ;  seq;  ++seq )
     {
         LAYER_ID layer = *seq;
-
-        m_BoxSelectLayer[layer] = new wxCheckBox( this, -1, board->GetLayerName( layer ) );
+        int checkIndex;
 
         if( IsCopperLayer( layer ) )
-            m_CopperLayersBoxSizer->Add( m_BoxSelectLayer[layer], 0, wxGROW | wxALL, 1 );
-        else
-            m_TechnicalLayersBoxSizer->Add( m_BoxSelectLayer[layer], 0, wxGROW | wxALL, 1 );
-
-        layerKey.Printf( OPTKEY_LAYERBASE, layer );
-
-        bool option;
-
-        if( m_config->Read( layerKey, &option ) )
-            m_BoxSelectLayer[layer]->SetValue( option );
+        {
+            checkIndex = m_CopperLayersList->Append( board->GetLayerName( layer ) );
+            m_boxSelectLayer[layer] = std::make_pair( m_CopperLayersList, checkIndex );
+        }
         else
         {
-            if( s_SelectedLayers[layer] )
-                m_BoxSelectLayer[layer]->SetValue( true );
+            checkIndex = m_TechnicalLayersList->Append( board->GetLayerName( layer ) );
+            m_boxSelectLayer[layer] = std::make_pair( m_TechnicalLayersList, checkIndex );
+        }
+
+        if( m_config )
+        {
+            wxString layerKey;
+            layerKey.Printf( OPTKEY_LAYERBASE, layer );
+            bool option;
+
+            if( m_config->Read( layerKey, &option ) )
+                m_boxSelectLayer[layer].first->Check( checkIndex, option );
         }
     }
 
@@ -220,26 +227,6 @@ void DIALOG_PRINT_USING_PRINTER::initValues( )
             s_Parameters.m_XScaleAdjust > MAX_SCALE ||
             s_Parameters.m_YScaleAdjust > MAX_SCALE )
             s_Parameters.m_XScaleAdjust = s_Parameters.m_YScaleAdjust = 1.0;
-
-        s_SelectedLayers = LSET();
-
-        for( seq.Rewind();  seq;  ++seq )
-        {
-            LAYER_ID layer = *seq;
-
-            wxString layerKey;
-            bool     option;
-
-            layerKey.Printf( OPTKEY_LAYERBASE, layer );
-
-            option = false;
-            if( m_config->Read( layerKey, &option ) )
-            {
-                m_BoxSelectLayer[layer]->SetValue( option );
-                if( option )
-                    s_SelectedLayers.set( layer );
-            }
-        }
     }
 
     m_ScaleOption->SetSelection( scale_idx );
@@ -282,12 +269,12 @@ int DIALOG_PRINT_USING_PRINTER::SetLayerSetFromListSelection()
 
     s_Parameters.m_PrintMaskLayer = LSET();
 
-    for( unsigned ii = 0; ii < DIM(m_BoxSelectLayer); ++ii )
+    for( unsigned ii = 0; ii < DIM(m_boxSelectLayer); ++ii )
     {
-        if( !m_BoxSelectLayer[ii] )
+        if( !m_boxSelectLayer[ii].first )
             continue;
 
-        if( m_BoxSelectLayer[ii]->IsChecked() )
+        if( m_boxSelectLayer[ii].first->IsChecked( m_boxSelectLayer[ii].second ) )
         {
             page_count++;
             s_Parameters.m_PrintMaskLayer.set( ii );
@@ -300,6 +287,9 @@ int DIALOG_PRINT_USING_PRINTER::SetLayerSetFromListSelection()
         s_Parameters.m_Flags = 0;
     else
         s_Parameters.m_Flags = 1;
+
+    if( PrintUsingSinglePage() )
+        page_count = 1;
 
     s_Parameters.m_PageCount = page_count;
 
@@ -324,13 +314,14 @@ void DIALOG_PRINT_USING_PRINTER::OnCloseWindow( wxCloseEvent& event )
         m_config->Write( OPTKEY_PRINT_PADS_DRILL, (long) s_Parameters.m_DrillShapeOpt );
         wxString layerKey;
 
-        for( unsigned layer = 0; layer < DIM(m_BoxSelectLayer);  ++layer )
+        for( unsigned layer = 0; layer < DIM(m_boxSelectLayer);  ++layer )
         {
-            if( !m_BoxSelectLayer[layer] )
+            if( !m_boxSelectLayer[layer].first )
                 continue;
 
             layerKey.Printf( OPTKEY_LAYERBASE, layer );
-            m_config->Write( layerKey, m_BoxSelectLayer[layer]->IsChecked() );
+            m_config->Write( layerKey,
+                m_boxSelectLayer[layer].first->IsChecked( m_boxSelectLayer[layer].second ) );
         }
     }
 
@@ -350,8 +341,7 @@ void DIALOG_PRINT_USING_PRINTER::SetPrintParameters( )
     s_Parameters.m_DrillShapeOpt =
         (PRINT_PARAMETERS::DrillShapeOptT) m_Drill_Shape_Opt->GetSelection();
 
-    if( m_PagesOption )
-        s_Parameters.m_OptionPrintPage = m_PagesOption->GetSelection() != 0;
+    s_Parameters.m_OptionPrintPage = m_PagesOption->GetSelection() != 0;
 
     SetLayerSetFromListSelection();
 
@@ -498,6 +488,7 @@ void DIALOG_PRINT_USING_PRINTER::OnPrintButtonClick( wxCommandEvent& event )
     }
 
     wxPrintDialogData printDialogData( *s_PrintData );
+    printDialogData.SetMaxPage( s_Parameters.m_PageCount );
 
     wxPrinter         printer( &printDialogData );
 

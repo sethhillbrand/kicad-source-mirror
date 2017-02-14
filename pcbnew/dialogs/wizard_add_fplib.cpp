@@ -32,6 +32,7 @@
  * - select scope (global/project)
  */
 
+#include <memory>
 #include <wx/wx.h>
 #include <wx/uri.h>
 #include <wx/dir.h>
@@ -177,7 +178,7 @@ bool WIZARD_FPLIB_TABLE::LIBRARY::Test()
     {
         footprints = p->FootprintEnumerate( m_path );
     }
-    catch( IO_ERROR& e )
+    catch( IO_ERROR& )
     {
         m_status = LIBRARY::INVALID;
         return false;
@@ -658,16 +659,16 @@ bool WIZARD_FPLIB_TABLE::downloadGithubLibsFromList( wxArrayString& aUrlList,
 
             for( unsigned i = 0;  i < footprints.size();  ++i )
             {
-                std::auto_ptr<MODULE> m( src->FootprintLoad( libsrc_name, footprints[i] ) );
+                std::unique_ptr<MODULE> m( src->FootprintLoad( libsrc_name, footprints[i] ) );
                 dst->FootprintSave( libdst_name, m.get() );
-                // m is deleted here by auto_ptr.
+                // m is deleted here by unique_ptr.
             }
         }
         catch( const IO_ERROR& ioe )
         {
             if( aErrorMessage )
                 aErrorMessage->Printf( _( "Error:\n'%s'\nwhile downloading library:\n'%s'" ),
-                                       GetChars( ioe.errorText ), GetChars( libsrc_name ) );
+                                       GetChars( ioe.What() ), GetChars( libsrc_name ) );
             return false;
         }
     }

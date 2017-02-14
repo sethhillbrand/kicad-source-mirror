@@ -3,7 +3,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2011-2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2007 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2007-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,8 +42,13 @@
 #include <sch_field.h>
 #include <template_fieldnames.h>
 #include <dialog_helpers.h>
+#include <sch_validators.h>
 
 #include <dialog_edit_libentry_fields_in_lib_base.h>
+#ifdef KICAD_SPICE
+#include <dialog_spice_model.h>
+#include <netlist_exporter_pspice.h>
+#endif /* KICAD_SPICE */
 
 // Local variables:
 static int s_SelectedRow;
@@ -59,12 +64,13 @@ public:
 
 private:
     // Events handlers:
-    void OnInitDialog( wxInitDialogEvent& event );
-    void OnCloseDialog( wxCloseEvent& event );
+    void OnInitDialog( wxInitDialogEvent& event ) override;
+    void OnCloseDialog( wxCloseEvent& event ) override;
 
-    void OnListItemDeselected( wxListEvent& event );
-    void OnListItemSelected( wxListEvent& event );
-    void addFieldButtonHandler( wxCommandEvent& event );
+    void OnListItemDeselected( wxListEvent& event ) override;
+    void OnListItemSelected( wxListEvent& event ) override;
+    void addFieldButtonHandler( wxCommandEvent& event ) override;
+    void EditSpiceModel( wxCommandEvent& event ) override;
 
     /**
      * Function deleteFieldButtonHandler
@@ -73,12 +79,12 @@ private:
      * If a field is empty, it is removed.
      * if not empty, the text is removed.
      */
-    void deleteFieldButtonHandler( wxCommandEvent& event );
+    void deleteFieldButtonHandler( wxCommandEvent& event ) override;
 
-    void moveUpButtonHandler( wxCommandEvent& event );
-    void OnCancelButtonClick( wxCommandEvent& event );
-    void OnOKButtonClick( wxCommandEvent& event );
-    void showButtonHandler( wxCommandEvent& event );
+    void moveUpButtonHandler( wxCommandEvent& event ) override;
+    void OnCancelButtonClick( wxCommandEvent& event ) override;
+    void OnOKButtonClick( wxCommandEvent& event ) override;
+    void showButtonHandler( wxCommandEvent& event ) override;
 
     // internal functions:
     void setSelectedFieldNdx( int aFieldNdx );
@@ -112,7 +118,12 @@ private:
      *   bad data into a field, and this value can be used to deny a row change.
      */
     bool copyPanelToSelectedField();
-    void setRowItem( int aFieldNdx, const LIB_FIELD& aField );
+
+    void setRowItem( int aFieldNdx, const wxString& aName, const wxString& aValue );
+    void setRowItem( int aFieldNdx, const LIB_FIELD& aField )
+    {
+        setRowItem( aFieldNdx, aField.GetName(), aField.GetText() );
+    }
 
     /**
      * Function updateDisplay
@@ -166,8 +177,9 @@ DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB(
     m_libEntry = aLibEntry;
     m_skipCopyFromPanel = false;
 
-    GetSizer()->SetSizeHints( this );
-    Centre();
+#ifndef KICAD_SPICE
+    m_spiceFieldsButton->Show(false);
+#endif
 }
 
 
@@ -192,6 +204,11 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::OnInitDialog( wxInitDialogEvent& event 
     copySelectedFieldToPanel();
 
     stdDialogButtonSizerOK->SetDefault();
+
+    FixOSXCancelButtonIssue();
+
+    // Now all widgets have the size fixed, call FinishDialogSettings
+    FinishDialogSettings();
 }
 
 
@@ -240,7 +257,7 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::OnOKButtonClick( wxCommandEvent& event 
     // test if reference prefix is acceptable
     if( !SCH_COMPONENT::IsReferenceStringValid( m_FieldsBuf[REFERENCE].GetText() ) )
     {
-        DisplayError( NULL, _( "Illegal reference prefix. A reference must start by a letter" ) );
+        DisplayError( NULL, _( "Illegal reference.  References must start with a letter." ) );
         return;
     }
 
@@ -282,15 +299,6 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::OnOKButtonClick( wxCommandEvent& event 
         ++i;
     }
 
-#if defined(DEBUG)
-    for( unsigned i = 0;  i<m_FieldsBuf.size();  ++i )
-    {
-        printf( "save[%u].name:'%s' value:'%s'\n", i,
-                TO_UTF8( m_FieldsBuf[i].GetName() ),
-                TO_UTF8( m_FieldsBuf[i].GetText() ) );
-    }
-#endif
-
     // copy all the fields back, fully replacing any previous fields
     m_libEntry->SetFields( m_FieldsBuf );
 
@@ -300,6 +308,50 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::OnOKButtonClick( wxCommandEvent& event 
     m_parent->OnModify();
 
     EndQuasiModal( wxID_OK );
+}
+
+
+void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::EditSpiceModel( wxCommandEvent& event )
+{
+#ifdef KICAD_SPICE
+    // DIALOG_SPICE_MODEL expects a SCH_COMPONENT,
+    // and a list of SCH_FIELDS to create/edit/delete Spice fields.
+    SCH_COMPONENT component;    // This dummy component
+
+    // Build fields list from the m_FieldsBuf fields buffer dialog
+    // to be sure to use the current fields.
+    SCH_FIELDS schfields;
+
+    for( unsigned ii = 0; ii < m_FieldsBuf.size(); ++ii )
+    {
+        LIB_FIELD& libfield = m_FieldsBuf[ii];
+        SCH_FIELD schfield( libfield.GetTextPosition(), libfield.GetId(),
+                            &component,  libfield.GetName() );
+        schfield.ImportValues( m_FieldsBuf[ii] );
+        schfield.SetText( m_FieldsBuf[ii].GetText() );
+
+        schfields.push_back( schfield );
+    }
+
+    component.SetFields( schfields );
+
+    DIALOG_SPICE_MODEL dialog( this, component, schfields );
+
+    if( dialog.ShowModal() != wxID_OK )
+        return;
+
+    // Transfert sch fields to the m_FieldsBuf fields buffer dialog:
+    m_FieldsBuf.clear();
+
+    for( unsigned ii = 0; ii < schfields.size(); ii++ )
+    {
+        LIB_FIELD libfield;
+        schfields[ii].ExportValues( libfield );
+        m_FieldsBuf.push_back( libfield );
+    }
+
+    updateDisplay();
+#endif /* KICAD_SPICE */
 }
 
 
@@ -415,8 +467,8 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::showButtonHandler( wxCommandEvent& even
 
         if( frame->ShowModal( &fpid, this ) )
         {
-            // DBG( printf( "%s: %s\n", __func__, TO_UTF8( fpid ) ); )
             fieldValueTextCtrl->SetValue( fpid );
+            setRowItem( fieldNdx, m_FieldsBuf[fieldNdx].GetName( false ), fpid );
         }
 
         frame->Destroy();
@@ -486,13 +538,6 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::initBuffers()
 
     m_libEntry->GetFields( cmpFields );
 
-#if defined(DEBUG)
-    for( unsigned i=0; i<cmpFields.size();  ++i )
-    {
-        printf( "cmpFields[%u].name:%s\n", i, TO_UTF8( cmpFields[i].GetName() ) );
-    }
-#endif
-
     /*  We have 3 component related field lists to be aware of: 1) UI
         presentation (m_FieldsBuf), 2) fields in component ram copy, and 3)
         fields recorded with component on disk. m_FieldsBuf is the list of UI
@@ -517,7 +562,6 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::initBuffers()
     // fixed fields:
     for( int i=0; i<MANDATORY_FIELDS; ++i )
     {
-        DBG( printf( "add fixed:%s\n", TO_UTF8( cmpFields[i].GetName() ) ); )
         m_FieldsBuf.push_back( cmpFields[i] );
     }
 
@@ -543,8 +587,6 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::initBuffers()
         // values from the component will be set.
         if( !libField )
         {
-            DBG( printf( "add template:%s\n", TO_UTF8( it->m_Name ) ); )
-
             fld.SetName( it->m_Name );
             fld.SetText( it->m_Value );   // empty? ok too.
 
@@ -555,7 +597,6 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::initBuffers()
         }
         else
         {
-            DBG( printf( "match template:%s\n", TO_UTF8( libField->GetName() ) ); )
             fld = *libField;    // copy values from component, m_Name too
         }
 
@@ -571,7 +612,6 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::initBuffers()
 
         if( !buf )
         {
-            DBG( printf( "add cmp:%s\n", TO_UTF8( cmp->GetName() ) ); )
             m_FieldsBuf.push_back( *cmp );
         }
     }
@@ -597,7 +637,7 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::initBuffers()
 }
 
 
-void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::setRowItem( int aFieldNdx, const LIB_FIELD& aField )
+void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::setRowItem( int aFieldNdx, const wxString& aName, const wxString& aValue )
 {
     wxASSERT( aFieldNdx >= 0 );
 
@@ -611,8 +651,8 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::setRowItem( int aFieldNdx, const LIB_FI
         fieldListCtrl->SetItem( ndx, COLUMN_TEXT, wxEmptyString );
     }
 
-    fieldListCtrl->SetItem( aFieldNdx, COLUMN_FIELD_NAME, aField.GetName() );
-    fieldListCtrl->SetItem( aFieldNdx, COLUMN_TEXT, aField.GetText() );
+    fieldListCtrl->SetItem( aFieldNdx, COLUMN_FIELD_NAME, aName );
+    fieldListCtrl->SetItem( aFieldNdx, COLUMN_TEXT, aValue );
 
     // recompute the column widths here, after setting texts
     fieldListCtrl->SetColumnWidth( COLUMN_FIELD_NAME, wxLIST_AUTOSIZE );
@@ -687,6 +727,7 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::copySelectedFieldToPanel()
     // if fieldNdx == REFERENCE, VALUE, then disable delete button
     deleteFieldButton->Enable( fieldNdx >= MANDATORY_FIELDS );
 
+    fieldValueTextCtrl->SetValidator( SCH_FIELD_VALIDATOR( true, field.GetId() ) );
     fieldValueTextCtrl->SetValue( field.GetText() );
 
     textSizeTextCtrl->SetValue( EDA_GRAPHIC_TEXT_CTRL::FormatSize( g_UserUnit, field.GetSize().x ) );
@@ -694,11 +735,24 @@ void DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::copySelectedFieldToPanel()
     m_show_datasheet_button->Enable( fieldNdx == DATASHEET || fieldNdx == FOOTPRINT );
 
     if( fieldNdx == DATASHEET )
-        m_show_datasheet_button->SetLabel( _( "Show in Browser" ) );
+    {
+        m_show_datasheet_button->SetLabel( _( "Show Datasheet" ) );
+        m_show_datasheet_button->SetToolTip(
+            _("If your datasheet is given as an http:// link,"
+              " then pressing this button should bring it up in your webbrowser.") );
+    }
     else if( fieldNdx == FOOTPRINT )
-        m_show_datasheet_button->SetLabel( _( "Assign Footprint" ) );
+    {
+        m_show_datasheet_button->SetLabel( _( "Browse Footprints" ) );
+        m_show_datasheet_button->SetToolTip(
+            _("Open the footprint browser to choose a footprint and assign it.") );
+    }
     else
+    {
         m_show_datasheet_button->SetLabel( wxEmptyString );
+        m_show_datasheet_button->SetToolTip(
+            _("Used only for fields Footprint and Datasheet.") );
+    }
 
     wxPoint coord = field.GetTextPosition();
     wxPoint zero;
@@ -739,6 +793,11 @@ bool DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::copyPanelToSelectedField()
     if( fieldNdx >= m_FieldsBuf.size() )        // traps the -1 case too
         return true;
 
+    // Check for illegal field text.
+    if( fieldValueTextCtrl->GetValidator()
+      && !fieldValueTextCtrl->GetValidator()->Validate( this ) )
+        return false;
+
     LIB_FIELD& field = m_FieldsBuf[fieldNdx];
 
     if( showCheckBox->GetValue() )
@@ -776,11 +835,8 @@ bool DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB::copyPanelToSelectedField()
     if( field.GetId() >= MANDATORY_FIELDS )
     {
         wxString name = fieldNameTextCtrl->GetValue();
-        DBG( printf("name:%s\n", TO_UTF8( name ) ); )
         field.SetName( name );
     }
-
-    DBG( printf("setname:%s\n", TO_UTF8( field.GetName() ) ); )
 
     setRowItem( fieldNdx, field );  // update fieldListCtrl
 

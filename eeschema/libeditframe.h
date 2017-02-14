@@ -56,9 +56,6 @@ class LIB_EDIT_FRAME : public SCH_BASE_FRAME
     wxComboBox*     m_partSelectBox;        ///< a Box to select a part to edit (if any)
     wxComboBox*     m_aliasSelectBox;       ///< a box to select the alias to edit (if any)
 
-    wxString m_lastLibImportPath;
-    wxString m_lastLibExportPath;
-
     /** Convert of the item currently being drawn. */
     bool m_drawSpecificConvert;
 
@@ -78,6 +75,11 @@ class LIB_EDIT_FRAME : public SCH_BASE_FRAME
      * to the pin at the same location.
      */
     bool m_editPinsPerPartOrConvert;
+
+    /**
+     * the option to show the pin electrical name in the component editor
+     */
+    bool m_showPinElectricalTypeName;
 
     /** The current draw or edit graphic item fill style. */
     static FILL_T m_drawFillStyle;
@@ -183,7 +185,7 @@ public:
     void SetRepeatPinStep( int aStep) { m_repeatPinStep = aStep; }
 
 
-    void ReCreateMenuBar();
+    void ReCreateMenuBar() override;
 
     /**
      * Function EnsureActiveLibExists
@@ -228,6 +230,11 @@ public:
     void OnExportPart( wxCommandEvent& event );
     void OnSelectAlias( wxCommandEvent& event );
     void OnSelectPart( wxCommandEvent& event );
+
+    /**
+     * From Option toolbar: option to show the electrical pin type name
+     */
+    void OnShowElectricalType( wxCommandEvent& event );
 
     /**
      * Function DeleteOnePart
@@ -287,6 +294,7 @@ public:
     void OnUpdateDeMorganNormal( wxUpdateUIEvent& event );
     void OnUpdateDeMorganConvert( wxUpdateUIEvent& event );
     void OnUpdateSelectAlias( wxUpdateUIEvent& event );
+    void OnUpdateElectricalType( wxUpdateUIEvent& aEvent );
 
     void UpdateAliasSelectList();
     void UpdatePartSelectList();
@@ -316,27 +324,27 @@ public:
      * Display reference like in schematic (a reference U is shown U? or U?A)
      * update status bar and info shown in the bottom of the window
      */
-    void RedrawActiveWindow( wxDC* DC, bool EraseBg );
+    void RedrawActiveWindow( wxDC* DC, bool EraseBg ) override;
 
     void OnCloseWindow( wxCloseEvent& Event );
-    void ReCreateHToolbar();
-    void ReCreateVToolbar();
+    void ReCreateHToolbar() override;
+    void ReCreateVToolbar() override;
     void CreateOptionToolbar();
-    void OnLeftClick( wxDC* DC, const wxPoint& MousePos );
-    bool OnRightClick( const wxPoint& MousePos, wxMenu* PopMenu );
-    double BestZoom();         // Returns the best zoom
-    void OnLeftDClick( wxDC* DC, const wxPoint& MousePos );
+    void OnLeftClick( wxDC* DC, const wxPoint& MousePos ) override;
+    bool OnRightClick( const wxPoint& MousePos, wxMenu* PopMenu ) override;
+    double BestZoom() override;         // Returns the best zoom
+    void OnLeftDClick( wxDC* DC, const wxPoint& MousePos ) override;
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
-    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;
+    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const override;
 
-    bool OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
+    bool OnHotKey( wxDC* aDC, int aHotKey, const wxPoint& aPosition, EDA_ITEM* aItem = NULL ) override;
 
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 ) override;
 
-    void LoadSettings( wxConfigBase* aCfg );
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
     /**
      * Function CloseWindow
@@ -394,6 +402,10 @@ public:
 
     void SetShowDeMorgan( bool show ) { m_showDeMorgan = show; }
 
+    bool GetShowElectricalType() { return m_showPinElectricalTypeName; }
+
+    void SetShowElectricalType( bool aShow ) { m_showPinElectricalTypeName = aShow; }
+
     FILL_T GetFillStyle() { return m_drawFillStyle; }
 
     /**
@@ -432,7 +444,7 @@ private:
      * The library list can be changed by the schematic editor after reloading a new schematic
      * and the current library can point a non existent lib.
      */
-    virtual void OnActivate( wxActivateEvent& event );
+    virtual void OnActivate( wxActivateEvent& event ) override;
 
     // General:
 
@@ -508,6 +520,12 @@ private:
      * rotates the current item.
      */
     void OnRotateItem( wxCommandEvent& aEvent );
+
+    /**
+     * Function OnOrient
+     * Handles the ID_LIBEDIT_MIRROR_X and ID_LIBEDIT_MIRROR_Y events.
+     */
+    void OnOrient( wxCommandEvent& aEvent );
 
     /**
      * Function deleteItem
@@ -606,13 +624,13 @@ public:
      * returns the block command (BLOCK_MOVE, BLOCK_COPY...) corresponding to
      * the \a aKey (ALT, SHIFT ALT ..)
      */
-    virtual int BlockCommand( EDA_KEY aKey );
+    virtual int BlockCommand( EDA_KEY aKey ) override;
 
     /**
      * Function HandleBlockPlace
      * handles the block place command.
      */
-    virtual void HandleBlockPlace( wxDC* DC );
+    virtual void HandleBlockPlace( wxDC* DC ) override;
 
     /**
      * Function HandleBlockEnd
@@ -620,7 +638,7 @@ public:
      * @return If command finished (zoom, delete ...) false is returned otherwise true
      *         is returned indicating more processing is required.
      */
-    virtual bool HandleBlockEnd( wxDC* DC );
+    virtual bool HandleBlockEnd( wxDC* DC ) override;
 
     /**
      * Function PlacePin
@@ -665,7 +683,7 @@ public:
      * @param aData = a pointer on an auxiliary data (not always used, NULL if not used)
      */
     virtual void PrintPage( wxDC* aDC, LSET aPrintMask,
-                            bool aPrintMirrorMode, void* aData = NULL );
+                            bool aPrintMirrorMode, void* aData = NULL ) override;
 
     /**
      * Function SVG_PlotComponent

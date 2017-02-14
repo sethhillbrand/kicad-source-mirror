@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2009-2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,12 +27,15 @@
  * @file kicad/menubar.cpp
  * @brief (Re)Create the project manager menubar for KiCad
  */
-#include <fctsys.h>
-#include <pgm_kicad.h>
-#include <kicad.h>
-#include <menus_helpers.h>
-#include <tree_project_frame.h>
+
+
+#include <bitmaps.h>
 #include <hotkeys_basic.h>
+#include <menus_helpers.h>
+
+#include "kicad.h"
+#include "pgm_kicad.h"
+
 
 // Menubar and toolbar event table
 BEGIN_EVENT_TABLE( KICAD_MANAGER_FRAME, EDA_BASE_FRAME )
@@ -61,6 +64,7 @@ BEGIN_EVENT_TABLE( KICAD_MANAGER_FRAME, EDA_BASE_FRAME )
     EVT_MENU( ID_PROJECT_TREE_REFRESH, KICAD_MANAGER_FRAME::OnRefresh )
     EVT_MENU( wxID_HELP, KICAD_MANAGER_FRAME::GetKicadHelp )
     EVT_MENU( wxID_INDEX, KICAD_MANAGER_FRAME::GetKicadHelp )
+    EVT_MENU( ID_HELP_GET_INVOLVED, KICAD_MANAGER_FRAME::GetKicadContribute )
     EVT_MENU( wxID_ABOUT, KICAD_MANAGER_FRAME::GetKicadAbout )
 
     // Range menu events
@@ -198,7 +202,7 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
     // Before deleting, remove the menus managed by m_fileHistory
     // (the file history will be updated when adding/removing files in history)
     if( openRecentMenu )
-        Pgm().GetFileHistory().RemoveMenu( openRecentMenu );
+        PgmTop().GetFileHistory().RemoveMenu( openRecentMenu );
 
     // Delete all existing menus
     while( menuBar->GetMenuCount() )
@@ -217,8 +221,8 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
 
     // File history
     openRecentMenu = new wxMenu();
-    Pgm().GetFileHistory().UseMenu( openRecentMenu );
-    Pgm().GetFileHistory().AddFilesToMenu( );
+    PgmTop().GetFileHistory().UseMenu( openRecentMenu );
+    PgmTop().GetFileHistory().AddFilesToMenu( );
     AddMenuItem( fileMenu, openRecentMenu,
                  wxID_ANY,
                  _( "Open &Recent" ),
@@ -259,14 +263,14 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
     fileMenu->AppendSeparator();
     AddMenuItem( fileMenu,
                  ID_SAVE_AND_ZIP_FILES,
-                 _( "&Archive" ),
+                 _( "&Archive Current Project" ),
                  _( "Archive project files in zip archive" ),
                  KiBitmap( zip_xpm ) );
 
     // Unarchive
     AddMenuItem( fileMenu,
                  ID_READ_ZIP_ARCHIVE,
-                 _( "&Unarchive" ),
+                 _( "&Unarchive Project" ),
                  _( "Unarchive project files from zip file" ),
                  KiBitmap( unzip_xpm ) );
 
@@ -399,9 +403,6 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
     // Menu Help:
     wxMenu* helpMenu = new wxMenu;
 
-    // Version info
-    AddHelpVersionInfoMenuEntry( helpMenu );
-
     // Contents
     AddMenuItem( helpMenu, wxID_HELP,
                  _( "KiCad &Manual" ),
@@ -413,7 +414,21 @@ void KICAD_MANAGER_FRAME::ReCreateMenuBar()
                  _( "Open \"Getting Started in KiCad\" guide for beginners" ),
                  KiBitmap( help_xpm ) );
 
+    AddMenuItem( helpMenu,
+                 ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
+                 _( "&List Hotkeys" ),
+                 _( "Displays the current hotkeys list and corresponding commands" ),
+                 KiBitmap( hotkeys_xpm ) );
+
     // Separator
+    helpMenu->AppendSeparator();
+
+    // Get involved with KiCad
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
+
     helpMenu->AppendSeparator();
 
     // About

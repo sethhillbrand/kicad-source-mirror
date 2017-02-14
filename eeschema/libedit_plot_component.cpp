@@ -5,7 +5,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,8 +40,6 @@
 #include <libeditframe.h>
 #include <class_library.h>
 #include <dialogs/dialog_plot_schematic.h>
-
-#include <boost/foreach.hpp>
 
 
 void LIB_EDIT_FRAME::OnPlotCurrentComponent( wxCommandEvent& event )
@@ -104,7 +102,7 @@ void LIB_EDIT_FRAME::OnPlotCurrentComponent( wxCommandEvent& event )
             PAGE_INFO pageSave = GetScreen()->GetPageSettings();
             PAGE_INFO pageTemp = pageSave;
 
-            wxSize componentSize = part->GetBoundingBox( m_unit, m_convert ).GetSize();
+            wxSize componentSize = part->GetUnitBoundingBox( m_unit, m_convert ).GetSize();
 
             // Add a small margin to the plot bounding box
             pageTemp.SetWidthMils(  int( componentSize.x * 1.2 ) );
@@ -156,7 +154,9 @@ void LIB_EDIT_FRAME::SVG_PlotComponent( const wxString& aFullFileName )
 
     wxPoint plot_offset;
     const double scale = 1.0;
-    plotter->SetViewport( plot_offset, IU_PER_DECIMILS, scale, false );
+
+    // Currently, plot units are in decimil
+    plotter->SetViewport( plot_offset, IU_PER_MILS/10, scale, false );
 
     // Init :
     plotter->SetCreator( wxT( "Eeschema-SVG" ) );

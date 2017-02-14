@@ -29,7 +29,6 @@
 #include <fctsys.h>
 #include <class_drawpanel.h>
 #include <confirm.h>
-#include <3d_viewer.h>
 #include <wxPcbStruct.h>
 #include <gr_basic.h>
 
@@ -62,7 +61,7 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
                 break;
 
             case PCB_MODULE_EDGE_T:
-                SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
+                SaveCopyInUndoList( GetBoard()->m_Modules, UR_CHANGED );
                 Place_EdgeMod( static_cast<EDGE_MODULE*>( item ) );
                 break;
 
@@ -148,7 +147,7 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
 
         if( item && item->Type() != PCB_MODULE_T ) // Cannot delete the module itself
         {
-            SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
+            SaveCopyInUndoList( GetBoard()->m_Modules, UR_CHANGED );
             RemoveStruct( item );
             SetCurItem( NULL );
         }
@@ -163,7 +162,7 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
                 || (module->GetFlags() != 0) )
                 break;
 
-            SaveCopyInUndoList( module, UR_MODEDIT );
+            SaveCopyInUndoList( module, UR_CHANGED );
 
             // set the new relative internal local coordinates of footprint items
             wxPoint moveVector = module->GetPosition() - GetCrossHairPosition();
@@ -188,14 +187,14 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
         if( GetBoard()->m_Modules == NULL )
             break;
 
-        SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
+        SaveCopyInUndoList( GetBoard()->m_Modules, UR_CHANGED );
         CreateTextModule( GetBoard()->m_Modules, DC );
         break;
 
     case ID_MODEDIT_PAD_TOOL:
         if( GetBoard()->m_Modules )
         {
-            SaveCopyInUndoList( GetBoard()->m_Modules, UR_MODEDIT );
+            SaveCopyInUndoList( GetBoard()->m_Modules, UR_CHANGED );
             AddPad( GetBoard()->m_Modules, true );
         }
 

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2009 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -64,14 +64,18 @@ void DIALOG_GENERALOPTIONS::init()
     /* Set display options */
     m_PolarDisplay->SetSelection( displ_opts->m_DisplayPolarCood ? 1 : 0 );
     m_UnitsSelection->SetSelection( g_UserUnit ? 1 : 0 );
+
+    // Cursor shape cannot be implemented on OS X
+#ifdef __APPLE__
+    m_CursorShape->Hide();
+#else
     m_CursorShape->SetSelection( GetParent()->GetCursorShape() ? 1 : 0 );
+#endif // __APPLE__
 
 
     wxString rotationAngle;
     rotationAngle = AngleToStringDegrees( (double)GetParent()->GetRotationAngle() );
     m_RotationAngle->SetValue( rotationAngle );
-
-    m_spinMaxUndoItems->SetValue( GetParent()->GetScreen()->GetMaxUndoItems() );
 
     wxString timevalue;
     timevalue << GetParent()->GetAutoSaveInterval() / 60;
@@ -79,20 +83,16 @@ void DIALOG_GENERALOPTIONS::init()
     m_MaxShowLinks->SetValue( displ_opts->m_MaxLinksShowed );
 
     m_DrcOn->SetValue( g_Drc_On );
-    m_ShowModuleRatsnest->SetValue( displ_opts->m_Show_Module_Ratsnest );
     m_ShowGlobalRatsnest->SetValue( m_Board->IsElementVisible( RATSNEST_VISIBLE ) );
     m_TrackAutodel->SetValue( g_AutoDeleteOldTrack );
     m_Track_45_Only_Ctrl->SetValue( g_Track_45_Only_Allowed );
     m_Segments_45_Only_Ctrl->SetValue( g_Segments_45_Only );
     m_ZoomCenterOpt->SetValue( ! GetParent()->GetCanvas()->GetEnableZoomNoCenter() );
-    m_MiddleButtonPANOpt->SetValue( GetParent()->GetCanvas()->GetEnableMiddleButtonPan() );
-    m_OptMiddleButtonPanLimited->SetValue( GetParent()->GetCanvas()->GetMiddleButtonPanLimited() );
-    m_OptMiddleButtonPanLimited->Enable( m_MiddleButtonPANOpt->GetValue() );
+    m_MousewheelPANOpt->SetValue( GetParent()->GetCanvas()->GetEnableMousewheelPan() );
     m_AutoPANOpt->SetValue( GetParent()->GetCanvas()->GetEnableAutoPan() );
     m_Track_DoubleSegm_Ctrl->SetValue( g_TwoSegmentTrackBuild );
     m_MagneticPadOptCtrl->SetSelection( g_MagneticPadOption );
     m_MagneticTrackOptCtrl->SetSelection( g_MagneticTrackOption );
-    m_DumpZonesWhenFilling->SetValue ( g_DumpZonesWhenFilling );
 }
 
 
@@ -114,11 +114,11 @@ void DIALOG_GENERALOPTIONS::OnOkClick( wxCommandEvent& event )
     if( ii != g_UserUnit )
         GetParent()->ReCreateAuxiliaryToolbar();
 
+#ifndef __APPLE__
     GetParent()->SetCursorShape( m_CursorShape->GetSelection() );
+#endif // !__APPLE__
     GetParent()->SetAutoSaveInterval( m_SaveTime->GetValue() * 60 );
     GetParent()->SetRotationAngle( wxRound( 10.0 * wxAtof( m_RotationAngle->GetValue() ) ) );
-
-    GetParent()->GetScreen()->SetMaxUndoItems( m_spinMaxUndoItems->GetValue() );
 
     /* Updating the combobox to display the active layer. */
     displ_opts->m_MaxLinksShowed = m_MaxShowLinks->GetValue();
@@ -131,20 +131,17 @@ void DIALOG_GENERALOPTIONS::OnOkClick( wxCommandEvent& event )
         GetParent()->OnModify();
     }
 
-    displ_opts->m_Show_Module_Ratsnest = m_ShowModuleRatsnest->GetValue();
     g_AutoDeleteOldTrack   = m_TrackAutodel->GetValue();
     g_Segments_45_Only = m_Segments_45_Only_Ctrl->GetValue();
     g_Track_45_Only_Allowed    = m_Track_45_Only_Ctrl->GetValue();
 
     GetParent()->GetCanvas()->SetEnableZoomNoCenter( ! m_ZoomCenterOpt->GetValue() );
-    GetParent()->GetCanvas()->SetEnableMiddleButtonPan( m_MiddleButtonPANOpt->GetValue() );
-    GetParent()->GetCanvas()->SetMiddleButtonPanLimited( m_OptMiddleButtonPanLimited->GetValue() );
-
+    GetParent()->GetCanvas()->SetEnableMousewheelPan( m_MousewheelPANOpt->GetValue() );
     GetParent()->GetCanvas()->SetEnableAutoPan( m_AutoPANOpt->GetValue() );
+
     g_TwoSegmentTrackBuild = m_Track_DoubleSegm_Ctrl->GetValue();
     g_MagneticPadOption   = m_MagneticPadOptCtrl->GetSelection();
     g_MagneticTrackOption = m_MagneticTrackOptCtrl->GetSelection();
-    g_DumpZonesWhenFilling = m_DumpZonesWhenFilling->GetValue();
 
     EndModal( wxID_OK );
 }

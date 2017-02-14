@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Dec 28 2015)
+// C++ code generated with wxFormBuilder (version May 10 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -12,7 +12,6 @@
 BEGIN_EVENT_TABLE( DIALOG_EESCHEMA_OPTIONS_BASE, DIALOG_SHIM )
 	EVT_SIZE( DIALOG_EESCHEMA_OPTIONS_BASE::_wxFB_OnSize )
 	EVT_CHOICE( wxID_ANY, DIALOG_EESCHEMA_OPTIONS_BASE::_wxFB_OnChooseUnits )
-	EVT_CHECKBOX( xwID_ANY, DIALOG_EESCHEMA_OPTIONS_BASE::_wxFB_OnMiddleBtnPanEnbl )
 	EVT_BUTTON( wxID_ADD_FIELD, DIALOG_EESCHEMA_OPTIONS_BASE::_wxFB_OnAddButtonClick )
 	EVT_BUTTON( wxID_DELETE_FIELD, DIALOG_EESCHEMA_OPTIONS_BASE::_wxFB_OnDeleteButtonClick )
 END_EVENT_TABLE()
@@ -185,17 +184,6 @@ DIALOG_EESCHEMA_OPTIONS_BASE::DIALOG_EESCHEMA_OPTIONS_BASE( wxWindow* parent, wx
 	m_staticTextSizeUnits->Wrap( -1 );
 	fgSizer3->Add( m_staticTextSizeUnits, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
 	
-	m_stMaxUndoItems = new wxStaticText( m_panel3, wxID_ANY, _("Ma&ximum undo items:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_stMaxUndoItems->Wrap( -1 );
-	fgSizer3->Add( m_stMaxUndoItems, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3 );
-	
-	m_spinMaxUndoItems = new wxSpinCtrl( m_panel3, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65536, 0 );
-	fgSizer3->Add( m_spinMaxUndoItems, 0, wxALL|wxEXPAND, 3 );
-	
-	m_staticText22 = new wxStaticText( m_panel3, wxID_ANY, _("(0 = unlimited)"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText22->Wrap( -1 );
-	fgSizer3->Add( m_staticText22, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3 );
-	
 	m_staticText221 = new wxStaticText( m_panel3, wxID_ANY, _("&Auto-save time interval"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText221->Wrap( -1 );
 	fgSizer3->Add( m_staticText221, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 3 );
@@ -272,15 +260,10 @@ DIALOG_EESCHEMA_OPTIONS_BASE::DIALOG_EESCHEMA_OPTIONS_BASE( wxWindow* parent, wx
 	
 	m_controlsSizer->Add( m_checkEnableZoomCenter, 0, wxTOP|wxRIGHT|wxLEFT, 3 );
 	
-	m_checkEnableMiddleButtonPan = new wxCheckBox( m_tabControls, xwID_ANY, _("&Use middle mouse button to pan"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_checkEnableMiddleButtonPan->SetToolTip( _("Use middle mouse button dragging to pan") );
+	m_checkEnableMousewheelPan = new wxCheckBox( m_tabControls, xwID_ANY, _("Use touchpa&d to pan"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_checkEnableMousewheelPan->SetToolTip( _("Use touchpad to pan canvas") );
 	
-	m_controlsSizer->Add( m_checkEnableMiddleButtonPan, 0, wxTOP|wxRIGHT|wxLEFT, 3 );
-	
-	m_checkMiddleButtonPanLimited = new wxCheckBox( m_tabControls, wxID_ANY, _("&Limit panning to scroll size"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_checkMiddleButtonPanLimited->SetToolTip( _("Middle mouse button panning limited by current scrollbar size") );
-	
-	m_controlsSizer->Add( m_checkMiddleButtonPanLimited, 0, wxTOP|wxRIGHT|wxLEFT, 3 );
+	m_controlsSizer->Add( m_checkEnableMousewheelPan, 0, wxLEFT|wxRIGHT|wxTOP, 3 );
 	
 	m_checkAutoPan = new wxCheckBox( m_tabControls, wxID_ANY, _("&Pan while moving object"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_controlsSizer->Add( m_checkAutoPan, 0, wxEXPAND|wxTOP|wxRIGHT|wxLEFT, 3 );
@@ -292,7 +275,7 @@ DIALOG_EESCHEMA_OPTIONS_BASE::DIALOG_EESCHEMA_OPTIONS_BASE( wxWindow* parent, wx
 	m_tabControls->SetSizer( bSizer81 );
 	m_tabControls->Layout();
 	bSizer81->Fit( m_tabControls );
-	m_notebook->AddPage( m_tabControls, _("Controls"), false );
+	m_notebook->AddPage( m_tabControls, _("Controls"), true );
 	m_tabColors = new wxPanel( m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
 	wxBoxSizer* bSizer14;
 	bSizer14 = new wxBoxSizer( wxVERTICAL );
@@ -304,7 +287,7 @@ DIALOG_EESCHEMA_OPTIONS_BASE::DIALOG_EESCHEMA_OPTIONS_BASE( wxWindow* parent, wx
 	m_tabColors->SetSizer( bSizer14 );
 	m_tabColors->Layout();
 	bSizer14->Fit( m_tabColors );
-	m_notebook->AddPage( m_tabColors, _("Colors"), true );
+	m_notebook->AddPage( m_tabColors, _("Colors"), false );
 	m_panel2 = new wxPanel( m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
 	m_panel2->SetToolTip( _("User defined field names for schematic components. ") );
 	

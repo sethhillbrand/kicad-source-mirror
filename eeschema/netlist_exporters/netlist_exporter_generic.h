@@ -63,7 +63,7 @@ public:
      * Function WriteNetlist
      * writes to specified output file
      */
-    bool WriteNetlist( const wxString& aOutFileName, unsigned aNetlistOptions );
+    bool WriteNetlist( const wxString& aOutFileName, unsigned aNetlistOptions ) override;
 
 #define GNL_ALL     ( GNL_LIBRARIES | GNL_COMPONENTS | GNL_PARTS | GNL_HEADER | GNL_NETS )
 
@@ -78,13 +78,6 @@ protected:
      *   of the returned node, and has type wxXML_TEXT_NODE.
      */
     XNODE* node( const wxString& aName, const wxString& aTextualContent = wxEmptyString );
-
-    /**
-     * Function writeGENERICListOfNets
-     * writes out nets (ranked by Netcode), and elements that are
-     * connected as part of that net.
-     */
-    bool writeListOfNets( FILE* f, NETLIST_OBJECT_LIST& aObjectsList );
 
     /**
      * Function makeGenericRoot

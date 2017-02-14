@@ -1,13 +1,8 @@
-/**
- * @file prjconfig.cpp
- * Load and save project configuration files (*.pro)
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2004-2015 Jean-Pierre Charras
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,27 +22,29 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <fctsys.h>
-#include <pgm_kicad.h>
-#include <kiway.h>
-#include <project.h>
-#include <confirm.h>
-#include <gestfich.h>
-#include <kicad.h>
-#include <config_params.h>
-#include <project_template.h>
-#include <tree_project_frame.h>
-#include <wildcards_and_files_ext.h>
-#include <vector>
-#include <build_version.h>
-#include <macros.h>
-#include <common.h>
+/**
+ * @file prjconfig.cpp
+ * Load and save project configuration files (*.pro)
+ */
+
 
 #include <wx/dir.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
 
+#include <build_version.h>
+#include <config_params.h>
+#include <confirm.h>
+#include <kiway.h>
+#include <project.h>
+#include <wildcards_and_files_ext.h>
+
 #include "dialogs/dialog_template_selector.h"
+
+#include "kicad.h"
+#include "pgm_kicad.h"
+#include "tree_project_frame.h"
+
 
 #define SEP()   wxFileName::GetPathSeparator()
 
@@ -164,7 +161,7 @@ void KICAD_MANAGER_FRAME::CreateNewProject( const wxString& aPrjFullFileName,
 
     // Write settings to project file
     // was: wxGetApp().WriteProjectConfig( aPrjFullFileName, GeneralGroupName, s_KicadManagerParams );
-    Prj().ConfigSave( Pgm().SysSearch(), GeneralGroupName, s_KicadManagerParams );
+    Prj().ConfigSave( PgmTop().SysSearch(), GeneralGroupName, s_KicadManagerParams );
 
     // Ensure a "stub" for a schematic root sheet and a board exist.
     // It will avoid messages from the schematic editor or the board editor to create a new file
@@ -173,12 +170,14 @@ void KICAD_MANAGER_FRAME::CreateNewProject( const wxString& aPrjFullFileName,
     fn.SetExt( SchematicFileExtension );
 
     // If a <project>.sch file does not exist, create a "stub" file
+    // ( minimal schematic file )
     if( !fn.FileExists() )
     {
         wxFile file( fn.GetFullPath(), wxFile::write );
 
         if( file.IsOpened() )
-            file.Write( wxT( "EESchema Schematic File Version 2\n" ) );
+            file.Write( wxT( "EESchema Schematic File Version 2\n"
+                             "EELAYER 25 0\nEELAYER END\n$EndSCHEMATC\n" ) );
 
         // wxFile dtor will close the file
     }
@@ -327,9 +326,9 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
         m_MessagesBox->Clear();
     }
 
-    Prj().ConfigLoad( Pgm().SysSearch(), GeneralGroupName, s_KicadManagerParams );
+    Prj().ConfigLoad( PgmTop().SysSearch(), GeneralGroupName, s_KicadManagerParams );
 
-    title = wxT( "KiCad " ) + GetBuildVersion() +  wxT( ' ' ) + prj_filename;
+    title = L"KiCad \u2014 " + prj_filename;
 
     if( !wxFileName( prj_filename ).IsDirWritable() )
         title += _( " [Read Only]" );
@@ -339,7 +338,7 @@ void KICAD_MANAGER_FRAME::OnLoadProject( wxCommandEvent& event )
     SetTitle( title );
 
     if( !prj_filename.IsSameAs( nameless_prj ) )
-        UpdateFileHistory( prj_filename, &Pgm().GetFileHistory() );
+        UpdateFileHistory( prj_filename, &PgmTop().GetFileHistory() );
 
     m_LeftWin->ReCreateTreePrj();
 
@@ -388,7 +387,7 @@ void KICAD_MANAGER_FRAME::OnSaveProject( wxCommandEvent& event )
 
     // was: wxGetApp().WriteProjectConfig( m_ProjectFileName.GetFullPath(),
     //          GeneralGroupName, s_KicadManagerParams );
-    Prj().ConfigSave( Pgm().SysSearch(), GeneralGroupName, s_KicadManagerParams );
+    Prj().ConfigSave( PgmTop().SysSearch(), GeneralGroupName, s_KicadManagerParams );
 }
 
 

@@ -7,9 +7,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 1992-2012 Jean-Pierre Charras <jean-pierre.charras@ujf-grenoble.fr>
+ * Copyright (C) 1992-2016 Jean-Pierre Charras <jp.charras at wanadoo.fr>
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,21 +31,22 @@
 
 #include <common.h>
 #include <colors_selection.h>
-#include <layers_id_colors_and_visibility.h>
 #include <gerbview_frame.h>
-#include <class_GERBER.h>
-#include <class_X2_gerber_attributes.h>
+#include <class_gerber_file_image_list.h>
 
 #include <class_gbr_layer_box_selector.h>
 
 void GBR_LAYER_BOX_SELECTOR::Resync()
 {
+    #define BM_SIZE 14
     Freeze();
     Clear();
 
-    for( int layerid = 0; layerid < GERBER_DRAWLAYERS_COUNT; ++layerid )
+    GERBER_FILE_IMAGE_LIST& images = GERBER_FILE_IMAGE_LIST::GetImagesList();
+
+    for( unsigned layerid = 0; layerid < images.ImagesMaxCount(); ++layerid )
     {
-        wxBitmap    layerbmp( 14, 14 );
+        wxBitmap    layerbmp( BM_SIZE, BM_SIZE );
         wxString    layername;
 
         if( !IsLayerEnabled( layerid ) )
@@ -58,6 +59,11 @@ void GBR_LAYER_BOX_SELECTOR::Resync()
 
         Append( layername, layerbmp, (void*)(intptr_t) layerid );
     }
+
+    // Ensure the width of the widget is enough to show the text and the icon
+    SetMinSize( wxSize( -1, -1 ) );
+    int minwidth = GetBestSize().x + BM_SIZE + 10;
+    SetMinSize( wxSize( minwidth, -1 ) );
 
     Thaw();
 }
@@ -75,7 +81,8 @@ EDA_COLOR_T GBR_LAYER_BOX_SELECTOR::GetLayerColor( int aLayer ) const
 // Returns the name of the layer id
 wxString GBR_LAYER_BOX_SELECTOR::GetLayerName( int aLayer ) const
 {
-    wxString name = g_GERBER_List.GetDisplayName( aLayer );
+    GERBER_FILE_IMAGE_LIST& images = GERBER_FILE_IMAGE_LIST::GetImagesList();
+    wxString name = images.GetDisplayName( aLayer );
 
     return name;
 }

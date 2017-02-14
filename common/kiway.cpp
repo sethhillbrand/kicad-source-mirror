@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2014 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2014 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 2014-2016 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -48,38 +48,36 @@ KIWAY::KIWAY( PGM_BASE* aProgram, int aCtlBits, wxFrame* aTop ):
 {
     SetTop( aTop );     // hook player_destroy_handler() into aTop.
 
-    memset( m_player, 0, sizeof( m_player ) );
+
+    // Prepare the room to store the frame names, once they will be created
+    // with FRAME_T type as index in this table.
+    // (note this is a list of frame names, but a non empty entry
+    // does not mean the frame still exists. It means only the frame was created
+    // at least once. It can be destroyed after. These entries are not cleared.
+    // the purpose is just to allow a call to wxWindow::FindWindowByName(), from
+    // a FRAME_T frame type
+    m_playerFrameName.Add( wxEmptyString, KIWAY_PLAYER_COUNT );
 }
 
 
+#if 0
 // Any event types derived from wxCommandEvt, like wxWindowDestroyEvent, are
-// propogated upwards to parent windows if not handled below.  Therefore the
+// propagated upwards to parent windows if not handled below.  Therefore the
 // m_top window should receive all wxWindowDestroyEvents originating from
 // KIWAY_PLAYERs.  It does anyways, but now player_destroy_handler eavesdrops
 // on that event stream looking for KIWAY_PLAYERs being closed.
 
 void KIWAY::player_destroy_handler( wxWindowDestroyEvent& event )
 {
-    wxWindow* w = event.GetWindow();
-
-    for( unsigned i=0; i < KIWAY_PLAYER_COUNT;  ++i )
-    {
-        // if destroying one of our flock, then mark it as deceased.
-        if( (wxWindow*) m_player[i] == w )
-        {
-            DBG(printf( "%s: m_player[%u] destroyed: %s\n",
-                __func__, i, TO_UTF8( m_player[i]->GetName() ) );)
-
-            m_player[i] = 0;
-        }
-    }
-
+    // Currently : do nothing
     event.Skip();  // skip to who, the wxApp?  I'm the top window.
 }
+#endif
 
 
 void KIWAY::SetTop( wxFrame* aTop )
 {
+#if 0
     if( m_top )
     {
         m_top->Disconnect( wxEVT_DESTROY, wxWindowDestroyEventHandler( KIWAY::player_destroy_handler ), NULL, this );
@@ -89,24 +87,25 @@ void KIWAY::SetTop( wxFrame* aTop )
     {
         aTop->Connect( wxEVT_DESTROY, wxWindowDestroyEventHandler( KIWAY::player_destroy_handler ), NULL, this );
     }
+#endif
 
     m_top = aTop;
 }
 
 
-const wxString KIWAY::dso_full_path( FACE_T aFaceId )
+const wxString KIWAY::dso_search_path( FACE_T aFaceId )
 {
-    const wxChar*   name;
+    const char*   name;
 
     switch( aFaceId )
     {
-    case FACE_SCH:              name = KIFACE_PREFIX wxT( "eeschema" );         break;
-    case FACE_PCB:              name = KIFACE_PREFIX wxT( "pcbnew" );           break;
-    case FACE_CVPCB:            name = KIFACE_PREFIX wxT( "cvpcb" );            break;
-    case FACE_GERBVIEW:         name = KIFACE_PREFIX wxT( "gerbview" );         break;
-    case FACE_PL_EDITOR:        name = KIFACE_PREFIX wxT( "pl_editor" );        break;
-    case FACE_PCB_CALCULATOR:   name = KIFACE_PREFIX wxT( "pcb_calculator" );   break;
-    case FACE_BMP2CMP:          name = KIFACE_PREFIX wxT( "bitmap2component" ); break;
+    case FACE_SCH:              name = KIFACE_PREFIX "eeschema";            break;
+    case FACE_PCB:              name = KIFACE_PREFIX "pcbnew";              break;
+    case FACE_CVPCB:            name = KIFACE_PREFIX "cvpcb";               break;
+    case FACE_GERBVIEW:         name = KIFACE_PREFIX "gerbview";            break;
+    case FACE_PL_EDITOR:        name = KIFACE_PREFIX "pl_editor";           break;
+    case FACE_PCB_CALCULATOR:   name = KIFACE_PREFIX "pcb_calculator";      break;
+    case FACE_BMP2CMP:          name = KIFACE_PREFIX "bitmap2component";    break;
 
     default:
         wxASSERT_MSG( 0, wxT( "caller has a bug, passed a bad aFaceId" ) );
@@ -114,7 +113,17 @@ const wxString KIWAY::dso_full_path( FACE_T aFaceId )
     }
 
 #ifndef __WXMAC__
-    wxFileName fn = wxStandardPaths::Get().GetExecutablePath();
+    wxString path;
+
+    if( m_ctl & (KFCTL_STANDALONE | KFCTL_CPP_PROJECT_SUITE) )
+    {
+        // The 2 *.cpp program launchers: single_top.cpp and kicad.cpp expect
+        // the *.kiface's to reside in same diretory as their binaries do.
+        // Not so for python launcher, identified by KFCTL_PY_PROJECT_SUITE
+        path = wxStandardPaths::Get().GetExecutablePath();
+    }
+
+    wxFileName fn = path;
 #else
     // we have the dso's in main OSX bundle kicad.app/Contents/PlugIns
     wxFileName fn = Pgm().GetExecutablePath();
@@ -155,10 +164,12 @@ KIFACE*  KIWAY::KiFACE( FACE_T aFaceId, bool doLoad )
     if( m_kiface[aFaceId] )
         return m_kiface[aFaceId];
 
+    wxString msg;
+
     // DSO with KIFACE has not been loaded yet, does caller want to load it?
     if( doLoad  )
     {
-        wxString dname = dso_full_path( aFaceId );
+        wxString dname = dso_search_path( aFaceId );
 
         wxDynamicLibrary dso;
 
@@ -167,15 +178,24 @@ KIFACE*  KIWAY::KiFACE( FACE_T aFaceId, bool doLoad )
         if( !dso.Load( dname, wxDL_VERBATIM | wxDL_NOW | wxDL_GLOBAL ) )
         {
             // Failure: error reporting UI was done via wxLogSysError().
-            // No further reporting required here.
-        }
+            // No further reporting required here.  Apparently this is not true on all
+            // platforms and/or wxWidgets builds and KiCad will crash.  Throwing the exception
+            // here and catching it in the KiCad launcher resolves the crash issue.  See bug
+            // report https://bugs.launchpad.net/kicad/+bug/1577786.
 
+            msg.Printf( _( "Failed to load kiface library '%s'." ), GetChars( dname ) );
+            THROW_IO_ERROR( msg );
+        }
         else if( ( addr = dso.GetSymbol( wxT( KIFACE_INSTANCE_NAME_AND_VERSION ) ) ) == NULL )
         {
             // Failure: error reporting UI was done via wxLogSysError().
-            // No further reporting required here.
+            // No further reporting required here.  Assume the same thing applies here as
+            // above with the Load() call.  This has not been tested.
+            msg.Printf(
+                _( "Could not read instance name and version symbol form kiface library '%s'." ),
+                GetChars( dname ) );
+            THROW_IO_ERROR( msg );
         }
-
         else
         {
             KIFACE_GETTER_FUNC* getter = (KIFACE_GETTER_FUNC*) addr;
@@ -184,7 +204,7 @@ KIFACE*  KIWAY::KiFACE( FACE_T aFaceId, bool doLoad )
 
             // KIFACE_GETTER_FUNC function comment (API) says the non-NULL is unconditional.
             wxASSERT_MSG( kiface,
-                wxT( "attempted DSO has a bug, failed to return a KIFACE*" ) );
+                          wxT( "attempted DSO has a bug, failed to return a KIFACE*" ) );
 
             // Give the DSO a single chance to do its "process level" initialization.
             // "Process level" specifically means stay away from any projects in there.
@@ -205,16 +225,16 @@ KIFACE*  KIWAY::KiFACE( FACE_T aFaceId, bool doLoad )
         // to exist, and we did not find one.  If we do not find one, this is an
         // installation bug.
 
-        wxString msg = wxString::Format( wxT(
+        msg = wxString::Format( _(
             "Fatal Installation Bug. File:\n"
             "'%s'\ncould not be loaded\n" ), GetChars( dname ) );
 
         if( ! wxFileExists( dname ) )
-            msg << wxT( "It is missing.\n" );
+            msg << _( "It is missing.\n" );
         else
-            msg << wxT( "Perhaps a shared library (.dll or .so) file is missing.\n" );
+            msg << _( "Perhaps a shared library (.dll or .so) file is missing.\n" );
 
-        msg << wxT( "From command line: argv[0]:\n'" );
+        msg << _( "From command line: argv[0]:\n'" );
         msg << wxStandardPaths::Get().GetExecutablePath() << wxT( "'\n" );
 
         // This is a fatal error, one from which we cannot recover, nor do we want
@@ -237,6 +257,7 @@ KIWAY::FACE_T KIWAY::KifaceType( FRAME_T aFrameType )
     case FRAME_SCH_LIB_EDITOR:
     case FRAME_SCH_VIEWER:
     case FRAME_SCH_VIEWER_MODAL:
+    case FRAME_SIMULATOR:
         return FACE_SCH;
 
     case FRAME_PCB:
@@ -271,14 +292,14 @@ KIWAY::FACE_T KIWAY::KifaceType( FRAME_T aFrameType )
 
 KIWAY_PLAYER* KIWAY::GetPlayerFrame( FRAME_T aFrameType )
 {
-    if( unsigned( aFrameType ) >= KIWAY_PLAYER_COUNT )
+    if( m_playerFrameName[aFrameType].IsEmpty() )
         return NULL;
 
-    return m_player[aFrameType];
+    return static_cast<KIWAY_PLAYER*>( wxWindow::FindWindowByName( m_playerFrameName[aFrameType] ) );
 }
 
 
-KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate )
+KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate, KIWAY_PLAYER* aParent )
 {
     // Since this will be called from python, cannot assume that code will
     // not pass a bad aFrameType.
@@ -308,14 +329,16 @@ KIWAY_PLAYER* KIWAY::Player( FRAME_T aFrameType, bool doCreate )
         if( kiface )
         {
             frame = (KIWAY_PLAYER*) kiface->CreateWindow(
-                    m_top,
+                    aParent,    // Parent window of frame, NULL in non modal mode
                     aFrameType,
                     this,
-                    m_ctl    // questionable need, these same flags where passed to the KIFACE::OnKifaceStart()
+                    m_ctl       // questionable need, these same flags where passed to the KIFACE::OnKifaceStart()
                     );
             wxASSERT( frame );
 
-            return m_player[aFrameType] = frame;
+            m_playerFrameName[aFrameType] = frame->GetName();
+
+            return frame;
         }
     }
 
@@ -342,10 +365,7 @@ bool KIWAY::PlayerClose( FRAME_T aFrameType, bool doForce )
         return true;
 
     if( frame->Close( doForce ) )
-    {
-        m_player[aFrameType] = 0;
         return true;
-    }
 
     return false;
 }
@@ -444,4 +464,3 @@ void KIWAY::OnKiwayEnd()
             m_kiface[i]->OnKifaceEnd();
     }
 }
-

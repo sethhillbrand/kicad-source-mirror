@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
+ * Copyright (C) 2004 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,8 +42,6 @@
 #include <class_library.h>
 #include <wildcards_and_files_ext.h>
 
-#include <boost/foreach.hpp>
-
 
 void LIB_EDIT_FRAME::LoadOneSymbol()
 {
@@ -77,7 +75,7 @@ void LIB_EDIT_FRAME::LoadOneSymbol()
 
     prj.SetRString( PROJECT::SCH_LIB_PATH, filename );
 
-    std::auto_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_SYMBOL, filename ) );
+    std::unique_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_SYMBOL, filename ) );
 
     wxString err;
 
@@ -111,10 +109,16 @@ void LIB_EDIT_FRAME::LoadOneSymbol()
         wxMessageBox( msg, _( "Warning" ), wxOK | wxICON_EXCLAMATION, this );
     }
 
-    LIB_PART*   first = lib->GetFirstEntry()->GetPart();
+    wxArrayString aliasNames;
+
+    lib->GetAliasNames( aliasNames );
+
+    wxCHECK_RET( !aliasNames.IsEmpty(), "No aliases found in library " + filename );
+
+    LIB_PART*   first = lib->FindAlias( aliasNames[0] )->GetPart();
     LIB_ITEMS&  drawList = first->GetDrawItemList();
 
-    BOOST_FOREACH( LIB_ITEM& item, drawList )
+    for( LIB_ITEM& item : drawList )
     {
         if( item.Type() == LIB_FIELD_T )
             continue;
@@ -217,7 +221,7 @@ void LIB_EDIT_FRAME::SaveOneSymbol()
 
             LIB_ITEMS& drawList = part->GetDrawItemList();
 
-            BOOST_FOREACH( LIB_ITEM& item, drawList )
+            for( LIB_ITEM& item : drawList )
             {
                 if( item.Type() == LIB_FIELD_T )
                     continue;
@@ -235,7 +239,7 @@ void LIB_EDIT_FRAME::SaveOneSymbol()
             formatter.Print( 0, "ENDDRAW\n" );
             formatter.Print( 0, "ENDDEF\n" );
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& )
         {
             msg.Printf( _( "An error occurred attempting to save symbol file '%s'" ),
                         GetChars( fn.GetFullPath() ) );
@@ -244,7 +248,7 @@ void LIB_EDIT_FRAME::SaveOneSymbol()
     }
     catch( const IO_ERROR& ioe )
     {
-        DisplayError( this, ioe.errorText );
+        DisplayError( this, ioe.What() );
         return;
     }
 }

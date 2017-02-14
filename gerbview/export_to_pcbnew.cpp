@@ -33,13 +33,11 @@
 #include <common.h>
 #include <confirm.h>
 #include <macros.h>
-#include <kicad_string.h>
-#include <gestfich.h>
 #include <trigo.h>
 #include <gerbview.h>
 #include <gerbview_frame.h>
-#include <class_gerber_draw_item.h>
-#include <class_GERBER.h>
+#include <class_gerber_file_image.h>
+#include <class_gerber_file_image_list.h>
 #include <select_layers_to_pcb.h>
 #include <build_version.h>
 #include <wildcards_and_files_ext.h>
@@ -49,8 +47,6 @@
 extern const wxString GetPCBDefaultLayerName( LAYER_NUM aLayerNumber );
 
 #define TO_PCB_UNIT( x ) ( x / IU_PER_MM)
-
-#define TRACK_TYPE  0
 
 /* A helper class to export a Gerber set of files to Pcbnew
  */
@@ -160,10 +156,11 @@ void GERBVIEW_FRAME::ExportDataInPcbnewFormat( wxCommandEvent& event )
 {
     int layercount = 0;
 
+    GERBER_FILE_IMAGE_LIST* images = GetGerberLayout()->GetImagesList();
     // Count the Gerber layers which are actually currently used
-    for( LAYER_NUM ii = 0; ii < GERBER_DRAWLAYERS_COUNT; ++ii )
+    for( LAYER_NUM ii = 0; ii < (LAYER_NUM)images->ImagesMaxCount(); ++ii )
     {
-        if( g_GERBER_List.GetGbrImage( ii ) )
+        if( images->GetGbrImage( ii ) )
             layercount++;
     }
 
@@ -224,33 +221,46 @@ bool GBR_TO_PCB_EXPORTER::ExportPcb( LAYER_NUM* aLayerLookUpTable, int aCopperLa
 
     // create an image of gerber data
     // First: non copper layers:
-    GERBER_DRAW_ITEM* gerb_item = m_gerbview_frame->GetItemsList();
-    int pcbCopperLayerMax = 31;
+    const int pcbCopperLayerMax = 31;
+    GERBER_FILE_IMAGE_LIST* images = m_gerbview_frame->GetGerberLayout()->GetImagesList();
 
-    for( ; gerb_item; gerb_item = gerb_item->Next() )
+    for( unsigned layer = 0; layer < images->ImagesMaxCount(); ++layer )
     {
-        int layer = gerb_item->GetLayer();
+        GERBER_FILE_IMAGE* gerber = images->GetGbrImage( layer );
+
+        if( gerber == NULL )    // Graphic layer not yet used
+            continue;
+
         LAYER_NUM pcb_layer_number = aLayerLookUpTable[layer];
 
         if( !IsPcbLayer( pcb_layer_number ) )
             continue;
 
-        if( pcb_layer_number > pcbCopperLayerMax )
+        if( pcb_layer_number <= pcbCopperLayerMax ) // copper layer
+            continue;
+
+        GERBER_DRAW_ITEM* gerb_item = gerber->GetItemsList();
+
+        for( ; gerb_item; gerb_item = gerb_item->Next() )
             export_non_copper_item( gerb_item, pcb_layer_number );
     }
 
     // Copper layers
-    gerb_item = m_gerbview_frame->GetItemsList();
-
-    for( ; gerb_item; gerb_item = gerb_item->Next() )
+    for( unsigned layer = 0; layer < images->ImagesMaxCount(); ++layer )
     {
-        int layer = gerb_item->GetLayer();
+        GERBER_FILE_IMAGE* gerber = images->GetGbrImage( layer );
+
+        if( gerber == NULL )    // Graphic layer not yet used
+            continue;
+
         LAYER_NUM pcb_layer_number = aLayerLookUpTable[layer];
 
         if( pcb_layer_number < 0 || pcb_layer_number > pcbCopperLayerMax )
             continue;
 
-        else
+        GERBER_DRAW_ITEM* gerb_item = gerber->GetItemsList();
+
+        for( ; gerb_item; gerb_item = gerb_item->Next() )
             export_copper_item( gerb_item, pcb_layer_number );
     }
 

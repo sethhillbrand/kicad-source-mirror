@@ -1,8 +1,3 @@
-/**
- * @file kicad.cpp
- * @brief Main KiCad Project manager file
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -27,52 +22,26 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+/**
+ * @file kicad.cpp
+ * @brief Main KiCad Project manager file
+ */
 
-#include <macros.h>
-#include <fctsys.h>
+
+#include <wx/filename.h>
+#include <wx/log.h>
 #include <wx/stdpaths.h>
-#include <kicad.h>
-#include <kiway.h>
-#include <pgm_kicad.h>
-#include <tree_project_frame.h>
-#include <wildcards_and_files_ext.h>
-#include <boost/ptr_container/ptr_vector.hpp>
+#include <wx/string.h>
+
+#include <common.h>
 #include <hotkeys_basic.h>
+#include <kiway.h>
+#include <richio.h>
+#include <wildcards_and_files_ext.h>
 
-#include <build_version.h>
+#include "pgm_kicad.h"
 
-
-/// Extend LIB_ENV_VAR list with the directory from which I came, prepending it.
-static void set_lib_env_var( const wxString& aAbsoluteArgv0 )
-{
-    // POLICY CHOICE 2: Keep same path, so that installer MAY put the
-    // "subsidiary DSOs" in the same directory as the kiway top process modules.
-    // A subsidiary shared library is one that is not a top level DSO, but rather
-    // some shared library that a top level DSO needs to even be loaded.  It is
-    // a static link to a shared object from a top level DSO.
-
-    // This directory POLICY CHOICE 2 is not the only dir in play, since LIB_ENV_VAR
-    // has numerous path options in it, as does DSO searching on linux, windows, and OSX.
-    // See "man ldconfig" on linux. What's being done here is for quick installs
-    // into a non-standard place, and especially for Windows users who may not
-    // know what the PATH environment variable is or how to set it.
-
-    wxFileName  fn( aAbsoluteArgv0 );
-
-    wxString    ld_path( LIB_ENV_VAR );
-    wxString    my_path   = fn.GetPath();
-    wxString    new_paths = PrePendPath( ld_path, my_path );
-
-    wxSetEnv( ld_path, new_paths );
-
-#if defined(DEBUG)
-    {
-        wxString    test;
-        wxGetEnv( ld_path, &test );
-        printf( "LIB_ENV_VAR:'%s'\n", TO_UTF8( test ) );
-    }
-#endif
-}
+#include "kicad.h"
 
 
 // a dummy to quiet linking with EDA_BASE_FRAME::config();
@@ -89,16 +58,22 @@ KIFACE_I& Kiface()
 
 static PGM_KICAD program;
 
-PGM_KICAD& Pgm()
+
+PGM_BASE& Pgm()
 {
     return program;
 }
 
 
-bool PGM_KICAD::OnPgmInit( wxApp* aWxApp )
+PGM_KICAD& PgmTop()
 {
-    m_wx_app = aWxApp;      // first thing.
+    return program;
+}
 
+
+bool PGM_KICAD::OnPgmInit()
+{
+#if defined(DEBUG)
     wxString absoluteArgv0 = wxStandardPaths::Get().GetExecutablePath();
 
     if( !wxIsAbsolutePath( absoluteArgv0 ) )
@@ -106,12 +81,9 @@ bool PGM_KICAD::OnPgmInit( wxApp* aWxApp )
         wxLogError( wxT( "No meaningful argv[0]" ) );
         return false;
     }
+#endif
 
-    // Set LIB_ENV_VAR *before* loading the KIFACE DSOs, in case they have hard
-    // dependencies on subsidiary DSOs below it.
-    set_lib_env_var( absoluteArgv0 );
-
-    if( !initPgm() )
+    if( !InitPgm() )
         return false;
 
     m_bm.Init();
@@ -178,12 +150,12 @@ bool PGM_KICAD::OnPgmInit( wxApp* aWxApp )
             prjloaded = true;    // OnFileHistory() loads the project
         }
     }
-    else	// there is no history
+    else	 // there is no history
     {
-            wxFileName namelessProject( wxStandardPaths::Get().GetDocumentsDir(), NAMELESS_PROJECT,
-                                        ProjectFileExtension );
+        wxFileName namelessProject( wxStandardPaths::Get().GetDocumentsDir(), NAMELESS_PROJECT,
+                                    ProjectFileExtension );
 
-            frame->SetProjectFileName( namelessProject.GetFullPath() );
+        frame->SetProjectFileName( namelessProject.GetFullPath() );
     }
 
     if( !prjloaded )
@@ -204,12 +176,12 @@ void PGM_KICAD::OnPgmExit()
 {
     Kiway.OnKiwayEnd();
 
-    saveCommonSettings();
+    SaveCommonSettings();
 
     // write common settings to disk, and destroy everything in PGM_KICAD,
     // especially wxSingleInstanceCheckerImpl earlier than wxApp and earlier
     // than static destruction would.
-    destroy();
+    Destroy();
 }
 
 
@@ -228,14 +200,14 @@ void PGM_KICAD::MacOpenFile( const wxString& aFileName )
 }
 
 
-void PGM_KICAD::destroy()
+void PGM_KICAD::Destroy()
 {
     // unlike a normal destructor, this is designed to be called more
     // than once safely:
 
     m_bm.End();
 
-    PGM_BASE::destroy();
+    PGM_BASE::Destroy();
 }
 
 
@@ -262,25 +234,19 @@ struct APP_KICAD : public wxApp
     }
 #endif
 
-    bool OnInit()           // overload wxApp virtual
+    bool OnInit()           override
     {
-        // if( Kiways.OnStart( this ) )
-        {
-            return Pgm().OnPgmInit( this );
-        }
-        return false;
+        return program.OnPgmInit();
     }
 
-    int  OnExit()           // overload wxApp virtual
+    int  OnExit()           override
     {
-        // Kiways.OnEnd();
-
-        Pgm().OnPgmExit();
+        program.OnPgmExit();
 
         return wxApp::OnExit();
     }
 
-    int OnRun()             // overload wxApp virtual
+    int OnRun()             override
     {
         try
         {
@@ -294,7 +260,7 @@ struct APP_KICAD : public wxApp
         }
         catch( const IO_ERROR& ioe )
         {
-            wxLogError( GetChars( ioe.errorText ) );
+            wxLogError( GetChars( ioe.What() ) );
         }
         catch(...)
         {
@@ -310,7 +276,7 @@ struct APP_KICAD : public wxApp
      * MacOSX requires it for file association.
      * @see http://wiki.wxwidgets.org/WxMac-specific_topics
      */
-    void MacOpenFile( const wxString& aFileName )   // overload wxApp virtual
+    void MacOpenFile( const wxString& aFileName )
     {
         Pgm().MacOpenFile( aFileName );
     }
@@ -326,21 +292,3 @@ PROJECT& Prj()
     return Kiway.Prj();
 }
 
-
-#if 0   // there can be only one in C++ project manager.
-
-bool KIWAY_MGR::OnStart( wxApp* aProcess )
-{
-    // The C++ project manager supports only one open PROJECT
-    // We should need no copy constructor for KIWAY to push a pointer.
-    m_kiways.push_back( new KIWAY() );
-
-    return true;
-}
-
-
-void KIWAY_MGR::OnEnd()
-{
-}
-
-#endif

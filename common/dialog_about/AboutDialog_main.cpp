@@ -22,12 +22,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <dialog_about.h>
-#include <aboutinfo.h>
-#include <wx/aboutdlg.h>
-#include <wx/textctrl.h>
 #include <boost/version.hpp>
-
+#include <wx/aboutdlg.h>
+#include <wx/arrimpl.cpp>
+#include <wx/textctrl.h>
+#include <wx/utils.h>
 
 /* Used icons:
  *  lang_xx_xpm[];      // Icons of various national flags
@@ -36,13 +35,15 @@
  *  icon_kicad_xpm[];   // Icon of the application
  */
 #include <bitmaps.h>
-#include <wxstruct.h>
+#include <build_version.h>
 #include <common.h>
 #include <pgm_base.h>
-#include <build_version.h>
+#include <wxstruct.h>
+
+#include "aboutinfo.h"
+#include "dialog_about.h"
 
 
-#include <wx/arrimpl.cpp>
 WX_DEFINE_OBJARRAY( Contributors )
 
 // Helper functions:
@@ -74,14 +75,14 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
     }
 
     /* Set title */
-    info.SetAppName( wxT( ".: " ) + Pgm().App().GetAppName() + wxT( " :." ) );
+    info.SetAppName( Pgm().App().GetAppName() );
 
     /* Copyright information */
-    info.SetCopyright( wxT( "(C) 1992-2015 KiCad Developers Team" ) );
+    info.SetCopyright( wxT( "(C) 1992-2016 KiCad Developers Team" ) );
 
     /* KiCad build version */
     wxString version;
-    version << wxT( "Version: " ) << GetBuildVersion()
+    version << GetBuildVersion()
 #ifdef DEBUG
             << wxT( ", debug" )
 #else
@@ -93,16 +94,13 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
 
     /* wxWidgets version */
     wxString libVersion;
-    libVersion << wxT( "wxWidgets " )
-               << wxMAJOR_VERSION << wxT( "." )
-               << wxMINOR_VERSION << wxT( "." )
-               << wxRELEASE_NUMBER
+    libVersion << wxGetLibraryVersionInfo().GetVersionString();
 
     /* Unicode or ANSI version */
 #if wxUSE_UNICODE
-               << wxT( " Unicode " );
+    libVersion << wxT( " Unicode " );
 #else
-               << wxT( " ANSI " );
+    libVersion << wxT( " ANSI " );
 #endif
 
     // Just in case someone builds KiCad with the platform native of Boost instead of
@@ -139,8 +137,7 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
     description << wxT( "</p>" );
 
     /* websites */
-    description << wxT( "<p>" );
-    description << wxT( "<b><u>" )
+    description << wxT( "<p><b><u>" )
                 << _( "KiCad on the web" )
                 << wxT( "</u></b>" ); // bold & underlined font for caption
 
@@ -151,47 +148,61 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
                                   _( "The official KiCad site" ) )
                 << wxT( "</li>" );
     description << wxT( "<li>" )
-                << HtmlHyperlink( wxT( "http://iut-tice.ujf-grenoble.fr/kicad" ),
-                                  _( "The original site of the KiCad project founder" ) )
-                << wxT( "</li>" );
-    description << wxT( "<li>" )
                 << HtmlHyperlink( wxT( "https://launchpad.net/kicad" ),
                                   _( "Developer's website on Launchpad" ) )
                 << wxT("</li>" );
     description << wxT( "<li>" )
+                << HtmlHyperlink( wxT( "https://github.com/KiCad/" ),
+                                  _( "Our official Repository for component and footprint libraries" ) )
+                << wxT( "</li>" );
+
+    description << wxT( "<p><u>" )
+                << _( "Non official repositories" )
+                << wxT( "</u>" );
+    description << wxT( "<li>" )
                 << HtmlHyperlink( wxT( "http://www.kicadlib.org" ),
-                                  _( "Repository with additional component libraries" ) )
+                                  _( "Additional component libraries repository (kicadlib)" ) )
+                << wxT( "</li>" );
+    description << wxT( "<li>" )
+                << HtmlHyperlink( wxT( "http://smisioto.no-ip.org/elettronica/kicad/kicad-en.htm" ),
+                                  _( "Additional component libraries repository (smisioto)" ) )
                 << wxT( "</li>" );
     description << wxT( "</ul>" );
     description << wxT( "</p>" );
 
-    description << wxT( "<p>" );
-    description << wxT( "<b><u>" )
-                << _( "Contribute to KiCad" )
+    description << wxT( "<p><b><u>" )
+                << _( "Bug tracker" )
                 << wxT( "</u></b>" ); // bold & underlined font caption
 
     // bullet-ed list with some http links
     description << wxT( "<ul>" );
     description << wxT( "<li>" )
-                <<HtmlHyperlink( wxT( "https://bugs.launchpad.net/kicad" ),
-                                 _( "Report bugs if you found any" ) )
+                <<HtmlHyperlink( wxT( "https://bugs.launchpad.net/kicad/+bugs?orderby=-id&start=0" ),
+                                 _( "Report or examine bugs" ) )
                 << wxT( "</li>" );
-    description << wxT( "<li>" )
-                << HtmlHyperlink( wxT( "https://blueprints.launchpad.net/kicad" ),
-                                  _( "File an idea for improvement" ) )
-                << wxT( "</li>" );
-    description << wxT( "<li>" )
-                << HtmlHyperlink( wxT( "http://www.kicadlib.org/Kicad_related_links.html" ),
-                                  _( "KiCad links to user groups, tutorials and much more" ) )
-                << wxT( "</li>" );
-    description << wxT( "</ul>" );
+    description << wxT( "</ul></p>" );
 
-    description << wxT( "</p>" );
+    description << wxT( "<p><b><u>" )
+                << _( "KiCad user group and community" )
+                << wxT( "</u></b>" ); // bold & underlined font caption
+
+    description << wxT( "<ul>" );
+    description << wxT( "<li>" )
+                << HtmlHyperlink( wxT( "https://groups.yahoo.com/neo/groups/kicad-users/info" ),
+                                  _( "KiCad user group" ) )
+                << wxT( "</li>" );
+
+    description << wxT( "<li>" )
+                << HtmlHyperlink( wxT( "https://forum.kicad.info" ),
+                                  _( "KiCad forum" ) )
+                << wxT( "</li>" );
+
+    description << wxT( "</ul></p>" );
 
     info.SetDescription( description );
 
 
-    /* License information also HTML formatted */
+    // License information also HTML formatted:
     wxString license;
     license
         << wxT( "<div align='center'>" )
@@ -298,6 +309,10 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
      * As category the language to which the translation was done is used
      * and as icon the national flag of the corresponding country.
      */
+    info.AddTranslator( new Contributor( wxT( "Robert Buj" ),
+                                         wxT( "rbuj@fedoraproject.org" ),
+                                         wxT( "Catalan (CA)" ),
+                                         KiBitmapNew( lang_catalan_xpm ) ) );
     info.AddTranslator( new Contributor( wxT( "Martin Kratoška" ),
                                          wxT( "martin@ok1rr.com" ),
                                          wxT( "Czech (CZ)" ),
@@ -387,42 +402,45 @@ static void InitKiCadAboutNew( AboutAppInfo& info )
                                          wxT( "Bulgarian (BG)" ),
                                          KiBitmapNew( lang_bg_xpm ) ) );
 
-    // TODO: are these all russian translators,
-    // placed them here now,
-    // or else align them below other language maintainer with mail adress
+    // Maintainer who helper in translations, but not in a specific translation
+    #define OTHERS_IN_TRANSLATION _( "Others" )
     info.AddTranslator( new Contributor( wxT( "Remy Halvick" ),
                                          wxEmptyString,
-                                         wxT( "Others" ) ) );
+                                         OTHERS_IN_TRANSLATION ) );
     info.AddTranslator( new Contributor( wxT( "David Briscoe" ),
                                          wxEmptyString,
-                                         wxT( "Others" ) ) );
+                                         OTHERS_IN_TRANSLATION ) );
     info.AddTranslator( new Contributor( wxT( "Dominique Laigle" ),
                                          wxEmptyString,
-                                         wxT( "Others" ) ) );
+                                         OTHERS_IN_TRANSLATION ) );
     info.AddTranslator( new Contributor( wxT( "Paul Burke" ),
                                          wxEmptyString,
-                                         wxT( "Others" ) ) );
+                                         OTHERS_IN_TRANSLATION ) );
 
     // Programm credits for icons
+    #define ICON_CONTRIBUTION _( "Icons by" )
     info.AddArtist( new Contributor( wxT( "Iñigo Zuluaga" ),
                                      wxT( "inigo_zuluaga@yahoo.es" ),
-                                     wxT( "Icons by" ),
+                                     ICON_CONTRIBUTION,
                                      KiBitmapNew( edit_module_xpm ) ) );
     info.AddArtist( new Contributor( wxT( "Konstantin Baranovskiy" ),
                                      wxT( "baranovskiykonstantin@gmail.com" ),
-                                     wxT( "New icons by" ),
+                                     ICON_CONTRIBUTION,
                                      KiBitmapNew( edit_module_xpm ) ) );
     info.AddArtist( new Contributor( wxT( "Fabrizio Tappero" ),
                                      wxT( "fabrizio.tappero@gmail.com" ),
-                                     wxT( "New icons by" ),
+                                     ICON_CONTRIBUTION,
                                      KiBitmapNew( edit_module_xpm ) ) );
+
+    // Programm credits for 3d models
+    #define MODELS_3D_CONTRIBUTION _( "3D models by" )
     info.AddArtist( new Contributor( wxT( "Christophe Boschat" ),
                                      wxT( "nox454@hotmail.fr" ),
-                                     wxT( "3D models by" ),
+                                     MODELS_3D_CONTRIBUTION,
                                      KiBitmapNew( three_d_xpm ) ) );
     info.AddArtist( new Contributor( wxT( "Renie Marquet" ),
                                      wxT( "reniemarquet@uol.com.br" ),
-                                     wxT( "3D models by" ),
+                                     MODELS_3D_CONTRIBUTION,
                                      KiBitmapNew( three_d_xpm ) ) );
 
     // Programm credits for package developers.

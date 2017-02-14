@@ -71,7 +71,7 @@ bool LIB_TEXT::Save( OUTPUTFORMATTER& aFormatter )
         text.Replace( wxT( " " ), wxT( "~" ) );
     }
 
-    aFormatter.Print( 0, "T %g %d %d %d %d %d %d %s ", GetOrientation(), m_Pos.x, m_Pos.y,
+    aFormatter.Print( 0, "T %g %d %d %d %d %d %d %s", GetOrientation(), m_Pos.x, m_Pos.y,
                       m_Size.x, m_Attributs, m_Unit, m_Convert, TO_UTF8( text ) );
 
     aFormatter.Print( 0, " %s %d", m_Italic ? "Italic" : "Normal", ( m_Bold > 0 ) ? 1 : 0 );
@@ -142,7 +142,7 @@ bool LIB_TEXT::Load( LINE_READER& aLineReader, wxString& errorMsg )
 
     m_Size.y = m_Size.x;
 
-    if( strnicmp( tmp, "Italic", 6 ) == 0 )
+    if( strncasecmp( tmp, "Italic", 6 ) == 0 )
         m_Italic = true;
 
     if( thickness > 0 )

@@ -1,9 +1,9 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2015 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,22 +25,20 @@
 
 /**
  * @file sch_text.cpp
- * @brief Code for handling schematic sheet labels.
+ * @brief Code for handling schematic texts (texts, labels, hlabels and global labels).
  */
 
 #include <fctsys.h>
 #include <gr_basic.h>
 #include <macros.h>
 #include <trigo.h>
-#include <eeschema_id.h>
 #include <class_drawpanel.h>
 #include <drawtxt.h>
 #include <schframe.h>
 #include <plot_common.h>
-#include <base_units.h>
 #include <msgpanel.h>
+#include <gal/stroke_font.h>
 
-#include <general.h>
 #include <protos.h>
 #include <sch_text.h>
 #include <class_netlist_object.h>
@@ -48,6 +46,11 @@
 
 extern void IncrementLabelMember( wxString& name, int aIncrement );
 
+// Only for tests: set DRAW_BBOX to 1 to draw the bounding box of labels
+#define DRAW_BBOX 0
+
+// Margin in internal units (mils) between labels and wires
+#define TXT_MARGIN 4
 
 /* Names of sheet label types. */
 const char* SheetLabelType[] =
@@ -102,11 +105,11 @@ static int* TemplateShape[5][4] =
 
 SCH_TEXT::SCH_TEXT( const wxPoint& pos, const wxString& text, KICAD_T aType ) :
     SCH_ITEM( NULL, aType ),
-    EDA_TEXT( text )
+    EDA_TEXT( text ),
+    m_shape( NET_INPUT )
 {
     m_Layer = LAYER_NOTES;
     m_Pos = pos;
-    m_shape = 0;
     m_isDangling = false;
     m_MultilineAllowed = true;
     m_schematicOrientation = 0;
@@ -141,25 +144,28 @@ wxPoint SCH_TEXT::GetSchematicTextOffset() const
 {
     wxPoint text_offset;
 
-    // add a small offset (TXTMARGE) to x ( or y) position to allow a text to
+    // add an offset to x ( or y) position to allow a text to
     // be on a wire or a line and be readable
+    int thick_offset = TXT_MARGIN +
+                       ( GetPenSize() + GetDefaultLineThickness() ) / 2;
+
     switch( m_schematicOrientation )
     {
     default:
     case 0: /* Horiz Normal Orientation (left justified) */
-        text_offset.y = -TXTMARGE;
+        text_offset.y = -thick_offset;
         break;
 
     case 1: /* Vert Orientation UP */
-        text_offset.x = -TXTMARGE;
+        text_offset.x = -thick_offset;
         break;
 
     case 2: /* Horiz Orientation - Right justified */
-        text_offset.y = -TXTMARGE;
+        text_offset.y = -thick_offset;
         break;
 
     case 3: /*  Vert Orientation BOTTOM */
-        text_offset.x = -TXTMARGE;
+        text_offset.x = -thick_offset;
         break;
     }
 
@@ -361,7 +367,7 @@ void SCH_TEXT::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& aOffset,
         DrawDanglingSymbol( panel, DC, m_Pos + aOffset, color );
 
     // Enable these line to draw the bounding box (debug tests purposes only)
-#if 0
+#if DRAW_BBOX
     {
         EDA_RECT BoundaryBox = GetBoundingBox();
         GRRect( clipbox, DC, BoundaryBox, 0, BROWN );
@@ -478,7 +484,7 @@ bool SCH_TEXT::Load( LINE_READER& aLine, wxString& aErrorMsg )
         m_Thickness = m_Bold ? GetPenSizeForBold( size ) : 0;
     }
 
-    if( strnicmp( Name2, "Italic", 6 ) == 0 )
+    if( strncasecmp( Name2, "Italic", 6 ) == 0 )
         m_Italic = 1;
 
     return true;
@@ -656,9 +662,7 @@ bool SCH_TEXT::HitTest( const EDA_RECT& aRect, bool aContained, int aAccuracy ) 
 void SCH_TEXT::Plot( PLOTTER* aPlotter )
 {
     static std::vector <wxPoint> Poly;
-
     EDA_COLOR_T color = GetLayerColor( GetLayer() );
-    wxPoint     textpos   = m_Pos + GetSchematicTextOffset();
     int         thickness = GetPenSize();
 
     aPlotter->SetCurrentLineWidth( thickness );
@@ -674,13 +678,15 @@ void SCH_TEXT::Plot( PLOTTER* aPlotter )
 
         for( unsigned ii = 0; ii < strings_list.Count(); ii++ )
         {
+            wxPoint textpos = positions[ii] + GetSchematicTextOffset();
             wxString& txt = strings_list.Item( ii );
-            aPlotter->Text( positions[ii], color, txt, m_Orient, m_Size, m_HJustify,
+            aPlotter->Text( textpos, color, txt, m_Orient, m_Size, m_HJustify,
                             m_VJustify, thickness, m_Italic, m_Bold );
         }
     }
     else
     {
+        wxPoint textpos = m_Pos + GetSchematicTextOffset();
         aPlotter->Text( textpos, color, GetShownText(), m_Orient, m_Size, m_HJustify,
                         m_VJustify, thickness, m_Italic, m_Bold );
     }
@@ -941,7 +947,7 @@ bool SCH_LABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
         m_Thickness = m_Bold ? GetPenSizeForBold( size ) : 0;
     }
 
-    if( stricmp( Name2, "Italic" ) == 0 )
+    if( strcasecmp( Name2, "Italic" ) == 0 )
         m_Italic = 1;
 
     return true;
@@ -957,49 +963,22 @@ void SCH_LABEL::Draw( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
 
 const EDA_RECT SCH_LABEL::GetBoundingBox() const
 {
-    int x, y, dx, dy, length, height;
+    int linewidth = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
+    EDA_RECT rect = GetTextBox( -1, linewidth );
 
-    x = m_Pos.x;
-    y = m_Pos.y;
-    int width = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
-    length = LenSize( GetShownText() );
-    height = m_Size.y + width;
-    dx     = dy = 0;
+    if( m_Orient )
+    {   // Rotate rect
+        wxPoint pos = rect.GetOrigin();
+        wxPoint end = rect.GetEnd();
+        RotatePoint( &pos, m_Pos, m_Orient );
+        RotatePoint( &end, m_Pos, m_Orient );
+        rect.SetOrigin( pos );
+        rect.SetEnd( end );
 
-    switch( m_schematicOrientation )
-    {
-    case 0:             /* Horiz Normal Orientation (left justified) */
-        dx = 2 * DANGLING_SYMBOL_SIZE + length;
-        dy = -2 * DANGLING_SYMBOL_SIZE - height - TXTMARGE;
-        x -= DANGLING_SYMBOL_SIZE;
-        y += DANGLING_SYMBOL_SIZE;
-        break;
-
-    case 1:     /* Vert Orientation UP */
-        dx = -2 * DANGLING_SYMBOL_SIZE - height - TXTMARGE;
-        dy = -2 * DANGLING_SYMBOL_SIZE - length;
-        x += DANGLING_SYMBOL_SIZE;
-        y += DANGLING_SYMBOL_SIZE;
-        break;
-
-    case 2:     /* Horiz Orientation - Right justified */
-        dx = -2 * DANGLING_SYMBOL_SIZE - length;
-        dy = -2 * DANGLING_SYMBOL_SIZE - height - TXTMARGE;
-        x += DANGLING_SYMBOL_SIZE;
-        y += DANGLING_SYMBOL_SIZE;
-        break;
-
-    case 3:     /*  Vert Orientation BOTTOM */
-        dx = -2 * DANGLING_SYMBOL_SIZE - height - TXTMARGE;
-        dy = 2 * DANGLING_SYMBOL_SIZE + length;
-        x += DANGLING_SYMBOL_SIZE;
-        y -= DANGLING_SYMBOL_SIZE;
-        break;
+        rect.Normalize();
     }
 
-    EDA_RECT box( wxPoint( x, y ), wxSize( dx, dy ) );
-    box.Normalize();
-    return box;
+    return rect;
 }
 
 
@@ -1098,19 +1077,19 @@ bool SCH_GLOBALLABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
     m_Bold = ( thickness != 0 );
     m_Thickness = m_Bold ? GetPenSizeForBold( size ) : 0;
 
-    if( stricmp( Name2, SheetLabelType[NET_OUTPUT] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_OUTPUT] ) == 0 )
         m_shape = NET_OUTPUT;
 
-    if( stricmp( Name2, SheetLabelType[NET_BIDI] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_BIDI] ) == 0 )
         m_shape = NET_BIDI;
 
-    if( stricmp( Name2, SheetLabelType[NET_TRISTATE] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_TRISTATE] ) == 0 )
         m_shape = NET_TRISTATE;
 
-    if( stricmp( Name2, SheetLabelType[NET_UNSPECIFIED] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_UNSPECIFIED] ) == 0 )
         m_shape = NET_UNSPECIFIED;
 
-    if( stricmp( Name3, "Italic" ) == 0 )
+    if( strcasecmp( Name3, "Italic" ) == 0 )
         m_Italic = 1;
 
     return true;
@@ -1169,7 +1148,7 @@ wxPoint SCH_GLOBALLABEL::GetSchematicTextOffset() const
     int     width = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
 
     width = Clamp_Text_PenSize( width, m_Size, m_Bold );
-    int     HalfSize = m_Size.x / 2;
+    int     halfSize = m_Size.x / 2;
     int     offset   = width;
 
     switch( m_shape )
@@ -1177,12 +1156,12 @@ wxPoint SCH_GLOBALLABEL::GetSchematicTextOffset() const
     case NET_INPUT:
     case NET_BIDI:
     case NET_TRISTATE:
-        offset += HalfSize;
+        offset += halfSize;
         break;
 
     case NET_OUTPUT:
     case NET_UNSPECIFIED:
-        offset += TXTMARGE;
+        offset += TXT_MARGIN;
         break;
 
     default:
@@ -1277,7 +1256,7 @@ void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
         DrawDanglingSymbol( panel, DC, m_Pos + aOffset, color );
 
     // Enable these line to draw the bounding box (debug tests purposes only)
-#if 0
+#if DRAW_BBOX
     {
         EDA_RECT BoundaryBox = GetBoundingBox();
         GRRect( clipbox, DC, BoundaryBox, 0, BROWN );
@@ -1288,26 +1267,45 @@ void SCH_GLOBALLABEL::Draw( EDA_DRAW_PANEL* panel,
 
 void SCH_GLOBALLABEL::CreateGraphicShape( std::vector <wxPoint>& aPoints, const wxPoint& Pos )
 {
-    int HalfSize  = m_Size.y / 2;
+    int halfSize  = m_Size.y / 2;
     int linewidth = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
 
     linewidth = Clamp_Text_PenSize( linewidth, m_Size, m_Bold );
 
     aPoints.clear();
 
-    int symb_len = LenSize( GetShownText() ) + ( TXTMARGE * 2 );
+    int symb_len = LenSize( GetShownText() ) + ( TXT_MARGIN * 2 );
 
     // Create outline shape : 6 points
     int x = symb_len + linewidth + 3;
 
     // Use negation bar Y position to calculate full vertical size
-    #define Y_CORRECTION 1.3
-    // Note: this factor is due to the fact the negation bar Y position
-    // does not give exactly the full Y size of text
-    // and is experimentally set  to this value
-    int y = KiROUND( OverbarPositionY( HalfSize ) * Y_CORRECTION );
-    // add room for line thickness and space between top of text and graphic shape
-    y += linewidth;
+    // Search for overbar symbol
+    bool hasOverBar = false;
+
+    for( unsigned ii = 1; ii < m_Text.size(); ii++ )
+    {
+        if( m_Text[ii-1] == '~' && m_Text[ii] != '~' )
+        {
+            hasOverBar = true;
+            break;
+        }
+    }
+
+    #define Y_CORRECTION 1.40
+    // Note: this factor is due to the fact the Y size of a few letters like [
+    // are bigger than the y size value, and we need a margin for the graphic symbol.
+    int y = KiROUND( halfSize * Y_CORRECTION );
+
+    // Note: this factor is due to the fact we need a margin for the graphic symbol.
+    #define Y_OVERBAR_CORRECTION 1.2
+    if( hasOverBar )
+        y = KiROUND( KIGFX::STROKE_FONT::GetInterline( halfSize, linewidth )
+                     * Y_OVERBAR_CORRECTION );
+
+    // Gives room for line thickess and margin
+    y += linewidth          // for line thickess
+         + linewidth/2;     // for margin
 
     // Starting point(anchor)
     aPoints.push_back( wxPoint( 0, 0 ) );
@@ -1322,19 +1320,19 @@ void SCH_GLOBALLABEL::CreateGraphicShape( std::vector <wxPoint>& aPoints, const 
     switch( m_shape )
     {
     case NET_INPUT:
-        x_offset = -HalfSize;
-        aPoints[0].x += HalfSize;
+        x_offset = -halfSize;
+        aPoints[0].x += halfSize;
         break;
 
     case NET_OUTPUT:
-        aPoints[3].x -= HalfSize;
+        aPoints[3].x -= halfSize;
         break;
 
     case NET_BIDI:
     case NET_TRISTATE:
-        x_offset = -HalfSize;
-        aPoints[0].x += HalfSize;
-        aPoints[3].x -= HalfSize;
+        x_offset = -halfSize;
+        aPoints[0].x += halfSize;
+        aPoints[3].x -= halfSize;
         break;
 
     case NET_UNSPECIFIED:
@@ -1386,7 +1384,7 @@ const EDA_RECT SCH_GLOBALLABEL::GetBoundingBox() const
     dx = dy = 0;
 
     int width = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
-    height = ( (m_Size.y * 15) / 10 ) + width + 2 * TXTMARGE;
+    height = ( (m_Size.y * 15) / 10 ) + width + 2 * TXT_MARGIN;
 
     // text X size add height for triangular shapes(bidirectional)
     length = LenSize( GetShownText() ) + height + DANGLING_SYMBOL_SIZE;
@@ -1523,19 +1521,19 @@ bool SCH_HIERLABEL::Load( LINE_READER& aLine, wxString& aErrorMsg )
     m_Bold = ( thickness != 0 );
     m_Thickness = m_Bold ? GetPenSizeForBold( size ) : 0;
 
-    if( stricmp( Name2, SheetLabelType[NET_OUTPUT] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_OUTPUT] ) == 0 )
         m_shape = NET_OUTPUT;
 
-    if( stricmp( Name2, SheetLabelType[NET_BIDI] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_BIDI] ) == 0 )
         m_shape = NET_BIDI;
 
-    if( stricmp( Name2, SheetLabelType[NET_TRISTATE] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_TRISTATE] ) == 0 )
         m_shape = NET_TRISTATE;
 
-    if( stricmp( Name2, SheetLabelType[NET_UNSPECIFIED] ) == 0 )
+    if( strcasecmp( Name2, SheetLabelType[NET_UNSPECIFIED] ) == 0 )
         m_shape = NET_UNSPECIFIED;
 
-    if( stricmp( Name3, "Italic" ) == 0 )
+    if( strcasecmp( Name3, "Italic" ) == 0 )
         m_Italic = 1;
 
     return true;
@@ -1609,7 +1607,7 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
         DrawDanglingSymbol( panel, DC, m_Pos + offset, color );
 
     // Enable these line to draw the bounding box (debug tests purposes only)
-#if 0
+#if DRAW_BBOX
     {
         EDA_RECT BoundaryBox = GetBoundingBox();
         GRRect( clipbox, DC, BoundaryBox, 0, BROWN );
@@ -1621,7 +1619,7 @@ void SCH_HIERLABEL::Draw( EDA_DRAW_PANEL* panel,
 void SCH_HIERLABEL::CreateGraphicShape( std::vector <wxPoint>& aPoints, const wxPoint& Pos )
 {
     int* Template = TemplateShape[m_shape][m_schematicOrientation];
-    int  HalfSize = m_Size.x / 2;
+    int  halfSize = m_Size.x / 2;
 
     int  imax = *Template; Template++;
 
@@ -1630,10 +1628,10 @@ void SCH_HIERLABEL::CreateGraphicShape( std::vector <wxPoint>& aPoints, const wx
     for( int ii = 0; ii < imax; ii++ )
     {
         wxPoint corner;
-        corner.x = ( HalfSize * (*Template) ) + Pos.x;
+        corner.x = ( halfSize * (*Template) ) + Pos.x;
         Template++;
 
-        corner.y = ( HalfSize * (*Template) ) + Pos.y;
+        corner.y = ( halfSize * (*Template) ) + Pos.y;
         Template++;
 
         aPoints.push_back( corner );
@@ -1650,7 +1648,7 @@ const EDA_RECT SCH_HIERLABEL::GetBoundingBox() const
     dx = dy = 0;
 
     int width = (m_Thickness == 0) ? GetDefaultLineThickness() : m_Thickness;
-    height = m_Size.y + width + 2 * TXTMARGE;
+    height = m_Size.y + width + 2 * TXT_MARGIN;
     length = LenSize( GetShownText() )
              + height                 // add height for triangular shapes
              + 2 * DANGLING_SYMBOL_SIZE;
@@ -1698,7 +1696,7 @@ wxPoint SCH_HIERLABEL::GetSchematicTextOffset() const
 
     int     width = std::max( m_Thickness, GetDefaultLineThickness() );
 
-    int     ii = m_Size.x + TXTMARGE + width;
+    int     ii = m_Size.x + TXT_MARGIN + width;
 
     switch( m_schematicOrientation )
     {

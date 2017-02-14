@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -50,22 +50,12 @@
 
 void LIB_EDIT_FRAME::DisplayLibInfos()
 {
-    wxString        msg = _( "Part Library Editor: " );
-    PART_LIB*    lib = GetCurLib();
+    PART_LIB* lib = GetCurLib();
+    wxString title = wxString::Format( L"Part Library Editor \u2014 %s%s",
+            lib ? lib->GetFullFileName() : _( "no library selected" ),
+            lib && lib->IsReadOnly() ? _( " [Read Only] ") : wxString( wxEmptyString ) );
 
-    if( lib )
-    {
-        msg += lib->GetFullFileName();
-
-        if( lib->IsReadOnly() )
-            msg += _( " [Read Only]" );
-    }
-    else
-    {
-        msg += _( "no library selected" );
-    }
-
-    SetTitle( msg );
+    SetTitle( title );
 }
 
 
@@ -150,14 +140,14 @@ void LIB_EDIT_FRAME::LoadOneLibraryPart( wxCommandEvent& event )
     m_aliasName.Empty();
 
     // Load the new library component
-    libEntry = lib->FindEntry( cmp_name );
+    libEntry = lib->FindAlias( cmp_name );
     PART_LIB* searchLib = lib;
 
     if( !libEntry )
     {
         // Not found in the active library: search inside the full list
         // (can happen when using Viewlib to load a component)
-        libEntry = Prj().SchLibs()->FindLibraryEntry( cmp_name );
+        libEntry = Prj().SchLibs()->FindLibraryAlias( cmp_name );
 
         if( libEntry )
         {
@@ -246,7 +236,7 @@ bool LIB_EDIT_FRAME::LoadOneLibraryPartAux( LIB_ALIAS* aEntry, PART_LIB* aLibrar
 
 void LIB_EDIT_FRAME::RedrawComponent( wxDC* aDC, wxPoint aOffset  )
 {
-    LIB_PART*      part = GetCurPart();
+    LIB_PART* part = GetCurPart();
 
     if( part )
     {
@@ -258,7 +248,9 @@ void LIB_EDIT_FRAME::RedrawComponent( wxDC* aDC, wxPoint aOffset  )
         wxString    fieldfullText = field->GetFullText( m_unit );
 
         field->EDA_TEXT::SetText( fieldfullText );  // change the field text string only
-        part->Draw( m_canvas, aDC, aOffset, m_unit, m_convert, GR_DEFAULT_DRAWMODE );
+        part->Draw( m_canvas, aDC, aOffset, m_unit, m_convert, GR_DEFAULT_DRAWMODE,
+                    UNSPECIFIED_COLOR, DefaultTransform,
+                    true, true,false, NULL, GetShowElectricalType() );
         field->EDA_TEXT::SetText( fieldText );      // restore the field text string
     }
 }
@@ -537,7 +529,7 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
         }
     }
 
-    lib->GetEntryNames( nameList );
+    lib->GetAliasNames( nameList );
 
     if( nameList.IsEmpty() )
     {
@@ -555,7 +547,7 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
     if( dlg.ShowModal() == wxID_CANCEL || dlg.GetStringSelection().IsEmpty() )
         return;
 
-    libEntry = lib->FindEntry( dlg.GetStringSelection() );
+    libEntry = lib->FindAlias( dlg.GetStringSelection() );
 
     if( !libEntry )
     {
@@ -577,7 +569,7 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
 
     if( !part || !part->HasAlias( libEntry->GetName() ) )
     {
-        lib->RemoveEntry( libEntry );
+        lib->RemoveAlias( libEntry );
         return;
     }
 
@@ -591,7 +583,7 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
         return;
     }
 
-    LIB_ALIAS* nextEntry = lib->RemoveEntry( libEntry );
+    LIB_ALIAS* nextEntry = lib->RemoveAlias( libEntry );
 
     if( nextEntry != NULL )
     {
@@ -643,7 +635,7 @@ void LIB_EDIT_FRAME::CreateNewLibraryPart( wxCommandEvent& event )
     PART_LIB* lib = GetCurLib();
 
     // Test if there a component with this name already.
-    if( lib && lib->FindEntry( name ) )
+    if( lib && lib->FindAlias( name ) )
     {
         wxString msg = wxString::Format( _(
             "Part '%s' already exists in library '%s'" ),

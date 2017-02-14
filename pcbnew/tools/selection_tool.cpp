@@ -24,9 +24,8 @@
  */
 #include <limits>
 
-#include <boost/foreach.hpp>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 #include <class_board.h>
 #include <class_board_item.h>
@@ -69,8 +68,8 @@ public:
 
 
 SELECTION_TOOL::SELECTION_TOOL() :
-        TOOL_INTERACTIVE( "pcbnew.InteractiveSelection" ),
-        m_frame( NULL ), m_additive( false ), m_multiple( false ), m_editModules( false ),
+        PCB_TOOL( "pcbnew.InteractiveSelection" ),
+        m_frame( NULL ), m_additive( false ), m_multiple( false ),
         m_locked( true ), m_menu( this ), m_contextMenu( NULL ), m_selectMenu( NULL ),
         m_zoomMenu( NULL ), m_gridMenu( NULL )
 {
@@ -261,7 +260,7 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
             UnselectItem( *evt );
         }
 
-        else if( evt->IsCancel() || evt->Action() == TA_UNDO_REDO ||
+        else if( evt->IsCancel() || evt->Action() == TA_UNDO_REDO_PRE ||
                  evt->IsAction( &COMMON_ACTIONS::selectionClear ) )
         {
             clearSelection();
@@ -313,9 +312,14 @@ const SELECTION& SELECTION_TOOL::GetSelection()
         BOARD_ITEM* item = m_selection.Item<BOARD_ITEM>( i );
 
         if( !modifiable( item ) )
+        {
             m_selection.items.RemovePicker( i );
+            m_selection.group->Remove( item );
+        }
         else
+        {
             ++i;
+        }
     }
 
     return m_selection;
@@ -345,6 +349,8 @@ void SELECTION_TOOL::toggleSelection( BOARD_ITEM* aItem )
             m_toolMgr->ProcessEvent( SelectedEvent );
         }
     }
+
+    m_frame->GetGalCanvas()->ForceRefresh();
 }
 
 
@@ -354,12 +360,9 @@ bool SELECTION_TOOL::selectPoint( const VECTOR2I& aWhere, bool aOnDrag )
     GENERAL_COLLECTORS_GUIDE guide = m_frame->GetCollectorsGuide();
     GENERAL_COLLECTOR collector;
 
-    if( m_editModules )
-        collector.Collect( getModel<BOARD>(), GENERAL_COLLECTOR::ModuleItems,
-                           wxPoint( aWhere.x, aWhere.y ), guide );
-    else
-        collector.Collect( getModel<BOARD>(), GENERAL_COLLECTOR::AllBoardItems,
-                           wxPoint( aWhere.x, aWhere.y ), guide );
+    collector.Collect( getModel<BOARD>(),
+        m_editModules ? GENERAL_COLLECTOR::ModuleItems : GENERAL_COLLECTOR::AllBoardItems,
+        wxPoint( aWhere.x, aWhere.y ), guide );
 
     bool anyCollected = collector.GetCount() != 0;
 
@@ -663,7 +666,7 @@ int SELECTION_TOOL::selectCopper( const TOOL_EVENT& aEvent )
 
     ratsnest->GetConnectedItems( item, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
 
-    BOOST_FOREACH( BOARD_CONNECTED_ITEM* i, itemsList )
+    for( BOARD_CONNECTED_ITEM* i : itemsList )
         select( i );
 
     // Inform other potentially interested tools
@@ -688,7 +691,7 @@ int SELECTION_TOOL::selectNet( const TOOL_EVENT& aEvent )
     clearSelection();
     ratsnest->GetNetItems( netCode, itemsList, (RN_ITEM_TYPE)( RN_TRACKS | RN_VIAS ) );
 
-    BOOST_FOREACH( BOARD_CONNECTED_ITEM* i, itemsList )
+    for( BOARD_CONNECTED_ITEM* i : itemsList )
         select( i );
 
     // Inform other potentially interested tools
@@ -722,7 +725,7 @@ int SELECTION_TOOL::find( const TOOL_EVENT& aEvent )
 {
     DIALOG_FIND dlg( m_frame );
     dlg.EnableWarp( false );
-    dlg.SetCallback( boost::bind( &SELECTION_TOOL::findCallback, this, _1 ) );
+    dlg.SetCallback( std::bind( &SELECTION_TOOL::findCallback, this, _1 ) );
     dlg.ShowModal();
 
     return 0;
@@ -746,6 +749,9 @@ int SELECTION_TOOL::findMove( const TOOL_EVENT& aEvent )
 
 void SELECTION_TOOL::clearSelection()
 {
+    if( m_selection.Empty() )
+        return;
+
     KIGFX::VIEW_GROUP::const_iter it, it_end;
 
     // Restore the initial properties
@@ -771,7 +777,7 @@ void SELECTION_TOOL::clearSelection()
 BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
 {
     BOARD_ITEM* current = NULL;
-    boost::shared_ptr<BRIGHT_BOX> brightBox;
+    std::shared_ptr<BRIGHT_BOX> brightBox;
     CONTEXT_MENU menu;
 
     int limit = std::min( 10, aCollector->GetCount() );
@@ -976,7 +982,7 @@ void SELECTION_TOOL::select( BOARD_ITEM* aItem )
     if( aItem->Type() == PCB_MODULE_T )
     {
         MODULE* module = static_cast<MODULE*>( aItem );
-        module->RunOnChildren( boost::bind( &SELECTION_TOOL::selectVisually, this, _1 ) );
+        module->RunOnChildren( std::bind( &SELECTION_TOOL::selectVisually, this, _1 ) );
     }
 
     if( aItem->Type() == PCB_PAD_T )
@@ -1014,7 +1020,7 @@ void SELECTION_TOOL::unselect( BOARD_ITEM* aItem )
     if( aItem->Type() == PCB_MODULE_T )
     {
         MODULE* module = static_cast<MODULE*>( aItem );
-        module->RunOnChildren( boost::bind( &SELECTION_TOOL::unselectVisually, this, _1 ) );
+        module->RunOnChildren( std::bind( &SELECTION_TOOL::unselectVisually, this, _1 ) );
     }
 
     unselectVisually( aItem );
@@ -1136,8 +1142,9 @@ double calcRatio( double a, double b )
 {
     if( a == 0.0 && b == 0.0 )
         return 1.0;
+
     if( b == 0.0 )
-        return 10000000.0; // something arbitrarily big for the moment
+        return std::numeric_limits<double>::max();
 
     return a / b;
 }
@@ -1184,7 +1191,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         {
             aCollector.Empty();
 
-            BOOST_FOREACH( BOARD_ITEM* item, preferred )
+            for( BOARD_ITEM* item : preferred )
                 aCollector.Append( item );
             return;
         }
@@ -1311,6 +1318,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         double maxLength = 0.0;
         double minLength = std::numeric_limits<double>::max();
         double maxArea = 0.0;
+        const TRACK* maxTrack = nullptr;
 
         for( int i = 0; i < aCollector.GetCount(); ++i )
         {
@@ -1319,10 +1327,15 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
                 maxLength = std::max( track->GetLength(), maxLength );
                 maxLength = std::max( (double) track->GetWidth(), maxLength );
 
-                minLength = std::min( std::max( track->GetLength(), (double)track->GetWidth() ), minLength );
+                minLength = std::min( std::max( track->GetLength(), (double) track->GetWidth() ), minLength );
 
-                double area =  ( track->GetLength() + track->GetWidth() * track->GetWidth() );
-                maxArea = std::max(area, maxArea);
+                double area = track->GetLength() * track->GetWidth();
+
+                if( area > maxArea )
+                {
+                    maxArea = area;
+                    maxTrack = track;
+                }
             }
         }
 
@@ -1344,9 +1357,9 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
         {
             if( MODULE* mod = dyn_cast<MODULE*>( aCollector[j] ) )
             {
-                double ratio = maxArea / mod->GetFootprintRect().GetArea();
+                double ratio = calcRatio( maxArea, mod->GetFootprintRect().GetArea() );
 
-                if( ratio < modulePadMinCoverRatio )
+                if( ratio < modulePadMinCoverRatio && calcCommonArea( maxTrack, mod ) < commonAreaRatio )
                     rejected.insert( mod );
             }
         }
@@ -1354,7 +1367,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
 
     if( (unsigned) aCollector.GetCount() > rejected.size() )  // do not remove everything
     {
-        BOOST_FOREACH( BOARD_ITEM* item, rejected )
+        for( BOARD_ITEM* item : rejected )
         {
             aCollector.Remove( item );
         }
@@ -1395,7 +1408,7 @@ bool SELECTION_TOOL::SanitizeSelection()
 
     if( !rejected.empty() )
     {
-        BOOST_FOREACH( BOARD_ITEM* item, rejected )
+        for( BOARD_ITEM* item : rejected )
             unselect( item );
 
         // Inform other potentially interested tools
@@ -1404,7 +1417,7 @@ bool SELECTION_TOOL::SanitizeSelection()
 
     if( !added.empty() )
     {
-        BOOST_FOREACH( BOARD_ITEM* item, added )
+        for( BOARD_ITEM* item : added )
             select( item );
 
         // Inform other potentially interested tools

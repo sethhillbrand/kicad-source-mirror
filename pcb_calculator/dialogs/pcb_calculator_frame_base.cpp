@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jan  1 2016)
+// C++ code generated with wxFormBuilder (version May  6 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -63,7 +63,7 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	
 	m_RegulFormula = new wxStaticText( sbSizerRegFormula->GetStaticBox(), wxID_ANY, _("Vout = Vref * (R1 + R2) / R2"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_RegulFormula->Wrap( -1 );
-	m_RegulFormula->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 92, false, wxEmptyString ) );
+	m_RegulFormula->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxEmptyString ) );
 	
 	sbSizerRegFormula->Add( m_RegulFormula, 0, wxALL|wxALIGN_CENTER_HORIZONTAL, 5 );
 	
@@ -261,7 +261,7 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	
 	m_staticTextCurrent = new wxStaticText( sbSizerTW_Prms->GetStaticBox(), wxID_ANY, _("Current"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextCurrent->Wrap( -1 );
-	m_staticTextCurrent->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 90, false, wxEmptyString ) );
+	m_staticTextCurrent->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxEmptyString ) );
 	
 	fgSizerTWprms->Add( m_staticTextCurrent, 0, wxALIGN_CENTER_VERTICAL|wxALL|wxALIGN_RIGHT, 5 );
 	
@@ -335,7 +335,7 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	
 	m_staticTextExtWidth = new wxStaticText( sbSizerTW_Result->GetStaticBox(), wxID_ANY, _("Trace width"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextExtWidth->Wrap( -1 );
-	m_staticTextExtWidth->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 90, false, wxEmptyString ) );
+	m_staticTextExtWidth->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxEmptyString ) );
 	
 	fgSizerTW_Results->Add( m_staticTextExtWidth, 0, wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT|wxLEFT|wxRIGHT, 5 );
 	
@@ -433,7 +433,7 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	
 	m_staticTextIntWidth = new wxStaticText( sbSizerTW_Result1->GetStaticBox(), wxID_ANY, _("Trace width"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextIntWidth->Wrap( -1 );
-	m_staticTextIntWidth->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 90, false, wxEmptyString ) );
+	m_staticTextIntWidth->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxEmptyString ) );
 	
 	fgSizerTW_Results1->Add( m_staticTextIntWidth, 0, wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT|wxALL, 5 );
 	
@@ -552,7 +552,7 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	
 	m_staticTextElectricalSpacing = new wxStaticText( m_panelElectricalSpacing, wxID_ANY, _("Note: Values are minimal values (from IPC 2221)"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextElectricalSpacing->Wrap( -1 );
-	m_staticTextElectricalSpacing->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 93, 92, false, wxEmptyString ) );
+	m_staticTextElectricalSpacing->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_BOLD, false, wxEmptyString ) );
 	
 	bElectricalSpacingSizerRight->Add( m_staticTextElectricalSpacing, 0, wxALIGN_CENTER_HORIZONTAL|wxTOP|wxRIGHT|wxLEFT, 5 );
 	
@@ -870,17 +870,17 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	wxBoxSizer* bSizerButtons;
 	bSizerButtons = new wxBoxSizer( wxHORIZONTAL );
 	
-	m_bitmapAnalyse = new wxStaticBitmap( m_panelTransline, wxID_ANY, wxBitmap( arrow_bottom_xpm ), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizerButtons->Add( m_bitmapAnalyse, 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
+	m_bpButtonAnalyze = new wxBitmapButton( m_panelTransline, wxID_ANY, wxBitmap( arrow_bottom_xpm ), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW );
+	bSizerButtons->Add( m_bpButtonAnalyze, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	m_AnalyseButton = new wxButton( m_panelTransline, wxID_ANY, _("Analyze"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizerButtons->Add( m_AnalyseButton, 0, wxEXPAND|wxRIGHT, 5 );
+	bSizerButtons->Add( m_AnalyseButton, 0, wxRIGHT|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	m_SynthetizeButton = new wxButton( m_panelTransline, wxID_ANY, _("Synthetize"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizerButtons->Add( m_SynthetizeButton, 0, wxEXPAND|wxLEFT, 5 );
+	bSizerButtons->Add( m_SynthetizeButton, 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
 	
-	m_bitmapSynthetize = new wxStaticBitmap( m_panelTransline, wxID_ANY, wxBitmap( arrow_top_xpm ), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizerButtons->Add( m_bitmapSynthetize, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5 );
+	m_bpButtonSynthetize = new wxBitmapButton( m_panelTransline, wxID_ANY, wxBitmap( arrow_top_xpm ), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW );
+	bSizerButtons->Add( m_bpButtonSynthetize, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	
 	btranslineButtonsSizer->Add( bSizerButtons, 0, wxALIGN_CENTER_HORIZONTAL, 5 );
@@ -1094,8 +1094,8 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	m_buttonAlcAtt = new wxButton( sbSizerAtt->GetStaticBox(), wxID_ANY, _("Calculate"), wxDefaultPosition, wxDefaultSize, 0 );
 	bSizerAttButt->Add( m_buttonAlcAtt, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
-	m_bitmapAnalyse1 = new wxStaticBitmap( sbSizerAtt->GetStaticBox(), wxID_ANY, wxBitmap( arrow_bottom_xpm ), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizerAttButt->Add( m_bitmapAnalyse1, 0, wxRIGHT|wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
+	m_bpButtonCalcAtt = new wxBitmapButton( sbSizerAtt->GetStaticBox(), wxID_ANY, wxBitmap( arrow_bottom_xpm ), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW );
+	bSizerAttButt->Add( m_bpButtonCalcAtt, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	
 	bMiddleSizerAtt->Add( bSizerAttButt, 0, wxALIGN_CENTER_HORIZONTAL, 5 );
@@ -1251,7 +1251,7 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	
 	m_staticTextBrdClass = new wxStaticText( m_panelBoardClass, wxID_ANY, _("Note: Values are minimal values"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextBrdClass->Wrap( -1 );
-	m_staticTextBrdClass->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 93, 92, false, wxEmptyString ) );
+	m_staticTextBrdClass->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_BOLD, false, wxEmptyString ) );
 	
 	brdclsSizerRight->Add( m_staticTextBrdClass, 0, wxALL|wxALIGN_CENTER_HORIZONTAL, 5 );
 	
@@ -1342,11 +1342,14 @@ PCB_CALCULATOR_FRAME_BASE::PCB_CALCULATOR_FRAME_BASE( wxWindow* parent, wxWindow
 	m_button_EpsilonR->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineEpsilonR_Button ), NULL, this );
 	m_button_TanD->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineTanD_Button ), NULL, this );
 	m_button_Rho->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineRho_Button ), NULL, this );
+	m_bpButtonAnalyze->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineAnalyse ), NULL, this );
 	m_AnalyseButton->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineAnalyse ), NULL, this );
 	m_SynthetizeButton->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineSynthetize ), NULL, this );
+	m_bpButtonSynthetize->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineSynthetize ), NULL, this );
 	m_AttenuatorsSelection->Connect( wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnAttenuatorSelection ), NULL, this );
 	m_panelDisplayAttenuator->Connect( wxEVT_PAINT, wxPaintEventHandler( PCB_CALCULATOR_FRAME_BASE::OnPaintAttenuatorPanel ), NULL, this );
 	m_buttonAlcAtt->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnCalculateAttenuator ), NULL, this );
+	m_bpButtonCalcAtt->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnCalculateAttenuator ), NULL, this );
 	m_rbToleranceSelection->Connect( wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnToleranceSelection ), NULL, this );
 	m_BoardClassesUnitsSelector->Connect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnBoardClassesUnitsSelection ), NULL, this );
 }
@@ -1382,11 +1385,14 @@ PCB_CALCULATOR_FRAME_BASE::~PCB_CALCULATOR_FRAME_BASE()
 	m_button_EpsilonR->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineEpsilonR_Button ), NULL, this );
 	m_button_TanD->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineTanD_Button ), NULL, this );
 	m_button_Rho->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineRho_Button ), NULL, this );
+	m_bpButtonAnalyze->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineAnalyse ), NULL, this );
 	m_AnalyseButton->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineAnalyse ), NULL, this );
 	m_SynthetizeButton->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineSynthetize ), NULL, this );
+	m_bpButtonSynthetize->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnTranslineSynthetize ), NULL, this );
 	m_AttenuatorsSelection->Disconnect( wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnAttenuatorSelection ), NULL, this );
 	m_panelDisplayAttenuator->Disconnect( wxEVT_PAINT, wxPaintEventHandler( PCB_CALCULATOR_FRAME_BASE::OnPaintAttenuatorPanel ), NULL, this );
 	m_buttonAlcAtt->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnCalculateAttenuator ), NULL, this );
+	m_bpButtonCalcAtt->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnCalculateAttenuator ), NULL, this );
 	m_rbToleranceSelection->Disconnect( wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnToleranceSelection ), NULL, this );
 	m_BoardClassesUnitsSelector->Disconnect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( PCB_CALCULATOR_FRAME_BASE::OnBoardClassesUnitsSelection ), NULL, this );
 	

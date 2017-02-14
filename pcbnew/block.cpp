@@ -102,12 +102,12 @@ public:
 
 
 private:
-    void ExecuteCommand( wxCommandEvent& event );
-    void OnCancel( wxCommandEvent& event )
+    void ExecuteCommand( wxCommandEvent& event ) override;
+    void OnCancel( wxCommandEvent& event ) override
     {
         EndModal( wxID_CANCEL );
     }
-    void checkBoxClicked( wxCommandEvent& aEvent )
+    void checkBoxClicked( wxCommandEvent& aEvent ) override
     {
         if( m_Include_Modules->GetValue() )
             m_IncludeLockedModules->Enable();
@@ -865,9 +865,6 @@ void PCB_EDIT_FRAME::Block_Duplicate( bool aIncrement )
         BOARD_ITEM* item = (BOARD_ITEM*) itemsList->GetPickedItem( ii );
 
         newitem = (BOARD_ITEM*)item->Clone();
-
-        if( aIncrement )
-            newitem->IncrementItemReference();
 
         if( item->Type() == PCB_MODULE_T )
             m_Pcb->m_Status_Pcb = 0;

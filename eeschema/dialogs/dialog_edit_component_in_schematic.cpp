@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004-2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,9 +42,14 @@
 #include <sch_base_frame.h>
 #include <class_library.h>
 #include <sch_component.h>
-#include <sch_sheet_path.h>
 #include <dialog_helpers.h>
+#include <sch_validators.h>
+
 #include <dialog_edit_component_in_schematic_fbp.h>
+#ifdef KICAD_SPICE
+#include <dialog_spice_model.h>
+#include <netlist_exporter_pspice.h>
+#endif /* KICAD_SPICE */
 
 
 /**
@@ -105,21 +110,35 @@ private:
 
     void copyPanelToOptions();
 
-    void setRowItem( int aFieldNdx, const SCH_FIELD& aField );
+    void setRowItem( int aFieldNdx, const wxString& aName, const wxString& aValue );
+
+    void setRowItem( int aFieldNdx, const SCH_FIELD& aField )
+    {
+        setRowItem( aFieldNdx, aField.GetName( false ), aField.GetText() );
+    }
 
     // event handlers
-    void OnCloseDialog( wxCloseEvent& event );
-    void OnListItemDeselected( wxListEvent& event );
-    void OnListItemSelected( wxListEvent& event );
-    void OnCancelButtonClick( wxCommandEvent& event );
-    void OnOKButtonClick( wxCommandEvent& event );
-    void SetInitCmp( wxCommandEvent& event );
-    void addFieldButtonHandler( wxCommandEvent& event );
-    void deleteFieldButtonHandler( wxCommandEvent& event );
-    void moveUpButtonHandler( wxCommandEvent& event );
-    void showButtonHandler( wxCommandEvent& event );
-    void OnTestChipName( wxCommandEvent& event );
-    void OnSelectChipName( wxCommandEvent& event );
+    void OnCloseDialog( wxCloseEvent& event ) override;
+    void OnListItemDeselected( wxListEvent& event ) override;
+    void OnListItemSelected( wxListEvent& event ) override;
+    void OnCancelButtonClick( wxCommandEvent& event ) override;
+    void OnOKButtonClick( wxCommandEvent& event ) override;
+    void SetInitCmp( wxCommandEvent& event ) override;
+    void addFieldButtonHandler( wxCommandEvent& event ) override;
+    void deleteFieldButtonHandler( wxCommandEvent& event ) override;
+    void moveUpButtonHandler( wxCommandEvent& event ) override;
+    void showButtonHandler( wxCommandEvent& event ) override;
+    void OnTestChipName( wxCommandEvent& event ) override;
+    void OnSelectChipName( wxCommandEvent& event ) override;
+    void OnInitDlg( wxInitDialogEvent& event ) override
+    {
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
+
+    void EditSpiceModel( wxCommandEvent& event ) override;
 
     SCH_FIELD* findField( const wxString& aFieldName );
 
@@ -128,7 +147,7 @@ private:
      * update the listbox showing fields, according to the fields texts
      * must be called after a text change in fields, if this change is not an edition
      */
-    void updateDisplay( )
+    void updateDisplay()
     {
         for( unsigned ii = FIELD1;  ii<m_FieldsBuf.size(); ii++ )
             setRowItem( ii, m_FieldsBuf[ii] );
@@ -174,6 +193,10 @@ void SCH_EDIT_FRAME::EditComponent( SCH_COMPONENT* aComponent )
 DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC( wxWindow* aParent ) :
     DIALOG_EDIT_COMPONENT_IN_SCHEMATIC_FBP( aParent )
 {
+#ifndef KICAD_SPICE
+    spiceFieldsButton->Hide();
+#endif /* not KICAD_SPICE */
+
     m_parent = (SCH_EDIT_FRAME*) aParent;
 
     m_cmp = NULL;
@@ -195,11 +218,11 @@ DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::DIALOG_EDIT_COMPONENT_IN_SCHEMATIC( wxWindow
     m_staticTextUnitPosY->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
 
     wxToolTip::Enable( true );
-
-    GetSizer()->SetSizeHints( this );
-    Center();
-
     stdDialogButtonSizerOK->SetDefault();
+
+    FixOSXCancelButtonIssue();
+
+    Fit();
 }
 
 
@@ -271,6 +294,18 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::OnSelectChipName( wxCommandEvent& event
 }
 
 
+void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::EditSpiceModel( wxCommandEvent& event )
+{
+#ifdef KICAD_SPICE
+    setSelectedFieldNdx( 0 );
+    DIALOG_SPICE_MODEL dialog( this, *m_cmp, m_FieldsBuf );
+
+    if( dialog.ShowModal() == wxID_OK )
+        updateDisplay();
+#endif /* KICAD_SPICE */
+}
+
+
 void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::OnListItemSelected( wxListEvent& event )
 {
     DBG( printf( "OnListItemSelected()\n" ); )
@@ -313,11 +348,11 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::copyPanelToOptions()
     {
         DisplayError( NULL, _( "No Component Name!" ) );
     }
-    else if( Cmp_KEEPCASE( newname, m_cmp->m_part_name ) )
+    else if( newname != m_cmp->m_part_name )
     {
         PART_LIBS* libs = Prj().SchLibs();
 
-        if( libs->FindLibraryEntry( newname ) == NULL )
+        if( libs->FindLibraryAlias( newname ) == NULL )
         {
             wxString msg = wxString::Format( _(
                 "Component '%s' not found!" ),  GetChars( newname ) );
@@ -340,7 +375,7 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::copyPanelToOptions()
     {
         int unit_selection = unitChoice->GetCurrentSelection() + 1;
 
-        m_cmp->SetUnitSelection( m_parent->GetCurrentSheet().Last(), unit_selection );
+        m_cmp->SetUnitSelection( &m_parent->GetCurrentSheet(), unit_selection );
         m_cmp->SetUnit( unit_selection );
     }
 
@@ -459,7 +494,7 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::OnOKButtonClick( wxCommandEvent& event 
     // Reference has a specific initialization, depending on the current active sheet
     // because for a given component, in a complex hierarchy, there are more than one
     // reference.
-    m_cmp->SetRef( m_parent->GetCurrentSheet().Last(), m_FieldsBuf[REFERENCE].GetText() );
+    m_cmp->SetRef( &m_parent->GetCurrentSheet(), m_FieldsBuf[REFERENCE].GetText() );
 
     m_parent->OnModify();
     m_parent->GetScreen()->TestDanglingEnds();
@@ -533,12 +568,14 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::showButtonHandler( wxCommandEvent& even
         // pick a footprint using the footprint picker.
         wxString fpid;
 
-        KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB_MODULE_VIEWER_MODAL, true );
+        KIWAY_PLAYER* frame = Kiway().Player( FRAME_PCB_MODULE_VIEWER_MODAL, true, m_parent );
 
         if( frame->ShowModal( &fpid, this ) )
         {
             // DBG( printf( "%s: %s\n", __func__, TO_UTF8( fpid ) ); )
             fieldValueTextCtrl->SetValue( fpid );
+
+            setRowItem( fieldNdx, m_FieldsBuf[fieldNdx].GetName( false ), fpid );
         }
 
         frame->Destroy();
@@ -727,7 +764,7 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::InitBuffers( SCH_COMPONENT* aComponent 
     }
 #endif
 
-    m_FieldsBuf[REFERENCE].SetText( m_cmp->GetRef( m_parent->GetCurrentSheet().Last() ) );
+    m_FieldsBuf[REFERENCE].SetText( m_cmp->GetRef( &m_parent->GetCurrentSheet() ) );
 
     for( unsigned i = 0;  i<m_FieldsBuf.size();  ++i )
     {
@@ -764,7 +801,7 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::InitBuffers( SCH_COMPONENT* aComponent 
 }
 
 
-void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::setRowItem( int aFieldNdx, const SCH_FIELD& aField )
+void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::setRowItem( int aFieldNdx, const wxString& aName, const wxString& aValue )
 {
     wxASSERT( aFieldNdx >= 0 );
 
@@ -778,8 +815,8 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::setRowItem( int aFieldNdx, const SCH_FI
         fieldListCtrl->SetItem( ndx, 1, wxEmptyString );
     }
 
-    fieldListCtrl->SetItem( aFieldNdx, 0, aField.GetName( false ) );
-    fieldListCtrl->SetItem( aFieldNdx, 1, aField.GetText() );
+    fieldListCtrl->SetItem( aFieldNdx, 0, aName );
+    fieldListCtrl->SetItem( aFieldNdx, 1, aValue );
 
     // recompute the column widths here, after setting texts
     fieldListCtrl->SetColumnWidth( 0, wxLIST_AUTOSIZE );
@@ -841,16 +878,30 @@ void DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::copySelectedFieldToPanel()
     // may only delete user defined fields
     deleteFieldButton->Enable( fieldNdx >= MANDATORY_FIELDS );
 
+    fieldValueTextCtrl->SetValidator( SCH_FIELD_VALIDATOR( false, field.GetId() ) );
     fieldValueTextCtrl->SetValue( field.GetText() );
 
     m_show_datasheet_button->Enable( fieldNdx == DATASHEET || fieldNdx == FOOTPRINT );
 
     if( fieldNdx == DATASHEET )
-        m_show_datasheet_button->SetLabel( _( "Show in Browser" ) );
+    {
+        m_show_datasheet_button->SetLabel( _( "Show Datasheet" ) );
+        m_show_datasheet_button->SetToolTip(
+            _("If your datasheet is given as an http:// link,"
+              " then pressing this button should bring it up in your webbrowser.") );
+    }
     else if( fieldNdx == FOOTPRINT )
-        m_show_datasheet_button->SetLabel( _( "Assign Footprint" ) );
+    {
+        m_show_datasheet_button->SetLabel( _( "Browse Footprints" ) );
+        m_show_datasheet_button->SetToolTip(
+            _("Open the footprint browser to choose a footprint and assign it.") );
+    }
     else
+    {
         m_show_datasheet_button->SetLabel( wxEmptyString );
+        m_show_datasheet_button->SetToolTip(
+            _("Used only for fields Footprint and Datasheet.") );
+    }
 
     // For power symbols, the value is NOR editable, because value and pin
     // name must be same and can be edited only in library editor
@@ -897,6 +948,11 @@ bool DIALOG_EDIT_COMPONENT_IN_SCHEMATIC::copyPanelToSelectedField()
 
     if( fieldNdx >= m_FieldsBuf.size() )        // traps the -1 case too
         return true;
+
+    // Check for illegal field text.
+    if( fieldValueTextCtrl->GetValidator()
+      && !fieldValueTextCtrl->GetValidator()->Validate( this ) )
+        return false;
 
     SCH_FIELD& field = m_FieldsBuf[fieldNdx];
 

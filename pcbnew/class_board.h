@@ -42,6 +42,7 @@
 #include <class_title_block.h>
 #include <class_zone_settings.h>
 #include <pcb_plot_params.h>
+#include <board_item_container.h>
 
 
 class PCB_BASE_FRAME;
@@ -58,9 +59,6 @@ class NETLIST;
 class REPORTER;
 class RN_DATA;
 class SHAPE_POLY_SET;
-
-// non-owning container of item candidates when searching for items on the same track.
-typedef std::vector< TRACK* >   TRACK_PTRS;
 
 
 /**
@@ -156,11 +154,16 @@ protected:
 };
 
 
+DECL_VEC_FOR_SWIG(MARKERS, MARKER_PCB*)
+DECL_VEC_FOR_SWIG(ZONE_CONTAINERS, ZONE_CONTAINER*)
+DECL_VEC_FOR_SWIG(TRACKS, TRACK*)
+
+
 /**
  * Class BOARD
  * holds information pertinent to a Pcbnew printed circuit board.
  */
-class BOARD : public BOARD_ITEM
+class BOARD : public BOARD_ITEM_CONTAINER
 {
     friend class PCB_EDIT_FRAME;
 
@@ -168,14 +171,8 @@ private:
     /// the board filename
     wxString                m_fileName;
 
-    // @todo: switch to boost:ptr_vector, and change ~BOARD()
-    typedef std::vector<MARKER_PCB*> MARKERS;
-
     /// MARKER_PCBs for clearance problems, owned by pointer.
     MARKERS                 m_markers;
-
-    // @todo: switch to boost::ptr_vector, and change ~BOARD()
-    typedef std::vector<ZONE_CONTAINER*> ZONE_CONTAINERS;
 
     /// edge zone descriptors, owned by pointer.
     ZONE_CONTAINERS         m_ZoneDescriptorList;
@@ -214,7 +211,21 @@ private:
      * @param aLayerSet The allowed layers for segments to search.
      * @param aList The track list to fill with points of flagged segments.
      */
-    void chainMarkedSegments( wxPoint aPosition, const LSET& aLayerSet, TRACK_PTRS* aList );
+    void chainMarkedSegments( wxPoint aPosition, const LSET& aLayerSet, TRACKS* aList );
+
+    // The default copy constructor & operator= are inadequate,
+    // either write one or do not use it at all
+    BOARD( const BOARD& aOther ) :
+        BOARD_ITEM_CONTAINER( aOther ), m_NetInfo( this )
+    {
+        assert( false );
+    }
+
+    BOARD& operator=( const BOARD& aOther )
+    {
+        assert( false );
+        return *this;       // just to mute warning
+    }
 
 public:
     static inline bool ClassOf( const EDA_ITEM* aItem )
@@ -246,9 +257,9 @@ public:
     BOARD();
     ~BOARD();
 
-    virtual const wxPoint& GetPosition() const;
+    virtual const wxPoint& GetPosition() const override;
 
-    virtual void SetPosition( const wxPoint& aPos );
+    virtual void SetPosition( const wxPoint& aPos ) override;
 
     bool IsEmpty() const
     {
@@ -256,53 +267,18 @@ public:
                m_Track.GetCount() == 0 && m_Zone.GetCount() == 0;
     }
 
-    void Move( const wxPoint& aMoveVector );        // overload
+    void Move( const wxPoint& aMoveVector ) override;
 
     void SetFileFormatVersionAtLoad( int aVersion ) { m_fileFormatVersionAtLoad = aVersion; }
     int GetFileFormatVersionAtLoad()  const { return m_fileFormatVersionAtLoad; }
 
-    /**
-     * Function Add
-     * adds the given item to this BOARD and takes ownership of its memory.
-     * @param aBoardItem The item to add to this board.
-     * @param aControl An int which can vary how the item is added.
-     */
-    void Add( BOARD_ITEM* aBoardItem, int aControl = 0 );
+    ///> @copydoc BOARD_ITEM_CONTAINER::Add()
+    void Add( BOARD_ITEM* aItem, ADD_MODE aMode = ADD_INSERT ) override;
 
-#define ADD_APPEND 1        ///< aControl flag for Add( aControl ), appends not inserts
+    ///> @copydoc BOARD_ITEM_CONTAINER::Remove()
+    void Remove( BOARD_ITEM* aBoardItem ) override;
 
-    /**
-     * Function Delete
-     * removes the given single item from this BOARD and deletes its memory.
-     * @param aBoardItem The item to remove from this board and delete
-     */
-    void Delete( BOARD_ITEM* aBoardItem )
-    {
-        // developers should run DEBUG versions and fix such calls with NULL
-        wxASSERT( aBoardItem );
-
-        if( aBoardItem )
-            delete Remove( aBoardItem );
-    }
-
-
-    /**
-     * Function Remove
-     * removes \a aBoardItem from this BOARD and returns it to caller without deleting it.
-     * @param aBoardItem The item to remove from this board.
-     * @return BOARD_ITEM* \a aBoardItem which was passed in.
-     */
-    BOARD_ITEM* Remove( BOARD_ITEM* aBoardItem );
-
-    BOARD_ITEM* DuplicateAndAddItem( const BOARD_ITEM* aItem,
-                                     bool aIncrementReferences );
-
-    /**
-     * Function GetNextModuleReferenceWithPrefix
-     * Get the next available module reference with this prefix
-     */
-    wxString GetNextModuleReferenceWithPrefix( const wxString& aPrefix,
-                                               bool aFillSequenceGaps );
+    BOARD_ITEM* Duplicate( const BOARD_ITEM* aItem, bool aAddToBoard = false );
 
     /**
      * Function GetRatsnest()
@@ -780,15 +756,12 @@ public:
 
     /**
      * Function GetPads
-     * returns a list of all the pads by value.  The returned list is not
+     * returns a reference to a list of all the pads.  The returned list is not
      * sorted and contains pointers to PADS, but those pointers do not convey
      * ownership of the respective PADs.
-     * @return std::vector<D_PAD*> - a full list of pads
+     * @return D_PADS - a full list of pads
      */
-    std::vector<D_PAD*> GetPads()
-    {
-        return m_NetInfo.m_PadsFullList;
-    }
+    const D_PADS& GetPads()     { return m_NetInfo.m_PadsFullList; }
 
     void BuildListOfNets()
     {
@@ -810,16 +783,6 @@ public:
      * @return NETINFO_ITEM* - the net or NULL if not found.
      */
     NETINFO_ITEM* FindNet( const wxString& aNetname ) const;
-
-    /**
-     * Function AppendNet
-     * adds a new net description item to the current board.
-     * @param aNewNet is the new description item.
-     */
-    void AppendNet( NETINFO_ITEM* aNewNet )
-    {
-        m_NetInfo.AppendNet( aNewNet );
-    }
 
     NETINFO_LIST& GetNetInfo()
     {
@@ -870,11 +833,11 @@ public:
      * as long as the BOARD has not changed.  Remember, ComputeBoundingBox()'s
      * aBoardEdgesOnly argument is considered in this return value also.
      */
-    const EDA_RECT GetBoundingBox() const { return m_BoundingBox; }   // override
+    const EDA_RECT GetBoundingBox() const override { return m_BoundingBox; }
 
     void SetBoundingBox( const EDA_RECT& aBox ) { m_BoundingBox = aBox; }
 
-    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList );
+    void GetMsgPanelInfo( std::vector< MSG_PANEL_ITEM >& aList ) override;
 
     /**
      * Function Draw.
@@ -885,7 +848,7 @@ public:
      * @param aOffset = an draw offset value (default = 0,0)
      */
     void Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-               GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset );
+               GR_DRAWMODE aDrawMode, const wxPoint& aOffset = ZeroOffset ) override;
 
     /**
      * Function DrawHighLight
@@ -911,8 +874,7 @@ public:
      * @return SEARCH_RESULT - SEARCH_QUIT if the Iterator is to stop the scan,
      *  else SCAN_CONTINUE, and determined by the inspector.
      */
-    SEARCH_RESULT Visit( INSPECTOR* inspector, const void* testData,
-                         const KICAD_T scanTypes[] );
+    SEARCH_RESULT Visit( INSPECTOR inspector, void* testData, const KICAD_T scanTypes[] ) override;
 
     /**
      * Function FindModuleByReference
@@ -989,13 +951,13 @@ public:
 
     /***************************************************************************/
 
-    wxString GetClass() const
+    wxString GetClass() const override
     {
         return wxT( "BOARD" );
     }
 
 #if defined(DEBUG)
-    void Show( int nestLevel, std::ostream& os ) const { ShowDummy( os ); } // override
+    void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
 
 
@@ -1302,17 +1264,19 @@ public:
     void GetSortedPadListByXthenYCoord( std::vector<D_PAD*>& aVector, int aNetCode = -1 );
 
     /**
-     * Function GetTrack
-     * find the segment of \a aTrace at \a aPosition on \a aLayer if \a Layer is visible.
+     * Function GetVisibleTrack
+     * finds the neighboring visible segment of \a aTrace at \a aPosition that is
+     * on a layer in \a aLayerSet.
      * Traces that are flagged as deleted or busy are ignored.
      *
-     * @param aTrace A pointer to the TRACK object to search.
+     * @param aStartingTrace is the first TRACK to test, testing continues to end of m_Track list from
+     *   this starting point.
      * @param aPosition A wxPoint object containing the position to test.
-     * @param aLayerMask A layer or layers to mask the hit test.  Use -1 to ignore
-     *                   layer mask.
+     * @param aLayerSet A set of layers; returned TRACK must be on one of these.
+     *     May pass a full set to request any layer.
      * @return A TRACK object pointer if found otherwise NULL.
      */
-    TRACK* GetTrack( TRACK* aTrace, const wxPoint& aPosition, LSET aLayerMask ) const;
+    TRACK* GetVisibleTrack( TRACK* aStartingTrace, const wxPoint& aPosition, LSET aLayerSet ) const;
 
     /**
      * Function MarkTrace
@@ -1325,21 +1289,49 @@ public:
      *
      * @param aTrace The segment within a list of trace segments to test.
      * @param aCount A pointer to an integer where to return the number of
-     *               marked segments.
+     *               marked segments (can be NULL).
      * @param aTraceLength A pointer to an double where to return the length of the
-     *                     trace.
+     *                     trace (can be NULL).
      * @param aInPackageLength A pointer to an double where to return the extra lengths inside
      *                   integrated circuits from the pads connected to this track to the
-     *                   die (if any).
+     *                   die (if any) (can be NULL).
      * @param aReorder true for reorder the interesting segments (useful for
      *                 track edition/deletion) in this case the flag BUSY is
      *                 set (the user is responsible of flag clearing). False
      *                 for no reorder : useful when we want just calculate the
      *                 track length in this case, flags are reset
-     * @return TRACK* The first in the chain of interesting segments.
+     * @return TRACK* - The first in the chain of interesting segments.
      */
     TRACK* MarkTrace( TRACK* aTrace, int* aCount, double* aTraceLength,
                       double* aInPackageLength, bool aReorder );
+
+    /**
+     * Function TrackInNet
+     * collects all the TRACKs and VIAs that are members of a net given by aNetCode.
+     * Used from python.
+     * @param aNetCode gives the id of the net.
+     * @return TRACKS - which are in the net identified by @a aNetCode.
+     */
+    TRACKS TracksInNet( int aNetCode );
+
+    /**
+     * Function TrackInNetBetweenPoints
+     * collects all the TRACKs and VIAs that are members of a net given by aNetCode and that
+     * make up a path between two end points.  The end points must be carefully chosen,
+     * and are typically the locations of two neighboring pads.  The function fails if there
+     * is an intervening pad or a 3 way intersection at a track or via.  The seeking starts
+     * at @a aStartPos and strives to travel to @a aGoalPos.
+     * Used from python.
+     * @param aStartPos must correspond to a point on the BOARD which has a TRACK end or start,
+     *  typically the location of either a via or pad.
+     * @param aGoalPos must correspond to a point on the BOARD which has a TRACK end or start,
+     *  typically the location of either a via or pad.
+     * @param aNetCode gives the id of the net.
+     * @return TRACKS - non empty if success, empty if your aStartPos or aEndPos are bad or
+     *  the net is interrupted along the way by an intervening D_PAD or a 3 way path.
+     * @throw IO_ERROR in order to convey detailed error reason upon failure.
+     */
+    TRACKS TracksInNetBetweenPoints( const wxPoint& aStartPos, const wxPoint& aGoalPos, int aNetCode );
 
     /**
      * Function GetFootprint
@@ -1386,7 +1378,7 @@ public:
      *                  segment start position if the return value is not NULL.
      * @param aSegment The trace segment to create the lock point on.
      * @param aList The pick list to add the created items to.
-     * @return NULL if no new point was created or a pointer to a TRACK ojbect of the
+     * @return NULL if no new point was created or a pointer to a TRACK object of the
      *         created segment.  If \a aSegment points to a via the exact value of \a
      *         aPosition and a pointer to the via are returned.
      */

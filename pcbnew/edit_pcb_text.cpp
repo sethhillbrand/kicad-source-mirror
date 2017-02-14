@@ -136,7 +136,7 @@ void PCB_EDIT_FRAME::StartMoveTextePcb( TEXTE_PCB* aTextePcb, wxDC* aDC, bool aE
 
     // if it is an existing item: prepare a copy to undo/abort command
     if( !aTextePcb->IsNew() )
-        s_TextCopy.Copy( aTextePcb );
+        s_TextCopy = *aTextePcb;
 
     aTextePcb->SetFlags( IS_MOVED );
     SetMsgPanel( aTextePcb );
@@ -192,7 +192,7 @@ TEXTE_PCB* PCB_EDIT_FRAME::CreateTextePcb( wxDC* aDC, TEXTE_PCB* aText )
 
     if( aText )
     {
-        textePcb->Copy( aText );
+        *textePcb = *aText;
         GetBoard()->Add( textePcb );
         textePcb->SetFlags( IS_NEW );
         if( aDC )
@@ -237,15 +237,13 @@ TEXTE_PCB* PCB_EDIT_FRAME::CreateTextePcb( wxDC* aDC, TEXTE_PCB* aText )
 
 void PCB_EDIT_FRAME::Rotate_Texte_Pcb( TEXTE_PCB* TextePcb, wxDC* DC )
 {
-    int angle    = 900;
-
     if( TextePcb == NULL )
         return;
 
     // Erase previous text:
     TextePcb->Draw( m_canvas, DC, GR_XOR );
 
-    TextePcb->SetOrientation( TextePcb->GetOrientation() + angle );
+    TextePcb->SetOrientation( TextePcb->GetOrientation() + 900 );
 
     // Redraw text in new position:
     TextePcb->Draw( m_canvas, DC, GR_XOR );

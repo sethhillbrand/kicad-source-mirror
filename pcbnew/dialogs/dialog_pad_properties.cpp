@@ -1,15 +1,15 @@
 /**
  * @file dialog_pad_properties.cpp
- * @brief Pad editing functions and dialog pad editor.
+ * @brief dialog pad properties editor.
  */
 
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 Dick Hollenbeck, dick@softplc.com
  * Copyright (C) 2008-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,28 +35,37 @@
 #include <class_drawpanel.h>
 #include <confirm.h>
 #include <pcbnew.h>
-#include <trigo.h>
-#include <macros.h>
 #include <wxBasePcbFrame.h>
 #include <pcbcommon.h>
 #include <base_units.h>
-
-#include <wx/dcbuffer.h>
+#include <board_commit.h>
 
 #include <class_board.h>
 #include <class_module.h>
 
-#include <dialog_pad_properties_base.h>
+#include <dialog_pad_properties.h>
 #include <html_messagebox.h>
 
 
-// list of pad shapes.
+// list of pad shapes, ordered like the pad shape wxChoice in dialog.
 static PAD_SHAPE_T code_shape[] = {
     PAD_SHAPE_CIRCLE,
     PAD_SHAPE_OVAL,
     PAD_SHAPE_RECT,
-    PAD_SHAPE_TRAPEZOID
+    PAD_SHAPE_TRAPEZOID,
+    PAD_SHAPE_ROUNDRECT,
 };
+
+// the ordered index of the pad shape wxChoice in dialog.
+// keep it consistent with code_shape[] and dialog strings
+enum CODE_CHOICE {
+    CHOICE_SHAPE_CIRCLE = 0,
+    CHOICE_SHAPE_OVAL,
+    CHOICE_SHAPE_RECT,
+    CHOICE_SHAPE_TRAPEZOID,
+    CHOICE_SHAPE_ROUNDRECT,
+};
+
 
 
 static PAD_ATTR_T code_type[] = {
@@ -83,100 +92,43 @@ static const LSET std_pad_layers[] = {
 };
 
 
-/**
- * class DIALOG_PAD_PROPERTIES, derived from DIALOG_PAD_PROPERTIES_BASE,
- * created by wxFormBuilder
- */
-class DIALOG_PAD_PROPERTIES : public DIALOG_PAD_PROPERTIES_BASE
-{
-public:
-    DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aPad );
-    ~DIALOG_PAD_PROPERTIES()
-    {
-        delete m_dummyPad;
-    }
-
-private:
-    PCB_BASE_FRAME* m_parent;
-    D_PAD*  m_currentPad;           // pad currently being edited
-    D_PAD*  m_dummyPad;             // a working copy used to show changes
-    D_PAD*  m_padMaster;            // The pad used to create new pads in board or
-                                    // footprint editor
-    BOARD*  m_board;                // the main board: this is the board handled by
-                                    // the PCB editor, if running or the dummy
-                                    // board used by the footprint editor
-                                    // (could happen when the Footprint editor will be run
-                                    // alone, outside the board editor
-    bool    m_isFlipped;            // true if the parent footprint (therefore pads) is flipped (mirrored)
-                                    // in this case, some Y coordinates values must be negated
-    bool    m_canUpdate;
-    bool    m_canEditNetName;       // true only if the called is the board editor
-
-private:
-    void initValues();
-
-    bool padValuesOK();       ///< test if all values are acceptable for the pad
-
-    void redraw();
-
-    /**
-     * Function setPadLayersList
-     * updates the CheckBox states in pad layers list,
-     * @param layer_mask = pad layer mask (ORed layers bit mask)
-     */
-    void setPadLayersList( LSET layer_mask );
-
-    /// Copy values from dialog field to aPad's members
-    bool transferDataToPad( D_PAD* aPad );
-
-    // event handlers:
-    void OnResize( wxSizeEvent& event );
-
-    void OnPadShapeSelection( wxCommandEvent& event );
-    void OnDrillShapeSelected( wxCommandEvent& event );
-
-    void PadOrientEvent( wxCommandEvent& event );
-    void PadTypeSelected( wxCommandEvent& event );
-
-    void OnSetLayers( wxCommandEvent& event );
-    void OnCancelButtonClick( wxCommandEvent& event );
-    void OnPaintShowPanel( wxPaintEvent& event );
-
-    /// Called when a dimension has changed.
-    /// Update the graphical pad shown in the panel.
-    void OnValuesChanged( wxCommandEvent& event );
-
-    /// Updates the different parameters for the component being edited.
-    /// Fired from the OK button click.
-    void PadPropertiesAccept( wxCommandEvent& event );
-};
-
-
 void PCB_BASE_FRAME::InstallPadOptionsFrame( D_PAD* aPad )
 {
     DIALOG_PAD_PROPERTIES dlg( this, aPad );
-
     dlg.ShowModal();
 }
 
 
 DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aPad ) :
-    DIALOG_PAD_PROPERTIES_BASE( aParent )
+    DIALOG_PAD_PROPERTIES_BASE( aParent ),
+    m_OrientValidator( 1, &m_OrientValue )
 {
     m_canUpdate  = false;
     m_parent     = aParent;
     m_currentPad = aPad;        // aPad can be NULL, if the dialog is called
-                                // from the module editor to set default pad characteristics
+                                // from the footprint editor to set default pad setup
 
     m_board      = m_parent->GetBoard();
+
+    m_OrientValidator.SetRange( -360.0, 360.0 );
+    m_PadOrientCtrl->SetValidator( m_OrientValidator );
+    m_OrientValidator.SetWindow( m_PadOrientCtrl );
 
     m_padMaster  = &m_parent->GetDesignSettings().m_Pad_Master;
     m_dummyPad   = new D_PAD( (MODULE*) NULL );
 
     if( aPad )
-        m_dummyPad->Copy( aPad );
-    else    // We are editing a "master" pad, i.e. a pad used to create new pads
-        m_dummyPad->Copy( m_padMaster );
+        *m_dummyPad = *aPad;
+    else    // We are editing a "master" pad, i.e. a template to create new pads
+        *m_dummyPad = *m_padMaster;
+
+    // Show the X and Y axis. It is usefull because pad shape can have an offset
+    // or be a complex shape.
+    m_axisOrigin = new KIGFX::ORIGIN_VIEWITEM( KIGFX::COLOR4D(0.0, 0.0, 0.8, 1.0),
+                                               KIGFX::ORIGIN_VIEWITEM::CROSS,
+                                               Millimeter2iu( 0.2 ),
+                                               VECTOR2D( m_dummyPad->GetPosition() ) );
+    m_axisOrigin->SetDrawAtZero( true );
 
     if( m_parent->IsGalCanvasActive() )
     {
@@ -185,8 +137,8 @@ DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aP
         m_panelShowPadGal->Show();
         m_panelShowPad->Hide();
         m_panelShowPadGal->GetView()->Add( m_dummyPad );
+        m_panelShowPadGal->GetView()->Add( m_axisOrigin );
         m_panelShowPadGal->StartDrawing();
-
         Connect( wxEVT_SIZE, wxSizeEventHandler( DIALOG_PAD_PROPERTIES::OnResize ) );
     }
     else
@@ -196,12 +148,16 @@ DIALOG_PAD_PROPERTIES::DIALOG_PAD_PROPERTIES( PCB_BASE_FRAME* aParent, D_PAD* aP
     }
 
     initValues();
+    TransferDataToWindow();
 
-    m_sdbSizer1OK->SetDefault();
-    GetSizer()->SetSizeHints( this );
-
+    m_sdbSizerOK->SetDefault();
     m_PadNumCtrl->SetFocus();
     m_canUpdate = true;
+
+    FixOSXCancelButtonIssue();
+
+    // Now all widgets have the size fixed, call FinishDialogSettings
+    FinishDialogSettings();
 }
 
 
@@ -243,7 +199,7 @@ void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
     dc.SetDeviceOrigin( dc_size.x / 2, dc_size.y / 2 );
 
     // Calculate a suitable scale to fit the available draw area
-    int dim = m_dummyPad->GetSize().x + std::abs( m_dummyPad->GetDelta().y );
+    int dim = m_dummyPad->GetBoundingRadius() *2;
 
     // Invalid x size. User could enter zero, or have deleted all text prior to
     // entering a new value; this is also treated as zero. If dim is left at
@@ -291,13 +247,71 @@ void DIALOG_PAD_PROPERTIES::OnPaintShowPanel( wxPaintEvent& event )
     GRResetPenAndBrush( &dc );
     m_dummyPad->DrawShape( NULL, &dc, drawInfo );
 
-    // Draw X and Y axis.
-    // this is particularly useful to show the reference position of pads
-    // with offset and no hole
-    GRLine( NULL, &dc, -dim, 0, dim, 0, 0, BLUE );   // X axis
-    GRLine( NULL, &dc, 0, -dim, 0, dim, 0, BLUE );   // Y axis
+    // Draw X and Y axis. Hhis is particularly useful to show the
+    // reference position of pads with offset and no hole, or custom pad shapes
+    const int linethickness = 0;
+    GRLine( NULL, &dc, -int( dc_size.x/scale ), 0, int( dc_size.x/scale ), 0,
+            linethickness, LIGHTBLUE );   // X axis
+    GRLine( NULL, &dc, 0, -int( dc_size.y/scale ), 0, int( dc_size.y/scale ),
+            linethickness, LIGHTBLUE );   // Y axis
 
     event.Skip();
+}
+
+
+void DIALOG_PAD_PROPERTIES::updateRoundRectCornerValues()
+{
+    // Note:
+    // To avoid generating a wxEVT_TEXT event from m_tcCornerSizeRatio
+    // we use ChangeValue instead of SetValue, to set the displayed string
+    if( m_dummyPad->GetShape() == PAD_SHAPE_ROUNDRECT )
+    {
+        m_tcCornerSizeRatio->ChangeValue( wxString::Format( "%.1f",
+                                        m_dummyPad->GetRoundRectRadiusRatio()*100 ) );
+        m_staticTextCornerRadiusValue->SetLabel( StringFromValue( g_UserUnit,
+                                                 m_dummyPad->GetRoundRectCornerRadius() ) );
+    }
+    else if( m_dummyPad->GetShape() == PAD_SHAPE_RECT )
+    {
+        m_tcCornerSizeRatio->ChangeValue( "0" );
+        m_staticTextCornerRadiusValue->SetLabel( "0" );
+    }
+    else
+    {
+        m_tcCornerSizeRatio->ChangeValue( wxEmptyString );
+        m_staticTextCornerRadiusValue->SetLabel( wxEmptyString );
+    }
+}
+
+
+void DIALOG_PAD_PROPERTIES::onCornerSizePercentChange( wxCommandEvent& event )
+{
+    if( m_dummyPad->GetShape() != PAD_SHAPE_ROUNDRECT )
+        return;
+
+    wxString value = m_tcCornerSizeRatio->GetValue();
+    double rrRadiusRatioPercent;
+
+    if( value.ToDouble( &rrRadiusRatioPercent ) )
+    {
+        // Clamp rrRadiusRatioPercent to acceptable value (0.0 to 50.0)
+        if( rrRadiusRatioPercent < 0.0 )
+        {
+            rrRadiusRatioPercent = 0.0;
+            m_tcCornerSizeRatio->ChangeValue( "0.0" );
+        }
+
+        if( rrRadiusRatioPercent > 50.0 )
+        {
+            rrRadiusRatioPercent = 0.5;
+            m_tcCornerSizeRatio->ChangeValue( "50.0" );
+        }
+
+        transferDataToPad( m_dummyPad );
+        m_staticTextCornerRadiusValue->SetLabel( StringFromValue( g_UserUnit,
+                                                 m_dummyPad->GetRoundRectCornerRadius() ) );
+        redraw();
+    }
 }
 
 
@@ -332,16 +346,14 @@ void DIALOG_PAD_PROPERTIES::initValues()
 
     if( m_currentPad )
     {
-        MODULE* module = m_currentPad->GetParent();
+        MODULE* footprint = m_currentPad->GetParent();
+        m_isFlipped = m_currentPad->IsFlipped();
 
-        if( module->GetLayer() == B_Cu )
-        {
-            m_isFlipped = true;
+        if( m_isFlipped )
             m_staticModuleSideValue->SetLabel( _( "Back side (footprint is mirrored)" ) );
-        }
 
-        //Internal angles are in 0.1 degree
-        msg.Printf( wxT( "%.1f" ), module->GetOrientation() / 10.0 );
+        // Diplay footprint rotation ( angles are in 0.1 degree )
+        msg.Printf( wxT( "%.1f" ), footprint->GetOrientation() / 10.0 );
         m_staticModuleRotValue->SetLabel( msg );
     }
 
@@ -364,24 +376,20 @@ void DIALOG_PAD_PROPERTIES::initValues()
     m_PadNumCtrl->SetValue( m_dummyPad->GetPadName() );
     m_PadNetNameCtrl->SetValue( m_dummyPad->GetNetname() );
 
-    // Display current unit name in dialog:
-    m_PadPosX_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadPosY_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadDrill_X_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadDrill_Y_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadShapeSizeX_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadShapeSizeY_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadShapeOffsetX_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadShapeOffsetY_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadShapeDelta_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_PadLengthDie_Unit->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
+    // Set the unit name in dialog:
+    wxStaticText* unitTexts[] =
+    {
+        m_PadPosX_Unit, m_PadPosY_Unit,
+        m_PadDrill_X_Unit,  m_PadDrill_Y_Unit,
+        m_PadShapeSizeX_Unit, m_PadShapeSizeY_Unit,
+        m_PadShapeOffsetX_Unit,m_PadShapeOffsetY_Unit,
+        m_PadShapeDelta_Unit, m_PadLengthDie_Unit,
+        m_NetClearanceUnits, m_SolderMaskMarginUnits, m_SolderPasteMarginUnits,
+        m_ThermalWidthUnits, m_ThermalGapUnits, m_staticTextCornerSizeUnit
+    };
 
-    // Display current pad masks clearances units
-    m_NetClearanceUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_SolderMaskMarginUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_SolderPasteMarginUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_ThermalWidthUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
-    m_ThermalGapUnits->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
+    for( unsigned ii = 0; ii < DIM( unitTexts ); ++ii )
+        unitTexts[ii]->SetLabel( GetAbbreviatedUnitsLabel( g_UserUnit ) );
 
     // Display current pad parameters units:
     PutValueInLocalUnits( *m_PadPosition_X_Ctrl, m_dummyPad->GetPosition().x );
@@ -450,9 +458,8 @@ void DIALOG_PAD_PROPERTIES::initValues()
 
     if( m_currentPad )
     {
-        MODULE* module = m_currentPad->GetParent();
-
-        angle = m_currentPad->GetOrientation() - module->GetOrientation();
+        MODULE* footprint = m_currentPad->GetParent();
+        angle = m_currentPad->GetOrientation() - footprint->GetOrientation();
 
         if( m_isFlipped )
             angle = -angle;
@@ -496,24 +503,27 @@ void DIALOG_PAD_PROPERTIES::initValues()
     {
     default:
     case PAD_SHAPE_CIRCLE:
-        m_PadShape->SetSelection( 0 );
+        m_PadShape->SetSelection( CHOICE_SHAPE_CIRCLE );
         break;
 
     case PAD_SHAPE_OVAL:
-        m_PadShape->SetSelection( 1 );
+        m_PadShape->SetSelection( CHOICE_SHAPE_OVAL );
         break;
 
     case PAD_SHAPE_RECT:
-        m_PadShape->SetSelection( 2 );
+        m_PadShape->SetSelection( CHOICE_SHAPE_RECT );
         break;
 
     case PAD_SHAPE_TRAPEZOID:
-        m_PadShape->SetSelection( 3 );
+        m_PadShape->SetSelection( CHOICE_SHAPE_TRAPEZOID );
+        break;
+
+    case PAD_SHAPE_ROUNDRECT:
+        m_PadShape->SetSelection( CHOICE_SHAPE_ROUNDRECT );
         break;
     }
 
-    msg.Printf( wxT( "%g" ), angle );
-    m_PadOrientCtrl->SetValue( msg );
+    m_OrientValue = angle / 10.0;
 
     // Type of pad selection
     m_PadType->SetSelection( 0 );
@@ -545,6 +555,7 @@ void DIALOG_PAD_PROPERTIES::initValues()
     setPadLayersList( m_dummyPad->GetLayerSet() );
     OnDrillShapeSelected( cmd_event );
     OnPadShapeSelection( cmd_event );
+    updateRoundRectCornerValues();
 }
 
 
@@ -559,7 +570,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
 {
     switch( m_PadShape->GetSelection() )
     {
-    case 0:     // PAD_SHAPE_CIRCLE:
+    case CHOICE_SHAPE_CIRCLE:
         m_ShapeDelta_Ctrl->Enable( false );
         m_trapDeltaDirChoice->Enable( false );
         m_ShapeSize_Y_Ctrl->Enable( false );
@@ -567,7 +578,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeOffset_Y_Ctrl->Enable( false );
         break;
 
-    case 1:     // PAD_SHAPE_OVAL:
+    case CHOICE_SHAPE_OVAL:
         m_ShapeDelta_Ctrl->Enable( false );
         m_trapDeltaDirChoice->Enable( false );
         m_ShapeSize_Y_Ctrl->Enable( true );
@@ -575,7 +586,7 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeOffset_Y_Ctrl->Enable( true );
         break;
 
-    case 2:     // PAD_SHAPE_RECT:
+    case CHOICE_SHAPE_RECT:
         m_ShapeDelta_Ctrl->Enable( false );
         m_trapDeltaDirChoice->Enable( false );
         m_ShapeSize_Y_Ctrl->Enable( true );
@@ -583,16 +594,32 @@ void DIALOG_PAD_PROPERTIES::OnPadShapeSelection( wxCommandEvent& event )
         m_ShapeOffset_Y_Ctrl->Enable( true );
         break;
 
-    case 3:     // PAD_SHAPE_TRAPEZOID:
+    case CHOICE_SHAPE_TRAPEZOID:
         m_ShapeDelta_Ctrl->Enable( true );
         m_trapDeltaDirChoice->Enable( true );
         m_ShapeSize_Y_Ctrl->Enable( true );
         m_ShapeOffset_X_Ctrl->Enable( true );
         m_ShapeOffset_Y_Ctrl->Enable( true );
         break;
+
+    case CHOICE_SHAPE_ROUNDRECT:
+        m_ShapeDelta_Ctrl->Enable( false );
+        m_trapDeltaDirChoice->Enable( false );
+        m_ShapeSize_Y_Ctrl->Enable( true );
+        m_ShapeOffset_X_Ctrl->Enable( true );
+        m_ShapeOffset_Y_Ctrl->Enable( true );
+        // Ensure m_tcCornerSizeRatio contains the right value:
+        m_tcCornerSizeRatio->ChangeValue( wxString::Format( "%.1f",
+                                m_dummyPad->GetRoundRectRadiusRatio()*100 ) );
+        break;
     }
 
+    // A few widgets are enabled only for rounded rect pads:
+    m_tcCornerSizeRatio->Enable( m_PadShape->GetSelection() == CHOICE_SHAPE_ROUNDRECT );
+
     transferDataToPad( m_dummyPad );
+
+    updateRoundRectCornerValues();
     redraw();
 }
 
@@ -650,9 +677,8 @@ void DIALOG_PAD_PROPERTIES::PadOrientEvent( wxCommandEvent& event )
         break;
     }
 
-    wxString msg;
-    msg.Printf( wxT( "%g" ), m_dummyPad->GetOrientation() );
-    m_PadOrientCtrl->SetValue( msg );
+    m_OrientValue = m_dummyPad->GetOrientation() / 10.0;
+    m_OrientValidator.TransferToWindow();
 
     transferDataToPad( m_dummyPad );
     redraw();
@@ -819,6 +845,23 @@ bool DIALOG_PAD_PROPERTIES::padValuesOK()
         break;
     }
 
+
+    if( m_dummyPad->GetShape() == PAD_SHAPE_ROUNDRECT )
+    {
+        wxString value = m_tcCornerSizeRatio->GetValue();
+        double rrRadiusRatioPercent;
+
+        if( !value.ToDouble( &rrRadiusRatioPercent ) )
+            error_msgs.Add( _( "Incorrect corner size value" ) );
+        else
+        {
+            if( rrRadiusRatioPercent < 0.0 )
+                error_msgs.Add( _( "Incorrect (negative) corner size value" ) );
+            else if( rrRadiusRatioPercent > 50.0 )
+                error_msgs.Add( _( "Corner size value must be smaller than 50%" ) );
+        }
+    }
+
     if( error_msgs.GetCount() )
     {
         HTML_MESSAGE_BOX dlg( this, _("Pad setup errors list" ) );
@@ -840,6 +883,12 @@ void DIALOG_PAD_PROPERTIES::redraw()
 
         if( bbox.GetSize().x > 0 && bbox.GetSize().y > 0 )
         {
+            // gives a size to the full drawable area
+            BOX2I drawbox;
+            drawbox.Move( m_dummyPad->GetPosition() );
+            drawbox.Inflate( bbox.GetSize().x*2, bbox.GetSize().y*2 );
+            m_panelShowPadGal->GetView()->SetBoundary( drawbox );
+
             // Autozoom
             m_panelShowPadGal->GetView()->SetViewport( BOX2D( bbox.GetOrigin(), bbox.GetSize() ) );
 
@@ -856,10 +905,36 @@ void DIALOG_PAD_PROPERTIES::redraw()
 }
 
 
-void DIALOG_PAD_PROPERTIES::PadPropertiesAccept( wxCommandEvent& event )
+bool DIALOG_PAD_PROPERTIES::TransferDataToWindow()
 {
+    if( !wxDialog::TransferDataToWindow() )
+        return false;
+
+    if( !m_panelGeneral->TransferDataToWindow() )
+        return false;
+
+    if( !m_localSettingsPanel->TransferDataToWindow() )
+        return false;
+
+    return true;
+}
+
+
+bool DIALOG_PAD_PROPERTIES::TransferDataFromWindow()
+{
+    BOARD_COMMIT commit( m_parent );
+
+    if( !wxDialog::TransferDataFromWindow() )
+        return false;
+
+    if( !m_panelGeneral->TransferDataFromWindow() )
+        return false;
+
+    if( !m_localSettingsPanel->TransferDataFromWindow() )
+        return false;
+
     if( !padValuesOK() )
-        return;
+        return false;
 
     bool rastnestIsChanged = false;
     int  isign = m_isFlipped ? -1 : 1;
@@ -868,106 +943,120 @@ void DIALOG_PAD_PROPERTIES::PadPropertiesAccept( wxCommandEvent& event )
     // m_padMaster is a pattern: ensure there is no net for this pad:
     m_padMaster->SetNetCode( NETINFO_LIST::UNCONNECTED );
 
-    if( m_currentPad )   // Set current Pad parameters
+    if( !m_currentPad )   // Set current Pad parameters
+        return false;
+
+    commit.Modify( m_currentPad );
+
+    wxSize  size;
+    MODULE* footprint = m_currentPad->GetParent();
+
+    footprint->SetLastEditTime();
+
+    // redraw the area where the pad was, without pad (delete pad on screen)
+    m_currentPad->SetFlags( DO_NOT_DRAW );
+    m_parent->GetCanvas()->RefreshDrawingRect( m_currentPad->GetBoundingBox() );
+    m_currentPad->ClearFlags( DO_NOT_DRAW );
+
+    // Update values
+    m_currentPad->SetShape( m_padMaster->GetShape() );
+    m_currentPad->SetAttribute( m_padMaster->GetAttribute() );
+
+    if( m_currentPad->GetPosition() != m_padMaster->GetPosition() )
     {
-        wxSize  size;
-        MODULE* module = m_currentPad->GetParent();
-
-        m_parent->SaveCopyInUndoList( module, UR_CHANGED );
-        module->SetLastEditTime();
-
-        // redraw the area where the pad was, without pad (delete pad on screen)
-        m_currentPad->SetFlags( DO_NOT_DRAW );
-        m_parent->GetCanvas()->RefreshDrawingRect( m_currentPad->GetBoundingBox() );
-        m_currentPad->ClearFlags( DO_NOT_DRAW );
-
-        // Update values
-        m_currentPad->SetShape( m_padMaster->GetShape() );
-        m_currentPad->SetAttribute( m_padMaster->GetAttribute() );
-
-        if( m_currentPad->GetPosition() != m_padMaster->GetPosition() )
-        {
-            m_currentPad->SetPosition( m_padMaster->GetPosition() );
-            rastnestIsChanged = true;
-        }
-
-        // compute the pos 0 value, i.e. pad position for module with orientation = 0
-        // i.e. relative to module origin (module position)
-        wxPoint pt = m_currentPad->GetPosition() - module->GetPosition();
-
-        RotatePoint( &pt, -module->GetOrientation() );
-
-        m_currentPad->SetPos0( pt );
-
-        m_currentPad->SetOrientation( m_padMaster->GetOrientation() * isign + module->GetOrientation() );
-
-        m_currentPad->SetSize( m_padMaster->GetSize() );
-
-        size = m_padMaster->GetDelta();
-        size.y *= isign;
-        m_currentPad->SetDelta( size );
-
-        m_currentPad->SetDrillSize( m_padMaster->GetDrillSize() );
-        m_currentPad->SetDrillShape( m_padMaster->GetDrillShape() );
-
-        wxPoint offset = m_padMaster->GetOffset();
-        offset.y *= isign;
-        m_currentPad->SetOffset( offset );
-
-        m_currentPad->SetPadToDieLength( m_padMaster->GetPadToDieLength() );
-
-        if( m_currentPad->GetLayerSet() != m_padMaster->GetLayerSet() )
-        {
-            rastnestIsChanged = true;
-            m_currentPad->SetLayerSet( m_padMaster->GetLayerSet() );
-        }
-
-        if( m_isFlipped )
-            m_currentPad->SetLayerSet( FlipLayerMask( m_currentPad->GetLayerSet() ) );
-
-        m_currentPad->SetPadName( m_padMaster->GetPadName() );
-
-        wxString padNetname;
-
-        // For PAD_ATTRIB_HOLE_NOT_PLATED, ensure there is no net name selected
-        if( m_padMaster->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED  )
-            padNetname = m_PadNetNameCtrl->GetValue();
-
-        if( m_currentPad->GetNetname() != padNetname )
-        {
-            const NETINFO_ITEM* netinfo = m_board->FindNet( padNetname );
-
-            if( !padNetname.IsEmpty() && netinfo == NULL )
-            {
-                DisplayError( NULL, _( "Unknown netname, netname not changed" ) );
-            }
-            else if( netinfo )
-            {
-                rastnestIsChanged = true;
-                m_currentPad->SetNetCode( netinfo->GetNet() );
-            }
-        }
-
-        m_currentPad->SetLocalClearance( m_padMaster->GetLocalClearance() );
-        m_currentPad->SetLocalSolderMaskMargin( m_padMaster->GetLocalSolderMaskMargin() );
-        m_currentPad->SetLocalSolderPasteMargin( m_padMaster->GetLocalSolderPasteMargin() );
-        m_currentPad->SetLocalSolderPasteMarginRatio( m_padMaster->GetLocalSolderPasteMarginRatio() );
-        m_currentPad->SetZoneConnection( m_padMaster->GetZoneConnection() );
-        m_currentPad->SetThermalWidth( m_padMaster->GetThermalWidth() );
-        m_currentPad->SetThermalGap( m_padMaster->GetThermalGap() );
-
-        module->CalculateBoundingBox();
-        m_parent->SetMsgPanel( m_currentPad );
-
-        // redraw the area where the pad was
-        m_parent->GetCanvas()->RefreshDrawingRect( m_currentPad->GetBoundingBox() );
-        m_parent->OnModify();
+        m_currentPad->SetPosition( m_padMaster->GetPosition() );
+        rastnestIsChanged = true;
     }
 
-    EndModal( wxID_OK );
+    // compute the pos 0 value, i.e. pad position for footprint with orientation = 0
+    // i.e. relative to footprint origin (footprint position)
+    wxPoint pt = m_currentPad->GetPosition() - footprint->GetPosition();
+
+    RotatePoint( &pt, -footprint->GetOrientation() );
+
+    m_currentPad->SetPos0( pt );
+
+    m_currentPad->SetOrientation( m_padMaster->GetOrientation() * isign
+                                    + footprint->GetOrientation() );
+
+    m_currentPad->SetSize( m_padMaster->GetSize() );
+
+    size = m_padMaster->GetDelta();
+    size.y *= isign;
+    m_currentPad->SetDelta( size );
+
+    m_currentPad->SetDrillSize( m_padMaster->GetDrillSize() );
+    m_currentPad->SetDrillShape( m_padMaster->GetDrillShape() );
+
+    wxPoint offset = m_padMaster->GetOffset();
+    offset.y *= isign;
+    m_currentPad->SetOffset( offset );
+
+    m_currentPad->SetPadToDieLength( m_padMaster->GetPadToDieLength() );
+
+    if( m_currentPad->GetLayerSet() != m_padMaster->GetLayerSet() )
+    {
+        rastnestIsChanged = true;
+        m_currentPad->SetLayerSet( m_padMaster->GetLayerSet() );
+    }
+
+    if( m_isFlipped )
+    {
+        m_currentPad->SetLayerSet( FlipLayerMask( m_currentPad->GetLayerSet() ) );
+    }
+
+    m_currentPad->SetPadName( m_padMaster->GetPadName() );
+
+    wxString padNetname;
+
+    // For PAD_ATTRIB_HOLE_NOT_PLATED, ensure there is no net name selected
+    if( m_padMaster->GetAttribute() != PAD_ATTRIB_HOLE_NOT_PLATED  )
+        padNetname = m_PadNetNameCtrl->GetValue();
+
+    if( m_currentPad->GetNetname() != padNetname )
+    {
+        const NETINFO_ITEM* netinfo = m_board->FindNet( padNetname );
+
+        if( !padNetname.IsEmpty() && netinfo == NULL )
+        {
+            DisplayError( NULL, _( "Unknown netname, netname not changed" ) );
+        }
+        else if( netinfo )
+        {
+            rastnestIsChanged = true;
+            m_currentPad->SetNetCode( netinfo->GetNet() );
+        }
+    }
+
+    m_currentPad->SetLocalClearance( m_padMaster->GetLocalClearance() );
+    m_currentPad->SetLocalSolderMaskMargin( m_padMaster->GetLocalSolderMaskMargin() );
+    m_currentPad->SetLocalSolderPasteMargin( m_padMaster->GetLocalSolderPasteMargin() );
+    m_currentPad->SetLocalSolderPasteMarginRatio( m_padMaster->GetLocalSolderPasteMarginRatio() );
+    m_currentPad->SetZoneConnection( m_padMaster->GetZoneConnection() );
+    m_currentPad->SetThermalWidth( m_padMaster->GetThermalWidth() );
+    m_currentPad->SetThermalGap( m_padMaster->GetThermalGap() );
+    m_currentPad->SetRoundRectRadiusRatio( m_padMaster->GetRoundRectRadiusRatio() );
+
+    // rounded rect pads with radius ratio = 0 are in fact rect pads.
+    // So set the right shape (and perhaps issues with a radius = 0)
+    if( m_currentPad->GetShape() == PAD_SHAPE_ROUNDRECT &&
+        m_currentPad->GetRoundRectRadiusRatio() == 0.0 )
+    {
+        m_currentPad->SetShape( PAD_SHAPE_RECT );
+    }
+
+    footprint->CalculateBoundingBox();
+    m_parent->SetMsgPanel( m_currentPad );
+
+    // redraw the area where the pad was
+    m_parent->GetCanvas()->RefreshDrawingRect( m_currentPad->GetBoundingBox() );
+
+    commit.Push( _( "Modify pad" ) );
 
     if( rastnestIsChanged )  // The net ratsnest must be recalculated
         m_board->m_Status_Pcb = 0;
+
+    return true;
 }
 
 
@@ -976,8 +1065,18 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     wxString    msg;
     int         x, y;
 
+    if( !Validate() )
+        return true;
+    if( !m_panelGeneral->Validate() )
+        return true;
+    if( !m_localSettingsPanel->Validate() )
+        return true;
+
+    m_OrientValidator.TransferFromWindow();
+
     aPad->SetAttribute( code_type[m_PadType->GetSelection()] );
     aPad->SetShape( code_shape[m_PadShape->GetSelection()] );
+
 
     // Read pad clearances values:
     aPad->SetLocalClearance( ValueFromTextCtrl( *m_NetClearanceValueCtrl ) );
@@ -1043,6 +1142,7 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     // Read pad shape size:
     x = ValueFromTextCtrl( *m_ShapeSize_X_Ctrl );
     y = ValueFromTextCtrl( *m_ShapeSize_Y_Ctrl );
+
     if( aPad->GetShape() == PAD_SHAPE_CIRCLE )
         y = x;
 
@@ -1098,11 +1198,7 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     y = ValueFromTextCtrl( *m_ShapeOffset_Y_Ctrl );
     aPad->SetOffset( wxPoint( x, y ) );
 
-    double orient_value = 0;
-    msg = m_PadOrientCtrl->GetValue();
-    msg.ToDouble( &orient_value );
-
-    aPad->SetOrientation( orient_value );
+    aPad->SetOrientation( m_OrientValue * 10.0 );
 
     msg = m_PadNumCtrl->GetValue().Left( 4 );
     aPad->SetPadName( msg );
@@ -1136,6 +1232,10 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     case PAD_SHAPE_TRAPEZOID:
         break;
 
+    case PAD_SHAPE_ROUNDRECT:
+        aPad->SetDelta( wxSize( 0, 0 ) );
+        break;
+
     default:
         ;
     }
@@ -1152,7 +1252,7 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
         // PAD_ATTRIB_CONN has just a default non technical layers that differs from SMD
         // and are intended to be used in virtual edge board connectors
         // However we can accept a non null offset,
-        // mainly to allow complex pads build from a set of from basic pad shapes
+        // mainly to allow complex pads build from a set of basic pad shapes
         aPad->SetDrillSize( wxSize( 0, 0 ) );
         break;
 
@@ -1167,6 +1267,15 @@ bool DIALOG_PAD_PROPERTIES::transferDataToPad( D_PAD* aPad )
     default:
         DisplayError( NULL, wxT( "Error: unknown pad type" ) );
         break;
+    }
+
+    if( aPad->GetShape() == PAD_SHAPE_ROUNDRECT )
+    {
+        wxString value = m_tcCornerSizeRatio->GetValue();
+        double rrRadiusRatioPercent;
+
+        if( value.ToDouble( &rrRadiusRatioPercent ) )
+            aPad->SetRoundRectRadiusRatio( rrRadiusRatioPercent / 100.0 );
     }
 
     LSET padLayerMask;
@@ -1233,12 +1342,10 @@ void DIALOG_PAD_PROPERTIES::OnValuesChanged( wxCommandEvent& event )
     if( m_canUpdate )
     {
         transferDataToPad( m_dummyPad );
+        // If the pad size has changed, update the displayed values
+        // for rounded rect pads
+        updateRoundRectCornerValues();
+
         redraw();
     }
-}
-
-
-void DIALOG_PAD_PROPERTIES::OnCancelButtonClick( wxCommandEvent& event )
-{
-    EndModal( wxID_CANCEL );
 }

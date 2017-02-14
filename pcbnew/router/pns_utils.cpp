@@ -2,6 +2,7 @@
  * KiRouter - a push-and-(sometimes-)shove PCB router
  *
  * Copyright (C) 2013-2014 CERN
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Author: Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -24,6 +25,10 @@
 #include "pns_router.h"
 
 #include <geometry/shape_segment.h>
+
+#include <cmath>
+
+namespace PNS {
 
 const SHAPE_LINE_CHAIN OctagonalHull( const VECTOR2I& aP0, const VECTOR2I& aSize,
                                       int aClearance, int aChamfer )
@@ -161,7 +166,7 @@ SHAPE_RECT ApproximateSegmentAsRect( const SHAPE_SEGMENT& aSeg )
                        std::abs( p1.x - p0.x ), std::abs( p1.y - p0.y ) );
 }
 
-
+#if 0
 void DrawDebugPoint( VECTOR2I aP, int aColor )
 {
     SHAPE_LINE_CHAIN l;
@@ -169,13 +174,13 @@ void DrawDebugPoint( VECTOR2I aP, int aColor )
     l.Append( aP - VECTOR2I( -50000, -50000 ) );
     l.Append( aP + VECTOR2I( -50000, -50000 ) );
 
-    PNS_ROUTER::GetInstance()->DisplayDebugLine ( l, aColor, 10000 );
+    ROUTER::GetInstance()->DisplayDebugLine ( l, aColor, 10000 );
 
     l.Clear();
     l.Append( aP - VECTOR2I( 50000, -50000 ) );
     l.Append( aP + VECTOR2I( 50000, -50000 ) );
 
-    PNS_ROUTER::GetInstance()->DisplayDebugLine( l, aColor, 10000 );
+    ROUTER::GetInstance()->DisplayDebugLine( l, aColor, 10000 );
 }
 
 
@@ -192,7 +197,7 @@ void DrawDebugBox( BOX2I aB, int aColor )
     l.Append( o.x, o.y + s.y );
     l.Append( o );
 
-    PNS_ROUTER::GetInstance()->DisplayDebugLine( l, aColor, 10000 );
+    ROUTER::GetInstance()->DisplayDebugLine( l, aColor, 10000 );
 }
 
 
@@ -203,7 +208,7 @@ void DrawDebugSeg( SEG aS, int aColor )
     l.Append( aS.A );
     l.Append( aS.B );
 
-    PNS_ROUTER::GetInstance()->DisplayDebugLine( l, aColor, 10000 );
+    ROUTER::GetInstance()->DisplayDebugLine( l, aColor, 10000 );
 }
 
 
@@ -221,24 +226,31 @@ void DrawDebugDirs( VECTOR2D aP, int aMask, int aColor )
         }
     }
 }
+#endif
 
-
-OPT_BOX2I ChangedArea( const PNS_ITEM* aItemA, const PNS_ITEM* aItemB )
+OPT_BOX2I ChangedArea( const ITEM* aItemA, const ITEM* aItemB )
 {
-    if( aItemA->OfKind( PNS_ITEM::VIA ) && aItemB->OfKind( PNS_ITEM::VIA ) )
+    if( aItemA->OfKind( ITEM::VIA_T ) && aItemB->OfKind( ITEM::VIA_T ) )
     {
-        const PNS_VIA* va = static_cast<const PNS_VIA*>( aItemA );
-        const PNS_VIA* vb = static_cast<const PNS_VIA*>( aItemB );
+        const VIA* va = static_cast<const VIA*>( aItemA );
+        const VIA* vb = static_cast<const VIA*>( aItemB );
 
         return va->ChangedArea( vb );
     }
-    else if( aItemA->OfKind( PNS_ITEM::LINE ) && aItemB->OfKind( PNS_ITEM::LINE ) )
+    else if( aItemA->OfKind( ITEM::LINE_T ) && aItemB->OfKind( ITEM::LINE_T ) )
     {
-        const PNS_LINE* la = static_cast<const PNS_LINE*> ( aItemA );
-        const PNS_LINE* lb = static_cast<const PNS_LINE*> ( aItemB );
+        const LINE* la = static_cast<const LINE*> ( aItemA );
+        const LINE* lb = static_cast<const LINE*> ( aItemB );
 
         return la->ChangedArea( lb );
     }
 
     return OPT_BOX2I();
+}
+
+OPT_BOX2I ChangedArea( const LINE& aLineA, const LINE& aLineB )
+{
+    return aLineA.ChangedArea( &aLineB );
+}
+
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2011 Jean-Pierre Charras, <jp.charras@wanadoo.fr>
  * Copyright (C) 2013-2016 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -50,7 +50,8 @@
 #include <fp_lib_table.h>
 #include <fpid.h>
 #include <class_module.h>
-#include <boost/thread.hpp>
+#include <thread>
+#include <html_messagebox.h>
 
 
 /*
@@ -104,19 +105,19 @@ void FOOTPRINT_INFO::load()
 
     wxASSERT( fptable );
 
-    std::auto_ptr<MODULE> m( fptable->FootprintLoad( m_nickname, m_fpname ) );
+    std::unique_ptr<MODULE> footprint( fptable->FootprintLoad( m_nickname, m_fpname ) );
 
-    if( m.get() == NULL )    // Should happen only with malformed/broken libraries
+    if( footprint.get() == NULL )    // Should happen only with malformed/broken libraries
     {
         m_pad_count = 0;
         m_unique_pad_count = 0;
     }
     else
     {
-        m_pad_count = m->GetPadCount( DO_NOT_INCLUDE_NPTH );
-        m_unique_pad_count = m->GetUniquePadCount( DO_NOT_INCLUDE_NPTH );
-        m_keywords  = m->GetKeywords();
-        m_doc       = m->GetDescription();
+        m_pad_count = footprint->GetPadCount( DO_NOT_INCLUDE_NPTH );
+        m_unique_pad_count = footprint->GetUniquePadCount( DO_NOT_INCLUDE_NPTH );
+        m_keywords  = footprint->GetKeywords();
+        m_doc       = footprint->GetDescription();
 
         // tell ensure_loaded() I'm loaded.
         m_loaded = true;
@@ -124,19 +125,10 @@ void FOOTPRINT_INFO::load()
 }
 
 
-#define NTOLERABLE_ERRORS   4       // max errors before aborting, although threads
-                                    // in progress will still pile on for a bit.  e.g. if 9 threads
-                                    // expect 9 greater than this.
-
 void FOOTPRINT_LIST::loader_job( const wxString* aNicknameList, int aJobZ )
 {
-    DBG(printf( "%s: first:'%s' aJobZ:%d\n", __func__, TO_UTF8( *aNicknameList ), aJobZ );)
-
     for( int i=0; i<aJobZ; ++i )
     {
-        if( m_error_count >= NTOLERABLE_ERRORS )
-            break;
-
         const wxString& nickname = aNicknameList[i];
 
         try
@@ -221,7 +213,7 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
         LOCALE_IO   top_most_nesting;
 
         // Something which will not invoke a thread copy constructor, one of many ways obviously:
-        typedef boost::ptr_vector< boost::thread >  MYTHREADS;
+        typedef std::vector< std::thread >  MYTHREADS;
 
         MYTHREADS threads;
 
@@ -231,13 +223,6 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
         // size() is small, I'll do myself.
         for( unsigned i=0; i<nicknames.size();  )
         {
-            if( m_error_count >= NTOLERABLE_ERRORS )
-            {
-                // abort the remaining nicknames.
-                retv = false;
-                break;
-            }
-
             if( i + jobz >= nicknames.size() )  // on the last iteration of this for(;;)
             {
                 jobz = nicknames.size() - i;
@@ -249,7 +234,7 @@ bool FOOTPRINT_LIST::ReadFootprintFiles( FP_LIB_TABLE* aTable, const wxString* a
             else
             {
                 // Delegate the job to a temporary thread created here.
-                threads.push_back( new boost::thread( &FOOTPRINT_LIST::loader_job,
+                threads.push_back( std::thread( &FOOTPRINT_LIST::loader_job,
                         this, &nicknames[i], jobz ) );
             }
 
@@ -281,7 +266,7 @@ FOOTPRINT_INFO* FOOTPRINT_LIST::GetModuleInfo( const wxString& aFootprintName )
     if( aFootprintName.IsEmpty() )
         return NULL;
 
-    BOOST_FOREACH( FOOTPRINT_INFO& fp, m_list )
+    for( FOOTPRINT_INFO& fp : m_list )
     {
         FPID fpid;
 
@@ -306,29 +291,8 @@ bool FOOTPRINT_INFO::InLibrary( const wxString& aLibrary ) const
 }
 
 
-#include <confirm.h>    // until scaffolding goes.
-
 void FOOTPRINT_LIST::DisplayErrors( wxTopLevelWindow* aWindow )
 {
-#if 1
-    // scaffolding until a better one is written, hopefully below.
-
-    DBG(printf( "m_error_count:%d\n", m_error_count );)
-
-    wxString msg = _( "Errors were encountered loading footprints" );
-
-    msg += wxT( '\n' );
-
-    for( unsigned i = 0; i<m_errors.size();  ++i )
-    {
-        msg += m_errors[i].errorText;
-        msg += wxT( '\n' );
-    }
-
-    DisplayError( aWindow, msg );
-
-#else   // real evolving deal:
-
     // @todo: go to a more HTML !<table>! ? centric output, possibly with
     // recommendations for remedy of errors.  Add numeric error codes
     // to PARSE_ERROR, and switch on them for remedies, etc.  Full
@@ -336,13 +300,16 @@ void FOOTPRINT_LIST::DisplayErrors( wxTopLevelWindow* aWindow )
 
     HTML_MESSAGE_BOX dlg( aWindow, _( "Load Error" ) );
 
-    dlg.MessageSet( _( "Errors were encountered loading footprints" ) );
+    dlg.MessageSet( _( "Errors were encountered loading footprints:" ) );
 
-    wxString msg = my html wizardry.
+    wxString msg;
+
+    for( unsigned i = 0; i<m_errors.size();  ++i )
+    {
+        msg += wxT( "<p>" ) + m_errors[i].Problem() + wxT( "</p>" );
+    }
 
     dlg.AddHTML_Text( msg );
 
     dlg.ShowModal();
-
-#endif
 }

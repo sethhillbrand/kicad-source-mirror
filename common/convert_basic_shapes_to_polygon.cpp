@@ -41,7 +41,7 @@
  * @param aRadius = the radius of the circle
  * @param aCircleToSegmentsCount = the number of segments to approximate a circle
  * Note: the polygon is inside the circle, so if you want to have the polygon
- * outside the circle, you should give aRadius calculated with a corrrection factor
+ * outside the circle, you should give aRadius calculated with a correction factor
  */
 void TransformCircleToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                wxPoint aCenter, int aRadius,
@@ -62,6 +62,78 @@ void TransformCircleToPolygon( SHAPE_POLY_SET& aCornerBuffer,
         corner_position += aCenter;
         aCornerBuffer.Append( corner_position.x, corner_position.y );
     }
+}
+
+/* Returns the centers of the rounded corners of a rect.
+ */
+void GetRoundRectCornerCenters( wxPoint aCenters[4], int aRadius,
+                const wxPoint& aPosition, const wxSize& aSize, double aRotation )
+{
+    wxSize size( aSize/2 );
+
+    size.x -= aRadius;
+    size.y -= aRadius;
+
+    // Ensure size is > 0, to avoid generating unusable shapes
+    // which can crash kicad.
+    if( size.x <= 1 )
+        size.x = 1;
+    if( size.y <= 1 )
+        size.y = 1;
+
+    aCenters[0].x = -size.x;
+    aCenters[0].y = size.y;
+
+    aCenters[1].x = size.x;
+    aCenters[1].y = size.y;
+
+    aCenters[2].x = size.x;
+    aCenters[2].y = -size.y;
+
+    aCenters[3].x = -size.x;
+    aCenters[3].y = -size.y;
+
+    // Rotate the polygon
+    if( aRotation )
+    {
+        for( int ii = 0; ii < 4; ii++ )
+            RotatePoint( &aCenters[ii], aRotation );
+    }
+
+    // move the polygon to the position
+    for( int ii = 0; ii < 4; ii++ )
+        aCenters[ii] += aPosition;
+}
+
+/**
+ * Function TransformRoundRectToPolygon
+ * convert a rectangle with rounded corners to a polygon
+ * Convert arcs to multiple straight lines
+ * @param aCornerBuffer = a buffer to store the polygon
+ * @param aPosition = the coordinate of the center of the rectangle
+ * @param aSize = the size of the rectangle
+ * @param aRadius = radius of rounded corners
+ * @param aRotation = rotation in 0.1 degrees of the rectangle
+ * @param aCircleToSegmentsCount = the number of segments to approximate a circle
+ */
+void TransformRoundRectToPolygon( SHAPE_POLY_SET& aCornerBuffer,
+                                  const wxPoint& aPosition, const wxSize& aSize,
+                                  double aRotation, int aCornerRadius,
+                                  int aCircleToSegmentsCount )
+{
+    wxPoint corners[4];
+    GetRoundRectCornerCenters( corners, aCornerRadius, aPosition, aSize, aRotation );
+
+    SHAPE_POLY_SET outline;
+    outline.NewOutline();
+
+    for( int ii = 0; ii < 4; ++ii )
+        outline.Append( corners[ii].x, corners[ii].y );
+
+    outline.Inflate( aCornerRadius, aCircleToSegmentsCount );
+
+    // Add the outline:
+    aCornerBuffer.Append( outline );
 }
 
 
@@ -211,16 +283,23 @@ void TransformRingToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                              wxPoint aCentre, int aRadius,
                              int aCircleToSegmentsCount, int aWidth )
 {
-    int     delta = 3600 / aCircleToSegmentsCount;   // rotate angle in 0.1 degree
-
-    // Compute the corners posituions and creates poly
+    // Compute the corners positions and creates the poly
     wxPoint curr_point;
     int     inner_radius    = aRadius - ( aWidth / 2 );
     int     outer_radius    = inner_radius + aWidth;
 
+    if( inner_radius <= 0 )
+    {   //In this case, the ring is just a circle (no hole inside)
+        TransformCircleToPolygon( aCornerBuffer, aCentre, aRadius + ( aWidth / 2 ),
+                                  aCircleToSegmentsCount );
+        return;
+    }
+
     aCornerBuffer.NewOutline();
 
     // Draw the inner circle of the ring
+    int     delta = 3600 / aCircleToSegmentsCount;   // rotate angle in 0.1 degree
+
     for( int ii = 0; ii < 3600; ii += delta )
     {
         curr_point.x    = inner_radius;

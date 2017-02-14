@@ -2,7 +2,7 @@
 #  This program source code file is part of KICAD, a free EDA CAD application.
 #
 #  Copyright (C) 2010 Wayne Stambaugh <stambaughw@verizon.net>
-#  Copyright (C) 2010-2015 Kicad Developers, see AUTHORS.txt for contributors.
+#  Copyright (C) 2010-2016 Kicad Developers, see AUTHORS.txt for contributors.
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -23,9 +23,12 @@
 #
 
 macro( create_git_version_header _git_src_path )
-    # If bzr is not found or an error occurs using the git commands to determine the repo
-    # version, set the build version string to "no-git"
-    set( KICAD_BUILD_VERSION "no-git" )
+    # If an error occurs using the git commands to determine the repo
+    # version, set the build version string to "no-git" and the default
+    # branch name to unknown
+    set( KICAD_GIT_BUILD_VERSION "no-git" )
+    set( KICAD_BRANCH_NAME "undefined" )
+    set( KICAD_FULL_VERSION "${KICAD_BUILD_VERSION}-${KICAD_BRANCH_NAME}")
 
     # Include Git support to automagically create version header file.
     find_package( Git )
@@ -72,17 +75,17 @@ macro( create_git_version_header _git_src_path )
 
             execute_process(
             COMMAND
-            ${GIT_EXECUTABLE} rev-list HEAD --count
-            --first-parent
+            ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
             WORKING_DIRECTORY ${_git_src_path}
-            OUTPUT_VARIABLE _git_SERIAL
+            OUTPUT_VARIABLE _git_BRANCH
             OUTPUT_STRIP_TRAILING_WHITESPACE)
 
             message(STATUS "Git hash: ${_git_LONG_HASH}")
+            message(STATUS "Git branch: ${_git_BRANCH}")
 
             if( ${_git_log_result} EQUAL 0 )
                 string( REGEX REPLACE "^(.*\n)?revno: ([^ \n]+).*"
-                        "\\2" Kicad_REPO_REVISION "BZR ${_git_SERIAL}, Git ${_git_SHORT_HASH}" )
+                        "\\2" Kicad_REPO_REVISION "revision ${_git_SHORT_HASH}" )
                 string( REGEX REPLACE "^(.*\n)?committer: ([^\n]+).*"
                         "\\2" Kicad_REPO_LAST_CHANGED_AUTHOR "${_git_LAST_COMITTER}")
                 string( REGEX REPLACE "^(.*\n)?timestamp: [a-zA-Z]+ ([^ \n]+).*"
@@ -98,8 +101,8 @@ macro( create_git_version_header _git_src_path )
     if( Kicad_REPO_LAST_CHANGED_DATE )
         string( REGEX REPLACE "^([0-9]+)\\-([0-9]+)\\-([0-9]+)" "\\1-\\2-\\3"
                 _kicad_git_date ${Kicad_REPO_LAST_CHANGED_DATE} )
-        set( KICAD_BUILD_VERSION "(${_kicad_git_date} ${Kicad_REPO_REVISION})" )
+        set( KICAD_GIT_BUILD_VERSION "(${_kicad_git_date} ${Kicad_REPO_REVISION})" )
+        set( KICAD_BRANCH_NAME ${_git_BRANCH} )
     endif()
 
-    set( KICAD_BUILD_VERSION ${KICAD_BUILD_VERSION} )
 endmacro()

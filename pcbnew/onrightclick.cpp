@@ -4,7 +4,7 @@
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2007-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -74,7 +74,7 @@ bool PCB_EDIT_FRAME::OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu )
         return true;
     }
 
-    if( GetToolId() != ID_NO_TOOL_SELECTED )
+    if( GetToolId() != ID_NO_TOOL_SELECTED && GetToolId() != ID_ZOOM_SELECTION )
     {
         if( item && item->GetFlags() )
         {
@@ -286,7 +286,7 @@ bool PCB_EDIT_FRAME::OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu )
                                      HK_DELETE );
 
                 AddMenuItem( aPopMenu, ID_POPUP_PCB_DELETE_DIMENSION,
-                             msg, KiBitmap( delete_xpm ) );
+                             msg, KiBitmap( delete_dimension_xpm ) );
             }
             break;
 
@@ -307,11 +307,6 @@ bool PCB_EDIT_FRAME::OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu )
                                      HK_DUPLICATE_ITEM );
                 AddMenuItem( aPopMenu, ID_POPUP_PCB_DUPLICATE_ITEM,
                              msg, KiBitmap( duplicate_target_xpm ) );
-
-                msg = AddHotkeyName( _("Create Target Array" ), g_Board_Editor_Hokeys_Descr,
-                                     HK_CREATE_ARRAY );
-                AddMenuItem( aPopMenu, ID_POPUP_PCB_CREATE_ARRAY,
-                             msg, KiBitmap( array_target_xpm ) );
 
                 msg = AddHotkeyName( _( "Edit Target" ), g_Board_Editor_Hokeys_Descr,
                                      HK_EDIT_ITEM );
@@ -448,10 +443,6 @@ bool PCB_EDIT_FRAME::OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu )
                               _( "Automatically Place New Footprints" ) );
             commands->Append( ID_POPUP_PCB_AUTOPLACE_NEXT_MODULE,
                               _( "Automatically Place Next Footprints" ) );
-            commands->AppendSeparator();
-            AddMenuItem( commands, ID_POPUP_PCB_REORIENT_ALL_MODULES,
-                         _( "Orient All Footprints" ), KiBitmap( rotate_module_cw_xpm ) );
-            aPopMenu->AppendSeparator();
         }
 
         if( m_mainToolBar->GetToolToggled( ID_TOOLBARH_PCB_MODE_TRACKS ) )

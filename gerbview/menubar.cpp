@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2009-2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2013 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,14 +27,14 @@
  * @file gerbview/menubar.cpp
  * @brief (Re)Create the main menubar for GerbView
  */
-#include <fctsys.h>
 
-#include <pgm_base.h>
+
 #include <kiface_i.h>
-#include <gerbview.h>
-#include <gerbview_frame.h>
-#include <gerbview_id.h>
-#include <hotkeys.h>
+#include <pgm_base.h>
+
+#include "gerbview_frame.h"
+#include "gerbview_id.h"
+#include "hotkeys.h"
 #include <menus_helpers.h>
 
 
@@ -195,30 +195,26 @@ void GERBVIEW_FRAME::ReCreateMenuBar()
     // Separator
     miscellaneousMenu->AppendSeparator();
 
-    // Clear layer
+    // Erase graphic layer
     AddMenuItem( miscellaneousMenu,
-                 ID_GERBVIEW_GLOBAL_DELETE,
-                 _( "&Clear Layer" ),
-                 _( "Clear current layer" ),
-                 KiBitmap( general_deletions_xpm ) );
+                 ID_GERBVIEW_ERASE_CURR_LAYER,
+                 _( "&Clear Current Layer" ),
+                 _( "Erase the graphic layer currently selected" ),
+                 KiBitmap( delete_sheet_xpm ) );
 
     // Separator
     miscellaneousMenu->AppendSeparator();
 
-    // Text editor
+    // Text editor (usefull to browse source files)
     AddMenuItem( miscellaneousMenu,
                  ID_MENU_GERBVIEW_SELECT_PREFERED_EDITOR,
                  _( "&Text Editor" ),
                  _( "Select your preferred text editor" ),
                  KiBitmap( editor_xpm ) );
 
-    // Menu Help
+    // Help menu
     wxMenu* helpMenu = new wxMenu;
 
-    // Version info
-    AddHelpVersionInfoMenuEntry( helpMenu );
-
-    // Contents
     AddMenuItem( helpMenu,
                  wxID_HELP,
                  _( "Gerbview &Manual" ),
@@ -226,12 +222,20 @@ void GERBVIEW_FRAME::ReCreateMenuBar()
                  KiBitmap( online_help_xpm ) );
 
     AddMenuItem( helpMenu,
-                 wxID_INDEX,
-                 _( "&Getting Started in KiCad" ),
-                 _( "Open \"Getting Started in KiCad\" guide for beginners" ),
-                 KiBitmap( help_xpm ) );
+                 ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
+                 _( "&List Hotkeys" ),
+                 _( "Displays the current hotkeys list and corresponding commands" ),
+                 KiBitmap( hotkeys_xpm ) );
 
     // Separator
+    helpMenu->AppendSeparator();
+
+    // Get involved with KiCad
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
+
     helpMenu->AppendSeparator();
 
     // About Kicad

@@ -2,8 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 CERN
- * Copyright (C) 2012-2015 KiCad Developers, see change_log.txt for contributors.
- * @author Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2012-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,9 +31,7 @@
 #include <common.h>
 #include <confirm.h>
 #include <macros.h>
-#include <convert_from_iu.h>
 #include <trigo.h>
-#include <3d_struct.h>
 #include <class_title_block.h>
 
 #include <class_board.h>
@@ -53,13 +50,13 @@
 #include <zones.h>
 #include <pcb_parser.h>
 
-#include <boost/make_shared.hpp>
-
 using namespace PCB_KEYS_T;
 
 
 void PCB_PARSER::init()
 {
+    m_tooRecent = false;
+    m_requiredVersion = 0;
     m_layerIndices.clear();
     m_layerMasks.clear();
 
@@ -166,6 +163,43 @@ bool PCB_PARSER::parseBool() throw( PARSE_ERROR )
         Expecting( "yes or no" );
 
     return false;
+}
+
+
+int PCB_PARSER::parseVersion() throw( IO_ERROR, PARSE_ERROR )
+{
+    if( NextTok() != T_version )
+        Expecting( GetTokenText( T_version ) );
+
+    int pcb_version = parseInt( FromUTF8().mb_str( wxConvUTF8 ) );
+
+    NeedRIGHT();
+
+    return pcb_version;
+}
+
+
+wxString PCB_PARSER::GetRequiredVersion()
+{
+    int year, month, day;
+
+    year = m_requiredVersion / 10000;
+    month = ( m_requiredVersion / 100 ) - ( year * 100 );
+    day = m_requiredVersion - ( year * 10000 ) - ( month * 100 );
+
+    // wx throws an assertion, not a catchable exception, when the date is invalid.
+    // User input shouldn't give wx asserts, so check manually and throw a proper
+    // error instead
+    if( day <= 0 || month <= 0 || month > 12 ||
+            day > wxDateTime::GetNumberOfDays( (wxDateTime::Month)( month - 1 ), year ) )
+    {
+        wxString err;
+        err.Printf( _( "cannot interpret date code %d" ), m_requiredVersion );
+        THROW_PARSE_ERROR( err, CurSource(), CurLine(), CurLineNumber(), CurOffset() );
+    }
+
+    wxDateTime date( day, (wxDateTime::Month)( month - 1 ), year, 0, 0, 0, 0 );
+    return date.FormatDate();
 }
 
 
@@ -301,17 +335,16 @@ void PCB_PARSER::parseEDA_TEXT( EDA_TEXT* aText ) throw( PARSE_ERROR, IO_ERROR )
 }
 
 
-S3D_MASTER* PCB_PARSER::parse3DModel() throw( PARSE_ERROR, IO_ERROR )
+S3D_INFO* PCB_PARSER::parse3DModel() throw( PARSE_ERROR, IO_ERROR )
 {
     wxCHECK_MSG( CurTok() == T_model, NULL,
-                 wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as S3D_MASTER." ) );
+                 wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as S3D_INFO." ) );
 
     T token;
 
-    std::auto_ptr< S3D_MASTER > n3D( new S3D_MASTER( NULL ) );
-
+    S3D_INFO* n3D = new S3D_INFO;
     NeedSYMBOLorNUMBER();
-    n3D->SetShape3DName( FromUTF8() );
+    n3D->m_Filename = FromUTF8();
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
@@ -329,9 +362,9 @@ S3D_MASTER* PCB_PARSER::parse3DModel() throw( PARSE_ERROR, IO_ERROR )
             if( token != T_xyz )
                 Expecting( T_xyz );
 
-            n3D->m_MatPosition.x = parseDouble( "x value" );
-            n3D->m_MatPosition.y = parseDouble( "y value" );
-            n3D->m_MatPosition.z = parseDouble( "z value" );
+            n3D->m_Offset.x = parseDouble( "x value" );
+            n3D->m_Offset.y = parseDouble( "y value" );
+            n3D->m_Offset.z = parseDouble( "z value" );
             NeedRIGHT();
             break;
 
@@ -342,9 +375,9 @@ S3D_MASTER* PCB_PARSER::parse3DModel() throw( PARSE_ERROR, IO_ERROR )
             if( token != T_xyz )
                 Expecting( T_xyz );
 
-            n3D->m_MatScale.x = parseDouble( "x value" );
-            n3D->m_MatScale.y = parseDouble( "y value" );
-            n3D->m_MatScale.z = parseDouble( "z value" );
+            n3D->m_Scale.x = parseDouble( "x value" );
+            n3D->m_Scale.y = parseDouble( "y value" );
+            n3D->m_Scale.z = parseDouble( "z value" );
             NeedRIGHT();
             break;
 
@@ -355,9 +388,9 @@ S3D_MASTER* PCB_PARSER::parse3DModel() throw( PARSE_ERROR, IO_ERROR )
             if( token != T_xyz )
                 Expecting( T_xyz );
 
-            n3D->m_MatRotation.x = parseDouble( "x value" );
-            n3D->m_MatRotation.y = parseDouble( "y value" );
-            n3D->m_MatRotation.z = parseDouble( "z value" );
+            n3D->m_Rotation.x = parseDouble( "x value" );
+            n3D->m_Rotation.y = parseDouble( "y value" );
+            n3D->m_Rotation.z = parseDouble( "z value" );
             NeedRIGHT();
             break;
 
@@ -368,7 +401,7 @@ S3D_MASTER* PCB_PARSER::parse3DModel() throw( PARSE_ERROR, IO_ERROR )
         NeedRIGHT();
     }
 
-    return n3D.release();
+    return n3D;
 }
 
 
@@ -381,7 +414,7 @@ BOARD_ITEM* PCB_PARSER::Parse() throw( IO_ERROR, PARSE_ERROR )
     // MODULEs can be prefixed with an initial block of single line comments and these
     // are kept for Format() so they round trip in s-expression form.  BOARDs might
     // eventually do the same, but currently do not.
-    std::auto_ptr<wxArrayString> initial_comments( ReadCommentLines() );
+    std::unique_ptr<wxArrayString> initial_comments( ReadCommentLines() );
 
     token = CurTok();
 
@@ -411,7 +444,23 @@ BOARD_ITEM* PCB_PARSER::Parse() throw( IO_ERROR, PARSE_ERROR )
 }
 
 
-BOARD* PCB_PARSER::parseBOARD() throw( IO_ERROR, PARSE_ERROR )
+BOARD* PCB_PARSER::parseBOARD() throw( IO_ERROR, PARSE_ERROR, FUTURE_FORMAT_ERROR )
+{
+    try
+    {
+        return parseBOARD_unchecked();
+    }
+    catch( const PARSE_ERROR& parse_error )
+    {
+        if( m_tooRecent )
+            throw FUTURE_FORMAT_ERROR( parse_error, GetRequiredVersion() );
+        else
+            throw;
+    }
+}
+
+
+BOARD* PCB_PARSER::parseBOARD_unchecked() throw( IO_ERROR, PARSE_ERROR )
 {
     T token;
 
@@ -506,24 +555,34 @@ void PCB_PARSER::parseHeader() throw( IO_ERROR, PARSE_ERROR )
     wxCHECK_RET( CurTok() == T_kicad_pcb,
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as a header." ) );
 
-    T token;
-
     NeedLEFT();
-    token = NextTok();
 
-    if( token != T_version )
-        Expecting( GetTokenText( T_version ) );
+    T tok = NextTok();
+    if( tok == T_version )
+    {
+        m_requiredVersion = parseInt( FromUTF8().mb_str( wxConvUTF8 ) );
+        m_tooRecent = ( m_requiredVersion > SEXPR_BOARD_FILE_VERSION );
+        NeedRIGHT();
 
-    // Get the file version.
-    m_board->SetFileFormatVersionAtLoad( parseInt( GetTokenText( T_version ) ) );
+        // Skip the host name and host build version information.
+        NeedLEFT();
+        NeedSYMBOL();
+        NeedSYMBOL();
+        NeedSYMBOL();
+        NeedRIGHT();
+    }
+    else
+    {
+        m_requiredVersion = SEXPR_BOARD_FILE_VERSION;
+        m_tooRecent = ( m_requiredVersion > SEXPR_BOARD_FILE_VERSION );
 
-    // Skip the host name and host build version information.
-    NeedRIGHT();
-    NeedLEFT();
-    NeedSYMBOL();
-    NeedSYMBOL();
-    NeedSYMBOL();
-    NeedRIGHT();
+        // Skip the host name and host build version information.
+        NeedSYMBOL();
+        NeedSYMBOL();
+        NeedRIGHT();
+    }
+
+    m_board->SetFileFormatVersionAtLoad( m_requiredVersion );
 }
 
 
@@ -560,8 +619,7 @@ void PCB_PARSER::parseGeneralSection() throw( IO_ERROR, PARSE_ERROR )
             break;
 
         default:              // Skip everything but the board thickness.
-            wxLogDebug( wxT( "Skipping general section token %s " ),
-                        GetChars( GetTokenString( token ) ) );
+            //wxLogDebug( wxT( "Skipping general section token %s " ), GetChars( GetTokenString( token ) ) );
 
             while( ( token = NextTok() ) != T_RIGHT )
             {
@@ -1183,10 +1241,10 @@ void PCB_PARSER::parseNETINFO_ITEM() throw( IO_ERROR, PARSE_ERROR )
     // net 0 should be already in list, so store this net
     // if it is not the net 0, or if the net 0 does not exists.
     // (TODO: a better test.)
-    if( netCode > 0 || m_board->FindNet( 0 ) == NULL )
+    if( netCode > NETINFO_LIST::UNCONNECTED || !m_board->FindNet( NETINFO_LIST::UNCONNECTED ) )
     {
         NETINFO_ITEM* net = new NETINFO_ITEM( m_board, name, netCode );
-        m_board->AppendNet( net );
+        m_board->Add( net );
 
         // Store the new code mapping
         pushValueIntoMap( netCode, net->GetNet() );
@@ -1201,7 +1259,7 @@ void PCB_PARSER::parseNETCLASS() throw( IO_ERROR, PARSE_ERROR )
 
     T token;
 
-    NETCLASSPTR nc = boost::make_shared<NETCLASS>( wxEmptyString );
+    NETCLASSPTR nc = std::make_shared<NETCLASS>( wxEmptyString );
 
     // Read netclass name (can be a name or just a number like track width)
     NeedSYMBOLorNUMBER();
@@ -1242,13 +1300,21 @@ void PCB_PARSER::parseNETCLASS() throw( IO_ERROR, PARSE_ERROR )
             nc->SetuViaDrill( parseBoardUnits( T_uvia_drill ) );
             break;
 
+        case T_diff_pair_width:
+            nc->SetDiffPairWidth( parseBoardUnits( T_diff_pair_width ) );
+            break;
+
+        case T_diff_pair_gap:
+            nc->SetDiffPairGap( parseBoardUnits( T_diff_pair_gap ) );
+            break;
+
         case T_add_net:
             NeedSYMBOLorNUMBER();
             nc->Add( FromUTF8() );
             break;
 
         default:
-            Expecting( "clearance, trace_width, via_dia, via_drill, uvia_dia, uvia_drill, or add_net" );
+            Expecting( "clearance, trace_width, via_dia, via_drill, uvia_dia, uvia_drill, diff_pair_width, diff_pair_gap or add_net" );
         }
 
         NeedRIGHT();
@@ -1259,7 +1325,7 @@ void PCB_PARSER::parseNETCLASS() throw( IO_ERROR, PARSE_ERROR )
         // Must have been a name conflict, this is a bad board file.
         // User may have done a hand edit to the file.
 
-        // auto_ptr will delete nc on this code path
+        // unique_ptr will delete nc on this code path
 
         wxString error;
         error.Printf( _( "duplicate NETCLASS name '%s' in file <%s> at line %d, offset %d" ),
@@ -1277,7 +1343,7 @@ DRAWSEGMENT* PCB_PARSER::parseDRAWSEGMENT() throw( IO_ERROR, PARSE_ERROR )
 
     T token;
     wxPoint pt;
-    std::auto_ptr< DRAWSEGMENT > segment( new DRAWSEGMENT( NULL ) );
+    std::unique_ptr< DRAWSEGMENT > segment( new DRAWSEGMENT( NULL ) );
 
     switch( CurTok() )
     {
@@ -1438,7 +1504,7 @@ TEXTE_PCB* PCB_PARSER::parseTEXTE_PCB() throw( IO_ERROR, PARSE_ERROR )
 
     T token;
 
-    std::auto_ptr<TEXTE_PCB> text( new TEXTE_PCB( m_board ) );
+    std::unique_ptr<TEXTE_PCB> text( new TEXTE_PCB( m_board ) );
     NeedSYMBOLorNUMBER();
 
     text->SetText( FromUTF8() );
@@ -1506,7 +1572,7 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
 
     T token;
 
-    std::auto_ptr<DIMENSION> dimension( new DIMENSION( NULL ) );
+    std::unique_ptr<DIMENSION> dimension( new DIMENSION( NULL ) );
 
     dimension->SetValue( parseBoardUnits( "dimension value" ) );
     NeedLEFT();
@@ -1651,7 +1717,25 @@ DIMENSION* PCB_PARSER::parseDIMENSION() throw( IO_ERROR, PARSE_ERROR )
 }
 
 
-MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERROR, PARSE_ERROR )
+MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments )
+        throw( IO_ERROR, PARSE_ERROR, FUTURE_FORMAT_ERROR )
+{
+    try
+    {
+        return parseMODULE_unchecked( aInitialComments );
+    }
+    catch( const PARSE_ERROR& parse_error )
+    {
+        if( m_tooRecent )
+            throw FUTURE_FORMAT_ERROR( parse_error, GetRequiredVersion() );
+        else
+            throw;
+    }
+}
+
+
+MODULE* PCB_PARSER::parseMODULE_unchecked( wxArrayString* aInitialComments )
+        throw( IO_ERROR, PARSE_ERROR )
 {
     wxCHECK_MSG( CurTok() == T_module, NULL,
                  wxT( "Cannot parse " ) + GetTokenString( CurTok() ) + wxT( " as MODULE." ) );
@@ -1661,11 +1745,15 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
     T        token;
     FPID     fpid;
 
-    std::auto_ptr<MODULE> module( new MODULE( m_board ) );
+    std::unique_ptr<MODULE> module( new MODULE( m_board ) );
 
     module->SetInitialComments( aInitialComments );
 
-    NeedSYMBOLorNUMBER();
+    token = NextTok();
+
+    if( !IsSymbol( token ) && token != T_NUMBER )
+        Expecting( "symbol|number" );
+
     name = FromUTF8();
 
     if( !name.IsEmpty() && fpid.Parse( FromUTF8() ) >= 0 )
@@ -1683,6 +1771,18 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
 
         switch( token )
         {
+        case T_version:
+        {
+            // Theoretically a module nested in a PCB could declare its own version, though
+            // as of writing this comment we don't do that. Just in case, take the greater
+            // version.
+            int this_version = parseInt( FromUTF8().mb_str( wxConvUTF8 ) );
+            NeedRIGHT();
+            m_requiredVersion = std::max( m_requiredVersion, this_version );
+            m_tooRecent = ( m_requiredVersion > SEXPR_BOARD_FILE_VERSION );
+            break;
+        }
+
         case T_locked:
             module->SetLocked( true );
             break;
@@ -1692,7 +1792,13 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
             break;
 
         case T_layer:
-            module->SetLayer( parseBoardItemLayer() );
+        {
+            // Footprints can be only on the front side or the back side.
+            // but because we can find some stupid layer in file, ensure a
+            // acceptable layer is set for the footprint
+            LAYER_ID layer = parseBoardItemLayer();
+            module->SetLayer( layer == B_Cu ? B_Cu : F_Cu );
+        }
             NeedRIGHT();
             break;
 
@@ -1852,11 +1958,11 @@ MODULE* PCB_PARSER::parseMODULE( wxArrayString* aInitialComments ) throw( IO_ERR
         case T_pad:
             {
                 D_PAD*  pad = parseD_PAD( module.get() );
-                wxPoint pt = pad->GetPos0();
+                pt = pad->GetPos0();
 
                 RotatePoint( &pt, module->GetOrientation() );
                 pad->SetPosition( pt + module->GetPosition() );
-                module->Add( pad );
+                module->Add( pad, ADD_APPEND );
             }
             break;
 
@@ -1889,7 +1995,7 @@ TEXTE_MODULE* PCB_PARSER::parseTEXTE_MODULE() throw( IO_ERROR, PARSE_ERROR )
 
     T token = NextTok();
 
-    std::auto_ptr<TEXTE_MODULE> text( new TEXTE_MODULE( NULL ) );
+    std::unique_ptr<TEXTE_MODULE> text( new TEXTE_MODULE( NULL ) );
 
     switch( token )
     {
@@ -1974,7 +2080,7 @@ EDGE_MODULE* PCB_PARSER::parseEDGE_MODULE() throw( IO_ERROR, PARSE_ERROR )
     wxPoint pt;
     T token;
 
-    std::auto_ptr< EDGE_MODULE > segment( new EDGE_MODULE( NULL ) );
+    std::unique_ptr< EDGE_MODULE > segment( new EDGE_MODULE( NULL ) );
 
     switch( CurTok() )
     {
@@ -2140,7 +2246,7 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
     wxSize  sz;
     wxPoint pt;
 
-    std::auto_ptr< D_PAD > pad( new D_PAD( aParent ) );
+    std::unique_ptr< D_PAD > pad( new D_PAD( aParent ) );
 
     NeedSYMBOLorNUMBER();
     pad->SetPadName( FromUTF8() );
@@ -2197,8 +2303,12 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
         pad->SetShape( PAD_SHAPE_TRAPEZOID );
         break;
 
+    case T_roundrect:
+        pad->SetShape( PAD_SHAPE_ROUNDRECT );
+        break;
+
     default:
-        Expecting( "circle, rectangle, oval, or trapezoid" );
+        Expecting( "circle, rectangle, roundrect, oval, trapezoid or custom" );
     }
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
@@ -2366,10 +2476,15 @@ D_PAD* PCB_PARSER::parseD_PAD( MODULE* aParent ) throw( IO_ERROR, PARSE_ERROR )
             NeedRIGHT();
             break;
 
+        case T_roundrect_rratio:
+            pad->SetRoundRectRadiusRatio( parseDouble( "roundrect radius ratio" ) );
+            NeedRIGHT();
+            break;
+
         default:
-            Expecting( "at, drill, layers, net, die_length, solder_mask_margin, "
+            Expecting( "at, drill, layers, net, die_length, solder_mask_margin, roundrect_rratio,"
                        "solder_paste_margin, solder_paste_margin_ratio, clearance, "
-                       "zone_connect, thermal_width, or thermal_gap" );
+                       "zone_connect, fp_poly, basic_shapes, thermal_width, or thermal_gap" );
         }
     }
 
@@ -2385,7 +2500,7 @@ TRACK* PCB_PARSER::parseTRACK() throw( IO_ERROR, PARSE_ERROR )
     wxPoint pt;
     T token;
 
-    std::auto_ptr< TRACK > track( new TRACK( m_board ) );
+    std::unique_ptr< TRACK > track( new TRACK( m_board ) );
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
@@ -2451,7 +2566,7 @@ VIA* PCB_PARSER::parseVIA() throw( IO_ERROR, PARSE_ERROR )
     wxPoint pt;
     T token;
 
-    std::auto_ptr< VIA > via( new VIA( m_board ) );
+    std::unique_ptr< VIA > via( new VIA( m_board ) );
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {
@@ -2543,7 +2658,7 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
     // bigger scope since each filled_polygon is concatenated in here
     SHAPE_POLY_SET pts;
 
-    std::auto_ptr< ZONE_CONTAINER > zone( new ZONE_CONTAINER( m_board ) );
+    std::unique_ptr< ZONE_CONTAINER > zone( new ZONE_CONTAINER( m_board ) );
 
     zone->SetPriority( 0 );
 
@@ -2694,11 +2809,13 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                         break;
 
                     case T_chamfer:
-                        zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_CHAMFER );
+                        if( !zone->GetIsKeepout() ) // smoothing has meaning only for filled zones
+                            zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_CHAMFER );
                         break;
 
                     case T_fillet:
-                        zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_FILLET );
+                        if( !zone->GetIsKeepout() ) // smoothing has meaning only for filled zones
+                            zone->SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_FILLET );
                         break;
 
                     default:
@@ -2708,7 +2825,9 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
                     break;
 
                 case T_radius:
-                    zone->SetCornerRadius( parseBoardUnits( "corner radius" ) );
+                    tmp = parseBoardUnits( "corner radius" );
+                    if( !zone->GetIsKeepout() ) // smoothing has meaning only for filled zones
+                       zone->SetCornerRadius( tmp );
                     NeedRIGHT();
                     break;
 
@@ -2868,7 +2987,7 @@ ZONE_CONTAINER* PCB_PARSER::parseZONE_CONTAINER() throw( IO_ERROR, PARSE_ERROR )
         {
             int newnetcode = m_board->GetNetCount();
             net = new NETINFO_ITEM( m_board, netnameFromfile, newnetcode );
-            m_board->AppendNet( net );
+            m_board->Add( net );
 
             // Store the new code mapping
             pushValueIntoMap( newnetcode, net->GetNet() );
@@ -2897,7 +3016,7 @@ PCB_TARGET* PCB_PARSER::parsePCB_TARGET() throw( IO_ERROR, PARSE_ERROR )
     wxPoint pt;
     T token;
 
-    std::auto_ptr< PCB_TARGET > target( new PCB_TARGET( NULL ) );
+    std::unique_ptr< PCB_TARGET > target( new PCB_TARGET( NULL ) );
 
     for( token = NextTok();  token != T_RIGHT;  token = NextTok() )
     {

@@ -86,8 +86,11 @@ public:
         tmpStr << m_YRef;
         m_VRML_Yref->SetValue( tmpStr );
         m_sdbSizer1OK->SetDefault();
-        GetSizer()->SetSizeHints( this );
-        Centre();
+
+        FixOSXCancelButtonIssue();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
 
         Connect( ID_USE_ABS_PATH, wxEVT_UPDATE_UI,
                  wxUpdateUIEventHandler( DIALOG_EXPORT_3DFILE::OnUpdateUseRelativePath ) );
@@ -162,7 +165,7 @@ public:
         event.Enable( m_cbCopyFiles->GetValue() );
     }
 
-    virtual void OnFileChanged( wxFileDirPickerEvent& event )
+    virtual void OnFileChanged( wxFileDirPickerEvent& event ) override
     {
         // Clicking on file picker button changes the focus to the file picker button which
         // is not the behavior we want.  Set the focus back to the OK button so the next enter

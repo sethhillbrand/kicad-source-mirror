@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013-2014 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see CHANGELOG.TXT for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -88,13 +88,28 @@ public:
 
     /** The function to draw a WS_DRAW_ITEM
      */
-    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC ) = 0;
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC)
+    {
+        wxPoint offset( 0, 0 );
+        DrawWsItem( aClipBox, aDC, offset, UNSPECIFIED_DRAWMODE, UNSPECIFIED_COLOR );
+    }
+
+    /// More advanced version of DrawWsItem. This is what must be
+    /// defined in the derived type.
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
+            GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) = 0;
 
     /**
      * Abstract function: should exist for derived items
      * return true if the point aPosition is on the item
      */
     virtual bool HitTest( const wxPoint& aPosition) const = 0;
+
+    /**
+     * Abstract function: should exist for derived items
+     * return true if the rect aRect intersects on the item
+     */
+    virtual bool HitTest( const EDA_RECT& aRect ) const = 0;
 
     /**
      * Abstract function: should exist for derived items
@@ -143,25 +158,32 @@ public:
 
     /** The function to draw a WS_DRAW_ITEM_LINE
      */
-    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC );
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
+            GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     /**
      * Virtual function
      * return true if the point aPosition is on the line
      */
-    virtual bool HitTest( const wxPoint& aPosition) const;
+    virtual bool HitTest( const wxPoint& aPosition) const override;
+
+    /**
+     * Virtual function
+     * return true if the rect aRect intersects on the item
+     */
+    virtual bool HitTest( const EDA_RECT& aRect ) const override;
 
     /**
      * return true if the point aPosition is on the starting point of this item.
      */
-    virtual bool HitTestStartPoint( const wxPoint& aPosition);
+    virtual bool HitTestStartPoint( const wxPoint& aPosition) override;
 
     /**
      * return true if the point aPosition is on the ending point of this item
      * This is avirtual function which should be overriden for items defien by
      * 2 points
      */
-    virtual bool HitTestEndPoint( const wxPoint& aPosition);
+    virtual bool HitTestEndPoint( const wxPoint& aPosition) override;
 };
 
 // This class draws a polygon
@@ -193,18 +215,25 @@ public:
 
     /** The function to draw a WS_DRAW_ITEM_POLYGON
      */
-    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC );
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
+            GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     /**
      * Virtual function
      * return true if the point aPosition is inside one polygon
      */
-    virtual bool HitTest( const wxPoint& aPosition) const;
+    virtual bool HitTest( const wxPoint& aPosition) const override;
+
+    /**
+     * Virtual function
+     * return true if the rect aRect intersects on the item
+     */
+    virtual bool HitTest( const EDA_RECT& aRect ) const override;
 
     /**
      * return true if the point aPosition is on the starting point of this item.
      */
-    virtual bool HitTestStartPoint( const wxPoint& aPosition);
+    virtual bool HitTestStartPoint( const wxPoint& aPosition) override;
 };
 
 // This class draws a not filled rectangle with thick segment
@@ -221,25 +250,32 @@ public:
 
     /** The function to draw a WS_DRAW_ITEM_RECT
      */
-    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC );
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
+            GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     /**
      * Virtual function
      * return true if the point aPosition is on one edge of the rectangle
      */
-    virtual bool HitTest( const wxPoint& aPosition) const;
+    virtual bool HitTest( const wxPoint& aPosition) const override;
+
+    /**
+     * Virtual function
+     * return true if the rect aRect intersects on the item
+     */
+    virtual bool HitTest( const EDA_RECT& aRect ) const override;
 
     /**
      * return true if the point aPosition is on the starting point of this item.
      */
-    virtual bool HitTestStartPoint( const wxPoint& aPosition);
+    virtual bool HitTestStartPoint( const wxPoint& aPosition) override;
 
     /**
      * return true if the point aPosition is on the ending point of this item
      * This is avirtual function which should be overriden for items defien by
      * 2 points
      */
-    virtual bool HitTestEndPoint( const wxPoint& aPosition);
+    virtual bool HitTestEndPoint( const wxPoint& aPosition) override;
 };
 
 // This class draws a graphic text.
@@ -255,7 +291,8 @@ public:
 
     /** The function to draw a WS_DRAW_ITEM_TEXT
      */
-    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC );
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
+            GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     // Accessors:
     int GetPenWidth() { return GetThickness(); }
@@ -264,12 +301,18 @@ public:
      * Virtual function
      * return true if the point aPosition is on the text
      */
-    virtual bool HitTest( const wxPoint& aPosition) const;
+    virtual bool HitTest( const wxPoint& aPosition) const override;
+
+    /**
+     * Virtual function
+     * return true if the rect aRect intersects on the item
+     */
+    virtual bool HitTest( const EDA_RECT& aRect ) const override;
 
     /**
      * return true if the point aPosition is on the starting point of this item.
      */
-    virtual bool HitTestStartPoint( const wxPoint& aPosition);
+    virtual bool HitTestStartPoint( const wxPoint& aPosition) override;
 };
 
 // This class draws a bitmap.
@@ -293,18 +336,25 @@ public:
 
     /** The function to draw a WS_DRAW_ITEM_BITMAP
      */
-    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC );
+    virtual void DrawWsItem( EDA_RECT* aClipBox, wxDC* aDC, const wxPoint& aOffset,
+            GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor = UNSPECIFIED_COLOR ) override;
 
     /**
      * Virtual function
      * return true if the point aPosition is on bitmap
      */
-    virtual bool HitTest( const wxPoint& aPosition) const;
+    virtual bool HitTest( const wxPoint& aPosition) const override;
+
+    /**
+     * Virtual function
+     * return true if the rect aRect intersects on the item
+     */
+    virtual bool HitTest( const EDA_RECT& aRect ) const override;
 
     /**
      * return true if the point aPosition is on the reference point of this item.
      */
-    virtual bool HitTestStartPoint( const wxPoint& aPosition);
+    virtual bool HitTestStartPoint( const wxPoint& aPosition) override;
 
     const wxPoint& GetPosition() { return m_pos; }
 };
@@ -334,6 +384,7 @@ protected:
     const wxString* m_paperFormat;      // for basic inscriptions
     wxString        m_fileName;         // for basic inscriptions
     const wxString* m_sheetFullName;    // for basic inscriptions
+    const wxString* m_sheetLayer;       // for basic inscriptions
 
 
 public:
@@ -344,6 +395,7 @@ public:
         m_penSize = 1;
         m_sheetNumber = 1;
         m_sheetCount = 1;
+        m_sheetLayer = 0;
         m_titleBlock = NULL;
         m_paperFormat = NULL;
         m_sheetFullName = NULL;
@@ -371,6 +423,15 @@ public:
     void SetSheetName( const wxString & aSheetName )
     {
         m_sheetFullName = &aSheetName;
+    }
+
+    /**
+     * Set the sheet layer to draw/plot
+     * @param aSheetLayer = the text to draw/plot by the "sheetlayer" format
+     */
+    void SetSheetLayer( const wxString & aSheetLayer )
+    {
+        m_sheetLayer = &aSheetLayer;
     }
 
     /** Function SetPenSize
@@ -455,6 +516,11 @@ public:
             return m_graphicList[m_idx];
         else
             return NULL;
+    }
+
+    void GetAllItems( std::vector<WS_DRAW_ITEM_BASE*>* aList )
+    {
+        *aList = m_graphicList;
     }
 
     /**

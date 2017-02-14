@@ -41,8 +41,6 @@
 #include <lib_polyline.h>
 #include <transform.h>
 
-#include <boost/foreach.hpp>
-
 
 LIB_POLYLINE::LIB_POLYLINE( LIB_PART*      aParent ) :
     LIB_ITEM( LIB_POLYLINE_T, aParent )
@@ -63,7 +61,7 @@ bool LIB_POLYLINE::Save( OUTPUTFORMATTER& aFormatter )
 
     for( unsigned i = 0; i < GetCornerCount(); i++ )
     {
-        aFormatter.Print( 0, "  %d %d", m_PolyPoints[i].x, m_PolyPoints[i].y );
+        aFormatter.Print( 0, " %d %d", m_PolyPoints[i].x, m_PolyPoints[i].y );
     }
 
     aFormatter.Print( 0, " %c\n", fill_tab[m_Fill] );
@@ -450,7 +448,7 @@ void LIB_POLYLINE::BeginEdit( STATUS_FLAGS aEditMode, const wxPoint aPosition )
         wxPoint prevPoint = startPoint;
 
         // Find the right index of the point to be dragged
-        BOOST_FOREACH( wxPoint point, m_PolyPoints )
+        for( wxPoint point : m_PolyPoints )
         {
             int distancePoint = (aPosition - point).x * (aPosition - point).x +
                                 (aPosition - point).y * (aPosition - point).y;

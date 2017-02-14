@@ -2,8 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see change_log.txt for contributors.
- *
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -141,7 +140,7 @@ class GPCB_FPL_CACHE_ITEM
     wxFileName         m_file_name; ///< The the full file name and path of the footprint to cache.
     bool               m_writable;  ///< Writability status of the footprint file.
     wxDateTime         m_mod_time;  ///< The last file modified time stamp.
-    std::auto_ptr<MODULE> m_module;
+    std::unique_ptr<MODULE> m_module;
 
 public:
     GPCB_FPL_CACHE_ITEM( MODULE* aModule, const wxFileName& aFileName );
@@ -413,7 +412,7 @@ MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR,
     wxPoint               textPos;
     wxString              msg;
     wxArrayString         parameters;
-    std::auto_ptr<MODULE> module( new MODULE( NULL ) );
+    std::unique_ptr<MODULE> module( new MODULE( NULL ) );
 
 
     if( aLineReader->ReadLine() == NULL )

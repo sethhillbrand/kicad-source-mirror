@@ -166,7 +166,7 @@ void PCB::SetTextProperty( XNODE*   aNode, TTEXTVALUE* aTextValue,
                            wxString aActualConversion )
 {
     XNODE*      tNode, * t1Node;
-    wxString    n, pn, propValue, str;
+    wxString    n, nnew, pn, propValue, str;
 
     // aNode is pattern now
     tNode   = aNode;
@@ -199,7 +199,8 @@ void PCB::SetTextProperty( XNODE*   aNode, TTEXTVALUE* aTextValue,
                         str     = aTextValue->text;
                         str.Trim( false );
                         str.Trim( true );
-                        n       = n + wxT( ' ' ) + str; // changed in new file version.....
+                        nnew    = n; // new file version
+                        n       = n + wxT( ' ' ) + str; // old file version
                         tNode   = NULL;
                     }
                 }
@@ -219,7 +220,7 @@ void PCB::SetTextProperty( XNODE*   aNode, TTEXTVALUE* aTextValue,
         propValue.Trim( false );
         propValue.Trim( true );
 
-        if( propValue == n )
+        if( propValue == n || propValue == nnew )
             break;
 
         tNode = tNode->GetNext();
@@ -683,7 +684,7 @@ void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActu
 
         if( aNode )
         {
-            m_defaultMeasurementUnit = aNode->GetNodeContent();
+            m_defaultMeasurementUnit = aNode->GetNodeContent().Lower();
             m_defaultMeasurementUnit.Trim( true );
             m_defaultMeasurementUnit.Trim( false );
         }
@@ -924,7 +925,7 @@ void PCB::AddToBoard()
     {
         net = m_pcbNetlist[i];
 
-        m_board->AppendNet( new NETINFO_ITEM( m_board, net->m_name, net->m_netCode ) );
+        m_board->Add( new NETINFO_ITEM( m_board, net->m_name, net->m_netCode ) );
     }
 
     for( i = 0; i < (int) m_pcbComponents.GetCount(); i++ )

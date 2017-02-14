@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2004 Jean-Pierre Charras, jean-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2004-2011 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2004-2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,6 +32,8 @@
 #include <macros.h>
 #include <trigo.h>               // RotatePoint
 #include <class_drawpanel.h>     // EDA_DRAW_PANEL
+
+#include <basic_gal.h>
 
 // Conversion to application internal units defined at build time.
 #if defined( PCBNEW )
@@ -64,31 +66,27 @@ EDA_TEXT::EDA_TEXT( const wxString& text )
 }
 
 
-EDA_TEXT::EDA_TEXT( const EDA_TEXT& aText )
-{
-    m_Pos = aText.m_Pos;
-    m_Size = aText.m_Size;
-    m_Orient = aText.m_Orient;
-    m_Attributs = aText.m_Attributs;
-    m_Mirror = aText.m_Mirror;
-    m_HJustify = aText.m_HJustify;
-    m_VJustify = aText.m_VJustify;
-    m_Thickness = aText.m_Thickness;
-    m_Italic = aText.m_Italic;
-    m_Bold = aText.m_Bold;
-    m_MultilineAllowed = aText.m_MultilineAllowed;
-    m_Text = aText.m_Text;
-}
-
-
 EDA_TEXT::~EDA_TEXT()
 {
 }
 
 
+void EDA_TEXT::SetOrientation( double aOrientation )
+{
+    m_Orient = aOrientation;
+    NORMALIZE_ANGLE_360( m_Orient );
+}
+
+
 int EDA_TEXT::LenSize( const wxString& aLine ) const
 {
-    return GraphicTextWidth( aLine, m_Size.x, m_Italic, m_Bold );
+    basic_gal.SetFontItalic( m_Italic );
+    basic_gal.SetFontBold( m_Bold );
+    basic_gal.SetGlyphSize( VECTOR2D( m_Size ) );
+
+    VECTOR2D tsize = basic_gal.GetTextLineSize( aLine );
+
+    return KiROUND( tsize.x );
 }
 
 
@@ -106,31 +104,32 @@ wxString EDA_TEXT::ShortenedShownText() const
 }
 
 
-/**
- * Function GetInterline
- * return the distance between 2 text lines
- * has meaning only for multiline texts
+/*
+ * calculate the distance (pitch) between 2 text lines
+ * the distance includes the interline + room for chars like j { and [
+ * Is used for multiline texts, but also for single line texts, to calculate
+ * the text bounding box
  */
 int EDA_TEXT::GetInterline( int aTextThickness ) const
 {
     int thickness = aTextThickness <= 0 ? m_Thickness : aTextThickness;
-    return (( m_Size.y * 14 ) / 10) + thickness;
+    return KiROUND( KIGFX::STROKE_FONT::GetInterline( m_Size.y, thickness ) );
 }
 
 EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
 {
     EDA_RECT       rect;
-    wxPoint        pos;
     wxArrayString  strings;
     wxString       text = GetShownText();
     int            thickness = ( aThickness < 0 ) ? m_Thickness : aThickness;
     int            linecount = 1;
+    bool           hasOverBar = false;     // true if the first line of text as an overbar
 
     if( m_MultilineAllowed )
     {
         wxStringSplit( text, strings, '\n' );
 
-        if ( strings.GetCount() )     // GetCount() == 0 for void strings
+        if( strings.GetCount() )     // GetCount() == 0 for void strings
         {
             if( aLine >= 0 && (aLine < (int)strings.GetCount()) )
                 text = strings.Item( aLine );
@@ -141,29 +140,60 @@ EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
         }
     }
 
-    // calculate the H and V size
-    int    dx = LenSize( text );
-    int    dy = GetInterline( aThickness );
+    // Search for overbar symbol. Only text is scanned,
+    // because only this line can change the bounding box
+    for( unsigned ii = 1; ii < text.size(); ii++ )
+    {
+        if( text[ii-1] == '~' && text[ii] != '~' )
+        {
+            hasOverBar = true;
+            break;
+        }
+    }
 
-    // Creates bounding box (rectangle) for an horizontal text
+    // calculate the H and V size
+    int dx = KiROUND( basic_gal.GetStrokeFont().ComputeStringBoundaryLimits(
+                            text, VECTOR2D( m_Size ), double( thickness ) ).x );
+    int dy = GetInterline( thickness );
+
+    // Creates bounding box (rectangle) for an horizontal
+    // and left and top justified text. the bounding box will be moved later
+    // according to the actual text options
     wxSize textsize = wxSize( dx, dy );
+    wxPoint pos = m_Pos;
 
     if( aInvertY )
-        rect.SetOrigin( m_Pos.x, -m_Pos.y );
-    else
-        rect.SetOrigin( m_Pos );
+        pos.y = -pos.y;
 
-    // extra dy interval for letters like j and y and ]
-    int extra_dy = dy - m_Size.y;
-    rect.Move( wxPoint( 0, -extra_dy / 2 ) ); // move origin by the half extra interval
+    rect.SetOrigin( pos );
+
+    // The bbox vertical size returned by GetInterline( aThickness )
+    // includes letters like j and y and ] + interval between lines.
+    // The interval below the last line is not usefull, and we can use its half value
+    // as vertical margin above the text
+    // the full interval is roughly m_Size.y * 0.4 - aThickness/2
+    rect.Move( wxPoint( 0, thickness/4 - KiROUND( m_Size.y * 0.22 ) ) );
+
+    if( hasOverBar )
+    {   // A overbar adds an extra size to the text
+        // Height from the base line text of chars like [ or {
+        double curr_height = m_Size.y * 1.15;
+        int extra_height = KiROUND(
+            basic_gal.GetStrokeFont().ComputeOverbarVerticalPosition( m_Size.y, thickness ) - curr_height );
+        extra_height += thickness/2;
+        textsize.y += extra_height;
+        rect.Move( wxPoint( 0, -extra_height ) );
+    }
 
     // for multiline texts and aLine < 0, merge all rectangles
+    // ( if aLine < 0, we want the full text bounding box )
     if( m_MultilineAllowed && aLine < 0 )
     {
         for( unsigned ii = 1; ii < strings.GetCount(); ii++ )
         {
             text = strings.Item( ii );
-            dx   = LenSize( text );
+            dx   = KiROUND( basic_gal.GetStrokeFont().ComputeStringBoundaryLimits(
+                            text, VECTOR2D( m_Size ), double( thickness ) ).x );
             textsize.x  = std::max( textsize.x, dx );
             textsize.y += dy;
         }
@@ -232,7 +262,6 @@ EDA_RECT EDA_TEXT::GetTextBox( int aLine, int aThickness, bool aInvertY ) const
         }
     }
 
-    rect.Inflate( thickness / 2 );
     rect.Normalize();       // Make h and v sizes always >= 0
 
     return rect;

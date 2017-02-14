@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2014 CERN
+ * Copyright (C) 2014-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -22,6 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include <cstdint>
+
 #include "pcbnew_control.h"
 #include "common_actions.h"
 #include "selection_tool.h"
@@ -36,6 +38,7 @@
 
 #include <confirm.h>
 #include <hotkeys_basic.h>
+#include <properties.h>
 #include <io_mgr.h>
 
 #include <pcbnew_id.h>
@@ -47,8 +50,10 @@
 #include <view/view_controls.h>
 #include <pcb_painter.h>
 #include <origin_viewitem.h>
+#include <board_commit.h>
 
-#include <boost/bind.hpp>
+#include <functional>
+using namespace std::placeholders;
 
 
 // files.cpp
@@ -171,7 +176,7 @@ int PCBNEW_CONTROL::ZoomFitScreen( const TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::ZoomPreset( const TOOL_EVENT& aEvent )
 {
-    unsigned int idx = aEvent.Parameter<long>();
+    unsigned int idx = aEvent.Parameter<intptr_t>();
     std::vector<double>& zoomList = m_frame->GetScreen()->m_ZoomList;
     KIGFX::VIEW* view = m_frame->GetGalCanvas()->GetView();
     KIGFX::GAL* gal = m_frame->GetGalCanvas()->GetGAL();
@@ -329,7 +334,7 @@ int PCBNEW_CONTROL::HighContrastDec( const TOOL_EVENT& aEvent )
 // Layer control
 int PCBNEW_CONTROL::LayerSwitch( const TOOL_EVENT& aEvent )
 {
-    m_frame->SwitchLayer( NULL, (LAYER_ID) aEvent.Parameter<long>() );
+    m_frame->SwitchLayer( NULL, (LAYER_ID) aEvent.Parameter<intptr_t>() );
 
     return 0;
 }
@@ -442,7 +447,7 @@ int PCBNEW_CONTROL::LayerAlphaDec( const TOOL_EVENT& aEvent )
 // Cursor control
 int PCBNEW_CONTROL::CursorControl( const TOOL_EVENT& aEvent )
 {
-    long type = aEvent.Parameter<long>();
+    long type = aEvent.Parameter<intptr_t>();
     bool fastMove = type & COMMON_ACTIONS::CURSOR_FAST_MOVE;
     type &= ~COMMON_ACTIONS::CURSOR_FAST_MOVE;
 
@@ -549,7 +554,7 @@ int PCBNEW_CONTROL::CursorControl( const TOOL_EVENT& aEvent )
 
 int PCBNEW_CONTROL::PanControl( const TOOL_EVENT& aEvent )
 {
-    long type = aEvent.Parameter<long>();
+    long type = aEvent.Parameter<intptr_t>();
     KIGFX::VIEW* view = getView();
     GRID_HELPER gridHelper( m_frame );
     VECTOR2D center = view->GetCenter();
@@ -651,7 +656,7 @@ int PCBNEW_CONTROL::GridSetOrigin( const TOOL_EVENT& aEvent )
 
         // TODO it will not check the toolbar button in module editor, as it uses a different ID..
         m_frame->SetToolID( ID_PCB_PLACE_GRID_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust grid origin" ) );
-        picker->SetClickHandler( boost::bind( setOrigin, getView(), m_frame, m_gridOrigin, _1 ) );
+        picker->SetClickHandler( std::bind( setOrigin, getView(), m_frame, m_gridOrigin, _1 ) );
         picker->Activate();
         Wait();
     }
@@ -660,9 +665,18 @@ int PCBNEW_CONTROL::GridSetOrigin( const TOOL_EVENT& aEvent )
 }
 
 
+int PCBNEW_CONTROL::GridResetOrigin( const TOOL_EVENT& aEvent )
+{
+    getModel<BOARD>()->SetGridOrigin( wxPoint( 0, 0 ) );
+    m_gridOrigin->SetPosition( VECTOR2D( 0, 0 ) );
+
+    return 0;
+}
+
+
 int PCBNEW_CONTROL::GridPreset( const TOOL_EVENT& aEvent )
 {
-    long idx = aEvent.Parameter<long>();
+    long idx = aEvent.Parameter<intptr_t>();
 
     m_frame->SetPresetGrid( idx );
     updateGrid();
@@ -747,7 +761,7 @@ int PCBNEW_CONTROL::DeleteItemCursor( const TOOL_EVENT& aEvent )
     // TODO it will not check the toolbar button in the module editor, as it uses a different ID..
     m_frame->SetToolID( ID_PCB_DELETE_ITEM_BUTT, wxCURSOR_PENCIL, _( "Delete item" ) );
     picker->SetSnapping( false );
-    picker->SetClickHandler( boost::bind( deleteItem, m_toolMgr, _1 ) );
+    picker->SetClickHandler( std::bind( deleteItem, m_toolMgr, _1 ) );
     picker->Activate();
     Wait();
 
@@ -759,12 +773,10 @@ int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
 {
     int open_ctl;
     wxString fileName;
-    PICKED_ITEMS_LIST undoListPicker;
-    ITEM_PICKER picker( NULL, UR_NEW );
 
     PCB_EDIT_FRAME* editFrame = dynamic_cast<PCB_EDIT_FRAME*>( m_frame );
     BOARD* board = getModel<BOARD>();
-    KIGFX::VIEW* view = getView();
+    BOARD_COMMIT commit( editFrame );
 
     if( !editFrame )
         return 0;
@@ -811,7 +823,7 @@ int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
     }
     catch( const IO_ERROR& ioe )
     {
-        wxString msg = wxString::Format( _( "Error loading board.\n%s" ), GetChars( ioe.errorText ));
+        wxString msg = wxString::Format( _( "Error loading board.\n%s" ), GetChars( ioe.What() ));
         DisplayError( editFrame, msg );
 
         return 0;
@@ -828,9 +840,7 @@ int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
             continue;
         }
 
-        picker.SetItem( track );
-        undoListPicker.PushItem( picker );
-        view->Add( track );
+        commit.Added( track );
         m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, track );
     }
 
@@ -838,11 +848,7 @@ int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
 
     for( ; module; module = module->Next() )
     {
-        picker.SetItem( module );
-        undoListPicker.PushItem( picker );
-
-        module->RunOnChildren( boost::bind( &KIGFX::VIEW::Add, view, _1 ) );
-        view->Add( module );
+        commit.Added( module );
         m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, module );
     }
 
@@ -850,26 +856,22 @@ int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
 
     for( ; drawing; drawing = drawing->Next() )
     {
-        picker.SetItem( drawing );
-        undoListPicker.PushItem( picker );
-        view->Add( drawing );
+        commit.Added( drawing );
         m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, drawing );
     }
 
     for( ZONE_CONTAINER* zone = board->GetArea( zonescount ); zone;
          zone = board->GetArea( zonescount ) )
     {
-        picker.SetItem( zone );
-        undoListPicker.PushItem( picker );
-        zonescount++;
-        view->Add( zone );
+        ++zonescount;
+        commit.Added( zone );
         m_toolMgr->RunAction( COMMON_ACTIONS::selectItem, true, zone );
     }
 
-    if( undoListPicker.GetCount() == 0 )
+    if( commit.Empty() )
         return 0;
 
-    editFrame->SaveCopyInUndoList( undoListPicker, UR_NEW );
+    commit.Push( _( "Append a board" ) );
 
     // Synchronize layers
     // we should not ask PLUGINs to do these items:
@@ -890,10 +892,12 @@ int PCBNEW_CONTROL::AppendBoard( const TOOL_EVENT& aEvent )
     // Ratsnest
     board->BuildListOfNets();
     board->SynchronizeNetsAndNetClasses();
-    board->GetRatsnest()->Recalculate();
+    board->GetRatsnest()->ProcessBoard();
 
     // Start dragging the appended board
-    VECTOR2D v( static_cast<BOARD_ITEM*>( undoListPicker.GetPickedItem( 0 ) )->GetPosition() );
+    SELECTION_TOOL* selectionTool = m_toolMgr->GetTool<SELECTION_TOOL>();
+    const SELECTION& selection = selectionTool->GetSelection();
+    VECTOR2D v( selection.Item<BOARD_ITEM>( 0 )->GetPosition() );
     getViewControls()->WarpCursor( v, true, true );
     m_toolMgr->InvokeTool( "pcbnew.InteractiveEdit" );
 
@@ -978,6 +982,7 @@ void PCBNEW_CONTROL::SetTransitions()
     Go( &PCBNEW_CONTROL::GridNext,           COMMON_ACTIONS::gridNext.MakeEvent() );
     Go( &PCBNEW_CONTROL::GridPrev,           COMMON_ACTIONS::gridPrev.MakeEvent() );
     Go( &PCBNEW_CONTROL::GridSetOrigin,      COMMON_ACTIONS::gridSetOrigin.MakeEvent() );
+    Go( &PCBNEW_CONTROL::GridResetOrigin,    COMMON_ACTIONS::gridResetOrigin.MakeEvent() );
     Go( &PCBNEW_CONTROL::GridPreset,         COMMON_ACTIONS::gridPreset.MakeEvent() );
 
     // Miscellaneous

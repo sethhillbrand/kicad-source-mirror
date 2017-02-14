@@ -5,7 +5,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,13 +26,17 @@
  */
 
 #include <io_mgr.h>
-#include <boost/shared_ptr.hpp>
 #include <string>
 #include <layers_id_colors_and_visibility.h>
+#include <memory>
+
+
+// FOOTPRINT_LIBRARY_HEADER_CNT gives the number of characters to compare to detect
+// a footprint library. A few variants may have been used, and so we can only be
+// sure that the header contains "PCBNEW-LibModule-V", not "PCBNEW-LibModule-V1".
 
 #define FOOTPRINT_LIBRARY_HEADER       "PCBNEW-LibModule-V1"
-#define FOOTPRINT_LIBRARY_HEADER_CNT   18
-
+#define FOOTPRINT_LIBRARY_HEADER_CNT    18
 
 class PCB_TARGET;
 class MODULE;
@@ -67,36 +71,28 @@ public:
 
     //-----<PLUGIN IMPLEMENTATION>----------------------------------------------
 
-    const wxString PluginName() const
+    const wxString PluginName() const override
     {
         return wxT( "KiCad-Legacy" );
     }
 
-    const wxString GetFileExtension() const
+    const wxString GetFileExtension() const override
     {
         return wxT( "brd" );
     }
 
-    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe, const PROPERTIES* aProperties = NULL );
+    BOARD* Load( const wxString& aFileName, BOARD* aAppendToMe,
+            const PROPERTIES* aProperties = NULL ) override;
 
-    /* we let go of "save" support when the number of CU layers were expanded from 16 to 32.
-    void Save( const wxString& aFileName, BOARD* aBoard, const PROPERTIES* aProperties = NULL );
-
-    void FootprintSave( const wxString& aLibraryPath, const MODULE* aFootprint,
-                                    const PROPERTIES* aProperties = NULL );
-    void FootprintDelete( const wxString& aLibraryPath, const wxString& aFootprintName, const PROPERTIES* aProperties = NULL );
-
-    void FootprintLibCreate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL );
-    */
-
-    wxArrayString FootprintEnumerate( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL);
+    wxArrayString FootprintEnumerate( const wxString& aLibraryPath,
+            const PROPERTIES* aProperties = NULL ) override;
 
     MODULE* FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
-                                    const PROPERTIES* aProperties = NULL );
+            const PROPERTIES* aProperties = NULL ) override;
 
-    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL );
+    bool FootprintLibDelete( const wxString& aLibraryPath, const PROPERTIES* aProperties = NULL ) override;
 
-    bool IsFootprintLibWritable( const wxString& aLibraryPath );
+    bool IsFootprintLibWritable( const wxString& aLibraryPath ) override;
 
     //-----</PLUGIN IMPLEMENTATION>---------------------------------------------
 
@@ -125,7 +121,6 @@ protected:
 
     LINE_READER*    m_reader;       ///< no ownership here.
     FILE*           m_fp;           ///< no ownership here.
-    wxString        m_filename;     ///< for saves only, name is in m_reader for loads
 
     wxString        m_field;        ///< reused to stuff MODULE fields.
     int             m_loading_format_version;   ///< which BOARD_FORMAT_VERSION am I Load()ing?
@@ -148,7 +143,7 @@ protected:
     ///> otherwise returns unchanged net code
     inline int getNetCode( int aNetCode )
     {
-        if( aNetCode < (int) m_netCodes.size() )
+        if( (unsigned int) aNetCode < m_netCodes.size() )
             return m_netCodes[aNetCode];
 
         return aNetCode;
@@ -221,76 +216,6 @@ protected:
     void loadPCB_TARGET();          // "$PCB_TARGET"
 
     //-----</ load/parse functions>---------------------------------------------
-
-
-    //-----<save functions>-----------------------------------------------------
-#if 0
-    /**
-     * Function writeError
-     * returns an error message wxString containing the filename being
-     * currently written.
-     */
-    wxString writeError() const;
-
-    /// encapsulate the BIU formatting tricks in one place.
-    int biuSprintf( char* buf, BIU aValue ) const;
-
-    /**
-     * Function fmtBIU
-     * converts a BIU to engineering units by scaling and formatting to ASCII.
-     * This function is the complement of biuParse().  One has to know what the
-     * other is doing.
-     */
-    std::string fmtBIU( BIU aValue ) const;
-
-    std::string fmtBIUPair( BIU first, BIU second ) const;
-
-    std::string fmtBIUPoint( const wxPoint& aPoint ) const
-    {
-        return fmtBIUPair( aPoint.x, aPoint.y );
-    }
-
-    std::string fmtBIUSize( const wxSize& aSize ) const
-    {
-        return fmtBIUPair( aSize.x, aSize.y );
-    }
-
-    /**
-     * Function fmtDEG
-     * formats an angle in a way particular to a board file format.  This function
-     * is the opposite or complement of degParse().  One has to know what the
-     * other is doing.
-     */
-    std::string fmtDEG( double aAngle ) const;
-
-    void saveGENERAL( const BOARD* aBoard ) const;
-    void saveSHEET( const BOARD* aBoard ) const;
-    void saveSETUP( const BOARD* aBoard ) const;
-    void saveBOARD_ITEMS( const BOARD* aBoard ) const;
-
-    void saveMODULE_TEXT( const TEXTE_MODULE* aText ) const;
-    void saveMODULE_EDGE( const EDGE_MODULE* aGraphic ) const;
-    void savePAD( const D_PAD* aPad ) const;
-
-    void saveNETINFO_ITEM( const NETINFO_ITEM* aNet ) const;
-    void saveNETCLASSES( const NETCLASSES* aNetClasses ) const;
-    void saveNETCLASS( const boost::shared_ptr<NETCLASS> aNetclass ) const;
-
-    void savePCB_TEXT( const TEXTE_PCB* aText ) const;
-    void savePCB_TARGET( const PCB_TARGET* aTarget ) const;
-    void savePCB_LINE( const DRAWSEGMENT* aStroke ) const;
-    void saveDIMENSION( const DIMENSION* aDimension ) const;
-    void saveTRACK( const TRACK* aTrack ) const;
-    void saveBOARD( const BOARD* aBoard ) const;
-
-    /**
-     * Function saveZONE_CONTAINER
-     * saves the new polygon zones.
-     */
-    void saveZONE_CONTAINER( const ZONE_CONTAINER* aZone ) const;
-
-    //-----</save functions>----------------------------------------------------
-#endif
 
     /// we only cache one footprint library for now, this determines which one.
     void cacheLib( const wxString& aLibraryPath );

@@ -38,10 +38,13 @@ add_custom_target(
 
 set( GAL_SRCS
     # Common part
+    basic_gal.cpp
     draw_panel_gal.cpp
     painter.cpp
+    newstroke_font.cpp
     worksheet_viewitem.cpp
     origin_viewitem.cpp
+    gl_context_mgr.cpp
     gal/graphics_abstraction_layer.cpp
     gal/stroke_font.cpp
     gal/color4d.cpp
@@ -59,6 +62,7 @@ set( GAL_SRCS
     gal/opengl/vertex_manager.cpp
     gal/opengl/gpu_manager.cpp
     gal/opengl/opengl_compositor.cpp
+    gal/opengl/utils.cpp
 
     # Cairo GAL
     gal/cairo/cairo_gal.cpp
@@ -127,12 +131,14 @@ endif()
 # KiCad build version string defaults to undefined which forces the build version header
 # command to look for Bazaar to create the version string header.
 set( KICAD_BUILD_VERSION "" CACHE STRING "Version string defined at configuration time." )
+set( KICAD_REPO_NAME     "" CACHE STRING "KiCad repository name." )
 
 # Generate version header file.
 add_custom_target(
     version_header ALL
     COMMAND ${CMAKE_COMMAND}
         -DKICAD_BUILD_VERSION=${KICAD_BUILD_VERSION}
+        -DKICAD_REPO_NAME=${KICAD_REPO_NAME}
         -DOUTPUT_FILE=${CMAKE_BINARY_DIR}/kicad_build_version.h
         -DSRC_PATH=${PROJECT_SOURCE_DIR}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
@@ -165,6 +171,7 @@ set( COMMON_DLG_SRCS
     )
 
 set( COMMON_WIDGET_SRCS
+    widgets/mathplot.cpp
     widgets/widget_hotkey_list.cpp
     )
 
@@ -198,6 +205,7 @@ set( COMMON_SRCS
     class_plotter.cpp
     class_undoredo_container.cpp
     colors.cpp
+    commit.cpp
     common.cpp
     common_plot_functions.cpp
     common_plotHPGL_functions.cpp
@@ -219,8 +227,10 @@ set( COMMON_SRCS
     eda_dde.cpp
     eda_doc.cpp
     eda_pattern_match.cpp
+    exceptions.cpp
     filter_reader.cpp
 #    findkicadhelppath.cpp.notused      deprecated, use searchhelpfilefullpath.cpp
+    gbr_metadata.cpp
     gestfich.cpp
     getrunningmicrosecs.cpp
     grid_tricks.cpp
@@ -235,9 +245,9 @@ set( COMMON_SRCS
     lockfile.cpp
     msgpanel.cpp
     netlist_keywords.cpp
-    newstroke_font.cpp
     prependpath.cpp
     project.cpp
+    properties.cpp
     ptree.cpp
     reporter.cpp
     richio.cpp
@@ -295,6 +305,7 @@ set( COMMON_SRCS
     geometry/shape_poly_set.cpp
     geometry/shape_collisions.cpp
     geometry/shape_file_io.cpp
+    geometry/convex_hull.cpp
     )
 add_library( common STATIC ${COMMON_SRCS} )
 add_dependencies( common lib-dependencies )
@@ -498,3 +509,64 @@ target_link_libraries( dsntest common ${wxWidgets_LIBRARIES} rt )
 
 add_dependencies( dsntest lib-dependencies )
 
+target_link_libraries( pcbcommon 3d-viewer )
+
+
+# _kiway.so
+if( false ) # future
+#if( KICAD_SCRIPTING OR KICAD_SCRIPTING_MODULES )
+
+    set( SWIG_FLAGS
+        -I${CMAKE_CURRENT_SOURCE_DIR}/../include
+        )
+
+    if( DEBUG )
+        set( SWIG_FLAGS ${SWIG_FLAGS} -DDEBUG )
+    endif()
+
+    # call SWIG in C++ mode: https://cmake.org/cmake/help/v3.2/module/UseSWIG.html
+    set_source_files_properties( swig/kiway.i PROPERTIES CPLUSPLUS ON )
+
+    # collect CFLAGS , and pass them to swig later
+    get_directory_property( DirDefs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMPILE_DEFINITIONS )
+    foreach( d ${DirDefs} )
+        set( SWIG_FLAGS ${SWIG_FLAGS} -D${d} )
+    endforeach()
+
+    set( CMAKE_SWIG_FLAGS ${SWIG_FLAGS} )
+
+    include_directories( BEFORE ${INC_BEFORE} )
+    include_directories(
+        ../common
+        ${INC_AFTER}
+        )
+
+    set( SWIG_MODULE_kiway_EXTRA_DEPS
+        ../common/swig/ki_exception.i
+        ../common/swig/kicad.i
+        )
+
+    swig_add_module( kiway python
+        swig/kiway.i
+        )
+
+    swig_link_libraries( kiway
+        common
+        bitmaps
+        ${wxWidgets_LIBRARIES}
+        ${PYTHON_LIBRARIES}
+        )
+
+    set_source_files_properties( ${swig_generated_file_fullname} PROPERTIES
+        # See section 16.3 "The SWIG runtime code"
+        # http://www.swig.org/Doc3.0/SWIGDocumentation.html#Modules_nn2
+        COMPILE_FLAGS "-DSWIG_TYPE_TABLE=WXPYTHON_TYPE_TABLE -Wno-delete-non-virtual-dtor"
+        )
+
+    if( MAKE_LINK_MAPS )
+        set_target_properties( _kiway PROPERTIES
+            LINK_FLAGS "${TO_LINKER},-cref ${TO_LINKER},-Map=_kiway.so.map"
+            )
+    endif()
+
+endif()

@@ -35,9 +35,9 @@
 
 #include <math/box2.h>
 
-#include <boost/unordered_set.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/foreach.hpp>
+#include <deque>
+#include <unordered_set>
+#include <unordered_map>
 
 class BOARD;
 class BOARD_ITEM;
@@ -66,7 +66,7 @@ typedef hed::EDGE           RN_EDGE;
 typedef hed::EDGE_PTR       RN_EDGE_PTR;
 typedef hed::EDGE_MST       RN_EDGE_MST;
 typedef hed::TRIANGULATION  TRIANGULATOR;
-typedef boost::shared_ptr<hed::EDGE_MST> RN_EDGE_MST_PTR;
+typedef std::shared_ptr<hed::EDGE_MST> RN_EDGE_MST_PTR;
 
 bool operator==( const RN_NODE_PTR& aFirst, const RN_NODE_PTR& aSecond );
 bool operator!=( const RN_NODE_PTR& aFirst, const RN_NODE_PTR& aSecond );
@@ -91,29 +91,44 @@ struct RN_NODE_FILTER : public std::unary_function<const RN_NODE_PTR&, bool>
 RN_NODE_AND_FILTER operator&&( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 );
 RN_NODE_OR_FILTER operator||( const RN_NODE_FILTER& aFilter1, const RN_NODE_FILTER& aFilter2 );
 
-///> Filters out nodes that have the flag set.
-struct WITHOUT_FLAG : public RN_NODE_FILTER
+///> Leaves nodes that can be a ratsnest line target
+struct LINE_TARGET : public RN_NODE_FILTER
 {
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
-        return !aNode->GetFlag();
+        return !aNode->GetNoLine();
     }
 };
 
-///> Filters out nodes with a specific tag
-struct DIFFERENT_TAG : public RN_NODE_FILTER
+///> Leaves nodes that can be a ratsnest line target and have a specific tag
+struct LINE_TARGET_SAME_TAG : public RN_NODE_FILTER
 {
-    DIFFERENT_TAG( int aTag ) :
+    LINE_TARGET_SAME_TAG( int aTag ) :
         m_tag( aTag )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
-        return aNode->GetTag() != m_tag;
+        return !aNode->GetNoLine() && aNode->GetTag() == m_tag;
     }
 
-    private:
-        int m_tag;
+private:
+    int m_tag;
+};
+
+struct LINE_TARGET_DIFF_TAG : public RN_NODE_FILTER
+{
+    LINE_TARGET_DIFF_TAG( int aTag ) :
+        m_tag( aTag )
+    {}
+
+    bool operator()( const RN_NODE_PTR& aNode ) const override
+    {
+        return !aNode->GetNoLine() && aNode->GetTag() == m_tag;
+    }
+
+private:
+    int m_tag;
 };
 
 struct RN_NODE_AND_FILTER : public RN_NODE_FILTER
@@ -122,7 +137,7 @@ struct RN_NODE_AND_FILTER : public RN_NODE_FILTER
         m_filter1( aFilter1 ), m_filter2( aFilter2 )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return m_filter1( aNode ) && m_filter2( aNode );
     }
@@ -138,7 +153,7 @@ struct RN_NODE_OR_FILTER : public RN_NODE_FILTER
         m_filter1( aFilter1 ), m_filter2( aFilter2 )
     {}
 
-    bool operator()( const RN_NODE_PTR& aNode ) const
+    bool operator()( const RN_NODE_PTR& aNode ) const override
     {
         return m_filter1( aNode ) || m_filter2( aNode );
     }
@@ -184,7 +199,7 @@ class RN_LINKS
 {
 public:
     // Helper typedefs
-    typedef boost::unordered_set<RN_NODE_PTR, RN_NODE_HASH, RN_NODE_COMPARE> RN_NODE_SET;
+    typedef std::unordered_set<RN_NODE_PTR, RN_NODE_HASH, RN_NODE_COMPARE> RN_NODE_SET;
     typedef std::list<RN_EDGE_PTR> RN_EDGE_LIST;
 
     /**
@@ -385,7 +400,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aPad is a pad for which node is added.
      */
-    void AddItem( const D_PAD* aPad );
+    bool AddItem( const D_PAD* aPad );
 
     /**
      * Function AddItem()
@@ -393,7 +408,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aVia is a via for which node is added.
      */
-    void AddItem( const VIA* aVia );
+    bool AddItem( const VIA* aVia );
 
     /**
      * Function AddItem()
@@ -401,7 +416,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aTrack is a track for which nodes and edges are added.
      */
-    void AddItem( const TRACK* aTrack );
+    bool AddItem( const TRACK* aTrack );
 
     /**
      * Function AddItem()
@@ -409,7 +424,7 @@ public:
      * taken into account during ratsnest computations.
      * @param aZone is a zone to be processed.
      */
-    void AddItem( const ZONE_CONTAINER* aZone );
+    bool AddItem( const ZONE_CONTAINER* aZone );
 
     /**
      * Function RemoveItem()
@@ -417,7 +432,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aPad is a pad for which nodes and edges are removed.
      */
-    void RemoveItem( const D_PAD* aPad );
+    bool RemoveItem( const D_PAD* aPad );
 
     /**
      * Function RemoveItem()
@@ -425,7 +440,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aVia is a via for which nodes and edges are removed.
      */
-    void RemoveItem( const VIA* aVia );
+    bool RemoveItem( const VIA* aVia );
 
     /**
      * Function RemoveItem()
@@ -433,7 +448,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aTrack is a track for which nodes and edges are removed.
      */
-    void RemoveItem( const TRACK* aTrack );
+    bool RemoveItem( const TRACK* aTrack );
 
     /**
      * Function RemoveItem()
@@ -441,7 +456,7 @@ public:
      * taken into account during ratsnest computations anymore.
      * @param aZone is a zone for which nodes and edges are removed.
      */
-    void RemoveItem( const ZONE_CONTAINER* aZone );
+    bool RemoveItem( const ZONE_CONTAINER* aZone );
 
     /**
      * Function GetNodes()
@@ -514,7 +529,7 @@ public:
     inline void AddBlockedNode( RN_NODE_PTR& aNode )
     {
         m_blockedNodes.insert( aNode );
-        aNode->SetFlag( true );
+        aNode->SetNoLine( true );
     }
 
     /**
@@ -523,7 +538,7 @@ public:
      * ratsnest line per node).
      * @return list of nodes for which ratsnest is drawn in simple mode.
      */
-    inline const boost::unordered_set<RN_NODE_PTR>& GetSimpleNodes() const
+    inline const std::unordered_set<RN_NODE_PTR>& GetSimpleNodes() const
     {
         return m_simpleNodes;
     }
@@ -574,13 +589,13 @@ protected:
     RN_LINKS m_links;
 
     ///> Vector of edges that makes ratsnest for a given net.
-    boost::shared_ptr< std::vector<RN_EDGE_MST_PTR> > m_rnEdges;
+    std::shared_ptr< std::vector<RN_EDGE_MST_PTR> > m_rnEdges;
 
     ///> List of nodes which will not be used as ratsnest target nodes.
-    boost::unordered_set<RN_NODE_PTR> m_blockedNodes;
+    std::unordered_set<RN_NODE_PTR> m_blockedNodes;
 
     ///> Nodes to be displayed using the simplified ratsnest algorithm.
-    boost::unordered_set<RN_NODE_PTR> m_simpleNodes;
+    std::unordered_set<RN_NODE_PTR> m_simpleNodes;
 
     ///> Flag indicating necessity of recalculation of ratsnest for a net.
     bool m_dirty;
@@ -606,10 +621,10 @@ protected:
     } RN_PAD_DATA;
 
     ///> Helper typedefs
-    typedef boost::unordered_map<const D_PAD*, RN_PAD_DATA> PAD_NODE_MAP;
-    typedef boost::unordered_map<const VIA*, RN_NODE_PTR> VIA_NODE_MAP;
-    typedef boost::unordered_map<const TRACK*, RN_EDGE_MST_PTR> TRACK_EDGE_MAP;
-    typedef boost::unordered_map<const ZONE_CONTAINER*, RN_ZONE_DATA> ZONE_DATA_MAP;
+    typedef std::unordered_map<const D_PAD*, RN_PAD_DATA> PAD_NODE_MAP;
+    typedef std::unordered_map<const VIA*, RN_NODE_PTR> VIA_NODE_MAP;
+    typedef std::unordered_map<const TRACK*, RN_EDGE_MST_PTR> TRACK_EDGE_MAP;
+    typedef std::unordered_map<const ZONE_CONTAINER*, RN_ZONE_DATA> ZONE_DATA_MAP;
 
     ///> Map that associates nodes in the ratsnest model to respective nodes.
     PAD_NODE_MAP m_pads;
@@ -646,22 +661,26 @@ public:
      * Function Add()
      * Adds an item to the ratsnest data.
      * @param aItem is an item to be added.
+     * @return True if operation succeeded.
      */
-    void Add( const BOARD_ITEM* aItem );
+    bool Add( const BOARD_ITEM* aItem );
 
     /**
      * Function Remove()
      * Removes an item from the ratsnest data.
      * @param aItem is an item to be updated.
+     * @return True if operation succeeded.
      */
-    void Remove( const BOARD_ITEM* aItem );
+    bool Remove( const BOARD_ITEM* aItem );
 
     /**
      * Function Update()
      * Updates the ratsnest data for an item.
      * @param aItem is an item to be updated.
+     * @return True if operation succeeded. The item will not be updated if it was not previously
+     * added to the ratsnest.
      */
-    void Update( const BOARD_ITEM* aItem );
+    bool Update( const BOARD_ITEM* aItem );
 
     /**
      * Function AddSimple()
@@ -685,7 +704,7 @@ public:
      */
     void ClearSimple()
     {
-        BOOST_FOREACH( RN_NET& net, m_nets )
+        for( RN_NET& net : m_nets )
             net.ClearSimple();
     }
 

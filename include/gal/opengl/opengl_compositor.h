@@ -1,7 +1,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 CERN
+ * Copyright (C) 2013-2016 CERN
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
@@ -44,36 +44,37 @@ public:
     virtual ~OPENGL_COMPOSITOR();
 
     /// @copydoc COMPOSITOR::Initialize()
-    virtual void Initialize();
+    virtual void Initialize() override;
 
     /// @copydoc COMPOSITOR::Resize()
-    virtual void Resize( unsigned int aWidth, unsigned int aHeight );
+    virtual void Resize( unsigned int aWidth, unsigned int aHeight ) override;
 
     /// @copydoc COMPOSITOR::CreateBuffer()
-    virtual unsigned int CreateBuffer();
+    virtual unsigned int CreateBuffer() override;
 
     /// @copydoc COMPOSITOR::SetBuffer()
-    virtual void SetBuffer( unsigned int aBufferHandle );
+    virtual void SetBuffer( unsigned int aBufferHandle ) override;
 
     /// @copydoc COMPOSITOR::GetBuffer()
-    inline virtual unsigned int GetBuffer() const
+    inline virtual unsigned int GetBuffer() const override
     {
-        if( m_currentFbo == DIRECT_RENDERING )
+        if( m_curFbo == DIRECT_RENDERING )
             return DIRECT_RENDERING;
 
-        return m_current + 1;
+        return m_curBuffer + 1;
     }
 
     /// @copydoc COMPOSITOR::ClearBuffer()
-    virtual void ClearBuffer();
+    virtual void ClearBuffer() override;
 
     /// @copydoc COMPOSITOR::DrawBuffer()
-    virtual void DrawBuffer( unsigned int aBufferHandle );
+    virtual void DrawBuffer( unsigned int aBufferHandle ) override;
 
     // Constant used by glBindFramebuffer to turn off rendering to framebuffers
     static const unsigned int DIRECT_RENDERING = 0;
 
 protected:
+    // Buffers are simply textures storing a result of certain target rendering.
     typedef struct
     {
         GLuint textureTarget;                ///< Main texture handle
@@ -81,16 +82,19 @@ protected:
     } OPENGL_BUFFER;
 
     bool            m_initialized;            ///< Initialization status flag
-    unsigned int    m_current;                ///< Currently used buffer handle
-    GLuint          m_framebuffer;            ///< Main FBO handle
+    unsigned int    m_curBuffer;              ///< Currently used buffer handle
+    GLuint          m_mainFbo;                ///< Main FBO handle (storing all target textures)
     GLuint          m_depthBuffer;            ///< Depth buffer handle
     typedef std::deque<OPENGL_BUFFER> OPENGL_BUFFERS;
 
     /// Stores information about initialized buffers
     OPENGL_BUFFERS  m_buffers;
 
-    /// Store the currently used FBO name in case there was more than one compositor used
-    GLuint          m_currentFbo;
+    /// Store the used FBO name in case there was more than one compositor used
+    GLuint          m_curFbo;
+
+    /// Binds a specific Framebuffer Object.
+    void bindFb( unsigned int aFb );
 
     /**
      * Function clean()

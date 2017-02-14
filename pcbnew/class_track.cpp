@@ -4,7 +4,7 @@
  * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -68,24 +68,24 @@ static bool ShowClearance( DISPLAY_OPTIONS* aDisplOpts, const TRACK* aTrack )
 TRACK* GetTrack( TRACK* aStartTrace, const TRACK* aEndTrace,
         const wxPoint& aPosition, LSET aLayerMask )
 {
-    for( TRACK *PtSegm = aStartTrace; PtSegm != NULL; PtSegm = PtSegm->Next() )
+    for( TRACK* seg = aStartTrace;  seg;  seg = seg->Next() )
     {
-        if( PtSegm->GetState( IS_DELETED | BUSY ) == 0 )
+        if( seg->GetState( IS_DELETED | BUSY ) == 0 )
         {
-            if( aPosition == PtSegm->GetStart() )
+            if( aPosition == seg->GetStart() )
             {
-                if( ( aLayerMask & PtSegm->GetLayerSet() ).any() )
-                    return PtSegm;
+                if( ( aLayerMask & seg->GetLayerSet() ).any() )
+                    return seg;
             }
 
-            if( aPosition == PtSegm->GetEnd() )
+            if( aPosition == seg->GetEnd() )
             {
-                if( ( aLayerMask & PtSegm->GetLayerSet() ).any() )
-                    return PtSegm;
+                if( ( aLayerMask & seg->GetLayerSet() ).any() )
+                    return seg;
             }
         }
 
-        if( PtSegm == aEndTrace )
+        if( seg == aEndTrace )
             break;
     }
 
@@ -363,15 +363,14 @@ void VIA::Flip( const wxPoint& aCentre )
 
 
 // see class_track.h
-SEARCH_RESULT TRACK::Visit( INSPECTOR* inspector, const void* testData,
-                            const KICAD_T scanTypes[] )
+SEARCH_RESULT TRACK::Visit( INSPECTOR inspector, void* testData, const KICAD_T scanTypes[] )
 {
     KICAD_T stype = *scanTypes;
 
     // If caller wants to inspect my type
     if( stype == Type() )
     {
-        if( SEARCH_QUIT == inspector->Inspect( this, testData ) )
+        if( SEARCH_QUIT == inspector( this, testData ) )
             return SEARCH_QUIT;
     }
 
@@ -763,7 +762,7 @@ unsigned int TRACK::ViewGetLOD( int aLayer ) const
     // Netnames will be shown only if zoom is appropriate
     if( IsNetnameLayer( aLayer ) )
     {
-        return ( 20000000 / ( m_Width + 1 ) );
+        return ( 40000000 / ( m_Width + 1 ) );
     }
 
     // Other layers are shown without any conditions
@@ -845,60 +844,35 @@ void VIA::Draw( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, const w
         GRCircle( panel->GetClipBox(), aDC, m_Start + aOffset, inner_radius, 0, color );
     }
 
-    // Draw the via hole if the display option allows it
-    if( displ_opts->m_DisplayViaMode != VIA_HOLE_NOT_SHOW )
+    if( fillvia )
     {
-        // Display all drill holes requested or Display non default holes requested
-        bool show_hole = displ_opts->m_DisplayViaMode == ALL_VIA_HOLE_SHOW;
+        bool blackpenstate = false;
 
-        if( !show_hole )
+        if( screen->m_IsPrinting )
         {
-            NETINFO_ITEM* net = GetNet();
-            int drill_class_value = 0;
-            if( net )
-            {
-                if( GetViaType() == VIA_MICROVIA )
-                    drill_class_value = net->GetMicroViaDrillSize();
-                else
-                    drill_class_value = net->GetViaDrillSize();
-            }
-
-            show_hole = GetDrillValue() != drill_class_value;
+            blackpenstate = GetGRForceBlackPenState();
+            GRForceBlackPen( false );
+            color = WHITE;
+        }
+        else
+        {
+            color = BLACK;     // or DARKGRAY;
         }
 
-        if( show_hole )
-        {
-            if( fillvia )
-            {
-                bool blackpenstate = false;
+        if( (aDrawMode & GR_XOR) == 0)
+            GRSetDrawMode( aDC, GR_COPY );
 
-                if( screen->m_IsPrinting )
-                {
-                    blackpenstate = GetGRForceBlackPenState();
-                    GRForceBlackPen( false );
-                    color = WHITE;
-                }
-                else
-                {
-                    color = BLACK;     // or DARKGRAY;
-                }
+        if( aDC->LogicalToDeviceXRel( drill_radius ) > MIN_DRAW_WIDTH )  // Draw hole if large enough.
+            GRFilledCircle( panel->GetClipBox(), aDC, m_Start.x + aOffset.x,
+                            m_Start.y + aOffset.y, drill_radius, 0, color, color );
 
-                if( (aDrawMode & GR_XOR) == 0)
-                    GRSetDrawMode( aDC, GR_COPY );
-
-                if( aDC->LogicalToDeviceXRel( drill_radius ) > MIN_DRAW_WIDTH )  // Draw hole if large enough.
-                    GRFilledCircle( panel->GetClipBox(), aDC, m_Start.x + aOffset.x,
-                                    m_Start.y + aOffset.y, drill_radius, 0, color, color );
-
-                if( screen->m_IsPrinting )
-                    GRForceBlackPen( blackpenstate );
-            }
-            else
-            {
-                if( drill_radius < inner_radius )         // We can show the via hole
-                    GRCircle( panel->GetClipBox(), aDC, m_Start + aOffset, drill_radius, 0, color );
-            }
-        }
+        if( screen->m_IsPrinting )
+            GRForceBlackPen( blackpenstate );
+    }
+    else
+    {
+        if( drill_radius < inner_radius )         // We can show the via hole
+            GRCircle( panel->GetClipBox(), aDC, m_Start + aOffset, drill_radius, 0, color );
     }
 
     if( ShowClearance( displ_opts, this ) )
@@ -1138,7 +1112,7 @@ void TRACK::GetMsgPanelInfoBase_Common( std::vector< MSG_PANEL_ITEM >& aList )
     msg = wxT( ". . " );
 
     if( GetState( TRACK_LOCKED ) )
-        msg[0] = 'F';
+        msg[0] = 'L';
 
     if( GetState( TRACK_AR ) )
         msg[2] = 'A';
@@ -1390,7 +1364,7 @@ TRACK* TRACK::GetTrack( TRACK* aStartTrace, TRACK* aEndTrace, ENDPOINT_T aEndPoi
 
     while( nextSegment || previousSegment )
     {
-        // Terminate the search in the direction if the netcode mismatches
+        // Terminate the search in the direction if the netcode mis-matches
         if( aSameNetOnly )
         {
             if( nextSegment && (nextSegment->GetNetCode() != GetNetCode()) )

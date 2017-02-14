@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -73,10 +73,7 @@ private:
     bool    m_abortRequest;                 ///< Flag used to abort long commands.
 
     bool    m_enableZoomNoCenter;           ///< True to enable zooming around the crosshair instead of the center
-    bool    m_enableMiddleButtonPan;        ///< True to enable middle mouse button panning.
-    bool    m_panScrollbarLimits;           ///< has meaning only if m_enableMiddleButtonPan = true
-                                            ///< true to limit panning to scrollbar current limits
-                                            ///< false to used unlimited pan
+    bool    m_enableMousewheelPan;          ///< True to enable mousewheel panning by default.
 
     bool    m_enableAutoPan;                ///< True to enable automatic panning.
 
@@ -142,17 +139,13 @@ public:
 
     void SetAbortRequest( bool aAbortRequest ) { m_abortRequest = aAbortRequest; }
 
-    bool GetEnableMiddleButtonPan() const { return m_enableMiddleButtonPan; }
+    bool GetEnableMousewheelPan() const { return m_enableMousewheelPan; }
 
-    void SetEnableMiddleButtonPan( bool aEnable ) { m_enableMiddleButtonPan = aEnable; }
+    void SetEnableMousewheelPan( bool aEnable );
 
     bool GetEnableZoomNoCenter() const { return m_enableZoomNoCenter; }
 
     void SetEnableZoomNoCenter( bool aEnable );
-
-    bool GetMiddleButtonPanLimited() const { return m_panScrollbarLimits; }
-
-    void SetMiddleButtonPanLimited( bool aEnable ) { m_panScrollbarLimits = aEnable; }
 
     bool GetEnableAutoPan() const { return m_enableAutoPan; }
 
@@ -237,7 +230,7 @@ public:
      * </p>
      * @param aDC The device context to prepare.
      */
-    virtual void DoPrepareDC( wxDC& aDC );
+    virtual void DoPrepareDC( wxDC& aDC ) override;
 
     /**
      * Function DeviceToLogical
@@ -329,7 +322,7 @@ public:
     void RefreshDrawingRect( const EDA_RECT& aRect, bool aEraseBackground = true );
 
     /// @copydoc wxWindow::Refresh()
-    virtual void Refresh( bool eraseBackground = true, const wxRect* rect = NULL );
+    virtual void Refresh( bool eraseBackground = true, const wxRect* rect = NULL ) override;
 
     /**
      * Function GetScreenCenterLogicalPosition

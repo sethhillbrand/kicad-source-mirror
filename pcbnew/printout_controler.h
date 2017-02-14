@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2009 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
- * Copyright (C) 1992-2011 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -111,9 +111,9 @@ public:
                                EDA_DRAW_FRAME*         aParent,
                                const wxString&         aTitle );
 
-    bool OnPrintPage( int aPage );
+    bool OnPrintPage( int aPage ) override;
 
-    bool HasPage( int aPage )       // do not test page num
+    bool HasPage( int aPage ) override
     {
         if( aPage <= m_PrintParams.m_PageCount )
             return true;
@@ -121,9 +121,18 @@ public:
             return false;
     }
 
-    void GetPageInfo( int* minPage, int* maxPage, int* selPageFrom, int* selPageTo );
+    void GetPageInfo( int* minPage, int* maxPage, int* selPageFrom, int* selPageTo ) override;
 
-    void DrawPage();
+    /**
+     * Print a page ( or a set of pages ).
+     * Note: this function prepare print parameters for the function
+     * which actually print the draw layers.
+     * @param aLayerName = a text which can be printed as layer name
+     * @param aPageNum = the number of the current page (only used to print this value)
+     * @param aPageCount = the number of pages to ptint (only used to print this value)
+     */
+    void DrawPage( const wxString& aLayerName = wxEmptyString,
+                   int aPageNum = 1, int aPageCount = 1 );
 };
 
 #endif      // PRINTOUT_CONTROLLER_H

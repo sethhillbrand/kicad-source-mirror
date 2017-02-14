@@ -1,11 +1,7 @@
-/**
- * @file pagelayout_editor/menubar.cpp
- * @brief (Re)Create the main menubar for Pl_Editor
- */
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
+ * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
  * Copyright (C) 2013 CERN
  * @author Jean-Pierre Charras, jp.charras at wanadoo.fr
  *
@@ -27,14 +23,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <fctsys.h>
+/**
+ * @file pagelayout_editor/menubar.cpp
+ * @brief (Re)Create the main menubar for Pl_Editor
+ */
 
-#include <pgm_base.h>
+
 #include <kiface_i.h>
-#include <pl_editor_frame.h>
-#include <pl_editor_id.h>
-#include <hotkeys.h>
 #include <menus_helpers.h>
+#include <pgm_base.h>
+
+#include "hotkeys.h"
+#include "pl_editor_frame.h"
+#include "pl_editor_id.h"
 
 
 void PL_EDITOR_FRAME::ReCreateMenuBar()
@@ -118,7 +119,7 @@ void PL_EDITOR_FRAME::ReCreateMenuBar()
     AddMenuItem( preferencesMenu,
                  ID_MENU_SWITCH_BGCOLOR,
                  GetDrawBgColor() == WHITE ?
-                 _( "&BackGround Black" ) : _( "&BackGround White" ),
+                 _( "&Background Black" ) : _( "&Background White" ),
                  wxEmptyString, KiBitmap( palette_xpm ) );
 
     AddMenuItem( preferencesMenu,
@@ -142,9 +143,6 @@ void PL_EDITOR_FRAME::ReCreateMenuBar()
     // Menu Help
     wxMenu* helpMenu = new wxMenu;
 
-    // Version info
-    AddHelpVersionInfoMenuEntry( helpMenu );
-
     // Contents
     AddMenuItem( helpMenu,
                  wxID_HELP,
@@ -157,6 +155,17 @@ void PL_EDITOR_FRAME::ReCreateMenuBar()
                  _( "&Getting Started in KiCad" ),
                  _( "Open \"Getting Started in KiCad\" guide for beginners" ),
                  KiBitmap( help_xpm ) );
+
+    AddMenuItem( helpMenu, ID_PREFERENCES_HOTKEY_SHOW_CURRENT_LIST,
+                 _( "&List Hotkeys" ),
+                 _( "Displays the current hotkeys list and corresponding commands" ),
+                 KiBitmap( hotkeys_xpm ) );
+
+    helpMenu->AppendSeparator();
+    AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED,
+                 _( "Get &Involved" ),
+                 _( "Contribute to KiCad (opens a web browser)" ),
+                 KiBitmap( info_xpm ) );
 
     // Separator
     helpMenu->AppendSeparator();

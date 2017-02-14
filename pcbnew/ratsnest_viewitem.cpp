@@ -33,9 +33,8 @@
 #include <pcb_painter.h>
 #include <layers_id_colors_and_visibility.h>
 
-#include <boost/foreach.hpp>
 
-using namespace KIGFX;
+namespace KIGFX {
 
 RATSNEST_VIEWITEM::RATSNEST_VIEWITEM( RN_DATA* aData ) :
         EDA_ITEM( NOT_USED ), m_data( aData )
@@ -74,13 +73,13 @@ void RATSNEST_VIEWITEM::ViewDraw( int aLayer, GAL* aGal ) const
         aGal->SetStrokeColor( color.Brightened( 0.8 ) );
 
         // Draw the "dynamic" ratsnest (i.e. for objects that may be currently being moved)
-        BOOST_FOREACH( const RN_NODE_PTR& node, net.GetSimpleNodes() )
+        for( const RN_NODE_PTR& node : net.GetSimpleNodes() )
         {
             // Skipping nodes with higher reference count avoids displaying redundant lines
             if( node->GetRefCount() > 1 )
                 continue;
 
-            RN_NODE_PTR dest = net.GetClosestNode( node, WITHOUT_FLAG() );
+            RN_NODE_PTR dest = net.GetClosestNode( node, LINE_TARGET() );
 
             if( dest )
             {
@@ -100,7 +99,7 @@ void RATSNEST_VIEWITEM::ViewDraw( int aLayer, GAL* aGal ) const
         if( edges == NULL )
             continue;
 
-        BOOST_FOREACH( const RN_EDGE_MST_PTR& edge, *edges )
+        for( const RN_EDGE_MST_PTR& edge : *edges )
         {
             const RN_NODE_PTR& sourceNode = edge->GetSourceNode();
             const RN_NODE_PTR& targetNode = edge->GetTargetNode();
@@ -117,4 +116,6 @@ void RATSNEST_VIEWITEM::ViewGetLayers( int aLayers[], int& aCount ) const
 {
     aCount = 1;
     aLayers[0] = ITEM_GAL_LAYER( RATSNEST_VISIBLE );
+}
+
 }

@@ -4,7 +4,7 @@ of KiCad which can be found at the [download][] page on the [KiCad website][].  
 from source is not for the faint of heart and is not recommended unless you have reasonable
 software development experience.  This document contains the instructions on how to build KiCad
 from source on the supported platforms.  It is not intended as a guide for installing or building
-[library dependencies](#library_dependencies).  Please consult you platforms documentation for
+[library dependencies](#library_dependencies).  Please consult your platforms documentation for
 installing packages or the source code when building the library dependencies.  Currently the
 supported platforms are Windows Versions 7-10, just about any version of Linux, and OSX
 10.7-10.10.  You may be able to build KiCad on other platforms but it is not supported.  On
@@ -23,19 +23,14 @@ Some of these tools are required to build from source and some are optional.
 [CMake][] is the build configuration and makefile generation tool used by KiCad.  It is required.
 
 
-## Bazaar Version Control System ## {#bazaar}
-
-The official source code repository is hosted on [Launchpad][] and requires the [Bazaar][] version
-control system in order to create a branch of the latest source.  Bazaar is not required if you are
-going to build a stable version of KiCad from a source archive.
-
 ## GIT Version Control System ## {#git}
 
-If you prefer to use [GIT][] for version control, there is a mirror of the official KiCad
-repository on [GitHub][].  GIT is not required if you are going to build a stable version of
-KiCad from a source archive.  Please note that the GitHub mirror is read only.  Do not submit
-pull requests to GitHub.  Changes should be sent to the KiCad developer's [mailing list][] as
-an attached patch with [PATCH] at the beginning of the subject.
+The official source code repository is hosted on [Launchpad][] and requires [git][] to get
+the latest source. If you prefer to use [GitHub][] there is a read only mirror of the official
+KiCad repository. Do not submit pull requests to GitHub. Changes should be sent to the KiCad
+developer's [mailing list][] using `git format-patch` and attaching the patch with [PATCH] at
+the beginning of the subject or using `git send-email` to send your commit directly to the
+developer's [mailing list][].
 
 ## Doxygen Code Documentation Generator ## {#doxygen_section}
 
@@ -95,7 +90,7 @@ abstraction library [GAL] and is always required to build KiCad.
 
 ## Cairo 2D Graphics Library ## {#cairo}
 
-The [Cairo][] 2D graphics library is used as a fallback rendering canvas when OpenGL is no
+The [Cairo][] 2D graphics library is used as a fallback rendering canvas when OpenGL is not
 available and is always required to build KiCad.
 
 ## Python Programming Language ## {#python}
@@ -122,11 +117,6 @@ the GitHub plug build option is enabled.
 KiCad has many build options that can be configured to build different options depending on
 the availability of support for each option on a given platform.  This section documents
 these options and their default values.
-
-## Case Sensitivity ## {#case_sensitive_opt}
-
-The KICAD_KEEPCASE option allows you to build KiCad so that the string matching for component
-names is case sensitive of case insensitive.  This option is enabled by default.
 
 ## Advanced Graphics Context ## {#graphics_context_opt}
 
@@ -159,6 +149,50 @@ Pcbnew including the wxPython console.  This option is disabled by default.
 The BUILD_GITHUB_PLUGIN option is used to control if the GitHub plug in is built.  This option is
 enabled by default.
 
+## Integrated Spice simulator ## {#spice_opt}
+
+The KICAD_SPICE option is used to control if the Spice simulator interface for eeschema is built.  When
+this option is enabled, it requires [ngspice][] to be available as a shared library.  This option is
+disabled by default.
+
+## New schmatic file format ## {#sch_io_mgr_opt}
+
+The KICAD_USE_SCH_IO_MANAGER option is used to control if the new Eeschema I/O manager for handling
+schematic and symbol library I/O is enabled. This option is disabled by default.
+
+## STEP/IGES support for the 3D viewer ## {#oce_opt}
+
+The KICAD_USE_OCE is used for the 3D viewer plugin to support STEP and IGES 3D models. Build tools
+and plugins related to OpenCascade Community Edition (OCE) are enabled with this option. When
+enabled it requires [OCE][] to be available, and the location of the installed OCE libary to be
+passed via the OCE_DIR flag. This option is disabled by default.
+
+## Demos and Examples ## {#demo_install_opt}
+
+The KiCad source code includes some demos and examples to showcase the program. You can choose
+whether install them or not with the KICAD_INSTALL_DEMOS option. You can also select where to
+install them with the KICAD_DEMOS variable. On Linux the demos are installed in
+$PREFIX/share/kicad/demos by default.
+
+## Setting the Build Version and Repository Name ## {#build_version_opt}
+
+By default, KiCad builds the version string information from the [git][] repository information
+as follows:
+
+    (2016-08-26 revision 67230ac)-master
+     |                   |        |
+     |                   |        branch name, "HEAD" if not on a branch,
+     |                   |        or "unknown" if no .git present
+     |                   |
+     |                   abbreviated commit hash, or no-git if no .git
+     |                   present
+     |
+     date of commit, or date of build if no .git present
+
+Package developers can set the version string information by using the KICAD_BUILD_VERSION and
+KICAD_REPO_NAME configuration variables during CMake configuration for custom versions and
+when building from the source archives.
+
 # Getting the KiCad Source Code ## {#getting_src}
 
 There are several ways to get the KiCad source.  If you want to build the stable version you
@@ -169,20 +203,15 @@ following command:
     tar -xzf kicad_src_archive.tar.gz
 
 If you are contributing directly to the KiCad project on Launchpad, you can create a local
-branch on your machine by using the following command:
+copy on your machine by using the following command:
 
-    bzr branch https://code.launchpad.net/~kicad-product-committers/kicad/product kicad_source
-
-If you prefer to use [GIT][] as you version control system, you can clone the KiCad mirror on
-GitHub using the following command:
-
-    git clone https://github.com/KiCad/kicad-source-mirror
+    git clone -b master https://git.launchpad.net/kicad
 
 Here is a list of source links:
 
-Stable release archive: https://launchpad.net/kicad/4.0/4.0.1/+download/kicad-4.0.1.tar.xz
+Stable release archive: https://launchpad.net/kicad/4.0/4.0.2/+download/kicad-4.0.2.tar.xz
 
-Development branch: https://code.launchpad.net/~kicad-product-committers/kicad/product
+Development branch: https://code.launchpad.net/~kicad-product-committers/kicad/+git/product-git/+ref/master
 
 GitHub mirror: https://github.com/KiCad/kicad-source-mirror
 
@@ -256,7 +285,9 @@ the following commands:
               mingw-w64-x86_64-glew \
               mingw-w64-x86_64-curl \
               mingw-w64-x86_64-wxPython \
-              mingw-w64-x86_64-wxWidgets
+              mingw-w64-x86_64-wxWidgets \
+              mingw-w64-x86_64-toolchain \
+              mingw-w64-x86_64-glm
     cd kicad-source
     mkdir -p build/release
     mkdir build/debug               # Optional for debug build.
@@ -308,10 +339,12 @@ Download the wxPython source and build using the following commands:
 
     cd path-to-wxwidgets-src
     patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.0_macosx.patch
-    patch -p0 < path-to-kicad-src/wxwidgets-3.0.0_macosx_bug_15908.patch
+    patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.0_macosx_bug_15908.patch
     patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.0_macosx_soname.patch
     patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.2_macosx_yosemite.patch
     patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.0_macosx_scrolledwindow.patch
+    patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.2_macosx_sierra.patch
+    patch -p0 < path-to-kicad-src/patches/wxwidgets-3.0.2_macosx_unicode_pasteboard.patch
     mkdir build
     cd build
     export MAC_OS_X_VERSION_MIN_REQUIRED=10.7
@@ -365,10 +398,9 @@ currently known issues when building KiCad on any platform.
 As of version 5 of [GNU GCC][], using the default configuration of downloading, patching, and
 building of Boost 1.54 will cause the KiCad build to fail.  Therefore a newer version of Boost
 must be used to build KiCad.  If your system has Boost 1.56 or greater installed, you job is
-straight forward.  Configure your KiCad build using `-DKICAD_SKIP_BOOST=ON`.  If your system
-does not have Boost 1.56 or greater installed, you will have to download and [build Boost][]
-from source.  If you are building Boost on windows using [MinGW][] you will have to apply the
-Boost patches in the KiCad source [patches folder][].
+straight forward.  If your system does not have Boost 1.56 or greater installed, you will have
+to download and [build Boost][] from source.  If you are building Boost on windows using [MinGW][]
+you will have to apply the Boost patches in the KiCad source [patches folder][].
 
 
 [download]: http://kicad-pcb.org/download/
@@ -377,10 +409,10 @@ Boost patches in the KiCad source [patches folder][].
 [GNU GCC]: https://gcc.gnu.org/
 [Clang]: http://clang.llvm.org/
 [CMake]: https://cmake.org/
-[Launchpad]: https://code.launchpad.net/~kicad-product-committers/kicad/product
-[Bazaar]: http://bazaar.canonical.com/en/
+[Launchpad]: https://code.launchpad.net/kicad/
 [GIT]: https://git-scm.com/
 [GitHub]: https://github.com/KiCad/kicad-source-mirror
+[ngspice]: http://ngspice.sourceforge.net/
 [Doxygen]: http://www.stack.nl/~dimitri/doxygen/
 [mailing list]: https://launchpad.net/~kicad-developers
 [SWIG]: http://www.swig.org/
@@ -402,3 +434,5 @@ Boost patches in the KiCad source [patches folder][].
 [MSYS2 64-bit SourceForge repo]: http://sourceforge.net/projects/msys2/files/REPOS/MINGW/x86_64/
 [libcurl]: http://curl.haxx.se/libcurl/
 [GLM]: http://glm.g-truc.net/
+[ngspice]: http://ngspice.sourceforge.net/#
+[git]: https://git-scm.com/

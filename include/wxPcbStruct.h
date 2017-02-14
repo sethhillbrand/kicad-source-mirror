@@ -32,7 +32,6 @@
 
 #include <pcb_base_edit_frame.h>
 #include <config_params.h>
-#include <class_macros_record.h>
 #include <class_undoredo_container.h>
 #include <zones.h>
 
@@ -40,6 +39,8 @@
 /*  Forward declarations of classes. */
 class PCB_SCREEN;
 class BOARD;
+class BOARD_COMMIT;
+class BOARD_ITEM_CONTAINER;
 class TEXTE_PCB;
 class MODULE;
 class TRACK;
@@ -62,7 +63,7 @@ class PCB_LAYER_BOX_SELECTOR;
 class NETLIST;
 class REPORTER;
 struct PARSE_ERROR;
-struct IO_ERROR;
+class IO_ERROR;
 class FP_LIB_TABLE;
 
 namespace PCB { struct IFACE; }     // KIFACE_I is in pcbnew.cpp
@@ -75,6 +76,7 @@ namespace PCB { struct IFACE; }     // KIFACE_I is in pcbnew.cpp
  */
 #define PCB_EDIT_FRAME_NAME wxT( "PcbFrame" )
 
+
 class PCB_EDIT_FRAME : public PCB_BASE_EDIT_FRAME
 {
     friend struct PCB::IFACE;
@@ -82,9 +84,6 @@ class PCB_EDIT_FRAME : public PCB_BASE_EDIT_FRAME
 
     void updateTraceWidthSelectBox();
     void updateViaSizeSelectBox();
-
-    int             m_RecordingMacros;
-    MACROS_RECORDED m_Macros[10];
 
     /// The auxiliary right vertical tool bar used to access the microwave tools.
     wxAuiToolBar* m_microWaveToolBar;
@@ -163,7 +162,7 @@ protected:
      */
     void syncLayerVisibilities();
 
-    virtual void unitsChangeRefresh();
+    virtual void unitsChangeRefresh() override;
 
     /**
      * Function doAutoSave
@@ -172,13 +171,13 @@ protected:
      *
      * @return true if the auto save was successful.
      */
-    virtual bool doAutoSave();
+    virtual bool doAutoSave() override;
 
     /**
      * Function isautoSaveRequired
      * returns true if the board has been modified.
      */
-    virtual bool isAutoSaveRequired() const;
+    virtual bool isAutoSaveRequired() const override;
 
     /**
      * Function duplicateZone
@@ -199,7 +198,7 @@ protected:
      * Duplicate selected item if possible and start a move
      * @param aIncrement increment the item number if appropriate
      */
-    void duplicateItems( bool aIncrement ); //override
+    void duplicateItems( bool aIncrement ) override;
 
     // protected so that PCB::IFACE::CreateWindow() is the only factory.
     PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent );
@@ -229,14 +228,21 @@ public:
     void OnQuit( wxCommandEvent& event );
 
     /**
+     * Function GetAutoSaveFilePrefix
+     *
+     * @return the string to prepend to a file name for automatic save.
+     */
+    static wxString GetAutoSaveFilePrefix();
+
+    /**
      * Execute a remote command send by Eeschema via a socket,
      * port KICAD_PCB_PORT_SERVICE_NUMBER (currently 4242)
      * this is a virtual function called by EDA_DRAW_FRAME::OnSockRequest().
      * @param cmdline = received command from socket
      */
-    virtual void ExecuteRemoteCommand( const char* cmdline );
+    virtual void ExecuteRemoteCommand( const char* cmdline ) override;
 
-    void KiwayMailIn( KIWAY_EXPRESS& aEvent );      // virtual overload from KIWAY_PLAYER
+    void KiwayMailIn( KIWAY_EXPRESS& aEvent ) override;
 
     /**
      * Function ToPlotter
@@ -263,7 +269,6 @@ public:
     void OnUpdateLayerSelectBox( wxUpdateUIEvent& aEvent );
     void OnUpdateDrcEnable( wxUpdateUIEvent& aEvent );
     void OnUpdateShowBoardRatsnest( wxUpdateUIEvent& aEvent );
-    void OnUpdateShowModuleRatsnest( wxUpdateUIEvent& aEvent );
     void OnUpdateAutoDeleteTrack( wxUpdateUIEvent& aEvent );
     void OnUpdateViaDrawMode( wxUpdateUIEvent& aEvent );
     void OnUpdateTraceDrawMode( wxUpdateUIEvent& aEvent );
@@ -289,27 +294,6 @@ public:
     void OnAltWheel( wxCommandEvent& event );
 
     /**
-     * Function RecordMacros.
-     * records sequence of hotkeys and cursor positions to a macro.
-     * @param aDC = current device context
-     * @param aNumber The current number macros.
-     */
-    void RecordMacros( wxDC* aDC, int aNumber );
-
-    /**
-     * Function CallMacros
-     * play hotkeys and cursor position from a recorded macro.
-     * @param aDC = current device context
-     * @param aPosition The current cursor position in logical (drawing) units.
-     * @param aNumber The current number macros.
-     */
-    void CallMacros( wxDC* aDC, const wxPoint& aPosition, int aNumber );
-
-    void SaveMacros();
-
-    void ReadMacros();
-
-    /**
      * Function PrintPage , virtual
      * used to print a page
      * Print the page pointed by the current screen, set by the calling print function
@@ -319,7 +303,7 @@ public:
      * @param aData = a pointer on an auxiliary data (NULL if not used)
      */
     virtual void PrintPage( wxDC* aDC, LSET aPrintMaskLayer, bool aPrintMirrorMode,
-                            void* aData = NULL );
+                            void* aData = NULL ) override;
 
     void GetKicadAbout( wxCommandEvent& event );
 
@@ -327,7 +311,7 @@ public:
      * Function IsGridVisible() , virtual
      * @return true if the grid must be shown
      */
-    virtual bool IsGridVisible() const;
+    virtual bool IsGridVisible() const override;
 
     /**
      * Function SetGridVisibility() , virtual
@@ -335,22 +319,22 @@ public:
      * if you want to store/retrieve the grid visibility in configuration.
      * @param aVisible = true if the grid must be shown
      */
-    virtual void SetGridVisibility( bool aVisible );
+    virtual void SetGridVisibility( bool aVisible ) override;
 
     /**
      * Function GetGridColor() , virtual
      * @return the color of the grid
      */
-    virtual EDA_COLOR_T GetGridColor() const;
+    virtual EDA_COLOR_T GetGridColor() const override;
 
     /**
      * Function SetGridColor() , virtual
      * @param aColor = the new color of the grid
      */
-    virtual void SetGridColor( EDA_COLOR_T aColor );
+    virtual void SetGridColor( EDA_COLOR_T aColor ) override;
 
     ///> @copydoc EDA_DRAW_FRAME::SetCursorShape()
-    virtual void SetCursorShape( int aCursorShape );
+    virtual void SetCursorShape( int aCursorShape ) override;
 
     // Configurations:
     void Process_Config( wxCommandEvent& event );
@@ -374,7 +358,7 @@ public:
      * saves changes to the project settings to the project (.pro) file.
      * @param aAskForSave = true to open a dialog before saving the settings
      */
-    void SaveProjectSettings( bool aAskForSave );
+    void SaveProjectSettings( bool aAskForSave ) override;
 
     /**
      * Load the current project's file configuration settings which are pertinent
@@ -401,9 +385,9 @@ public:
      */
     PARAM_CFG_ARRAY& GetConfigurationSettings();
 
-    void LoadSettings( wxConfigBase* aCfg );    // override virtual
+    void LoadSettings( wxConfigBase* aCfg ) override;
 
-    void SaveSettings( wxConfigBase* aCfg );    // override virtual
+    void SaveSettings( wxConfigBase* aCfg ) override;
 
     wxConfigBase* GetSettings() { return config(); };
 
@@ -428,7 +412,7 @@ public:
     void SetLastNetListRead( const wxString& aNetListFile );
 
     ///> @copydoc EDA_DRAW_FRAME::GetHotKeyDescription()
-    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const;
+    EDA_HOTKEY* GetHotKeyDescription( int aCommand ) const override;
 
     /**
      * Function OnHotKey.
@@ -439,7 +423,7 @@ public:
      * @param aPosition The cursor position in logical (drawing) units.
      * @param aItem = NULL or pointer on a EDA_ITEM under the mouse cursor
      */
-    bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL );
+    bool OnHotKey( wxDC* aDC, int aHotkeyCode, const wxPoint& aPosition, EDA_ITEM* aItem = NULL ) override;
 
     /**
      * Function OnHotkeyDeleteItem
@@ -524,7 +508,7 @@ public:
      */
     TRACK * OnHotkeyBeginRoute( wxDC* aDC );
 
-    void OnCloseWindow( wxCloseEvent& Event );
+    void OnCloseWindow( wxCloseEvent& Event ) override;
     void Process_Special_Functions( wxCommandEvent& event );
     void Tracks_and_Vias_Size_Event( wxCommandEvent& event );
     void OnSelectTool( wxCommandEvent& aEvent );
@@ -539,13 +523,13 @@ public:
     void ProcessMuWaveFunctions( wxCommandEvent& event );
     void MuWaveCommand( wxDC* DC, const wxPoint& MousePos );
 
-    void RedrawActiveWindow( wxDC* DC, bool EraseBg );
-    void ReCreateHToolbar();
-    void ReCreateAuxiliaryToolbar();
-    void ReCreateVToolbar();
+    void RedrawActiveWindow( wxDC* DC, bool EraseBg ) override;
+    void ReCreateHToolbar() override;
+    void ReCreateAuxiliaryToolbar() override;
+    void ReCreateVToolbar() override;
     void ReCreateMicrowaveVToolbar();
     void ReCreateOptToolbar();
-    void ReCreateMenuBar();
+    void ReCreateMenuBar() override;
 
     /**
      * Re create the layer Box by clearing the old list, and building
@@ -577,14 +561,14 @@ public:
      * to update auxiliary information.
      * </p>
      */
-    virtual void OnModify();
+    virtual void OnModify() override;
 
     /**
      * Function SetActiveLayer
      * will change the currently active layer to \a aLayer and also
      * update the PCB_LAYER_WIDGET.
      */
-    virtual void SetActiveLayer( LAYER_ID aLayer );
+    virtual void SetActiveLayer( LAYER_ID aLayer ) override;
 
     /**
      * Function IsElementVisible
@@ -622,12 +606,12 @@ public:
      * Function Show3D_Frame
      * displays the 3D view of current printed circuit board.
      */
-    void Show3D_Frame( wxCommandEvent& event );
+    void Show3D_Frame( wxCommandEvent& event ) override;
 
     ///> @copydoc EDA_DRAW_FRAME::UseGalCanvas()
-    void UseGalCanvas( bool aEnable );
+    void UseGalCanvas( bool aEnable ) override;
 
-    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 );
+    bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, EDA_KEY aHotKey = 0 ) override;
 
     /**
      * Function ShowDesignRulesEditor
@@ -640,8 +624,8 @@ public:
     void PrepareLayerIndicator();
 
     /* mouse functions events: */
-    void OnLeftClick( wxDC* DC, const wxPoint& MousePos );
-    void OnLeftDClick( wxDC* DC, const wxPoint& MousePos );
+    void OnLeftClick( wxDC* DC, const wxPoint& MousePos ) override;
+    void OnLeftDClick( wxDC* DC, const wxPoint& MousePos ) override;
 
     /**
      * Function OnRightClick
@@ -650,68 +634,10 @@ public:
      * @param aMousePos The current mouse position
      * @param aPopMenu The menu to add to.
      */
-    bool OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu );
+    bool OnRightClick( const wxPoint& aMousePos, wxMenu* aPopMenu ) override;
 
     void OnSelectOptionToolbar( wxCommandEvent& event );
-    void ToolOnRightClick( wxCommandEvent& event );
-
-    /**
-     * Function SaveCopyInUndoList.
-     * Creates a new entry in undo list of commands.
-     * add a picker to handle aItemToCopy
-     * @param aItemToCopy = the board item modified by the command to undo
-     * @param aTypeCommand = command type (see enum UNDO_REDO_T)
-     * @param aTransformPoint = the reference point of the transformation, for
-     *                          commands like move
-     */
-    virtual void SaveCopyInUndoList( BOARD_ITEM* aItemToCopy,
-                                     UNDO_REDO_T aTypeCommand,
-                                     const wxPoint& aTransformPoint = wxPoint( 0, 0 ) );
-
-    /**
-     * Function SaveCopyInUndoList (overloaded).
-     * Creates a new entry in undo list of commands.
-     * add a list of pickers to handle a list of items
-     * @param aItemsList = the list of items modified by the command to undo
-     * @param aTypeCommand = command type (see enum UNDO_REDO_T)
-     * @param aTransformPoint = the reference point of the transformation, for
-     *                          commands like move
-     */
-    virtual void SaveCopyInUndoList( const PICKED_ITEMS_LIST& aItemsList,
-                                     UNDO_REDO_T aTypeCommand,
-                                     const wxPoint& aTransformPoint = wxPoint( 0, 0 ) );
-
-    /**
-     * Function PutDataInPreviousState
-     * Used in undo or redo command.
-     * Put data pointed by List in the previous state, i.e. the state memorized by List
-     * @param aList = a PICKED_ITEMS_LIST pointer to the list of items to undo/redo
-     * @param aRedoCommand = a bool: true for redo, false for undo
-     * @param aRebuildRatsnet = a bool: true to rebuild ratsnest (normal use), false
-     * to just retrieve last state (used in abort commands that do not need to
-     * rebuild ratsnest)
-     */
-    void PutDataInPreviousState( PICKED_ITEMS_LIST* aList,
-                                 bool               aRedoCommand,
-                                 bool               aRebuildRatsnet = true );
-
-    /**
-     * Function RestoreCopyFromRedoList
-     *  Redo the last edition:
-     *  - Save the current board in Undo list
-     *  - Get an old version of the board from Redo list
-     *  @return none
-     */
-    void RestoreCopyFromRedoList( wxCommandEvent& aEvent );
-
-    /**
-     * Function RestoreCopyFromUndoList
-     *  Undo the last edition:
-     *  - Save the current board in Redo list
-     *  - Get an old version of the board from Undo list
-     *  @return none
-     */
-    void RestoreCopyFromUndoList( wxCommandEvent& aEvent );
+    void ToolOnRightClick( wxCommandEvent& event ) override;
 
     /* Block operations: */
 
@@ -723,7 +649,7 @@ public:
      * @param aKey = the key modifiers (Alt, Shift ...)
      * @return the block command id (BLOCK_MOVE, BLOCK_COPY...)
      */
-    virtual int BlockCommand( EDA_KEY aKey );
+    virtual int BlockCommand( EDA_KEY aKey ) override;
 
     /**
      * Function HandleBlockPlace()
@@ -732,7 +658,7 @@ public:
      * (bloc move, drag, copy .. )
      * Parameters must be initialized in GetScreen()->m_BlockLocate
      */
-    virtual void HandleBlockPlace( wxDC* DC );
+    virtual void HandleBlockPlace( wxDC* DC ) override;
 
     /**
      * Function HandleBlockEnd()
@@ -744,7 +670,7 @@ public:
      * @return false if no item selected, or command finished,
      * true if some items found and HandleBlockPlace must be called later
      */
-    virtual bool HandleBlockEnd( wxDC* DC );
+    virtual bool HandleBlockEnd( wxDC* DC ) override;
 
     /**
      * Function Block_SelectItems
@@ -818,11 +744,12 @@ public:
      * @param aSide = 0 to list footprints on BACK side,
      *                1 to list footprints on FRONT side
      *                2 to list footprints on both sides
+     * @param aFormatCSV = true to use a comma separated file (CSV) format; defautl = false
      * @return the number of footprints found on aSide side,
      *    or -1 if the file could not be created
      */
     int DoGenFootprintsPositionFile( const wxString& aFullFileName, bool aUnitsMM,
-                                      bool aForceSmdItems, int aSide );
+                                      bool aForceSmdItems, int aSide, bool aFormatCSV = false );
 
     /**
      * Function GenFootprintsReport
@@ -885,7 +812,7 @@ public:
     bool LoadOnePcbFile( const wxString& aFileName, bool aAppend = false,
                          bool aForceFileDialog = false );
      */
-    bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl = 0 );
+    bool OpenProjectFiles( const std::vector<wxString>& aFileSet, int aCtl = 0 ) override;
 
     /**
      * Function AppendBoardFile
@@ -931,10 +858,13 @@ public:
     bool Clear_Pcb( bool aQuery );
 
     ///> @copydoc PCB_BASE_FRAME::SetBoard()
-    void SetBoard( BOARD* aBoard );
+    void SetBoard( BOARD* aBoard ) override;
+
+    ///> @copydoc PCB_BASE_EDIT_FRAME::GetModel()
+    BOARD_ITEM_CONTAINER* GetModel() const override;
 
     ///> @copydoc PCB_BASE_FRAME::SetPageSettings()
-    void SetPageSettings( const PAGE_INFO& aPageSettings ); // overload
+    void SetPageSettings( const PAGE_INFO& aPageSettings ) override;
 
     // Drc control
 
@@ -1016,10 +946,31 @@ public:
                           double aXRef, double aYRef );
 
     /**
-     * Function ExportToIDF3
+     * Function OnExportIDF3
      * will export the current BOARD to a IDFv3 board and lib files.
      */
-    void ExportToIDF3( wxCommandEvent& event );
+    void OnExportIDF3( wxCommandEvent& event );
+
+    /**
+     * Function Export_IDF3
+     * Creates an IDF3 compliant BOARD (*.emn) and LIBRARY (*.emp) file.
+     *
+     * @param aPcb = a pointer to the board to be exported to IDF
+     * @param aFullFileName = the full filename of the export file
+     * @param aUseThou = set to true if the desired IDF unit is thou (mil)
+     * @param aXRef = the board Reference Point in mm, X value
+     * @param aYRef = the board Reference Point in mm, Y value
+     * @return true if OK
+     */
+    bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName,
+                      bool aUseThou, double aXRef, double aYRef );
+
+
+    /**
+     * Function OnExportSTEP
+     * Exports the current BOARD to a STEP assembly.
+     */
+    void OnExportSTEP( wxCommandEvent& event );
 
     /**
      * Function ExporttoSPECCTRA
@@ -1145,11 +1096,9 @@ public:
      * OldModule is deleted or put in undo list.
      * @param aOldModule = footprint to replace
      * @param aNewModule = footprint to put
-     * @param aUndoPickList = the undo list used to save  OldModule. If null,
-     *                        OldModule is deleted
+     * @param aCommit = commit that should store the changes
      */
-    void Exchange_Module( MODULE* aOldModule, MODULE* aNewModule,
-                          PICKED_ITEMS_LIST* aUndoPickList );
+    void Exchange_Module( MODULE* aOldModule, MODULE* aNewModule, BOARD_COMMIT& aCommit );
 
     // loading modules: see PCB_BASE_FRAME
 
@@ -1162,7 +1111,7 @@ public:
      * @param aDC = the current device context
      * @param aItem = a pointer to the BOARD_ITEM to edit
      */
-    void OnEditItemRequest( wxDC* aDC, BOARD_ITEM* aItem );
+    void OnEditItemRequest( wxDC* aDC, BOARD_ITEM* aItem ) override;
 
     /**
      * Locate track or pad and highlight the corresponding net.
@@ -1312,7 +1261,7 @@ public:
     bool MergeCollinearTracks( TRACK* track, wxDC* DC, int end );
 
     void Start_DragTrackSegmentAndKeepSlope( TRACK* track, wxDC* DC );
-    void SwitchLayer( wxDC* DC, LAYER_ID layer );
+    void SwitchLayer( wxDC* DC, LAYER_ID layer ) override;
 
     /**
      * Function Add45DegreeSegment
@@ -1607,14 +1556,21 @@ public:
      * @param aFootprints: a list of footprints to be spread out.
      * @param aMoveFootprintsOutsideBoardOnly: true to move only
      *        footprints outside the board outlines
-     *        (they are outside if the position of a footprint is outside
-     *        the board outlines bounding box).
+     *        (they are outside if the position of a footprint anchor is outside
+     *        the board outlines bounding box). It imply the board outlines exist
      * @param aCheckForBoardEdges: true to try to place footprints outside of
-     *        board edges.
+     *        board edges, if aSpreadAreaPosition is incorrectly chosen.
+     * @param aSpreadAreaPosition the position of the upper left corner of the
+     *        area used to spread footprints
+     * @param aPrepareUndoCommand = true (defualt) to commit a undo command for the
+     * spread footprints, false to do just the spread command
+     * (no undo specific to this move command)
      */
     void SpreadFootprints( std::vector<MODULE*>* aFootprints,
                            bool                  aMoveFootprintsOutsideBoardOnly,
-                           bool                  aCheckForBoardEdges );
+                           bool                  aCheckForBoardEdges,
+                           wxPoint               aSpreadAreaPosition,
+                           bool                  aPrepareUndoCommand = true );
 
     /**
      * Function AutoPlaceModule
@@ -1690,7 +1646,7 @@ public:
 
     void Begin_Self( wxDC* DC );
 
-    void ShowChangedLanguage();         // override EDA_BASE_FRAME virtual
+    void ShowChangedLanguage() override;
 
     /**
      * Function UpdateTitle

@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2010-2015 Jean-Pierre Charras, jean-pierre.charras at wanadoo.fr
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,22 +22,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+
+#ifndef __DIALOG_EDIT_MODULE_FOR_BOARDEDITOR__
+#define __DIALOG_EDIT_MODULE_FOR_BOARDEDITOR__
+
+
 #include <dialog_edit_module_for_BoardEditor_base.h>
+#include <wx/valnum.h>
+
+class PANEL_PREV_3D;
 
 class DIALOG_MODULE_BOARD_EDITOR: public DIALOG_MODULE_BOARD_EDITOR_BASE
 {
 private:
-    PCB_EDIT_FRAME * m_Parent;
-    wxDC * m_DC;
-    MODULE* m_CurrentModule;
-    TEXTE_MODULE* m_ReferenceCopy;
-    TEXTE_MODULE* m_ValueCopy;
-    std::vector <S3D_MASTER*>   m_Shapes3D_list;
-    int m_LastSelected3DShapeIndex;
-    S3DPOINT_VALUE_CTRL * m_3D_Scale;
-    S3DPOINT_VALUE_CTRL * m_3D_Offset;
-    S3DPOINT_VALUE_CTRL * m_3D_Rotation;
-    static size_t m_page;     // remember the last open page during session
+    PCB_EDIT_FRAME *            m_Parent;
+    wxDC *                      m_DC;
+    MODULE*                     m_CurrentModule;
+    TEXTE_MODULE*               m_ReferenceCopy;
+    TEXTE_MODULE*               m_ValueCopy;
+    std::vector <S3D_INFO>      m_shapes3D_list;
+    int                         m_LastSelected3DShapeIndex;
+    static size_t               m_page; // remember the last open page during session
+    PANEL_PREV_3D*              m_PreviewPane;
+    MODULE*                     m_currentModuleCopy;
+
+    wxFloatingPointValidator<double>    m_OrientValidator;
+    double  m_OrientValue;
 
 public:
     // The dialog can be closed for several reasons.
@@ -59,28 +69,47 @@ private:
     void BrowseAndAdd3DShapeFile();
     void InitBoardProperties();
     void InitModeditProperties();
-    void Transfert3DValuesToDisplay( S3D_MASTER * aStruct3DSource );
-    void TransfertDisplayTo3DValues( int aIndexSelection );
     void Edit3DShapeFileName();
 
     // virtual event functions
-    void OnEditValue( wxCommandEvent& event );
-    void OnEditReference( wxCommandEvent& event );
+    void OnEditValue( wxCommandEvent& event ) override;
+    void OnEditReference( wxCommandEvent& event ) override;
     void On3DShapeSelection( wxCommandEvent& event );
-    void On3DShapeNameSelected( wxCommandEvent& event );
-    void Edit3DShapeFilename( wxCommandEvent& event )
+    void On3DShapeNameSelected( wxCommandEvent& event ) override;
+    void Edit3DShapeFilename( wxCommandEvent& event ) override
     {
         Edit3DShapeFileName();
     }
-    void Remove3DShape( wxCommandEvent& event );
-    void Add3DShape( wxCommandEvent& event )
+    void Remove3DShape( wxCommandEvent& event ) override;
+    void Add3DShape( wxCommandEvent& event ) override
     {
         BrowseAndAdd3DShapeFile();
     }
-    void OnCancelClick( wxCommandEvent& event );
-    void OnOkClick( wxCommandEvent& event );
-    void GotoModuleEditor( wxCommandEvent& event );
-    void ExchangeModule( wxCommandEvent& event );
-    void ModuleOrientEvent( wxCommandEvent& event );
+    void GotoModuleEditor( wxCommandEvent& event ) override;
+    void ExchangeModule( wxCommandEvent& event ) override;
+    void ModuleOrientEvent( wxCommandEvent& event ) override;
+    void Cfg3DPath( wxCommandEvent& event ) override;
+
+    void OnInitDlg( wxInitDialogEvent& event ) override
+    {
+        // Call the default wxDialog handler of a wxInitDialogEvent
+        TransferDataToWindow();
+
+        // Now all widgets have the size fixed, call FinishDialogSettings
+        FinishDialogSettings();
+    }
+
+    bool TransferDataToWindow() override;
+    bool TransferDataFromWindow() override;
+
+    /**
+     * @brief OnCloseWindow - called when the frame is closed
+     * @param event
+     */
+    void OnCloseWindow( wxCloseEvent &event );
+
+    DECLARE_EVENT_TABLE();
 };
 
+
+#endif      // __DIALOG_EDIT_MODULE_FOR_BOARDEDITOR__

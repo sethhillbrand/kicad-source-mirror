@@ -97,6 +97,9 @@ private:
     /// Include attributes from the Gerber X2 format (chapter 5 in revision J2)
     bool        m_useGerberAttributes;
 
+    /// Include netlist info (only in Gerber X2 format) (chapter ? in revision ?)
+    bool        m_includeGerberNetlistInfo;
+
     /// precision of coordinates in Gerber files: accepted 5 or 6
     /// when units are in mm (6 or 7 in inches, but Pcbnew uses mm).
     /// 6 is the internal resolution of Pcbnew, but not alwys accepted by board maker
@@ -149,7 +152,6 @@ private:
     int         m_HPGLPenNum;           ///< HPGL only: pen number selection(1 to 9)
     int         m_HPGLPenSpeed;         ///< HPGL only: pen speed, always in cm/s (1 to 99 cm/s)
     int         m_HPGLPenDiam;          ///< HPGL only: pen diameter in MILS, useful to fill areas
-    int         m_HPGLPenOvr;           ///< HPGL only: pen overlay in MILS, useful only to fill areas
     EDA_COLOR_T m_color;                ///< Color for plotting the current layer
     EDA_COLOR_T m_referenceColor;       ///< Color for plotting references
     EDA_COLOR_T m_valueColor;           ///< Color for plotting values
@@ -232,6 +234,9 @@ public:
     void        SetUseGerberAttributes( bool aUse ) { m_useGerberAttributes = aUse; }
     bool        GetUseGerberAttributes() const { return m_useGerberAttributes; }
 
+    void        SetIncludeGerberNetlistInfo( bool aUse ) { m_includeGerberNetlistInfo = aUse; }
+    bool        GetIncludeGerberNetlistInfo() const { return m_includeGerberNetlistInfo; }
+
     void        SetUseGerberProtelExtensions( bool aUse ) { m_useGerberProtelExtensions = aUse; }
     bool        GetUseGerberProtelExtensions() const { return m_useGerberProtelExtensions; }
 
@@ -263,8 +268,6 @@ public:
     bool        SetHPGLPenDiameter( int aValue );
     int         GetHPGLPenSpeed() const { return m_HPGLPenSpeed; };
     bool        SetHPGLPenSpeed( int aValue );
-    int         GetHPGLPenOverlay() const { return m_HPGLPenOvr; };
-    bool        SetHPGLPenOverlay( int aValue );
     void        SetHPGLPenNum( int aVal ) { m_HPGLPenNum = aVal; }
     int         GetHPGLPenNum() const { return m_HPGLPenNum; }
 

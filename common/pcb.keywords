@@ -56,6 +56,8 @@ date
 descr
 die_length
 dimension
+diff_pair_width
+diff_pair_gap
 drawings
 drill
 edge
@@ -142,6 +144,8 @@ rect_delta
 reference
 right
 rotate
+roundrect
+roundrect_rratio
 scale
 segment
 segment_width

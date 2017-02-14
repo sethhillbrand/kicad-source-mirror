@@ -56,7 +56,7 @@ protected:
      *
      * Adds a new template fieldname (with default values) to the template fieldnames data
      */
-    void OnAddButtonClick( wxCommandEvent& event );
+    void OnAddButtonClick( wxCommandEvent& event ) override;
 
     /**
      * Function OnDeleteButtonClick
@@ -67,19 +67,19 @@ protected:
      *
      * Deletes the selected template fieldname from the template fieldnames data
      */
-    void OnDeleteButtonClick( wxCommandEvent& event );
+    void OnDeleteButtonClick( wxCommandEvent& event ) override;
 
     /**
      * Function TransferDataToWindow
      * Transfer data into the GUI.
      */
-    bool TransferDataToWindow();
+    bool TransferDataToWindow() override;
 
     /**
      * Function TransferDataFromWindow
      * Transfer data out of the GUI.
      */
-    bool TransferDataFromWindow();
+    bool TransferDataFromWindow() override;
 
 public:
     /**
@@ -219,19 +219,6 @@ public:
     int GetAutoSaveInterval() const { return m_spinAutoSaveInterval->GetValue(); }
 
     /**
-     * Function SetMaxUndoItems
-     * Sets the maximum number of undo items
-     * @param aItems the number to set
-     */
-    void SetMaxUndoItems( int aItems ) { m_spinMaxUndoItems->SetValue( aItems ); }
-
-    /**
-     * Function GetMaxUndoItems
-     * Return the current maximum number of undo items
-     */
-    int GetMaxUndoItems() const { return m_spinMaxUndoItems->GetValue(); }
-
-    /**
      * Function SetRefIdSeparator
      * Sets the current RefIdSeparator value in the dialog
      * @param aSep The seperator to use between the reference and the part ID
@@ -293,45 +280,18 @@ public:
     }
 
     /**
-     * Function SetEnableMiddleButtonPan
-     * Sets the current MiddleButtonPan value in the dialog
+     * Function SetEnableMousewheelPan
+     * Sets the MousewheelPan setting in the dialog
      *
-     * @param enable The boolean value to set the MiddleButtonPan value in the dialog
+     * @param enable The boolean value to set the AutoPan value in the dialog
      */
-    void SetEnableMiddleButtonPan( bool enable )
-    {
-        m_checkEnableMiddleButtonPan->SetValue( enable );
-        m_checkMiddleButtonPanLimited->Enable( enable );
-    }
+    void SetEnableMousewheelPan( bool enable ) { m_checkEnableMousewheelPan->SetValue( enable ); }
 
     /**
-     * Function GetEnableMiddleButtonPan
-     * Returns the current MiddleButtonPan setting from the dialog
+     * Function GetEnableMousewheelPan
+     * Return the MousewheelPan setting from the dialog
      */
-    bool GetEnableMiddleButtonPan( void )
-    {
-        return m_checkEnableMiddleButtonPan->GetValue();
-    }
-
-    /**
-     * Function SetMiddleButtonPanLimited
-     * Sets the MiddleButtonPanLimited value in the dialog
-     *
-     * @param enable The boolean value to set the MiddleButtonPanLimted value in the dialog
-     */
-    void SetMiddleButtonPanLimited( bool enable )
-    {
-        m_checkMiddleButtonPanLimited->SetValue( enable );
-    }
-
-    /**
-     * Function GetMiddleButtonPanLimited
-     * Returns the MiddleButtonPanLimited setting from the dialog
-     */
-    bool GetMiddleButtonPanLimited( void )
-    {
-        return m_checkMiddleButtonPanLimited->GetValue();
-    }
+    bool GetEnableMousewheelPan( void ) { return m_checkEnableMousewheelPan->GetValue(); }
 
     /**
      * Function SetEnableAutoPan
@@ -423,12 +383,6 @@ public:
      *
      */
     TEMPLATE_FIELDNAMES GetTemplateFields( void );
-
-private:
-    void OnMiddleBtnPanEnbl( wxCommandEvent& event )
-    {
-        m_checkMiddleButtonPanLimited->Enable( GetEnableMiddleButtonPan() );
-    }
 };
 
 #endif // __dialog_eeschema_options__

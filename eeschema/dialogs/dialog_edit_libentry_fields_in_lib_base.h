@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar  9 2015)
+// C++ code generated with wxFormBuilder (version May  6 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -45,6 +45,7 @@ class DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE : public DIALOG_SHIM
 		wxButton* addFieldButton;
 		wxButton* deleteFieldButton;
 		wxButton* moveUpButton;
+		wxButton* m_spiceFieldsButton;
 		wxRadioBox* m_FieldHJustifyCtrl;
 		wxRadioBox* m_FieldVJustifyCtrl;
 		wxCheckBox* showCheckBox;
@@ -77,6 +78,7 @@ class DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE : public DIALOG_SHIM
 		virtual void addFieldButtonHandler( wxCommandEvent& event ) { event.Skip(); }
 		virtual void deleteFieldButtonHandler( wxCommandEvent& event ) { event.Skip(); }
 		virtual void moveUpButtonHandler( wxCommandEvent& event ) { event.Skip(); }
+		virtual void EditSpiceModel( wxCommandEvent& event ) { event.Skip(); }
 		virtual void showButtonHandler( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnCancelButtonClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnOKButtonClick( wxCommandEvent& event ) { event.Skip(); }
@@ -84,7 +86,7 @@ class DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE : public DIALOG_SHIM
 	
 	public:
 		
-		DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Field Properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 542,529 ), long style = wxCAPTION|wxCLOSE_BOX|wxDEFAULT_DIALOG_STYLE|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxRESIZE_BORDER|wxSYSTEM_MENU ); 
+		DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Field Properties"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxCAPTION|wxCLOSE_BOX|wxDEFAULT_DIALOG_STYLE|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxRESIZE_BORDER|wxSYSTEM_MENU ); 
 		~DIALOG_EDIT_LIBENTRY_FIELDS_IN_LIB_BASE();
 	
 };

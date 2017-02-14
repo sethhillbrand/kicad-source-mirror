@@ -3,8 +3,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012-2015 KiCad Developers, see change_log.txt for contributors.
-
+ * Copyright (C) 2012-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -66,6 +65,7 @@ Load() TODO's
 #include <trigo.h>
 #include <macros.h>
 #include <kicad_string.h>
+#include <properties.h>
 #include <wx/filename.h>
 
 #include <class_board.h>
@@ -150,11 +150,11 @@ public:
     /// return the contents of the XPATH as a single string
     string Contents()
     {
-        typedef std::vector<TRIPLET>::const_iterator CITER;
+        typedef std::vector<TRIPLET>::const_iterator CITER_TRIPLET;
 
         string ret;
 
-        for( CITER it = p.begin();  it != p.end();  ++it )
+        for( CITER_TRIPLET it = p.begin();  it != p.end();  ++it )
         {
             if( it != p.begin() )
                 ret += '.';
@@ -576,8 +576,9 @@ EDIMENSION::EDIMENSION( CPTREE& aDimension )
     y3      = attribs.get<double>( "y3" );
     layer   = attribs.get<int>( "layer" );
 
-    opt_string dimensionType = attribs.get_optional<string>( "dtype" );
-    if(!dimensionType)
+    opt_string dimType = attribs.get_optional<string>( "dtype" );
+
+    if(!dimType)
     {
         // default type is parallel
     }
@@ -1192,8 +1193,8 @@ BOARD* EAGLE_PLUGIN::Load( const wxString& aFileName, BOARD* aAppendToMe,  const
     if( !aAppendToMe )
         m_board->SetFileName( aFileName );
 
-    // delete on exception, iff I own m_board, according to aAppendToMe
-    auto_ptr<BOARD> deleter( aAppendToMe ? NULL : m_board );
+    // delete on exception, if I own m_board, according to aAppendToMe
+    unique_ptr<BOARD> deleter( aAppendToMe ? NULL : m_board );
 
     try
     {
@@ -1807,9 +1808,9 @@ void EAGLE_PLUGIN::loadElements( CPTREE& aElements )
 
         m_xpath->Value( e.name.c_str() );
 
-        string key = makeKey( e.library, e.package );
+        string pkg_key = makeKey( e.library, e.package );
 
-        MODULE_CITER mi = m_templates.find( key );
+        MODULE_CITER mi = m_templates.find( pkg_key );
 
         if( mi == m_templates.end() )
         {
@@ -1833,9 +1834,9 @@ void EAGLE_PLUGIN::loadElements( CPTREE& aElements )
         // update the nets within the pads of the clone
         for( D_PAD* pad = m->Pads();  pad;  pad = pad->Next() )
         {
-            string key  = makeKey( e.name, TO_UTF8( pad->GetPadName() ) );
+            string pn_key  = makeKey( e.name, TO_UTF8( pad->GetPadName() ) );
 
-            NET_MAP_CITER ni = m_pads_to_nets.find( key );
+            NET_MAP_CITER ni = m_pads_to_nets.find( pn_key );
             if( ni != m_pads_to_nets.end() )
             {
                 const ENET* enet = &ni->second;
@@ -2125,7 +2126,7 @@ void EAGLE_PLUGIN::orientModuleText( MODULE* m, const EELEMENT& e,
 
 MODULE* EAGLE_PLUGIN::makeModule( CPTREE& aPackage, const string& aPkgName ) const
 {
-    std::auto_ptr<MODULE>   m( new MODULE( m_board ) );
+    std::unique_ptr<MODULE>   m( new MODULE( m_board ) );
 
     m->SetFPID( FPID( aPkgName ) );
 
@@ -2621,7 +2622,7 @@ void EAGLE_PLUGIN::loadSignals( CPTREE& aSignals )
 
         const string& nname = net->second.get<string>( "<xmlattr>.name" );
         wxString netName = FROM_UTF8( nname.c_str() );
-        m_board->AppendNet( new NETINFO_ITEM( m_board, netName, netCode ) );
+        m_board->Add( new NETINFO_ITEM( m_board, netName, netCode ) );
 
         m_xpath->Value( nname.c_str() );
 
@@ -3121,7 +3122,8 @@ wxArrayString EAGLE_PLUGIN::FootprintEnumerate( const wxString& aLibraryPath, co
 }
 
 
-MODULE* EAGLE_PLUGIN::FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName, const PROPERTIES* aProperties )
+MODULE* EAGLE_PLUGIN::FootprintLoad( const wxString& aLibraryPath, const wxString& aFootprintName,
+        const PROPERTIES* aProperties )
 {
     init( aProperties );
 

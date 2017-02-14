@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun 17 2015)
+// C++ code generated with wxFormBuilder (version May 10 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -75,13 +75,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	
 	fgSizer1->Add( m_SaveTime, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 	
-	m_stMaxUndoItems = new wxStaticText( this, wxID_ANY, _("Ma&ximum undo items:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_stMaxUndoItems->Wrap( -1 );
-	fgSizer1->Add( m_stMaxUndoItems, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
-	
-	m_spinMaxUndoItems = new wxSpinCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 65536, 1 );
-	fgSizer1->Add( m_spinMaxUndoItems, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
-	
 	m_staticTextRotationAngle = new wxStaticText( this, wxID_ANY, _("&Rotation angle:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextRotationAngle->Wrap( -1 );
 	fgSizer1->Add( m_staticTextRotationAngle, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
@@ -108,11 +101,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	m_ShowGlobalRatsnest->SetToolTip( _("Show (or not) the full rastnest.") );
 	
 	bMiddleRightBoxSizer->Add( m_ShowGlobalRatsnest, 0, wxALL, 5 );
-	
-	m_ShowModuleRatsnest = new wxCheckBox( bMiddleRightBoxSizer->GetStaticBox(), wxID_RATSNEST_MODULE, _("S&how footprint ratsnest"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_ShowModuleRatsnest->SetToolTip( _("Shows (or not) the local ratsnest relative to a footprint, when moving it.\nThis ratsnest is useful to place a footprint.") );
-	
-	bMiddleRightBoxSizer->Add( m_ShowModuleRatsnest, 0, wxALL, 5 );
 	
 	m_TrackAutodel = new wxCheckBox( bMiddleRightBoxSizer->GetStaticBox(), wxID_TRACK_AUTODEL, _("&Delete unconnected tracks"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_TrackAutodel->SetToolTip( _("Enable/disable the automatic track deletion when recreating a track.") );
@@ -163,20 +151,14 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	sbSizer2PAN = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Pan and Zoom") ), wxVERTICAL );
 	
 	m_ZoomCenterOpt = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_ANY, _("Ce&nter and warp cursor on zoom"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_ZoomCenterOpt->SetValue(true); 
 	m_ZoomCenterOpt->SetToolTip( _("Keep the cursor at its current location when zooming") );
 	
 	sbSizer2PAN->Add( m_ZoomCenterOpt, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
 	
-	m_MiddleButtonPANOpt = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_ANY, _("Use middle mouse &button to pan"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_MiddleButtonPANOpt->SetToolTip( _("Use middle mouse button dragging to pan") );
+	m_MousewheelPANOpt = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_ANY, _("Use touchpad to pan"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_MousewheelPANOpt->SetToolTip( _("Use touchpad to pan canvas") );
 	
-	sbSizer2PAN->Add( m_MiddleButtonPANOpt, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
-	
-	m_OptMiddleButtonPanLimited = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_MIDDLEBUTTONPAN, _("Limi&t panning to scroll size"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_OptMiddleButtonPanLimited->SetToolTip( _("Middle mouse button panning limited by current scrollbar size") );
-	
-	sbSizer2PAN->Add( m_OptMiddleButtonPanLimited, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
+	sbSizer2PAN->Add( m_MousewheelPANOpt, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
 	
 	m_AutoPANOpt = new wxCheckBox( sbSizer2PAN->GetStaticBox(), wxID_AUTOPAN, _("&Pan while moving object"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_AutoPANOpt->SetToolTip( _("Allows auto pan when creating a track, or moving an item.") );
@@ -185,15 +167,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	
 	
 	bRightSizer->Add( sbSizer2PAN, 1, wxEXPAND, 5 );
-	
-	wxStaticBoxSizer* sbSizer2Adv;
-	sbSizer2Adv = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Advanced/Developer") ), wxVERTICAL );
-	
-	m_DumpZonesWhenFilling = new wxCheckBox( sbSizer2Adv->GetStaticBox(), wxID_ANY, _("Dump zone geometry to files when filling"), wxDefaultPosition, wxDefaultSize, 0 );
-	sbSizer2Adv->Add( m_DumpZonesWhenFilling, 0, wxLEFT|wxRIGHT|wxTOP, 5 );
-	
-	
-	bRightSizer->Add( sbSizer2Adv, 0, wxALL|wxEXPAND, 5 );
 	
 	
 	bSizerUpper->Add( bRightSizer, 0, wxALL|wxEXPAND, 5 );
@@ -219,8 +192,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 	bMainSizer->Fit( this );
 	
 	// Connect Events
-	m_MiddleButtonPANOpt->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnMiddleBtnPanEnbl ), NULL, this );
-	m_DumpZonesWhenFilling->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnMiddleBtnPanEnbl ), NULL, this );
 	m_sdbSizerCancel->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnCancelClick ), NULL, this );
 	m_sdbSizerOK->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnOkClick ), NULL, this );
 }
@@ -228,8 +199,6 @@ DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE( 
 DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::~DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE()
 {
 	// Disconnect Events
-	m_MiddleButtonPANOpt->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnMiddleBtnPanEnbl ), NULL, this );
-	m_DumpZonesWhenFilling->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnMiddleBtnPanEnbl ), NULL, this );
 	m_sdbSizerCancel->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnCancelClick ), NULL, this );
 	m_sdbSizerOK->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_GENERALOPTIONS_BOARDEDITOR_BASE::OnOkClick ), NULL, this );
 	

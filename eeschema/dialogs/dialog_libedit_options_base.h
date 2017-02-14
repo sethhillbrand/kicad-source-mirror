@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Mar 13 2015)
+// C++ code generated with wxFormBuilder (version Sep  8 2016)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -65,11 +65,9 @@ class DIALOG_LIBEDIT_OPTIONS_BASE : public DIALOG_SHIM
 		wxStaticText* m_staticText16;
 		wxStaticText* m_staticText17;
 		wxSpinCtrl* m_spinRepeatLabel;
-		wxStaticText* m_stMaxUndoItems;
-		wxSpinCtrl* m_spinMaxUndoItems;
-		wxStaticText* m_stMaxUndoItemsUnit;
 		wxStaticLine* m_staticline3;
 		wxCheckBox* m_checkShowGrid;
+		wxCheckBox* m_checkShowPinElectricalType;
 		wxStaticLine* m_staticline2;
 		wxStdDialogButtonSizer* m_sdbSizer;
 		wxButton* m_sdbSizerOK;
@@ -77,7 +75,7 @@ class DIALOG_LIBEDIT_OPTIONS_BASE : public DIALOG_SHIM
 	
 	public:
 		
-		DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Library Editor Options"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 487,433 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_LIBEDIT_OPTIONS_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Library Editor Options"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 499,393 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_LIBEDIT_OPTIONS_BASE();
 	
 };

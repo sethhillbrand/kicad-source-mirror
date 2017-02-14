@@ -33,6 +33,7 @@
 #include <class_drawpanel.h>
 #include <confirm.h>
 #include <wxPcbStruct.h>
+#include <board_commit.h>
 
 #include <class_board.h>
 #include <class_zone.h>
@@ -108,8 +109,7 @@ void PCB_EDIT_FRAME::Add_Zone_Cutout( wxDC* DC, ZONE_CONTAINER* aZone )
 
 void PCB_EDIT_FRAME::duplicateZone( wxDC* aDC, ZONE_CONTAINER* aZone )
 {
-    ZONE_CONTAINER* newZone = new ZONE_CONTAINER( GetBoard() );
-    newZone->Copy( aZone );
+    ZONE_CONTAINER* newZone = new ZONE_CONTAINER( *aZone );
     newZone->UnFill();
     ZONE_SETTINGS zoneSettings;
     zoneSettings << *aZone;
@@ -589,9 +589,12 @@ int PCB_EDIT_FRAME::Begin_Zone( wxDC* DC )
                 if( GetToolId() == ID_PCB_KEEPOUT_AREA_BUTT )
                 {
                     zoneInfo.SetIsKeepout( true );
-                    // Netcode and netname are irrelevant,
+                    // Netcode, netname and some other settings are irrelevant,
                     // so ensure they are cleared
                     zone->SetNetCode( NETINFO_LIST::UNCONNECTED );
+                    zoneInfo.SetCornerSmoothingType( ZONE_SETTINGS::SMOOTHING_NONE );
+                    zoneInfo.SetCornerRadius( 0 );
+
                     edited = InvokeKeepoutAreaEditor( this, &zoneInfo );
                 }
                 else
@@ -738,7 +741,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
         if( g_Drc_On && m_drc->Drc( zone, icorner ) == BAD_DRC )      // we can't validate the closing edge
         {
             DisplayError( this,
-                          _( "DRC error: closing this area creates a drc error with an other area" ) );
+                          _( "DRC error: closing this area creates a DRC error with an other area" ) );
             m_canvas->MoveCursorToCrossHair();
             return false;
         }
@@ -765,7 +768,6 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
     {
         zone->Outline()->CloseLastContour(); // Close the current corner list
         GetBoard()->Add( zone );
-        GetBoard()->m_CurrentZoneContour = NULL;
 
         // Add this zone in picked list, as new item
         ITEM_PICKER picker( zone, UR_NEW );
@@ -785,6 +787,7 @@ bool PCB_EDIT_FRAME::End_Zone( wxDC* DC )
 
     s_AddCutoutToCurrentZone = false;
     s_CurrentZone = NULL;
+    GetBoard()->m_CurrentZoneContour = NULL;
 
     GetScreen()->SetCurItem( NULL );       // This outline can be deleted when merging outlines
 
@@ -857,13 +860,14 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
     ZONE_EDIT_T     edited;
     ZONE_SETTINGS   zoneInfo = GetZoneSettings();
 
+    BOARD_COMMIT commit( this );
     m_canvas->SetIgnoreMouseEvents( true );
 
     // Save initial zones configuration, for undo/redo, before adding new zone
     // note the net name and the layer can be changed, so we must save all zones
     s_AuxiliaryList.ClearListAndDeleteItems();
     s_PickedList.ClearListAndDeleteItems();
-    SaveCopyOfZones(s_PickedList, GetBoard(), -1, UNDEFINED_LAYER );
+    SaveCopyOfZones( s_PickedList, GetBoard(), -1, UNDEFINED_LAYER );
 
     if( aZone->GetIsKeepout() )
     {
@@ -899,7 +903,8 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
     if( edited == ZONE_EXPORT_VALUES )
     {
         UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
-        SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
+        commit.Stage( s_PickedList );
+        commit.Push( _( "Modify zone properties" ) );
         s_PickedList.ClearItemsList(); // s_ItemsListPicker is no more owner of picked items
         return;
     }
@@ -925,11 +930,10 @@ void PCB_EDIT_FRAME::Edit_Zone_Params( wxDC* DC, ZONE_CONTAINER* aZone )
     GetBoard()->RedrawAreasOutlines( m_canvas, DC, GR_OR, UNDEFINED_LAYER );
 
     UpdateCopyOfZonesList( s_PickedList, s_AuxiliaryList, GetBoard() );
-    SaveCopyInUndoList(s_PickedList, UR_UNSPECIFIED);
+    commit.Stage( s_PickedList );
+    commit.Push( _( "Modify zone properties" ) );
 
     s_PickedList.ClearItemsList();  // s_ItemsListPicker is no longer owner of picked items
-
-    OnModify();
 }
 
 

@@ -8,7 +8,7 @@
  * Copyright (C) 2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2013 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2015 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,6 +35,7 @@
 #include <kicad_string.h>
 #include <wxPcbStruct.h>
 #include <macros.h>
+#include <board_commit.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -61,12 +62,12 @@ public:
     ~DIALOG_EXCHANGE_MODULE() { };
 
 private:
-    void OnSelectionClicked( wxCommandEvent& event );
-    void OnOkClick( wxCommandEvent& event );
-    void OnQuit( wxCommandEvent& event );
-    void BrowseAndSelectFootprint( wxCommandEvent& event );
-    void ViewAndSelectFootprint( wxCommandEvent& event );
-    void RebuildCmpList( wxCommandEvent& event );
+    void OnSelectionClicked( wxCommandEvent& event ) override;
+    void OnOkClick( wxCommandEvent& event ) override;
+    void OnQuit( wxCommandEvent& event ) override;
+    void BrowseAndSelectFootprint( wxCommandEvent& event ) override;
+    void ViewAndSelectFootprint( wxCommandEvent& event ) override;
+    void RebuildCmpList( wxCommandEvent& event ) override;
     void init();
 
     bool changeCurrentFootprint();
@@ -76,7 +77,7 @@ private:
                           const FPID&        aNewFootprintFPID,
                           bool               eShowError );
 
-    PICKED_ITEMS_LIST m_undoPickList;
+    BOARD_COMMIT m_commit;
 };
 
 
@@ -84,7 +85,7 @@ int DIALOG_EXCHANGE_MODULE::m_selectionMode = 0;
 
 
 DIALOG_EXCHANGE_MODULE::DIALOG_EXCHANGE_MODULE( PCB_EDIT_FRAME* parent, MODULE* Module ) :
-    DIALOG_EXCHANGE_MODULE_BASE( parent )
+    DIALOG_EXCHANGE_MODULE_BASE( parent ), m_commit( parent )
 {
     m_parent = parent;
     m_currentModule = Module;
@@ -120,15 +121,15 @@ void DIALOG_EXCHANGE_MODULE::init()
     m_CmpValue->AppendText( m_currentModule->GetValue() );
     m_CmpReference->AppendText( m_currentModule->GetReference() );
     m_Selection->SetString( 0, wxString::Format(
-                            _("Change footprint of '%s'" ),
+                            _( "Change footprint of '%s'" ),
                             GetChars( m_currentModule->GetReference() ) ) );
-    wxString fpname = m_CurrentFootprintFPID->GetValue().AfterLast(':');
+    wxString fpname = m_CurrentFootprintFPID->GetValue().AfterLast( ':' );
 
     if( fpname.IsEmpty() )    // Happens for old fp names
         fpname = m_CurrentFootprintFPID->GetValue();
 
     m_Selection->SetString( 1, wxString::Format(
-                            _("Change footprints '%s'" ),
+                            _( "Change footprints '%s'" ),
                             GetChars( fpname.Left( 12 ) ) ) );
 
     m_Selection->SetSelection( m_selectionMode );
@@ -141,7 +142,6 @@ void DIALOG_EXCHANGE_MODULE::init()
 
 void DIALOG_EXCHANGE_MODULE::OnOkClick( wxCommandEvent& event )
 {
-    m_undoPickList.ClearItemsList();
     m_selectionMode = m_Selection->GetSelection();
     bool result = false;
 
@@ -172,8 +172,7 @@ void DIALOG_EXCHANGE_MODULE::OnOkClick( wxCommandEvent& event )
         m_parent->GetCanvas()->Refresh();
     }
 
-    if( m_undoPickList.GetCount() )
-        m_parent->SaveCopyInUndoList( m_undoPickList, UR_UNSPECIFIED );
+    m_commit.Push( wxT( "Changed footprint" ) );
 }
 
 
@@ -198,11 +197,6 @@ void DIALOG_EXCHANGE_MODULE::OnSelectionClicked( wxCommandEvent& event )
 }
 
 
-/*
- * Rebuild the file name.CMP (if any) after exchanging footprints
- * if the footprint are managed by this file
- * Return false if error
- */
 void DIALOG_EXCHANGE_MODULE::RebuildCmpList( wxCommandEvent& event )
 {
     wxFileName  fn;
@@ -227,12 +221,6 @@ void DIALOG_EXCHANGE_MODULE::RebuildCmpList( wxCommandEvent& event )
 }
 
 
-/* Change the current footprint at the current cursor position.
- * Retains the following:
- * - position, orientation and side
- * - value and ref
- * - pads net names
- */
 bool DIALOG_EXCHANGE_MODULE::changeCurrentFootprint()
 {
     wxString newmodulename = m_NewFootprintFPID->GetValue();
@@ -244,17 +232,6 @@ bool DIALOG_EXCHANGE_MODULE::changeCurrentFootprint()
 }
 
 
-/*
- * Change all footprints having the same fpid by a new one from lib
- * Retains:
- * - direction, position, side
- * - value and ref
- * - pads net names
- * Note: m_currentModule is no longer the current footprint
- * since it has been changed!
- * if aUseValue is true, footprints having the same fpid should
- * also have the same value
- */
 bool DIALOG_EXCHANGE_MODULE::changeSameFootprints( bool aUseValue )
 {
     wxString msg;
@@ -325,13 +302,6 @@ bool DIALOG_EXCHANGE_MODULE::changeSameFootprints( bool aUseValue )
 }
 
 
-/*
- * Change all modules with module of the same name in library.
- * Maintains:
- * - direction, position, side
- * - value and ref
- * - pads net names
- */
 bool DIALOG_EXCHANGE_MODULE::changeAllFootprints()
 {
     MODULE* Module, * PtBack;
@@ -366,20 +336,11 @@ bool DIALOG_EXCHANGE_MODULE::changeAllFootprints()
 }
 
 
-/*
- * Change aModule to a new, fresh one from lib
- * Retains
- * - direction, position, side
- * - value and ref
- * - pads net names
- * Returns: false if no change (if the new module is not found)
- * true if OK
- */
 bool DIALOG_EXCHANGE_MODULE::change_1_Module( MODULE*            aModule,
                                               const FPID&        aNewFootprintFPID,
                                               bool               aShowError )
 {
-    MODULE*  newModule;
+    MODULE* newModule;
     wxString line;
 
     if( aModule == NULL )
@@ -405,8 +366,7 @@ bool DIALOG_EXCHANGE_MODULE::change_1_Module( MODULE*            aModule,
         return false;
     }
 
-    m_parent->Exchange_Module( aModule, newModule, &m_undoPickList );
-    m_parent->GetBoard()->Add( newModule, ADD_APPEND );
+    m_parent->Exchange_Module( aModule, newModule, m_commit );
 
     if( aModule == m_currentModule )
         m_currentModule = newModule;
@@ -417,15 +377,14 @@ bool DIALOG_EXCHANGE_MODULE::change_1_Module( MODULE*            aModule,
 }
 
 
-void PCB_EDIT_FRAME::Exchange_Module( MODULE*            aOldModule,
-                                      MODULE*            aNewModule,
-                                      PICKED_ITEMS_LIST* aUndoPickList )
+void PCB_EDIT_FRAME::Exchange_Module( MODULE* aOldModule,
+                                      MODULE* aNewModule,
+                                      BOARD_COMMIT& aCommit )
 {
     aNewModule->SetParent( GetBoard() );
 
     /* place module without ratsnest refresh: this will be made later
-     * when all modules are on board
-     */
+     * when all modules are on board */
     PlaceModule( aNewModule, NULL, true );
 
     // Copy full placement and pad net names (when possible)
@@ -440,23 +399,12 @@ void PCB_EDIT_FRAME::Exchange_Module( MODULE*            aOldModule,
     aNewModule->SetTimeStamp( aOldModule->GetTimeStamp() );
     aNewModule->SetPath( aOldModule->GetPath() );
 
-    if( aUndoPickList )
-    {
-        GetBoard()->Remove( aOldModule );
-        ITEM_PICKER picker_old( aOldModule, UR_DELETED );
-        ITEM_PICKER picker_new( aNewModule, UR_NEW );
-        aUndoPickList->PushItem( picker_old );
-        aUndoPickList->PushItem( picker_new );
-    }
-    else
-    {
-        GetGalCanvas()->GetView()->Remove( aOldModule );
-        aOldModule->DeleteStructure();
-    }
+    aCommit.Remove( aOldModule );
+    aCommit.Add( aNewModule );
 
+    // @todo LEGACY should be unnecessary
     GetBoard()->m_Status_Pcb = 0;
     aNewModule->ClearFlags();
-    OnModify();
 }
 
 
@@ -473,7 +421,6 @@ void DIALOG_EXCHANGE_MODULE::BrowseAndSelectFootprint( wxCommandEvent& event )
 }
 
 
-// Runs the footprint viewer to select a footprint.
 void DIALOG_EXCHANGE_MODULE::ViewAndSelectFootprint( wxCommandEvent& event )
 {
     wxString newname;
@@ -542,7 +489,7 @@ bool RecreateCmpFile( BOARD * aBrd, const wxString& aFullCmpFileName )
     for( ; module != NULL; module = module->Next() )
     {
         fprintf( cmpFile, "\nBeginCmp\n" );
-        fprintf( cmpFile, "TimeStamp = %8.8lX\n", module->GetTimeStamp() );
+        fprintf( cmpFile, "TimeStamp = %8.8lX\n", (unsigned long)module->GetTimeStamp() );
         fprintf( cmpFile, "Path = %s\n", TO_UTF8( module->GetPath() ) );
         fprintf( cmpFile, "Reference = %s;\n",
                  !module->GetReference().IsEmpty() ?

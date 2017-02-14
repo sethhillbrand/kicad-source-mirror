@@ -5,7 +5,7 @@
  * This program source code file is part of KICAD, a free EDA CAD application.
  *
  * Copyright (C) 2011-2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2011 Kicad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 Kicad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,29 +32,7 @@
 class BOARD;
 class PLUGIN;
 class MODULE;
-
-/**
- * Class PROPERTIES
- * is a name/value tuple with unique names and optional values.  The names
- * may be iterated alphabetically.
- */
-class PROPERTIES : public std::map< std::string, UTF8 >
-{
-    // alphabetical tuple of name and value hereby defined.
-
-public:
-
-    /**
-     * Function Value
-     * fetches a property by aName and returns true if that property was found, else false.
-     * If not found, aFetchedValue is not touched.
-     * @param aName is the property or option to look for.
-     * @param aFetchedValue is where to put the value of the property if it
-     *  exists and aFetchedValue is not NULL.
-     * @return bool - true if property is found, else false.
-     */
-    bool Value( const char* aName, UTF8* aFetchedValue = NULL ) const;
-};
+class PROPERTIES;
 
 
 /**
@@ -83,6 +61,8 @@ public:
 
         // ALTIUM,
         // etc.
+
+        FILE_TYPE_NONE
     };
 
     /**
@@ -465,6 +445,7 @@ public:
     };
 
 
+#ifndef SWIG
     /**
      * Class RELEASER
      * releases a PLUGIN in the context of a potential thrown exception, through
@@ -515,6 +496,7 @@ public:
             return plugin;
         }
     };
+#endif
 };
 
 #endif // IO_MGR_H_

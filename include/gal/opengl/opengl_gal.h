@@ -34,18 +34,21 @@
 #include <gal/opengl/shader.h>
 #include <gal/opengl/vertex_manager.h>
 #include <gal/opengl/vertex_item.h>
+#include <gal/opengl/cached_container.h>
 #include <gal/opengl/noncached_container.h>
 #include <gal/opengl/opengl_compositor.h>
 
 #include <wx/glcanvas.h>
 
 #include <map>
-#include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/smart_ptr/shared_array.hpp>
+#include <memory>
 
 #ifndef CALLBACK
 #define CALLBACK
 #endif
+
+struct bitmap_glyph;
 
 namespace KIGFX
 {
@@ -61,7 +64,6 @@ class SHADER;
 class OPENGL_GAL : public GAL, public wxGLCanvas
 {
 public:
-
     /**
      * @brief Constructor OPENGL_GAL
      *
@@ -82,136 +84,154 @@ public:
 
     virtual ~OPENGL_GAL();
 
-   /// @copydoc GAL::IsInitialized()
-    virtual bool IsInitialized() const { return IsShownOnScreen(); }
+    /// @copydoc GAL::IsInitialized()
+    virtual bool IsInitialized() const override { return IsShownOnScreen(); }
+
+    ///> @copydoc GAL::IsVisible()
+    bool IsVisible() const override {
+        return IsShownOnScreen();
+    }
 
     // ---------------
     // Drawing methods
     // ---------------
 
     /// @copydoc GAL::BeginDrawing()
-    virtual void BeginDrawing();
+    virtual void BeginDrawing() override;
 
     /// @copydoc GAL::EndDrawing()
-    virtual void EndDrawing();
+    virtual void EndDrawing() override;
+
+    /// @copydoc GAL::BeginUpdate()
+    virtual void BeginUpdate() override;
+
+    /// @copydoc GAL::EndUpdate()
+    virtual void EndUpdate() override;
 
     /// @copydoc GAL::DrawLine()
-    virtual void DrawLine( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint );
+    virtual void DrawLine( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint ) override;
 
     /// @copydoc GAL::DrawSegment()
     virtual void DrawSegment( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint,
-                              double aWidth );
+                              double aWidth ) override;
 
     /// @copydoc GAL::DrawCircle()
-    virtual void DrawCircle( const VECTOR2D& aCenterPoint, double aRadius );
+    virtual void DrawCircle( const VECTOR2D& aCenterPoint, double aRadius ) override;
 
     /// @copydoc GAL::DrawArc()
     virtual void DrawArc( const VECTOR2D& aCenterPoint, double aRadius,
-                          double aStartAngle, double aEndAngle );
+                          double aStartAngle, double aEndAngle ) override;
 
     /// @copydoc GAL::DrawRectangle()
-    virtual void DrawRectangle( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint );
+    virtual void DrawRectangle( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint ) override;
 
     /// @copydoc GAL::DrawPolyline()
-    virtual void DrawPolyline( const std::deque<VECTOR2D>& aPointList );
-    virtual void DrawPolyline( const VECTOR2D aPointList[], int aListSize );
+    virtual void DrawPolyline( const std::deque<VECTOR2D>& aPointList ) override;
+    virtual void DrawPolyline( const VECTOR2D aPointList[], int aListSize ) override;
 
     /// @copydoc GAL::DrawPolygon()
-    virtual void DrawPolygon( const std::deque<VECTOR2D>& aPointList );
-    virtual void DrawPolygon( const VECTOR2D aPointList[], int aListSize );
+    virtual void DrawPolygon( const std::deque<VECTOR2D>& aPointList ) override;
+    virtual void DrawPolygon( const VECTOR2D aPointList[], int aListSize ) override;
 
     /// @copydoc GAL::DrawCurve()
     virtual void DrawCurve( const VECTOR2D& startPoint, const VECTOR2D& controlPointA,
-                            const VECTOR2D& controlPointB, const VECTOR2D& endPoint );
+                            const VECTOR2D& controlPointB, const VECTOR2D& endPoint ) override;
+
+    /// @copydoc GAL::BitmapText()
+    virtual void BitmapText( const wxString& aText, const VECTOR2D& aPosition,
+                             double aRotationAngle ) override;
+
+    /// @copydoc GAL::DrawGrid()
+    virtual void DrawGrid() override;
 
     // --------------
     // Screen methods
     // --------------
 
     /// @brief Resizes the canvas.
-    virtual void ResizeScreen( int aWidth, int aHeight );
+    virtual void ResizeScreen( int aWidth, int aHeight ) override;
 
     /// @brief Shows/hides the GAL canvas
-    virtual bool Show( bool aShow );
+    virtual bool Show( bool aShow ) override;
 
     /// @copydoc GAL::Flush()
-    virtual void Flush();
+    virtual void Flush() override;
 
     /// @copydoc GAL::ClearScreen()
-    virtual void ClearScreen( const COLOR4D& aColor );
+    virtual void ClearScreen( const COLOR4D& aColor ) override;
 
     // --------------
     // Transformation
     // --------------
 
     /// @copydoc GAL::Transform()
-    virtual void Transform( const MATRIX3x3D& aTransformation );
+    virtual void Transform( const MATRIX3x3D& aTransformation ) override;
 
     /// @copydoc GAL::Rotate()
-    virtual void Rotate( double aAngle );
+    virtual void Rotate( double aAngle ) override;
 
     /// @copydoc GAL::Translate()
-    virtual void Translate( const VECTOR2D& aTranslation );
+    virtual void Translate( const VECTOR2D& aTranslation ) override;
 
     /// @copydoc GAL::Scale()
-    virtual void Scale( const VECTOR2D& aScale );
+    virtual void Scale( const VECTOR2D& aScale ) override;
 
     /// @copydoc GAL::Save()
-    virtual void Save();
+    virtual void Save() override;
 
     /// @copydoc GAL::Restore()
-    virtual void Restore();
+    virtual void Restore() override;
 
     // --------------------------------------------
     // Group methods
     // ---------------------------------------------
 
     /// @copydoc GAL::BeginGroup()
-    virtual int BeginGroup();
+    virtual int BeginGroup() override;
 
     /// @copydoc GAL::EndGroup()
-    virtual void EndGroup();
+    virtual void EndGroup() override;
 
     /// @copydoc GAL::DrawGroup()
-    virtual void DrawGroup( int aGroupNumber );
+    virtual void DrawGroup( int aGroupNumber ) override;
 
     /// @copydoc GAL::ChangeGroupColor()
-    virtual void ChangeGroupColor( int aGroupNumber, const COLOR4D& aNewColor );
+    virtual void ChangeGroupColor( int aGroupNumber, const COLOR4D& aNewColor ) override;
 
     /// @copydoc GAL::ChangeGroupDepth()
-    virtual void ChangeGroupDepth( int aGroupNumber, int aDepth );
+    virtual void ChangeGroupDepth( int aGroupNumber, int aDepth ) override;
 
     /// @copydoc GAL::DeleteGroup()
-    virtual void DeleteGroup( int aGroupNumber );
+    virtual void DeleteGroup( int aGroupNumber ) override;
 
     /// @copydoc GAL::ClearCache()
-    virtual void ClearCache();
+    virtual void ClearCache() override;
 
     // --------------------------------------------------------
     // Handling the world <-> screen transformation
     // --------------------------------------------------------
 
     /// @copydoc GAL::SaveScreen()
-    virtual void SaveScreen();
+    virtual void SaveScreen() override;
 
     /// @copydoc GAL::RestoreScreen()
-    virtual void RestoreScreen();
+    virtual void RestoreScreen() override;
 
     /// @copydoc GAL::SetTarget()
-    virtual void SetTarget( RENDER_TARGET aTarget );
+    virtual void SetTarget( RENDER_TARGET aTarget ) override;
 
     /// @copydoc GAL::GetTarget()
-    virtual RENDER_TARGET GetTarget() const;
+    virtual RENDER_TARGET GetTarget() const override;
 
     /// @copydoc GAL::ClearTarget()
-    virtual void ClearTarget( RENDER_TARGET aTarget );
+    virtual void ClearTarget( RENDER_TARGET aTarget ) override;
 
     // -------
     // Cursor
     // -------
 
     /// @copydoc GAL::DrawCursor()
-    virtual void DrawCursor( const VECTOR2D& aCursorPosition );
+    virtual void DrawCursor( const VECTOR2D& aCursorPosition ) override;
 
     /**
      * @brief Function PostPaint
@@ -247,9 +267,6 @@ public:
         std::deque< boost::shared_array<GLdouble> >& intersectPoints;
     } TessParams;
 
-protected:
-    virtual void drawGridLine( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint );
-
 private:
     /// Super class definition
     typedef GAL super;
@@ -257,31 +274,36 @@ private:
     static const int    CIRCLE_POINTS   = 64;   ///< The number of points for circle approximation
     static const int    CURVE_POINTS    = 32;   ///< The number of points for curve approximation
 
-    wxClientDC*             clientDC;               ///< Drawing context
-    static wxGLContext*     glContext;              ///< OpenGL context of wxWidgets
+    static wxGLContext*     glMainContext;      ///< Parent OpenGL context
+    wxGLContext*            glPrivContext;      ///< Canvas-specific OpenGL context
+    static int              instanceCounter;    ///< GL GAL instance counter
     wxEvtHandler*           mouseListener;
     wxEvtHandler*           paintListener;
 
+    static GLuint fontTexture;                  ///< Bitmap font texture handle (shared)
+
     // Vertex buffer objects related fields
-    typedef std::map< unsigned int, boost::shared_ptr<VERTEX_ITEM> > GROUPS_MAP;
+    typedef std::map< unsigned int, std::shared_ptr<VERTEX_ITEM> > GROUPS_MAP;
     GROUPS_MAP              groups;                 ///< Stores informations about VBO objects (groups)
     unsigned int            groupCounter;           ///< Counter used for generating keys for groups
     VERTEX_MANAGER*         currentManager;         ///< Currently used VERTEX_MANAGER (for storing VERTEX_ITEMs)
-    VERTEX_MANAGER          cachedManager;          ///< Container for storing cached VERTEX_ITEMs
-    VERTEX_MANAGER          nonCachedManager;       ///< Container for storing non-cached VERTEX_ITEMs
-    VERTEX_MANAGER          overlayManager;         ///< Container for storing overlaid VERTEX_ITEMs
+    VERTEX_MANAGER*         cachedManager;          ///< Container for storing cached VERTEX_ITEMs
+    VERTEX_MANAGER*         nonCachedManager;       ///< Container for storing non-cached VERTEX_ITEMs
+    VERTEX_MANAGER*         overlayManager;         ///< Container for storing overlaid VERTEX_ITEMs
 
     // Framebuffer & compositing
-    OPENGL_COMPOSITOR       compositor;             ///< Handles multiple rendering targets
+    OPENGL_COMPOSITOR*      compositor;             ///< Handles multiple rendering targets
     unsigned int            mainBuffer;             ///< Main rendering target
     unsigned int            overlayBuffer;          ///< Auxiliary rendering target (for menus etc.)
     RENDER_TARGET           currentTarget;          ///< Current rendering target
 
     // Shader
-    SHADER                  shader;         ///< There is only one shader used for different objects
+    static SHADER*          shader;                 ///< There is only one shader used for different objects
 
     // Internal flags
     bool                    isFramebufferInitialized;   ///< Are the framebuffers initialized?
+    static bool             isBitmapFontLoaded;         ///< Is the bitmap font texture loaded?
+    bool                    isBitmapFontInitialized;    ///< Is the shader set to use bitmap fonts?
     bool                    isGrouping;                 ///< Was a group started?
 
     // Polygon tesselation
@@ -329,6 +351,37 @@ private:
      */
     void drawStrokedSemiCircle( const VECTOR2D& aCenterPoint, double aRadius, double aAngle );
 
+    /**
+     * @brief Draws a single character using bitmap font.
+     * Its main purpose is to be used in BitmapText() function.
+     *
+     * @param aCharacter is the character to be drawn.
+     * @return Width of the drawn glyph.
+     */
+    int drawBitmapChar( unsigned long aChar );
+
+    /**
+     * @brief Draws an overbar over the currently drawn text.
+     * Its main purpose is to be used in BitmapText() function.
+     * This method requires appropriate scaling to be applied (as is done in BitmapText() function).
+     * The current X coordinate will be the overbar ending.
+     *
+     * @param aLength is the width of the overbar.
+     * @param aHeight is the height for the overbar.
+     */
+    void drawBitmapOverbar( double aLength, double aHeight );
+
+    /**
+     * @brief Computes a size of text drawn using bitmap font with current text setting applied.
+     *
+     * @param aText is the text to be drawn.
+     * @return Pair containing text bounding box and common Y axis offset. The values are expressed
+     * as a number of pixels on the bitmap font texture and need to be scaled before drawing.
+     */
+    std::pair<VECTOR2D, float> computeBitmapTextSize( const wxString& aText ) const;
+
+    const bitmap_glyph* lookupGlyph( unsigned int codepoint ) const;
+
     // Event handling
     /**
      * @brief This is the OnPaint event handler.
@@ -366,7 +419,7 @@ private:
     class OPENGL_TEST: public wxGLCanvas
     {
     public:
-        OPENGL_TEST( wxDialog* aParent, OPENGL_GAL* aGal );
+        OPENGL_TEST( wxDialog* aParent, OPENGL_GAL* aGal, wxGLContext* aContext );
 
         void Render( wxPaintEvent& aEvent );
         void OnTimeout( wxTimerEvent& aEvent );
@@ -381,6 +434,7 @@ private:
 
         wxDialog* m_parent;
         OPENGL_GAL* m_gal;
+        wxGLContext* m_context;
         bool m_tested;
         bool m_result;
         std::string m_error;

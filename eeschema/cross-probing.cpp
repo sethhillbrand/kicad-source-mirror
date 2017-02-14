@@ -210,9 +210,9 @@ void SCH_EDIT_FRAME::KiwayMailIn( KIWAY_EXPRESS& mail )
         {
             backAnnotateFootprints( payload );
         }
-        catch( const IO_ERROR& ioe )
+        catch( const IO_ERROR& DBG( ioe ) )
         {
-            DBG( printf( "%s: ioe:%s\n", __func__, TO_UTF8( ioe.errorText ) );)
+            DBG( printf( "%s: ioe:%s\n", __func__, TO_UTF8( ioe.What() ) );)
         }
         break;
 

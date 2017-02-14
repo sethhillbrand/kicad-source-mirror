@@ -40,8 +40,6 @@
 #define HPGL_PEN_SPEED_MAX        99        // this param is always in cm/s
 #define HPGL_PEN_NUMBER_MIN       1
 #define HPGL_PEN_NUMBER_MAX       16
-#define HPGL_PEN_OVERLAP_MIN      0
-#define HPGL_PEN_OVERLAP_MAX      50        // Unit = mil
 
 
 /**
@@ -83,6 +81,7 @@ PCB_PLOT_PARAMS::PCB_PLOT_PARAMS()
 {
     m_useGerberProtelExtensions  = false;
     m_useGerberAttributes        = false;
+    m_includeGerberNetlistInfo   = false;
     m_gerberPrecision            = gbrDefaultPrecision;
     m_excludeEdgeLayer           = true;
     m_lineWidth                  = g_DrawDefaultLineThickness;
@@ -93,7 +92,6 @@ PCB_PLOT_PARAMS::PCB_PLOT_PARAMS()
     m_HPGLPenNum                 = 1;
     m_HPGLPenSpeed               = 20;        // this param is always in cm/s
     m_HPGLPenDiam                = 15;        // in mils
-    m_HPGLPenOvr                 = 2;         // in mils
     m_negative                   = false;
     m_A4Output                   = false;
     m_plotReference              = true;
@@ -151,7 +149,12 @@ void PCB_PLOT_PARAMS::Format( OUTPUTFORMATTER* aFormatter,
 
     if( m_useGerberAttributes ) // save this option only if active,
                                 // to avoid incompatibility with older Pcbnew version
+    {
         aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_usegerberattributes ), trueStr );
+
+        if( GetIncludeGerberNetlistInfo() )
+            aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_usegerberadvancedattributes ), trueStr );
+    }
 
     if( m_gerberPrecision != gbrDefaultPrecision ) // save this option only if it is not the default value,
                                                    // to avoid incompatibility with older Pcbnew version
@@ -182,8 +185,6 @@ void PCB_PLOT_PARAMS::Format( OUTPUTFORMATTER* aFormatter,
                        m_HPGLPenSpeed );
     aFormatter->Print( aNestLevel+1, "(%s %d)\n", getTokenName( T_hpglpendiameter ),
                        m_HPGLPenDiam );
-    aFormatter->Print( aNestLevel+1, "(%s %d)\n", getTokenName( T_hpglpenoverlay ),
-                       m_HPGLPenOvr );
     aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_psnegative ),
                        m_negative ? trueStr : falseStr );
     aFormatter->Print( aNestLevel+1, "(%s %s)\n", getTokenName( T_psa4output ),
@@ -227,6 +228,8 @@ bool PCB_PLOT_PARAMS::operator==( const PCB_PLOT_PARAMS &aPcbPlotParams ) const
         return false;
     if( m_useGerberAttributes != aPcbPlotParams.m_useGerberAttributes )
         return false;
+    if( m_useGerberAttributes && m_includeGerberNetlistInfo != aPcbPlotParams.m_includeGerberNetlistInfo )
+        return false;
     if( m_gerberPrecision != aPcbPlotParams.m_gerberPrecision )
         return false;
     if( m_excludeEdgeLayer != aPcbPlotParams.m_excludeEdgeLayer )
@@ -246,8 +249,6 @@ bool PCB_PLOT_PARAMS::operator==( const PCB_PLOT_PARAMS &aPcbPlotParams ) const
     if( m_HPGLPenSpeed != aPcbPlotParams.m_HPGLPenSpeed )
         return false;
     if( m_HPGLPenDiam != aPcbPlotParams.m_HPGLPenDiam )
-        return false;
-    if( m_HPGLPenOvr != aPcbPlotParams.m_HPGLPenOvr )
         return false;
     if( m_negative != aPcbPlotParams.m_negative )
         return false;
@@ -310,12 +311,6 @@ bool PCB_PLOT_PARAMS::SetHPGLPenDiameter( int aValue )
 bool PCB_PLOT_PARAMS::SetHPGLPenSpeed( int aValue )
 {
     return setInt( &m_HPGLPenSpeed, aValue, HPGL_PEN_SPEED_MIN, HPGL_PEN_SPEED_MAX );
-}
-
-
-bool PCB_PLOT_PARAMS::SetHPGLPenOverlay( int aValue )
-{
-    return setInt( &m_HPGLPenOvr, aValue, HPGL_PEN_OVERLAP_MIN, HPGL_PEN_OVERLAP_MAX );
 }
 
 
@@ -397,6 +392,10 @@ void PCB_PLOT_PARAMS_PARSER::Parse( PCB_PLOT_PARAMS* aPcbPlotParams )
             aPcbPlotParams->m_useGerberAttributes = parseBool();
             break;
 
+        case T_usegerberadvancedattributes:
+            aPcbPlotParams->m_includeGerberNetlistInfo = parseBool();
+            break;
+
         case T_gerberprecision:
             aPcbPlotParams->m_gerberPrecision =
                 parseInt( gbrDefaultPrecision-1, gbrDefaultPrecision);
@@ -450,8 +449,8 @@ void PCB_PLOT_PARAMS_PARSER::Parse( PCB_PLOT_PARAMS* aPcbPlotParams )
                                                       HPGL_PEN_DIAMETER_MAX );
             break;
         case T_hpglpenoverlay:
-            aPcbPlotParams->m_HPGLPenOvr = parseInt( HPGL_PEN_OVERLAP_MIN,
-                                                     HPGL_PEN_OVERLAP_MAX );
+            // No more used. juste here for compatibility with old versions
+            parseInt( 0, HPGL_PEN_DIAMETER_MAX );
             break;
         case T_pscolor:
             NeedSYMBOL(); // This actually was never used...

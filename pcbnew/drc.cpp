@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2004-2015 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2014 Dick Hollenbeck, dick@softplc.com
- * Copyright (C) 2015 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016 KiCad Developers, see change_log.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,6 +42,7 @@
 #include <class_draw_panel_gal.h>
 #include <view/view.h>
 #include <geometry/seg.h>
+#include <ratsnest_data.h>
 
 #include <tool/tool_manager.h>
 #include <tools/common_actions.h>
@@ -53,55 +54,62 @@
 #include <wx/progdlg.h>
 
 
-void DRC::ShowDialog()
+void DRC::ShowDRCDialog( wxWindow* aParent )
 {
-    if( !m_ui )
+    bool show_dlg_modal = true;
+
+    // the dialog needs a parent frame. if it is not specified, this is
+    // the PCB editor frame specified in DRC class.
+    if( aParent == NULL )
     {
-        m_mainWindow->GetToolManager()->RunAction( COMMON_ACTIONS::selectionClear, true );
-        m_ui = new DIALOG_DRC_CONTROL( this, m_mainWindow );
-        updatePointers();
-
-        // copy data retained in this DRC object into the m_ui DrcPanel:
-
-        PutValueInLocalUnits( *m_ui->m_SetTrackMinWidthCtrl,
-                              m_pcb->GetDesignSettings().m_TrackMinWidth );
-        PutValueInLocalUnits( *m_ui->m_SetViaMinSizeCtrl,
-                              m_pcb->GetDesignSettings().m_ViasMinSize );
-        PutValueInLocalUnits( *m_ui->m_SetMicroViakMinSizeCtrl,
-                              m_pcb->GetDesignSettings().m_MicroViasMinSize );
-
-        m_ui->m_CreateRptCtrl->SetValue( m_doCreateRptFile );
-        m_ui->m_RptFilenameCtrl->SetValue( m_rptFilename );
+        // if any parent is specified, the dialog is modal.
+        // if this is the default PCB editor frame, it is not modal
+        show_dlg_modal = false;
+        aParent = m_pcbEditorFrame;
     }
-    else
+
+    if( !m_drcDialog )
+    {
+        m_pcbEditorFrame->GetToolManager()->RunAction( COMMON_ACTIONS::selectionClear, true );
+        m_drcDialog = new DIALOG_DRC_CONTROL( this, m_pcbEditorFrame, aParent );
         updatePointers();
 
-    m_ui->Show( true );
+        m_drcDialog->SetRptSettings( m_doCreateRptFile, m_rptFilename);
+
+        if( show_dlg_modal )
+            m_drcDialog->ShowModal();
+        else
+            m_drcDialog->Show( true );
+    }
+    else    // The dialog is just not visible (because the user has double clicked on an error item)
+    {
+        updatePointers();
+        m_drcDialog->Show( true );
+    }
 }
 
 
-void DRC::DestroyDialog( int aReason )
+void DRC::DestroyDRCDialog( int aReason )
 {
-    if( m_ui )
+    if( m_drcDialog )
     {
         if( aReason == wxID_OK )
         {
             // if user clicked OK, save his choices in this DRC object.
-            m_doCreateRptFile = m_ui->m_CreateRptCtrl->GetValue();
-            m_rptFilename     = m_ui->m_RptFilenameCtrl->GetValue();
+            m_drcDialog->GetRptSettings( &m_doCreateRptFile, m_rptFilename);
         }
 
-        m_ui->Destroy();
-        m_ui = 0;
+        m_drcDialog->Destroy();
+        m_drcDialog = NULL;
     }
 }
 
 
 DRC::DRC( PCB_EDIT_FRAME* aPcbWindow )
 {
-    m_mainWindow = aPcbWindow;
+    m_pcbEditorFrame = aPcbWindow;
     m_pcb = aPcbWindow->GetBoard();
-    m_ui  = 0;
+    m_drcDialog  = NULL;
 
     // establish initial values for everything:
     m_doPad2PadTest     = true;     // enable pad to pad clearance tests
@@ -143,7 +151,7 @@ int DRC::Drc( TRACK* aRefSegm, TRACK* aList )
     {
         wxASSERT( m_currentMarker );
 
-        m_mainWindow->SetMsgPanel( m_currentMarker );
+        m_pcbEditorFrame->SetMsgPanel( m_currentMarker );
         return BAD_DRC;
     }
 
@@ -151,7 +159,7 @@ int DRC::Drc( TRACK* aRefSegm, TRACK* aList )
     {
         wxASSERT( m_currentMarker );
 
-        m_mainWindow->SetMsgPanel( m_currentMarker );
+        m_pcbEditorFrame->SetMsgPanel( m_currentMarker );
         return BAD_DRC;
     }
 
@@ -166,7 +174,7 @@ int DRC::Drc( ZONE_CONTAINER* aArea, int aCornerIndex )
     if( !doEdgeZoneDrc( aArea, aCornerIndex ) )
     {
         wxASSERT( m_currentMarker );
-        m_mainWindow->SetMsgPanel( m_currentMarker );
+        m_pcbEditorFrame->SetMsgPanel( m_currentMarker );
         return BAD_DRC;
     }
 
@@ -176,6 +184,10 @@ int DRC::Drc( ZONE_CONTAINER* aArea, int aCornerIndex )
 
 void DRC::RunTests( wxTextCtrl* aMessages )
 {
+    // be sure m_pcb is the current board, not a old one
+    // ( the board can be reloaded )
+    m_pcb = m_pcbEditorFrame->GetBoard();
+
     // Ensure ratsnest is up to date:
     if( (m_pcb->m_Status_Pcb & LISTE_RATSNEST_ITEM_OK) == 0 )
     {
@@ -185,7 +197,8 @@ void DRC::RunTests( wxTextCtrl* aMessages )
             wxSafeYield();
         }
 
-        m_mainWindow->Compile_Ratsnest( NULL, true );
+        m_pcbEditorFrame->Compile_Ratsnest( NULL, true );
+        m_pcb->GetRatsnest()->ProcessBoard();
     }
 
     // someone should have cleared the two lists before calling this.
@@ -199,7 +212,7 @@ void DRC::RunTests( wxTextCtrl* aMessages )
         if( aMessages )
             aMessages->AppendText( _( "Aborting\n" ) );
 
-        // update the m_ui listboxes
+        // update the m_drcDialog listboxes
         updatePointers();
 
         return;
@@ -224,7 +237,7 @@ void DRC::RunTests( wxTextCtrl* aMessages )
         wxSafeYield();
     }
 
-    testTracks( aMessages ? aMessages->GetParent() : m_mainWindow, true );
+    testTracks( aMessages ? aMessages->GetParent() : m_pcbEditorFrame, true );
 
     // Before testing segments and unconnected, refill all zones:
     // this is a good caution, because filled areas can be outdated.
@@ -234,7 +247,7 @@ void DRC::RunTests( wxTextCtrl* aMessages )
         wxSafeYield();
     }
 
-    m_mainWindow->Fill_All_Zones( aMessages ? aMessages->GetParent() : m_mainWindow,
+    m_pcbEditorFrame->Fill_All_Zones( aMessages ? aMessages->GetParent() : m_pcbEditorFrame,
                                   false );
 
     // test zone clearances to other zones
@@ -279,7 +292,7 @@ void DRC::RunTests( wxTextCtrl* aMessages )
 
     testTexts();
 
-    // update the m_ui listboxes
+    // update the m_drcDialog listboxes
     updatePointers();
 
     if( aMessages )
@@ -295,20 +308,22 @@ void DRC::ListUnconnectedPads()
 {
     testUnconnected();
 
-    // update the m_ui listboxes
+    // update the m_drcDialog listboxes
     updatePointers();
 }
 
 
 void DRC::updatePointers()
 {
-    // update my pointers, m_mainWindow is the only unchangeable one
-    m_pcb = m_mainWindow->GetBoard();
+    // update my pointers, m_pcbEditorFrame is the only unchangeable one
+    m_pcb = m_pcbEditorFrame->GetBoard();
 
-    if( m_ui )  // Use diag list boxes only in DRC dialog
+    if( m_drcDialog )  // Use diag list boxes only in DRC dialog
     {
-        m_ui->m_ClearanceListBox->SetList( new DRC_LIST_MARKERS( m_pcb ) );
-        m_ui->m_UnconnectedListBox->SetList( new DRC_LIST_UNCONNECTED( &m_unconnected ) );
+        m_drcDialog->m_ClearanceListBox->SetList( new DRC_LIST_MARKERS( m_pcb ) );
+        m_drcDialog->m_UnconnectedListBox->SetList( new DRC_LIST_UNCONNECTED( &m_unconnected ) );
+
+        m_drcDialog->UpdateDisplayedCounts();
     }
 }
 
@@ -332,7 +347,7 @@ bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 
         m_currentMarker = fillMarker( DRCE_NETCLASS_CLEARANCE, msg, m_currentMarker );
         m_pcb->Add( m_currentMarker );
-        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
         m_currentMarker = 0;
         ret = false;
     }
@@ -348,7 +363,7 @@ bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 
         m_currentMarker = fillMarker( DRCE_NETCLASS_TRACKWIDTH, msg, m_currentMarker );
         m_pcb->Add( m_currentMarker );
-        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
         m_currentMarker = 0;
         ret = false;
     }
@@ -363,7 +378,7 @@ bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 
         m_currentMarker = fillMarker( DRCE_NETCLASS_VIASIZE, msg, m_currentMarker );
         m_pcb->Add( m_currentMarker );
-        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
         m_currentMarker = 0;
         ret = false;
     }
@@ -378,7 +393,7 @@ bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 
         m_currentMarker = fillMarker( DRCE_NETCLASS_VIADRILLSIZE, msg, m_currentMarker );
         m_pcb->Add( m_currentMarker );
-        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
         m_currentMarker = 0;
         ret = false;
     }
@@ -393,7 +408,7 @@ bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 
         m_currentMarker = fillMarker( DRCE_NETCLASS_uVIASIZE, msg, m_currentMarker );
         m_pcb->Add( m_currentMarker );
-        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
         m_currentMarker = 0;
         ret = false;
     }
@@ -408,7 +423,7 @@ bool DRC::doNetClass( NETCLASSPTR nc, wxString& msg )
 
         m_currentMarker = fillMarker( DRCE_NETCLASS_uVIADRILLSIZE, msg, m_currentMarker );
         m_pcb->Add( m_currentMarker );
-        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
         m_currentMarker = 0;
         ret = false;
     }
@@ -473,7 +488,7 @@ void DRC::testPad2Pad()
         {
             wxASSERT( m_currentMarker );
             m_pcb->Add( m_currentMarker );
-            m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+            m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
             m_currentMarker = 0;
         }
     }
@@ -503,7 +518,7 @@ void DRC::testTracks( wxWindow *aActiveWindow, bool aShowProgressBar )
     int ii = 0;
     count = 0;
 
-    for( TRACK* segm = m_pcb->m_Track; segm && segm->Next(); segm = segm->Next() )
+    for( TRACK* segm = m_pcb->m_Track; segm; segm = segm->Next() )
     {
         if ( ii++ > delta )
         {
@@ -526,7 +541,7 @@ void DRC::testTracks( wxWindow *aActiveWindow, bool aShowProgressBar )
         {
             wxASSERT( m_currentMarker );
             m_pcb->Add( m_currentMarker );
-            m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+            m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
             m_currentMarker = 0;
         }
     }
@@ -540,8 +555,8 @@ void DRC::testUnconnected()
 {
     if( (m_pcb->m_Status_Pcb & LISTE_RATSNEST_ITEM_OK) == 0 )
     {
-        wxClientDC dc( m_mainWindow->GetCanvas() );
-        m_mainWindow->Compile_Ratsnest( &dc, true );
+        wxClientDC dc( m_pcbEditorFrame->GetCanvas() );
+        m_pcbEditorFrame->Compile_Ratsnest( &dc, true );
     }
 
     if( m_pcb->GetRatsnestsCount() == 0 )
@@ -601,7 +616,7 @@ void DRC::testZones()
             m_currentMarker = fillMarker( test_area,
                                           DRCE_SUSPICIOUS_NET_FOR_ZONE_OUTLINE, m_currentMarker );
             m_pcb->Add( m_currentMarker );
-            m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+            m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
             m_currentMarker = NULL;
         }
     }
@@ -637,7 +652,7 @@ void DRC::testKeepoutAreas()
                     m_currentMarker = fillMarker( segm, NULL,
                                                   DRCE_TRACK_INSIDE_KEEPOUT, m_currentMarker );
                     m_pcb->Add( m_currentMarker );
-                    m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+                    m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
                     m_currentMarker = 0;
                 }
             }
@@ -654,7 +669,7 @@ void DRC::testKeepoutAreas()
                     m_currentMarker = fillMarker( segm, NULL,
                                                   DRCE_VIA_INSIDE_KEEPOUT, m_currentMarker );
                     m_pcb->Add( m_currentMarker );
-                    m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+                    m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
                     m_currentMarker = 0;
                 }
             }
@@ -715,7 +730,7 @@ void DRC::testTexts()
                                                       DRCE_TRACK_INSIDE_TEXT,
                                                       m_currentMarker );
                         m_pcb->Add( m_currentMarker );
-                        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+                        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
                         m_currentMarker = NULL;
                         break;
                     }
@@ -734,7 +749,7 @@ void DRC::testTexts()
                         m_currentMarker = fillMarker( track, text,
                                                       DRCE_VIA_INSIDE_TEXT, m_currentMarker );
                         m_pcb->Add( m_currentMarker );
-                        m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+                        m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
                         m_currentMarker = NULL;
                         break;
                     }
@@ -784,7 +799,7 @@ void DRC::testTexts()
                     m_currentMarker = fillMarker( pad, text,
                                                   DRCE_PAD_INSIDE_TEXT, m_currentMarker );
                     m_pcb->Add( m_currentMarker );
-                    m_mainWindow->GetGalCanvas()->GetView()->Add( m_currentMarker );
+                    m_pcbEditorFrame->GetGalCanvas()->GetView()->Add( m_currentMarker );
                     m_currentMarker = NULL;
                     break;
                 }
@@ -955,7 +970,7 @@ bool DRC::doPadToPadsDrc( D_PAD* aRefPad, D_PAD** aStart, D_PAD** aEnd, int x_li
             if( pad->PadNameEqual( aRefPad ) )
                 continue;
         }
-        
+
         // if either pad has no drill and is only on technical layers, not a clearance violation
         if( ( ( pad->GetLayerSet() & layerMask ) == 0 && !pad->GetDrillSize().x ) ||
             ( ( aRefPad->GetLayerSet() & layerMask ) == 0 && !aRefPad->GetDrillSize().x ) )

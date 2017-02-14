@@ -48,9 +48,9 @@
 #include <cvpcb_mainframe.h>
 #include <class_DisplayFootprintsFrame.h>
 #include <cvpcb_id.h>
-#include <cvstruct.h>
+#include <listview_classes.h>
 
-#include <3d_viewer.h>
+#include <3d_viewer/eda_3d_viewer.h>
 
 
 BEGIN_EVENT_TABLE( DISPLAY_FOOTPRINTS_FRAME, PCB_BASE_FRAME )
@@ -149,7 +149,7 @@ DISPLAY_FOOTPRINTS_FRAME::~DISPLAY_FOOTPRINTS_FRAME()
 
 void DISPLAY_FOOTPRINTS_FRAME::OnCloseWindow( wxCloseEvent& event )
 {
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
         draw3DFrame->Close( true );
@@ -183,15 +183,17 @@ void DISPLAY_FOOTPRINTS_FRAME::ReCreateOptToolbar()
 
     m_optionsToolBar->AddTool( ID_TB_OPTIONS_SELECT_UNIT_INCH, wxEmptyString,
                                KiBitmap( unit_inch_xpm ),
-                               _( "Units in inches" ), wxITEM_CHECK );
+                               _( "Set units to inches" ), wxITEM_CHECK );
 
     m_optionsToolBar->AddTool( ID_TB_OPTIONS_SELECT_UNIT_MM, wxEmptyString,
                                KiBitmap( unit_mm_xpm ),
-                               _( "Units in millimeters" ), wxITEM_CHECK );
+                               _( "Set units to millimeters" ), wxITEM_CHECK );
 
+#ifndef __APPLE__
     m_optionsToolBar->AddTool( ID_TB_OPTIONS_SELECT_CURSOR, wxEmptyString,
                                KiBitmap( cursor_shape_xpm ),
                                _( "Change cursor shape" ), wxITEM_CHECK  );
+#endif // !__APPLE__
 
     m_optionsToolBar->AddSeparator();
     m_optionsToolBar->AddTool( ID_TB_OPTIONS_SHOW_PADS_SKETCH, wxEmptyString,
@@ -385,7 +387,7 @@ bool DISPLAY_FOOTPRINTS_FRAME::GeneralControl( wxDC* aDC, const wxPoint& aPositi
 
 void DISPLAY_FOOTPRINTS_FRAME::Show3D_Frame( wxCommandEvent& event )
 {
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
     {
@@ -403,7 +405,7 @@ void DISPLAY_FOOTPRINTS_FRAME::Show3D_Frame( wxCommandEvent& event )
         return;
     }
 
-    draw3DFrame = new EDA_3D_FRAME( &Kiway(), this, _( "3D Viewer" ) );
+    draw3DFrame = new EDA_3D_VIEWER( &Kiway(), this, _( "3D Viewer" ) );
     draw3DFrame->Raise();     // Needed with some Window Managers
     draw3DFrame->Show( true );
 }
@@ -464,7 +466,7 @@ MODULE* DISPLAY_FOOTPRINTS_FRAME::Get_Module( const wxString& aFootprintName )
     }
     catch( const IO_ERROR& ioe )
     {
-        DisplayError( this, ioe.errorText );
+        DisplayError( this, ioe.What() );
         return NULL;
     }
 
@@ -487,7 +489,7 @@ void DISPLAY_FOOTPRINTS_FRAME::InitDisplay()
 
     CVPCB_MAINFRAME* parentframe = (CVPCB_MAINFRAME *) GetParent();
 
-    wxString footprintName = parentframe->m_footprintListBox->GetSelectedFootprint();
+    wxString footprintName = parentframe->GetSelectedFootprint();
 
     if( !footprintName.IsEmpty() )
     {
@@ -495,7 +497,7 @@ void DISPLAY_FOOTPRINTS_FRAME::InitDisplay()
 
         SetTitle( msg );
         const FOOTPRINT_INFO* module_info =
-                parentframe->m_footprints.GetModuleInfo( footprintName );
+                parentframe->m_FootprintsList.GetModuleInfo( footprintName );
 
         const wxChar* libname;
 
@@ -536,7 +538,7 @@ void DISPLAY_FOOTPRINTS_FRAME::InitDisplay()
 
     GetCanvas()->Refresh();
 
-    EDA_3D_FRAME* draw3DFrame = Get3DViewerFrame();
+    EDA_3D_VIEWER* draw3DFrame = Get3DViewerFrame();
 
     if( draw3DFrame )
         draw3DFrame->NewDisplay();

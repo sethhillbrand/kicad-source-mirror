@@ -48,7 +48,6 @@
 #include <class_library.h>
 #include <sch_component.h>
 #include <sch_field.h>
-#include <sch_sheet_path.h>
 #include <kicad_string.h>
 
 
@@ -231,6 +230,22 @@ void SCH_FIELD::ImportValues( const LIB_FIELD& aSource )
     m_Mirror    = aSource.IsMirrored();
 }
 
+void SCH_FIELD::ExportValues( LIB_FIELD& aDest ) const
+{
+    aDest.SetId( GetId() );
+    aDest.SetText( m_Text );        // Set field value
+    aDest.SetName( GetName() );
+    aDest.SetOrientation( GetOrientation() );
+    aDest.SetSize( GetSize() );
+    aDest.SetTextPosition( GetTextPosition() );
+    aDest.SetHorizJustify( GetHorizJustify() );
+    aDest.SetVertJustify( GetVertJustify() );
+    aDest.SetItalic( IsItalic() );
+    aDest.SetBold( IsBold() );
+    aDest.SetThickness( GetThickness() );
+    aDest.SetAttributes( GetAttributes() );
+}
+
 
 void SCH_FIELD::SwapData( SCH_ITEM* aItem )
 {
@@ -402,7 +417,7 @@ bool SCH_FIELD::Matches( wxFindReplaceData& aSearchData, void* aAuxData, wxPoint
         wxCHECK_MSG( component != NULL, false,
                      wxT( "No component associated with field" ) + text );
 
-        text = component->GetRef( ((SCH_SHEET_PATH*) aAuxData)->Last() );
+        text = component->GetRef( (SCH_SHEET_PATH*) aAuxData );
 
         if( component->GetUnitCount() > 1 )
             text << LIB_PART::SubReference( component->GetUnit() );
@@ -440,7 +455,7 @@ bool SCH_FIELD::Replace( wxFindReplaceData& aSearchData, void* aAuxData )
         wxCHECK_MSG( component != NULL, false,
                      wxT( "No component associated with field" ) + text );
 
-        text = component->GetRef( ((SCH_SHEET_PATH*) aAuxData)->Last() );
+        text = component->GetRef( (SCH_SHEET_PATH*) aAuxData );
 
         // if( component->GetUnitCount() > 1 )
         //     text << LIB_PART::SubReference( component->GetUnit() );
@@ -448,7 +463,7 @@ bool SCH_FIELD::Replace( wxFindReplaceData& aSearchData, void* aAuxData )
         isReplaced = EDA_ITEM::Replace( aSearchData, text );
 
         if( isReplaced )
-            component->SetRef( ((SCH_SHEET_PATH*) aAuxData)->Last(), text );
+            component->SetRef( (SCH_SHEET_PATH*) aAuxData, text );
     }
     else
     {

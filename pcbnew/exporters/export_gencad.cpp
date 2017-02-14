@@ -1,10 +1,10 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
+ * Copyright (C) 2016 Jean-Pierre Charras, jean-pierre.charras@ujf-grenoble.fr
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2012 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2012 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -220,9 +220,8 @@ static std::string fmt_mask( LSET aSet )
 // These are the export origin (the auxiliary axis)
 static int GencadOffsetX, GencadOffsetY;
 
-/* GerbTool chokes on units different than INCH so this is the conversion
- *  factor */
-const static double SCALE_FACTOR = 10000.0 * IU_PER_DECIMILS;
+// GerbTool chokes on units different than INCH so this is the conversion factor
+const static double SCALE_FACTOR = 1000.0 * IU_PER_MILS;
 
 
 /* Two helper functions to calculate coordinates of modules in gencad values
@@ -268,7 +267,8 @@ void PCB_EDIT_FRAME::ExportToGenCAD( wxCommandEvent& aEvent )
         DisplayError( this, msg ); return;
     }
 
-    SetLocaleTo_C_standard(); // No pesky decimal separators in gencad
+    // Switch the locale to standard C (needed to print floating point numbers)
+    LOCALE_IO toggle;
 
     // Update some board data, to ensure a reliable gencad export
     GetBoard()->ComputeBoundingBox();
@@ -323,7 +323,6 @@ void PCB_EDIT_FRAME::ExportToGenCAD( wxCommandEvent& aEvent )
     CreateRoutesSection( file, pcb );
 
     fclose( file );
-    SetLocaleTo_Default();  // revert to the current locale
 
     // Undo the footprints modifications (flipped footprints)
     for( module = pcb->m_Modules; module; module = module->Next() )
@@ -699,13 +698,13 @@ static void CreateComponentsSection( FILE* aFile, BOARD* aPcb )
     {
         const char*   mirror;
         const char*   flip;
-        double        orient = module->GetOrientation();
+        double        fp_orient = module->GetOrientation();
 
         if( module->GetFlag() )
         {
             mirror = "0";
             flip   = "FLIP";
-            NEGATE_AND_NORMALIZE_ANGLE_POS( orient );
+            NEGATE_AND_NORMALIZE_ANGLE_POS( fp_orient );
         }
         else
         {
@@ -724,7 +723,7 @@ static void CreateComponentsSection( FILE* aFile, BOARD* aPcb )
         fprintf( aFile, "LAYER %s\n",
                  (module->GetFlag()) ? "BOTTOM" : "TOP" );
         fprintf( aFile, "ROTATION %g\n",
-                 orient / 10.0 );
+                 fp_orient / 10.0 );
         fprintf( aFile, "SHAPE %s %s %s\n",
                  TO_UTF8( module->GetReference() ),
                  mirror, flip );
@@ -734,14 +733,14 @@ static void CreateComponentsSection( FILE* aFile, BOARD* aPcb )
 
         for( int ii = 0; ii < 2; ii++ )
         {
-            double      orient = textmod->GetOrientation();
+            double      txt_orient = textmod->GetOrientation();
             std::string layer  = GenCADLayerName( cu_count, module->GetFlag() ? B_SilkS : F_SilkS );
 
             fprintf( aFile, "TEXT %g %g %g %g %s %s \"%s\"",
                      textmod->GetPos0().x / SCALE_FACTOR,
                     -textmod->GetPos0().y / SCALE_FACTOR,
                      textmod->GetSize().x / SCALE_FACTOR,
-                     orient / 10.0,
+                     txt_orient / 10.0,
                      mirror,
                      layer.c_str(),
                      TO_UTF8( textmod->GetText() ) );
@@ -782,7 +781,7 @@ static void CreateSignalsSection( FILE* aFile, BOARD* aPcb )
 
         if( net->GetNetname() == wxEmptyString ) // dummy netlist (no connection)
         {
-            wxString msg; msg << wxT( "NoConnection" ) << NbNoConn++;
+            msg.Printf( "NoConnection%d", NbNoConn++ );
         }
 
         if( net->GetNet() <= 0 )  // dummy netlist (no connection)
@@ -1243,8 +1242,12 @@ static void FootprintWriteShape( FILE* aFile, MODULE* module )
                     break;
                 }
 
+                case S_POLYGON:
+                    // Not exported (TODO)
+                    break;
+
                 default:
-                    DisplayError( NULL, wxT( "Type Edge Module invalid." ) );
+                    DisplayError( NULL, wxString::Format( "Type Edge Module %d invalid.", PtStruct->Type() ) );
                     break;
                 }
             }
