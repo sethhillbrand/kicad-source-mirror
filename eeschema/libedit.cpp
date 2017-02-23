@@ -253,9 +253,9 @@ void LIB_EDIT_FRAME::RedrawComponent( wxDC* aDC, wxPoint aOffset  )
         wxString    fieldfullText = field->GetFullText( m_unit );
 
         field->EDA_TEXT::SetText( fieldfullText );  // change the field text string only
-        part->Draw( m_canvas, aDC, aOffset, m_unit, m_convert, GR_DEFAULT_DRAWMODE,
-                    UNSPECIFIED_COLOR, DefaultTransform,
-                    true, true,false, NULL, GetShowElectricalType() );
+        auto opts = PART_DRAW_OPTIONS::Default();
+        opts.show_elec_type = GetShowElectricalType();
+        part->Draw( m_canvas, aDC, aOffset, m_unit, m_convert, opts );
         field->EDA_TEXT::SetText( fieldText );      // restore the field text string
     }
 }
@@ -321,7 +321,24 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     if( GetScreen()->IsModify() )
     {
         if( IsOK( this, _( "Include last component changes?" ) ) )
-            SaveOnePart( lib, false );
+        {
+            lib->EnableBuffering();
+
+            try
+            {
+                SaveOnePart( lib, false );
+            }
+            catch( ... )
+            {
+                lib->EnableBuffering( false );
+                msg.Printf( _( "Unexpected error occured saving part to '%s' symbol library." ),
+                            lib->GetName() );
+                DisplayError( this, msg );
+                return false;
+            }
+
+            lib->EnableBuffering( false );
+        }
     }
 
     if( newFile )
@@ -425,6 +442,8 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     wxString msg1;
     msg1.Printf( _( "Documentation file '%s' saved" ), GetChars( fn.GetFullPath() ) );
     AppendMsgPanel( msg, msg1, BLUE );
+    UpdateAliasSelectList();
+    UpdatePartSelectList();
 
     return true;
 }

@@ -35,6 +35,7 @@
 #include <trigo.h>
 #include <richio.h>
 #include <schframe.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <sch_sheet.h>
@@ -71,7 +72,7 @@ void SCH_SHEET_PIN::Draw( EDA_DRAW_PANEL* aPanel,
                           wxDC*           aDC,
                           const wxPoint&  aOffset,
                           GR_DRAWMODE     aDraw_mode,
-                          EDA_COLOR_T     aColor )
+                          COLOR4D         aColor )
 {
     // The icon selection is handle by the virtual method CreateGraphicShape
     // called by ::Draw
@@ -503,6 +504,11 @@ wxString SCH_SHEET_PIN::GetSelectMenuText() const
     wxString tmp;
     tmp.Printf( _( "Hierarchical Sheet Pin %s" ), GetChars( ShortenedShownText() ) );
     return tmp;
+}
+
+BITMAP_DEF SCH_SHEET_PIN::GetMenuImage() const
+{
+    return add_hierar_pin_xpm;
 }
 
 

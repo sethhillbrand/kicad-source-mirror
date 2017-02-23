@@ -21,24 +21,31 @@
  * or you may write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
+
 #include <dialog_choose_component.h>
 
 #include <set>
 #include <wx/tokenzr.h>
+#include <wx/utils.h>
 
 #include <class_library.h>
 #include <component_tree_search_container.h>
 #include <sch_base_frame.h>
-#include <kicad_string.h>
+#include <widgets/footprint_preview_panel.h>
+#include <widgets/two_column_tree_list.h>
+#include <template_fieldnames.h>
+#include <generate_alias_info.h>
 
 // Tree navigation helpers.
-static wxTreeItemId GetPrevItem( const wxTreeCtrl& tree, const wxTreeItemId& item );
-static wxTreeItemId GetNextItem( const wxTreeCtrl& tree, const wxTreeItemId& item );
+static wxTreeListItem GetPrevItem( const wxTreeListCtrl& tree, const wxTreeListItem& item );
+static wxTreeListItem GetNextItem( const wxTreeListCtrl& tree, const wxTreeListItem& item );
+static wxTreeListItem GetPrevSibling( const wxTreeListCtrl& tree, const wxTreeListItem& item );
 
 DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const wxString& aTitle,
                                                   COMPONENT_TREE_SEARCH_CONTAINER* const aContainer,
                                                   int aDeMorganConvert )
-    : DIALOG_CHOOSE_COMPONENT_BASE( aParent, wxID_ANY, aTitle ), m_search_container( aContainer )
+    : DIALOG_CHOOSE_COMPONENT_BASE( aParent, wxID_ANY, aTitle ), m_search_container( aContainer ),
+      m_footprintPreviewPanel( nullptr )
 {
     m_parent = aParent;
     m_deMorganConvert = aDeMorganConvert >= 0 ? aDeMorganConvert : 0;
@@ -47,21 +54,28 @@ DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const
     m_search_container->SetTree( m_libraryComponentTree );
     m_componentView->SetLayoutDirection( wxLayout_LeftToRight );
 
-    m_libraryComponentTree->ScrollTo( m_libraryComponentTree->GetFocusedItem() );
+    // Initialize footprint preview through Kiway
+    m_footprintPreviewPanel =
+        FOOTPRINT_PREVIEW_PANEL::InstallOnPanel( Kiway(), m_footprintView, true );
 
-    // The tree showing libs and component uses a fixed font,
-    // because we want controle the position of some info when drawing the
-    // tree. Using tabs does not work very well (does not work on Windows)
-    wxFont font = wxSystemSettings::GetFont( wxSYS_DEFAULT_GUI_FONT );
-    m_libraryComponentTree->SetFont( wxFont( font.GetPointSize(),
-             wxFONTFAMILY_MODERN,  wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL ) );
+    if( m_footprintPreviewPanel )
+    {
+        // This hides the GAL panel and shows the status label
+        m_footprintPreviewPanel->SetStatusText( wxEmptyString );
+    }
 
-    // We have to call SetSizeHints to fix the minimal size of the dialog
-    // and its widgets.
-    // this line also fixes an issue on Linux Ubuntu using Unity (dialog not shown).
-    GetSizer()->SetSizeHints( this );
+#ifndef KICAD_FOOTPRINT_SELECTOR
+    // Footprint chooser isn't implemented yet or isn't selected, don't show it.
+    m_chooseFootprint->Hide();
+#endif
 
+    Layout();
     Centre();
+
+    // Per warning in component_tree_search_container.h, this must be called
+    // near the end of the constructor.
+    m_search_container->UpdateSearchTerm( wxEmptyString );
+    updateSelection();
 }
 
 
@@ -86,16 +100,6 @@ void DIALOG_CHOOSE_COMPONENT::OnSearchBoxChange( wxCommandEvent& aEvent )
 {
     m_search_container->UpdateSearchTerm( m_searchBox->GetLineText( 0 ) );
     updateSelection();
-
-    // On Windows, but not on Linux, the focus is given to
-    // the m_libraryComponentTree, after modificatuons.
-    // We want the focus for m_searchBox.
-    //
-    // We cannot call SetFocus on Linux because it changes the current text selection
-    // and the text edit cursor position.
-#ifdef __WINDOWS__
-    m_searchBox->SetFocus();
-#endif
 }
 
 
@@ -105,10 +109,12 @@ void DIALOG_CHOOSE_COMPONENT::OnSearchBoxEnter( wxCommandEvent& aEvent )
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::selectIfValid( const wxTreeItemId& aTreeId )
+void DIALOG_CHOOSE_COMPONENT::selectIfValid( const wxTreeListItem& aTreeId )
 {
     if( aTreeId.IsOk() && aTreeId != m_libraryComponentTree->GetRootItem() )
-        m_libraryComponentTree->SelectItem( aTreeId );
+        m_libraryComponentTree->Select( aTreeId );
+
+    updateSelection();
 }
 
 
@@ -119,7 +125,7 @@ void DIALOG_CHOOSE_COMPONENT::OnInterceptSearchBoxKey( wxKeyEvent& aKeyStroke )
     // the text search box (which has the focus by default). That way, we are mostly keyboard
     // operable.
     // (If the tree has the focus, it can handle that by itself).
-    const wxTreeItemId sel = m_libraryComponentTree->GetSelection();
+    const wxTreeListItem sel = m_libraryComponentTree->GetSelection();
 
     switch( aKeyStroke.GetKeyCode() )
     {
@@ -154,7 +160,7 @@ void DIALOG_CHOOSE_COMPONENT::OnInterceptSearchBoxKey( wxKeyEvent& aKeyStroke )
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::OnTreeSelect( wxTreeEvent& aEvent )
+void DIALOG_CHOOSE_COMPONENT::OnTreeSelect( wxTreeListEvent& aEvent )
 {
     updateSelection();
 }
@@ -164,7 +170,7 @@ void DIALOG_CHOOSE_COMPONENT::OnTreeSelect( wxTreeEvent& aEvent )
 //  - search for an item.
 //  - use the mouse to double-click on an item in the tree.
 //  -> The dialog should close, and the component should _not_ be immediately placed
-void DIALOG_CHOOSE_COMPONENT::OnDoubleClickTreeActivation( wxTreeEvent& aEvent )
+void DIALOG_CHOOSE_COMPONENT::OnDoubleClickTreeActivation( wxTreeListEvent& aEvent )
 {
     if( !updateSelection() )
         return;
@@ -221,86 +227,64 @@ bool DIALOG_CHOOSE_COMPONENT::updateSelection()
 
     m_componentView->Refresh();
 
-    m_componentDetails->SetPage( wxEmptyString );
-
     if( selection == NULL )
-        return false;
-
-    m_componentDetails->Freeze();
-
-    const wxString name = selection->GetName();
-    wxString description = selection->GetDescription();
-
-    if ( !name.empty() )
     {
-        m_componentDetails->AppendToPage( "<b>" );
-        m_componentDetails->AppendToPage( EscapedHTML( name ) );
-        m_componentDetails->AppendToPage( "</b>" );
-    }
-
-    if( !selection->IsRoot() )
-    {
-        LIB_PART* root_part = selection->GetPart();
-        const wxString root_name( root_part ? root_part->GetName() : _( "Unknown" ) );
-
-        m_componentDetails->AppendToPage(
-                "<br><i>" + _( "Alias of " ) + EscapedHTML( root_name ) + "</i>" );
-
-        // For some reason descriptions are a property of aliases, even though
-        // only the root component's main LIB_ALIAS can actually have a description.
-        // If the description was empty, go through the alias list and find an alias
-        // that actually has one.
-
-        if( description.empty() )
+        if( m_footprintPreviewPanel )
         {
-            for( size_t i = 0; i < root_part->GetAliasCount(); ++i )
-            {
-                LIB_ALIAS* alias = root_part->GetAlias( i );
-
-                if( !alias )
-                    continue;
-
-                description = alias->GetDescription();
-
-                if( !description.empty() )
-                    break;
-            }
+            m_footprintPreviewPanel->SetStatusText( wxEmptyString );
         }
+
+        m_componentDetails->SetPage( wxEmptyString );
+
+        return false;
     }
 
-    if( !description.empty() )
-    {
-        m_componentDetails->AppendToPage( "<br>" );
-        m_componentDetails->AppendToPage( EscapedHTML( description ) );
-    }
+    m_componentDetails->SetPage( GenerateAliasInfo( selection, unit ) );
 
-    wxString keywords = selection->GetKeyWords();
-    if( !keywords.empty() )
-    {
-        m_componentDetails->AppendToPage( "<br>" + _( "Keywords:" ) + " " );
-        m_componentDetails->AppendToPage( EscapedHTML( keywords ) );
-    }
+    updateFootprint();
 
-    m_componentDetails->AppendToPage( "<hr><table border=0>" );
+    return true;
+}
 
+
+void DIALOG_CHOOSE_COMPONENT::updateFootprint()
+{
+    if( !m_footprintPreviewPanel )
+        return;
+
+    int dummy_unit = 0;
+    LIB_ALIAS* selection = m_search_container->GetSelectedAlias( &dummy_unit );
+
+    if( !selection )
+        return;
 
     LIB_FIELDS fields;
     selection->GetPart()->GetFields( fields );
 
     for( auto const & field: fields )
     {
-        wxString name = field.GetName();
-        wxString text = field.GetFullText();
-
-        m_componentDetails->AppendToPage( "<tr><td><b>" + EscapedHTML( name ) + "</b></td>" );
-        m_componentDetails->AppendToPage( "<td>" + EscapedHTML( text ) + "</td></tr>" );
+        if( field.GetId() != FOOTPRINT )
+            continue;
+        wxString fpname = field.GetFullText();
+        if( fpname == wxEmptyString )
+        {
+            m_footprintPreviewPanel->SetStatusText( _( "No footprint specified" ) );
+        }
+        else
+        {
+            m_footprintPreviewPanel->ClearStatus();
+            m_footprintPreviewPanel->CacheFootprint( LIB_ID( fpname ) );
+            m_footprintPreviewPanel->DisplayFootprint( LIB_ID( fpname ) );
+        }
+        break;
     }
+}
 
-    m_componentDetails->AppendToPage( "</table>" );
 
-    m_componentDetails->Thaw();
-
-    return true;
+void DIALOG_CHOOSE_COMPONENT::OnDatasheetClick( wxHtmlLinkEvent& aEvent )
+{
+    const wxHtmlLinkInfo & info = aEvent.GetLinkInfo();
+    ::wxLaunchDefaultBrowser( info.GetHref() );
 }
 
 
@@ -347,9 +331,9 @@ void DIALOG_CHOOSE_COMPONENT::renderPreview( LIB_PART* aComponent, int aUnit )
 
     GRResetPenAndBrush( &dc );
 
-    EDA_COLOR_T bgcolor = m_parent->GetDrawBgColor();
+    COLOR4D bgColor = m_parent->GetDrawBgColor();
 
-    dc.SetBackground( bgcolor == BLACK ? *wxBLACK_BRUSH : *wxWHITE_BRUSH );
+    dc.SetBackground( wxBrush( bgColor.ToColour() ) );
     dc.Clear();
 
     if( aComponent == NULL )
@@ -370,15 +354,15 @@ void DIALOG_CHOOSE_COMPONENT::renderPreview( LIB_PART* aComponent, int aUnit )
 
     wxPoint offset = -bBox.Centre();
 
-
-    aComponent->Draw( NULL, &dc, offset, aUnit, m_deMorganConvert, GR_COPY,
-                      UNSPECIFIED_COLOR, DefaultTransform, true, true, false );
+    auto opts = PART_DRAW_OPTIONS::Default();
+    opts.draw_hidden_fields = false;
+    aComponent->Draw( NULL, &dc, offset, aUnit, m_deMorganConvert, opts );
 }
 
 
-static wxTreeItemId GetPrevItem( const wxTreeCtrl& tree, const wxTreeItemId& item )
+static wxTreeListItem GetPrevItem( const wxTreeListCtrl& tree, const wxTreeListItem& item )
 {
-    wxTreeItemId prevItem = tree.GetPrevSibling( item );
+    wxTreeListItem prevItem = GetPrevSibling( tree, item );
 
     if( !prevItem.IsOk() )
     {
@@ -386,31 +370,40 @@ static wxTreeItemId GetPrevItem( const wxTreeCtrl& tree, const wxTreeItemId& ite
     }
     else if( tree.IsExpanded( prevItem ) )
     {
-        prevItem = tree.GetLastChild( prevItem );
+        // wxTreeListCtrl has no .GetLastChild. Simulate it
+        prevItem = tree.GetFirstChild( prevItem );
+        wxTreeListItem next;
+        do
+        {
+            next = tree.GetNextSibling( prevItem );
+            if( next.IsOk() )
+            {
+                prevItem = next;
+            }
+        } while( next.IsOk() );
     }
 
     return prevItem;
 }
 
 
-static wxTreeItemId GetNextItem( const wxTreeCtrl& tree, const wxTreeItemId& item )
+static wxTreeListItem GetNextItem( const wxTreeListCtrl& tree, const wxTreeListItem& item )
 {
-    wxTreeItemId nextItem;
+    wxTreeListItem nextItem;
 
     if( !item.IsOk() )
-        return nextItem;    // item is not valid: return a not valid wxTreeItemId
+        return nextItem;    // item is not valid: return a not valid wxTreeListItem
 
     if( tree.IsExpanded( item ) )
     {
-        wxTreeItemIdValue dummy;
-        nextItem = tree.GetFirstChild( item, dummy );
+        nextItem = tree.GetFirstChild( item );
     }
     else
     {
-        wxTreeItemId root_cell=  tree.GetRootItem();
+        wxTreeListItem root_cell=  tree.GetRootItem();
 
         // Walk up levels until we find one that has a next sibling.
-        for ( wxTreeItemId walk = item; walk.IsOk(); walk = tree.GetItemParent( walk ) )
+        for ( wxTreeListItem walk = item; walk.IsOk(); walk = tree.GetItemParent( walk ) )
         {
             if( walk == root_cell )     // the root cell (not displayed) is reached
                 break;                  // Exit (calling GetNextSibling( root_cell ) crashes.
@@ -423,4 +416,33 @@ static wxTreeItemId GetNextItem( const wxTreeCtrl& tree, const wxTreeItemId& ite
     }
 
     return nextItem;
+}
+
+
+static wxTreeListItem GetPrevSibling( const wxTreeListCtrl& tree, const wxTreeListItem& item )
+{
+    // Why wxTreeListCtrl has no GetPrevSibling when it does have GetNextSibling
+    // is beyond me. wxTreeCtrl has this.
+
+    wxTreeListItem last_item;
+    wxTreeListItem parent = tree.GetItemParent( item );
+
+    if( !parent.IsOk() )
+        return last_item; // invalid signifies not found
+
+    last_item = tree.GetFirstChild( parent );
+    while( last_item.IsOk() )
+    {
+        wxTreeListItem next_item = tree.GetNextSibling( last_item );
+        if( next_item == item )
+        {
+            return last_item;
+        }
+        else
+        {
+            last_item = next_item;
+        }
+    }
+
+    return last_item;
 }

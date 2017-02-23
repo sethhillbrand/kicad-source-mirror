@@ -2141,6 +2141,9 @@ void SCH_LEGACY_PLUGIN_CACHE::Load()
                  wxString::Format( "Cannot use relative file paths in legacy plugin to "
                                    "open library '%s'.", m_libFileName.GetFullPath() ) );
 
+    wxLogTrace( traceSchLegacyPlugin, "Loading legacy symbol file '%s'",
+                m_libFileName.GetFullPath() );
+
     FILE_LINE_READER reader( m_libFileName.GetFullPath() );
 
     if( !reader.ReadLine() )
@@ -2385,6 +2388,14 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
         value.SetVisible( false );
     }
 
+    // There are some code paths in SetText() that do not set the root alias to the
+    // alias list so add it here if it didn't get added by SetText().
+    if( !part->HasAlias( part->GetName() ) )
+        part->AddAlias( part->GetName() );
+
+    // Add the root alias to the cache alias list.
+    m_aliases[ part->GetName() ] = part->GetAlias( part->GetName() );
+
     LIB_FIELD& reference = part->GetReferenceField();
 
     if( prefix == "~" )
@@ -2411,10 +2422,10 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
 
         if( locked == 'L' )
             part->LockUnits( true );
-        else if( locked == 'F' )
+        else if( locked == 'F' || locked == '0' )
             part->LockUnits( false );
         else
-            SCH_PARSE_ERROR( "expected L or F", aReader, line );
+            SCH_PARSE_ERROR( "expected L, F, or 0", aReader, line );
     }
 
 
@@ -2437,7 +2448,7 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
     while( line )
     {
         if( *line == '#' )                               // Comment
-            continue;
+            ;
         else if( strCompare( "Ti", line, &line ) )       // Modification date is ignored.
             continue;
         else if( strCompare( "ALIAS", line, &line ) )    // Aliases
@@ -2450,10 +2461,6 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
             loadFootprintFilters( part, aReader );
         else if( strCompare( "ENDDEF", line, &line ) )   // End of part description
         {
-            // Add the root alias to the alias list.
-            part->m_aliases.push_back( new LIB_ALIAS( name, part.get() ) );
-            m_aliases[ part->GetName() ] = part->GetAlias( name );
-
             return part.release();
         }
 
@@ -3251,19 +3258,21 @@ void SCH_LEGACY_PLUGIN_CACHE::Save( bool aSaveDocFile )
     if( !m_isModified )
         return;
 
-    FILE_OUTPUTFORMATTER formatter( m_libFileName.GetFullPath() );
-    formatter.Print( 0, "%s %d.%d\n", LIBFILE_IDENT, LIB_VERSION_MAJOR, LIB_VERSION_MINOR );
-    formatter.Print( 0, "#encoding utf-8\n");
+    std::unique_ptr< FILE_OUTPUTFORMATTER > formatter( new FILE_OUTPUTFORMATTER( m_libFileName.GetFullPath() ) );
+    formatter->Print( 0, "%s %d.%d\n", LIBFILE_IDENT, LIB_VERSION_MAJOR, LIB_VERSION_MINOR );
+    formatter->Print( 0, "#encoding utf-8\n");
 
     for( LIB_ALIAS_MAP::iterator it = m_aliases.begin();  it != m_aliases.end();  it++ )
     {
         if( !it->second->IsRoot() )
             continue;
 
-        it->second->GetPart()->Save( formatter );
+        it->second->GetPart()->Save( *formatter.get() );
     }
 
-    formatter.Print( 0, "#\n#End Library\n" );
+    formatter->Print( 0, "#\n#End Library\n" );
+    formatter.reset();
+
     m_fileModTime = m_libFileName.GetModificationTime();
     m_isModified = false;
 
@@ -3416,7 +3425,7 @@ void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( wxArrayString&    aAliasNameList,
     const LIB_ALIAS_MAP& aliases = m_cache->m_aliases;
 
     for( LIB_ALIAS_MAP::const_iterator it = aliases.begin();  it != aliases.end();  ++it )
-        aAliasNameList.Add( FROM_UTF8( it->first.c_str() ) );
+        aAliasNameList.Add( it->first );
 }
 
 
@@ -3429,7 +3438,7 @@ LIB_ALIAS* SCH_LEGACY_PLUGIN::LoadSymbol( const wxString& aLibraryPath, const wx
 
     cacheLib( aLibraryPath );
 
-    LIB_ALIAS_MAP::const_iterator it = m_cache->m_aliases.find( TO_UTF8( aAliasName ) );
+    LIB_ALIAS_MAP::const_iterator it = m_cache->m_aliases.find( aAliasName );
 
     if( it == m_cache->m_aliases.end() )
         return NULL;
