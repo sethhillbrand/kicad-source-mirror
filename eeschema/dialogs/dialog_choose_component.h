@@ -25,6 +25,8 @@
 #define DIALOG_CHOOSE_COMPONENT_H
 
 #include <dialog_choose_component_base.h>
+#include <wx/timer.h>
+#include <memory>
 
 class FOOTPRINT_PREVIEW_PANEL;
 class COMPONENT_TREE_SEARCH_CONTAINER;
@@ -39,7 +41,6 @@ class DIALOG_CHOOSE_COMPONENT : public DIALOG_CHOOSE_COMPONENT_BASE
     COMPONENT_TREE_SEARCH_CONTAINER* const m_search_container;
     int             m_deMorganConvert;
     bool            m_external_browser_requested;
-    bool            m_received_doubleclick_in_tree;
 
 public:
     /**
@@ -80,11 +81,12 @@ protected:
     virtual void OnTreeSelect( wxTreeListEvent& aEvent ) override;
     virtual void OnDoubleClickTreeActivation( wxTreeListEvent& aEvent ) override;
     virtual void OnInterceptTreeEnter( wxKeyEvent& aEvent ) override;
-    virtual void OnTreeMouseUp( wxMouseEvent& aMouseEvent ) override;
 
     virtual void OnStartComponentBrowser( wxMouseEvent& aEvent ) override;
     virtual void OnHandlePreviewRepaint( wxPaintEvent& aRepaintEvent ) override;
     virtual void OnDatasheetClick( wxHtmlLinkEvent& aEvent ) override;
+
+    virtual void OnCloseTimer( wxTimerEvent& aEvent );
 
 private:
     bool updateSelection();
@@ -93,7 +95,10 @@ private:
 
     void updateFootprint();
 
+    std::unique_ptr<wxTimer> m_dbl_click_timer;
     FOOTPRINT_PREVIEW_PANEL* m_footprintPreviewPanel;
+
+    static constexpr int DblClickDelay = 100; // milliseconds
 };
 
 #endif /* DIALOG_CHOOSE_COMPONENT_H */

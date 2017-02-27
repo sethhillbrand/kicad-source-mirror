@@ -27,12 +27,17 @@ DIALOG_CHOOSE_COMPONENT_BASE::DIALOG_CHOOSE_COMPONENT_BASE( wxWindow* parent, wx
 	wxBoxSizer* bSizer10;
 	bSizer10 = new wxBoxSizer( wxVERTICAL );
 	
-	m_searchBox = new wxSearchCtrl( m_panel3, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	#ifndef __WXMAC__
-	m_searchBox->ShowSearchButton( true );
-	#endif
-	m_searchBox->ShowCancelButton( false );
-	bSizer10->Add( m_searchBox, 0, wxALL|wxEXPAND, 5 );
+	wxBoxSizer* m_searchBoxSizer;
+	m_searchBoxSizer = new wxBoxSizer( wxHORIZONTAL );
+	
+	m_searchBoxIcon = new wxStaticBitmap( m_panel3, wxID_ANY, wxArtProvider::GetBitmap( wxART_FIND, wxART_FRAME_ICON ), wxDefaultPosition, wxDefaultSize, 0 );
+	m_searchBoxSizer->Add( m_searchBoxIcon, 0, wxALIGN_CENTER|wxALL, 5 );
+	
+	m_searchBox = new wxTextCtrl( m_panel3, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
+	m_searchBoxSizer->Add( m_searchBox, 1, wxALIGN_CENTER|wxALL|wxEXPAND, 5 );
+	
+	
+	bSizer10->Add( m_searchBoxSizer, 0, wxEXPAND, 5 );
 	
 	m_libraryComponentTree = new TWO_COLUMN_TREE_LIST( m_panel3, wxID_ANY, wxDefaultPosition, wxSize( 320,240 ), wxTL_DEFAULT_STYLE );
 	
@@ -101,12 +106,12 @@ DIALOG_CHOOSE_COMPONENT_BASE::DIALOG_CHOOSE_COMPONENT_BASE( wxWindow* parent, wx
 	this->Centre( wxBOTH );
 	
 	// Connect Events
+	this->Connect( wxEVT_IDLE, wxIdleEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnIdle ) );
 	this->Connect( wxEVT_INIT_DIALOG, wxInitDialogEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInitDialog ) );
-	m_searchBox->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInterceptSearchBoxKey ), NULL, this );
+	m_searchBox->Connect( wxEVT_KEY_UP, wxKeyEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInterceptSearchBoxKey ), NULL, this );
 	m_searchBox->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnSearchBoxChange ), NULL, this );
 	m_searchBox->Connect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnSearchBoxEnter ), NULL, this );
 	m_libraryComponentTree->Connect( wxEVT_KEY_UP, wxKeyEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInterceptTreeEnter ), NULL, this );
-	m_libraryComponentTree->Connect( wxEVT_LEFT_UP, wxMouseEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnTreeMouseUp ), NULL, this );
 	m_libraryComponentTree->Connect( wxEVT_TREELIST_ITEM_ACTIVATED, wxTreeListEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnDoubleClickTreeActivation ), NULL, this );
 	m_libraryComponentTree->Connect( wxEVT_TREELIST_SELECTION_CHANGED, wxTreeListEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnTreeSelect ), NULL, this );
 	m_componentDetails->Connect( wxEVT_COMMAND_HTML_LINK_CLICKED, wxHtmlLinkEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnDatasheetClick ), NULL, this );
@@ -117,12 +122,12 @@ DIALOG_CHOOSE_COMPONENT_BASE::DIALOG_CHOOSE_COMPONENT_BASE( wxWindow* parent, wx
 DIALOG_CHOOSE_COMPONENT_BASE::~DIALOG_CHOOSE_COMPONENT_BASE()
 {
 	// Disconnect Events
+	this->Disconnect( wxEVT_IDLE, wxIdleEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnIdle ) );
 	this->Disconnect( wxEVT_INIT_DIALOG, wxInitDialogEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInitDialog ) );
-	m_searchBox->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInterceptSearchBoxKey ), NULL, this );
+	m_searchBox->Disconnect( wxEVT_KEY_UP, wxKeyEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInterceptSearchBoxKey ), NULL, this );
 	m_searchBox->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnSearchBoxChange ), NULL, this );
 	m_searchBox->Disconnect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnSearchBoxEnter ), NULL, this );
 	m_libraryComponentTree->Disconnect( wxEVT_KEY_UP, wxKeyEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnInterceptTreeEnter ), NULL, this );
-	m_libraryComponentTree->Disconnect( wxEVT_LEFT_UP, wxMouseEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnTreeMouseUp ), NULL, this );
 	m_libraryComponentTree->Disconnect( wxEVT_TREELIST_ITEM_ACTIVATED, wxTreeListEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnDoubleClickTreeActivation ), NULL, this );
 	m_libraryComponentTree->Disconnect( wxEVT_TREELIST_SELECTION_CHANGED, wxTreeListEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnTreeSelect ), NULL, this );
 	m_componentDetails->Disconnect( wxEVT_COMMAND_HTML_LINK_CLICKED, wxHtmlLinkEventHandler( DIALOG_CHOOSE_COMPONENT_BASE::OnDatasheetClick ), NULL, this );

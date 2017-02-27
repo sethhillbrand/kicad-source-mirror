@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2016 CERN
- * Copyright (C) 2016-2017 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * @author Wayne Stambaugh <stambaughw@gmail.com>
  *
@@ -2393,9 +2393,6 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
     if( !part->HasAlias( part->GetName() ) )
         part->AddAlias( part->GetName() );
 
-    // Add the root alias to the cache alias list.
-    m_aliases[ part->GetName() ] = part->GetAlias( part->GetName() );
-
     LIB_FIELD& reference = part->GetReferenceField();
 
     if( prefix == "~" )
@@ -2461,6 +2458,8 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
             loadFootprintFilters( part, aReader );
         else if( strCompare( "ENDDEF", line, &line ) )   // End of part description
         {
+            // Now all is good, Add the root alias to the cache alias list.
+            m_aliases[ part->GetName() ] = part->GetAlias( part->GetName() );
             return part.release();
         }
 
@@ -2906,42 +2905,46 @@ LIB_TEXT* SCH_LEGACY_PLUGIN_CACHE::loadText( std::unique_ptr< LIB_PART >& aPart,
         if( parseInt( aReader, line, &line ) > 0 )
             text->SetBold( true );
 
-        switch( parseChar( aReader, line, &line ) )
+        // Some old libaries version > 2.0 do not have these options for text justification:
+        if( !is_eol( *line ) )
         {
-        case 'L':
-            text->SetHorizJustify( GR_TEXT_HJUSTIFY_LEFT );
-            break;
+            switch( parseChar( aReader, line, &line ) )
+            {
+            case 'L':
+                text->SetHorizJustify( GR_TEXT_HJUSTIFY_LEFT );
+                break;
 
-        case 'C':
-            text->SetHorizJustify( GR_TEXT_HJUSTIFY_CENTER );
-            break;
+            case 'C':
+                text->SetHorizJustify( GR_TEXT_HJUSTIFY_CENTER );
+                break;
 
-        case 'R':
-            text->SetHorizJustify( GR_TEXT_HJUSTIFY_RIGHT );
-            break;
+            case 'R':
+                text->SetHorizJustify( GR_TEXT_HJUSTIFY_RIGHT );
+                break;
 
-        default:
-            SCH_PARSE_ERROR( _( "invalid horizontal text justication parameter, expected L, C, or R" ),
-                             aReader, line );
-        }
+            default:
+                SCH_PARSE_ERROR( _( "invalid horizontal text justication parameter, expected L, C, or R" ),
+                                 aReader, line );
+            }
 
-        switch( parseChar( aReader, line, &line ) )
-        {
-        case 'T':
-            text->SetVertJustify( GR_TEXT_VJUSTIFY_TOP );
-            break;
+            switch( parseChar( aReader, line, &line ) )
+            {
+            case 'T':
+                text->SetVertJustify( GR_TEXT_VJUSTIFY_TOP );
+                break;
 
-        case 'C':
-            text->SetVertJustify( GR_TEXT_VJUSTIFY_CENTER );
-            break;
+            case 'C':
+                text->SetVertJustify( GR_TEXT_VJUSTIFY_CENTER );
+                break;
 
-        case 'B':
-            text->SetVertJustify( GR_TEXT_VJUSTIFY_BOTTOM );
-            break;
+            case 'B':
+                text->SetVertJustify( GR_TEXT_VJUSTIFY_BOTTOM );
+                break;
 
-        default:
-            SCH_PARSE_ERROR( _( "invalid vertical text justication parameter, expected T, C, or B" ),
-                             aReader, line );
+            default:
+                SCH_PARSE_ERROR( _( "invalid vertical text justication parameter, expected T, C, or B" ),
+                                 aReader, line );
+            }
         }
     }
 
@@ -3426,6 +3429,23 @@ void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( wxArrayString&    aAliasNameList,
 
     for( LIB_ALIAS_MAP::const_iterator it = aliases.begin();  it != aliases.end();  ++it )
         aAliasNameList.Add( it->first );
+}
+
+
+void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( std::vector<LIB_ALIAS*>& aAliasList,
+                                            const wxString&   aLibraryPath,
+                                            const PROPERTIES* aProperties )
+{
+    LOCALE_IO   toggle;     // toggles on, then off, the C locale.
+
+    m_props = aProperties;
+
+    cacheLib( aLibraryPath );
+
+    const LIB_ALIAS_MAP& aliases = m_cache->m_aliases;
+
+    for( LIB_ALIAS_MAP::const_iterator it = aliases.begin();  it != aliases.end();  ++it )
+        aAliasList.push_back( it->second );
 }
 
 

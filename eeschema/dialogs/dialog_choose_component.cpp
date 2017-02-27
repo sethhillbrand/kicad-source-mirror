@@ -35,6 +35,7 @@
 #include <widgets/two_column_tree_list.h>
 #include <template_fieldnames.h>
 #include <generate_alias_info.h>
+#include <make_unique.h>
 
 // Tree navigation helpers.
 static wxTreeListItem GetPrevItem( const wxTreeListCtrl& tree, const wxTreeListItem& item );
@@ -50,9 +51,26 @@ DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const
     m_parent = aParent;
     m_deMorganConvert = aDeMorganConvert >= 0 ? aDeMorganConvert : 0;
     m_external_browser_requested = false;
-    m_received_doubleclick_in_tree = false;
     m_search_container->SetTree( m_libraryComponentTree );
     m_componentView->SetLayoutDirection( wxLayout_LeftToRight );
+    m_dbl_click_timer = std::make_unique<wxTimer>( this );
+
+    // Search box styling. wxSearchBox can handle this, but it's buggy...
+    m_searchBox->SetHint( _( "Search" ) );
+    #if defined( __WXMAC__ ) || defined( __WINDOWS__ )
+    {
+        // On Linux, the "Search" hint disappears when the dialog is focused,
+        // meaning it's not present initially when the dialog opens. To ensure
+        // the box is understood, a search icon is also provided.
+        //
+        // The icon provided by wx is ugly on macOS and Windows, *plus* these
+        // ports display the "Search" hint in the empty field even when the
+        // field is focused. Therefore, the icon is not required on these
+        // platforms.
+        m_searchBoxIcon->Hide();
+        m_searchBoxIcon->GetParent()->Layout();
+    }
+    #endif // __WXMAC__
 
     // Initialize footprint preview through Kiway
     m_footprintPreviewPanel =
@@ -67,8 +85,10 @@ DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const
 #ifndef KICAD_FOOTPRINT_SELECTOR
     // Footprint chooser isn't implemented yet or isn't selected, don't show it.
     m_chooseFootprint->Hide();
+    m_chooseFootprint->GetParent()->Layout();
 #endif
 
+    Bind( wxEVT_TIMER, &DIALOG_CHOOSE_COMPONENT::OnCloseTimer, this );
     Layout();
     Centre();
 
@@ -166,30 +186,48 @@ void DIALOG_CHOOSE_COMPONENT::OnTreeSelect( wxTreeListEvent& aEvent )
 }
 
 
-// Test strategy for OnDoubleClickTreeActivation()/OnTreeMouseUp() work around wxWidgets bug:
-//  - search for an item.
-//  - use the mouse to double-click on an item in the tree.
-//  -> The dialog should close, and the component should _not_ be immediately placed
 void DIALOG_CHOOSE_COMPONENT::OnDoubleClickTreeActivation( wxTreeListEvent& aEvent )
 {
-    if( !updateSelection() )
-        return;
-
-    // Ok, got selection. We don't just end the modal dialog here, but
-    // wait for the MouseUp event to occur. Otherwise something (broken?)
-    // happens: the dialog will close and will deliver the 'MouseUp' event
-    // to the eeschema canvas, that will immediately place the component.
-    m_received_doubleclick_in_tree = true;
+    if( updateSelection() )
+    {
+        // Ok, got selection. We don't just end the modal dialog here, but
+        // wait for the MouseUp event to occur. Otherwise something (broken?)
+        // happens: the dialog will close and will deliver the 'MouseUp' event
+        // to the eeschema canvas, that will immediately place the component.
+        //
+        // NOW, here's where it gets really fun. wxTreeListCtrl eats MouseUp.
+        // This isn't really feasible to bypass without a fully custom
+        // wxDataViewCtrl implementation, and even then might not be fully
+        // possible (docs are vague). To get around this, we use a one-shot
+        // timer to schedule the dialog close.
+        //
+        // See DIALOG_CHOOSE_COMPONENT::OnCloseTimer for the other end of this
+        // spaghetti noodle.
+        m_dbl_click_timer->StartOnce( DIALOG_CHOOSE_COMPONENT::DblClickDelay );
+    }
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::OnTreeMouseUp( wxMouseEvent& aMouseEvent )
+void DIALOG_CHOOSE_COMPONENT::OnCloseTimer( wxTimerEvent& aEvent )
 {
-    if( m_received_doubleclick_in_tree )
-        EndModal( wxID_OK );     // We are done (see OnDoubleClickTreeSelect)
+    // Hack handler because of eaten MouseUp event. See
+    // DIALOG_CHOOSE_COMPONENT::OnDoubleClickTreeActivation for the beginning
+    // of this spaghetti noodle.
+
+    auto state = wxGetMouseState();
+
+    if( state.LeftIsDown() )
+    {
+        // Mouse hasn't been raised yet, so fire the timer again. Otherwise the
+        // purpose of this timer is defeated.
+        m_dbl_click_timer->StartOnce( DIALOG_CHOOSE_COMPONENT::DblClickDelay );
+    }
     else
-        aMouseEvent.Skip();      // Let upstream handle it.
+    {
+        EndModal( wxID_OK );
+    }
 }
+
 
 // Test strategy to see if OnInterceptTreeEnter() works:
 //  - search for an item.
