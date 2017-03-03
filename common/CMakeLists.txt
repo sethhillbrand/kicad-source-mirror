@@ -165,10 +165,12 @@ set( COMMON_DLG_SRCS
     )
 
 set( COMMON_WIDGET_SRCS
+    widgets/color_swatch.cpp
     widgets/mathplot.cpp
     widgets/widget_hotkey_list.cpp
     widgets/two_column_tree_list.cpp
     widgets/footprint_preview_panel.cpp
+    widgets/indicator_icon.cpp
     )
 
 set( COMMON_PAGE_LAYOUT_SRCS
@@ -301,6 +303,11 @@ set( COMMON_SRCS
     tool/context_menu.cpp
     tool/actions.cpp
     tool/common_tools.cpp
+    tool/grid_menu.cpp
+    tool/zoom_menu.cpp
+    tool/tool_menu.cpp
+    tool/conditional_menu.cpp
+    tool/selection_conditions.cpp
 
     geometry/seg.cpp
     geometry/shape.cpp

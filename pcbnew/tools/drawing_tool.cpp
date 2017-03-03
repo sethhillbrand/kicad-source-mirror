@@ -514,6 +514,9 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
                 {
                     LAYER_ID layer = getDrawingLayer();
 
+                    if( layer == Edge_Cuts )    // dimensions are not allowed on EdgeCuts
+                        layer = Dwgs_User;
+
                     // Init the new item attributes
                     dimension = new DIMENSION( m_board );
                     dimension->SetLayer( layer );
@@ -675,7 +678,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
         preview.Add( item );
     }
 
-    BOARD_ITEM* firstItem = preview.Front();
+    BOARD_ITEM* firstItem = static_cast<BOARD_ITEM*>( preview.Front() );
     m_view->Add( &preview );
 
     m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
@@ -696,7 +699,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
             delta = cursorPos - firstItem->GetPosition();
 
             for( auto item : preview )
-                item->Move( wxPoint( delta.x, delta.y ) );
+                static_cast<BOARD_ITEM*>( item )->Move( wxPoint( delta.x, delta.y ) );
 
             m_view->Update( &preview );
         }
@@ -712,7 +715,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
 
                 for( auto item : preview )
                 {
-                    item->Rotate( rotationPoint, rotationAngle );
+                    static_cast<BOARD_ITEM*>( item )->Rotate( rotationPoint, rotationAngle );
                 }
 
                 m_view->Update( &preview );
@@ -720,7 +723,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
             else if( evt->IsAction( &PCB_ACTIONS::flip ) )
             {
                 for( auto item : preview )
-                    item->Flip( wxPoint( cursorPos.x, cursorPos.y ) );
+                    static_cast<BOARD_ITEM*>( item )->Flip( wxPoint( cursorPos.x, cursorPos.y ) );
 
                 m_view->Update( &preview );
             }
@@ -807,7 +810,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
                     }
 
                     if( converted )
-                        converted->SetLayer( item->GetLayer() );
+                        converted->SetLayer( static_cast<BOARD_ITEM*>( item )->GetLayer() );
 
                     delete item;
                     item = converted;
@@ -1114,9 +1117,6 @@ bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
             case SET_ORIGIN:
             {
                 LAYER_ID layer = getDrawingLayer();
-
-                if( layer == Edge_Cuts )    // dimensions are not allowed on EdgeCuts
-                    layer = Dwgs_User;
 
                 // Init the new item attributes
                 aGraphic->SetShape( S_ARC );

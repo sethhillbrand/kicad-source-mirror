@@ -257,6 +257,8 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
     bool lockOverride = false;
 
     controls->ShowCursor( true );
+    controls->SetSnapping( true );
+    controls->SetAutoPan( true );
 
     // cumulative translation
     wxPoint totalMovement( 0, 0 );
@@ -273,7 +275,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
             if( selection.Empty() )
                 break;
 
-            BOARD_ITEM* curr_item = selection.Front();
+            BOARD_ITEM* curr_item = static_cast<BOARD_ITEM*>( selection.Front() );
 
             if( m_dragging && evt->Category() == TC_MOUSE )
             {
@@ -285,7 +287,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
 
                 // Drag items to the current cursor position
                 for( auto item : selection )
-                    item->Move( movement + m_offset );
+                    static_cast<BOARD_ITEM*>( item )->Move( movement + m_offset );
 
                 updateRatsnest( true );
             }
@@ -378,7 +380,8 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
                 // So, instead, reset the position manually
                 for( auto item : selection )
                 {
-                    item->SetPosition( item->GetPosition() - totalMovement );
+                    BOARD_ITEM* i = static_cast<BOARD_ITEM*>( item );
+                    i->SetPosition( i->GetPosition() - totalMovement );
 
                     // And what about flipping and rotation?
                     // for now, they won't be undone, but maybe that is how
@@ -395,7 +398,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
             if( m_dragging )
             {
                 // Update dragging offset (distance between cursor and the first dragged item)
-                m_offset = selection.Front()->GetPosition() - modPoint;
+                m_offset = static_cast<BOARD_ITEM*>( selection.Front() )->GetPosition() - modPoint;
                 getView()->Update( &selection );
                 updateRatsnest( true );
             }
@@ -454,7 +457,7 @@ int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
     else if( selection.Size() == 1 ) // Properties are displayed when there is only one item selected
     {
         // Display properties dialog
-        BOARD_ITEM* item = selection.Front();
+        BOARD_ITEM* item = static_cast<BOARD_ITEM*>( selection.Front() );
 
         // Some of properties dialogs alter pointers, so we should deselect them
         m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
@@ -495,7 +498,7 @@ int EDIT_TOOL::Rotate( const TOOL_EVENT& aEvent )
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        item->Rotate( rotatePoint, rotateAngle );
+        static_cast<BOARD_ITEM*>( item )->Rotate( rotatePoint, rotateAngle );
     }
 
     if( !m_dragging )
@@ -640,7 +643,7 @@ int EDIT_TOOL::Flip( const TOOL_EVENT& aEvent )
     for( auto item : selection )
     {
         m_commit->Modify( item );
-        item->Flip( flipPoint );
+        static_cast<BOARD_ITEM*>( item )->Flip( flipPoint );
     }
 
     if( !m_dragging )
@@ -719,8 +722,8 @@ int EDIT_TOOL::MoveExact( const TOOL_EVENT& aEvent )
         {
 
             m_commit->Modify( item );
-            item->Move( translation );
-            item->Rotate( rotPoint, rotation );
+            static_cast<BOARD_ITEM*>( item )->Move( translation );
+            static_cast<BOARD_ITEM*>( item )->Rotate( rotPoint, rotation );
 
             if( !m_dragging )
                 getView()->Update( item, KIGFX::GEOMETRY );
@@ -760,7 +763,7 @@ int EDIT_TOOL::Duplicate( const TOOL_EVENT& aEvent )
     for( auto item : selection )
     {
         if( item )
-            old_items.push_back( item );
+            old_items.push_back( static_cast<BOARD_ITEM*>( item ) );
     }
 
     for( unsigned i = 0; i < old_items.size(); ++i )
@@ -835,7 +838,7 @@ private:
 
     BOARD_ITEM* getNthItemToArray( int n ) const override
     {
-        return m_selection[n];
+        return static_cast<BOARD_ITEM*>( m_selection[n] );
     }
 
     BOARD* getBoard() const override
@@ -951,10 +954,10 @@ void EDIT_TOOL::updateRatsnest( bool aRedraw )
 
     for( auto item : selection )
     {
-        ratsnest->Update( item );
+        ratsnest->Update( static_cast<BOARD_ITEM*>( item ) );
 
         if( aRedraw )
-            ratsnest->AddSimple( item );
+            ratsnest->AddSimple( static_cast<BOARD_ITEM*>( item ) );
     }
 }
 
@@ -963,7 +966,7 @@ wxPoint EDIT_TOOL::getModificationPoint( const SELECTION& aSelection )
 {
     if( aSelection.Size() == 1 )
     {
-        return aSelection.Front()->GetPosition() - m_offset;
+        return static_cast<BOARD_ITEM*>( aSelection.Front() )->GetPosition() - m_offset;
     }
     else
     {
