@@ -25,35 +25,71 @@
 #define DIALOG_CHOOSE_COMPONENT_H
 
 #include <dialog_choose_component_base.h>
+#include <cmp_tree_model_adapter.h>
 #include <wx/timer.h>
 #include <memory>
 
 class FOOTPRINT_PREVIEW_PANEL;
-class COMPONENT_TREE_SEARCH_CONTAINER;
 class LIB_ALIAS;
 class LIB_PART;
-class wxTreeListItem;
 class SCH_BASE_FRAME;
 
+
+/**
+ * Dialog class to select a component from the libraries. This is the master
+ * View class in a Model-View-Adapter (mediated MVC) architecture. The other
+ * pieces are in:
+ *
+ * - Adapter: CMP_TREE_MODEL_ADAPTER in eeschema/cmp_tree_model_adapter.h
+ * - Model: CMP_TREE_NODE and descendants in eeschema/cmp_tree_model.h
+ *
+ * Because everything is tied together in the adapter class, see that file
+ * for thorough documentation. A simple example usage follows:
+ *
+ *     // Create the adapter class
+ *     auto adapter( Prj().SchLibs() );
+ *
+ *     // Perform any configuration of adapter properties here
+ *     adapter->SetPreselectNode( "TL072", 2 );
+ *
+ *     // Initialize model from PART_LIBs
+ *     for( PART_LIB& lib: *libs )
+ *         adapter->AddLibrary( lib );
+ *
+ *     // Create and display dialog
+ *     DIALOG_CHOOSE_COMPONENT dlg( this, title, adapter, 1 );
+ *     bool selected = ( dlg.ShowModal() != wxID_CANCEL );
+ *
+ *     // Receive part
+ *     if( selected )
+ *     {
+ *         int unit;
+ *         LIB_ALIAS* alias = dlg.GetSelectedAlias( &unit );
+ *         do_something( alias, unit );
+ *     }
+ *
+ */
 class DIALOG_CHOOSE_COMPONENT : public DIALOG_CHOOSE_COMPONENT_BASE
 {
-    SCH_BASE_FRAME* m_parent;
-    COMPONENT_TREE_SEARCH_CONTAINER* const m_search_container;
+    SCH_BASE_FRAME*             m_parent;
+    CMP_TREE_MODEL_ADAPTER::PTR m_adapter;
     int             m_deMorganConvert;
     bool            m_external_browser_requested;
 
 public:
+
     /**
      * Create dialog to choose component.
      *
-     * @param aParent          a SCH_BASE_FRAME parent window.
-     * @param aTitle           Dialog title.
-     * @param aSearchContainer The tree selection search container. Needs to be pre-populated
-     *                         This dialog does not take over ownership of this object.
-     * @param aDeMorganConvert preferred deMorgan conversion (TODO: should happen in dialog)
+     * @param aParent   a SCH_BASE_FRAME parent window.
+     * @param aTitle    Dialog title.
+     * @param aAdapter  CMP_TREE_MODEL_ADAPTER::PTR. See CMP_TREE_MODEL_ADAPTER
+     *                  for documentation.
+     * @param aDeMorganConvert  preferred deMorgan conversion
+     *                          (TODO: should happen in dialog)
      */
     DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const wxString& aTitle,
-                             COMPONENT_TREE_SEARCH_CONTAINER* const aSearchContainer,
+                             CMP_TREE_MODEL_ADAPTER::PTR& aAdapter,
                              int aDeMorganConvert );
     virtual ~DIALOG_CHOOSE_COMPONENT();
     void OnInitDialog( wxInitDialogEvent& event ) override;
@@ -76,11 +112,10 @@ public:
 protected:
     virtual void OnSearchBoxChange( wxCommandEvent& aEvent ) override;
     virtual void OnSearchBoxEnter( wxCommandEvent& aEvent ) override;
-    virtual void OnInterceptSearchBoxKey( wxKeyEvent& aEvent ) override;
+    void OnSearchBoxCharHook( wxKeyEvent& aEvent );
 
-    virtual void OnTreeSelect( wxTreeListEvent& aEvent ) override;
-    virtual void OnDoubleClickTreeActivation( wxTreeListEvent& aEvent ) override;
-    virtual void OnInterceptTreeEnter( wxKeyEvent& aEvent ) override;
+    virtual void OnTreeSelect( wxDataViewEvent& aEvent ) override;
+    virtual void OnTreeActivate( wxDataViewEvent& aEvent ) override;
 
     virtual void OnStartComponentBrowser( wxMouseEvent& aEvent ) override;
     virtual void OnHandlePreviewRepaint( wxPaintEvent& aRepaintEvent ) override;
@@ -90,10 +125,17 @@ protected:
 
 private:
     bool updateSelection();
-    void selectIfValid( const wxTreeListItem& aTreeId );
-    void renderPreview( LIB_PART*      aComponent, int aUnit );
-
     void updateFootprint();
+    void selectIfValid( const wxDataViewItem& aTreeId );
+    void renderPreview( LIB_PART* aComponent, int aUnit );
+
+    /**
+     * Handle the selection of an item. This is called when either the search
+     * box or the tree receive an Enter, or the tree receives a double click.
+     * If the item selected is a category, it is expanded or collapsed; if it
+     * is a component, the component is picked.
+     */
+    void HandleItemSelection();
 
     std::unique_ptr<wxTimer> m_dbl_click_timer;
     FOOTPRINT_PREVIEW_PANEL* m_footprintPreviewPanel;

@@ -29,7 +29,6 @@
 #include <wx/utils.h>
 
 #include <class_library.h>
-#include <component_tree_search_container.h>
 #include <sch_base_frame.h>
 #include <widgets/footprint_preview_panel.h>
 #include <widgets/two_column_tree_list.h>
@@ -38,20 +37,21 @@
 #include <make_unique.h>
 
 // Tree navigation helpers.
-static wxTreeListItem GetPrevItem( const wxTreeListCtrl& tree, const wxTreeListItem& item );
-static wxTreeListItem GetNextItem( const wxTreeListCtrl& tree, const wxTreeListItem& item );
-static wxTreeListItem GetPrevSibling( const wxTreeListCtrl& tree, const wxTreeListItem& item );
+static wxDataViewItem GetPrevItem( const wxDataViewCtrl& ctrl, const wxDataViewItem& item );
+static wxDataViewItem GetNextItem( const wxDataViewCtrl& ctrl, const wxDataViewItem& item );
+static wxDataViewItem GetPrevSibling( const wxDataViewCtrl& ctrl, const wxDataViewItem& item );
+static wxDataViewItem GetNextSibling( const wxDataViewCtrl& ctrl, const wxDataViewItem& item );
 
 DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const wxString& aTitle,
-                                                  COMPONENT_TREE_SEARCH_CONTAINER* const aContainer,
+                                                  CMP_TREE_MODEL_ADAPTER::PTR& aAdapter,
                                                   int aDeMorganConvert )
-    : DIALOG_CHOOSE_COMPONENT_BASE( aParent, wxID_ANY, aTitle ), m_search_container( aContainer ),
+    : DIALOG_CHOOSE_COMPONENT_BASE( aParent, wxID_ANY, aTitle ), m_adapter( aAdapter ),
       m_footprintPreviewPanel( nullptr )
 {
     m_parent = aParent;
     m_deMorganConvert = aDeMorganConvert >= 0 ? aDeMorganConvert : 0;
     m_external_browser_requested = false;
-    m_search_container->SetTree( m_libraryComponentTree );
+    m_adapter->AttachTo( m_libraryComponentTree );
     m_componentView->SetLayoutDirection( wxLayout_LeftToRight );
     m_dbl_click_timer = std::make_unique<wxTimer>( this );
 
@@ -89,19 +89,20 @@ DIALOG_CHOOSE_COMPONENT::DIALOG_CHOOSE_COMPONENT( SCH_BASE_FRAME* aParent, const
 #endif
 
     Bind( wxEVT_TIMER, &DIALOG_CHOOSE_COMPONENT::OnCloseTimer, this );
+    Bind( wxEVT_CHAR_HOOK, &DIALOG_CHOOSE_COMPONENT::OnSearchBoxCharHook, this );
     Layout();
     Centre();
 
     // Per warning in component_tree_search_container.h, this must be called
     // near the end of the constructor.
-    m_search_container->UpdateSearchTerm( wxEmptyString );
+    m_adapter->UpdateSearchString( wxEmptyString );
     updateSelection();
 }
 
 
 DIALOG_CHOOSE_COMPONENT::~DIALOG_CHOOSE_COMPONENT()
 {
-    m_search_container->SetTree( NULL );
+    //m_search_container->SetTree( NULL );
 }
 
 void DIALOG_CHOOSE_COMPONENT::OnInitDialog( wxInitDialogEvent& event )
@@ -112,40 +113,43 @@ void DIALOG_CHOOSE_COMPONENT::OnInitDialog( wxInitDialogEvent& event )
 
 LIB_ALIAS* DIALOG_CHOOSE_COMPONENT::GetSelectedAlias( int* aUnit ) const
 {
-    return m_search_container->GetSelectedAlias( aUnit );
+    auto sel = m_libraryComponentTree->GetSelection();
+
+    if( aUnit && m_adapter->GetUnitFor( sel ) )
+        *aUnit = m_adapter->GetUnitFor( sel );
+
+    return m_adapter->GetAliasFor( sel );
 }
 
 
 void DIALOG_CHOOSE_COMPONENT::OnSearchBoxChange( wxCommandEvent& aEvent )
 {
-    m_search_container->UpdateSearchTerm( m_searchBox->GetLineText( 0 ) );
+    m_adapter->UpdateSearchString( m_searchBox->GetLineText( 0 ) );
     updateSelection();
 }
 
 
 void DIALOG_CHOOSE_COMPONENT::OnSearchBoxEnter( wxCommandEvent& aEvent )
 {
-    EndModal( wxID_OK );   // We are done.
+    HandleItemSelection();
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::selectIfValid( const wxTreeListItem& aTreeId )
+void DIALOG_CHOOSE_COMPONENT::selectIfValid( const wxDataViewItem& aTreeId )
 {
-    if( aTreeId.IsOk() && aTreeId != m_libraryComponentTree->GetRootItem() )
+    if( aTreeId.IsOk() )
+    {
         m_libraryComponentTree->Select( aTreeId );
+        m_libraryComponentTree->EnsureVisible( aTreeId );
+    }
 
     updateSelection();
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::OnInterceptSearchBoxKey( wxKeyEvent& aKeyStroke )
+void DIALOG_CHOOSE_COMPONENT::OnSearchBoxCharHook( wxKeyEvent& aKeyStroke )
 {
-    // Cursor up/down and partiallyi cursor are use to do tree navigation operations.
-    // This is done by intercepting some navigational keystrokes that normally would go to
-    // the text search box (which has the focus by default). That way, we are mostly keyboard
-    // operable.
-    // (If the tree has the focus, it can handle that by itself).
-    const wxTreeListItem sel = m_libraryComponentTree->GetSelection();
+    auto const sel = m_libraryComponentTree->GetSelection();
 
     switch( aKeyStroke.GetKeyCode() )
     {
@@ -157,22 +161,6 @@ void DIALOG_CHOOSE_COMPONENT::OnInterceptSearchBoxKey( wxKeyEvent& aKeyStroke )
         selectIfValid( GetNextItem( *m_libraryComponentTree, sel ) );
         break;
 
-        // The following keys we can only hijack if they are not needed by the textbox itself.
-
-    case WXK_LEFT:
-        if( m_searchBox->GetInsertionPoint() == 0 )
-            m_libraryComponentTree->Collapse( sel );
-        else
-            aKeyStroke.Skip();   // Use for original purpose: move cursor.
-        break;
-
-    case WXK_RIGHT:
-        if( m_searchBox->GetInsertionPoint() >= (long) m_searchBox->GetLineText( 0 ).length() )
-            m_libraryComponentTree->Expand( sel );
-        else
-            aKeyStroke.Skip();   // Use for original purpose: move cursor.
-        break;
-
     default:
         aKeyStroke.Skip();  // Any other key: pass on to search box directly.
         break;
@@ -180,31 +168,16 @@ void DIALOG_CHOOSE_COMPONENT::OnInterceptSearchBoxKey( wxKeyEvent& aKeyStroke )
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::OnTreeSelect( wxTreeListEvent& aEvent )
+void DIALOG_CHOOSE_COMPONENT::OnTreeSelect( wxDataViewEvent& aEvent )
 {
     updateSelection();
 }
 
 
-void DIALOG_CHOOSE_COMPONENT::OnDoubleClickTreeActivation( wxTreeListEvent& aEvent )
+void DIALOG_CHOOSE_COMPONENT::OnTreeActivate( wxDataViewEvent& aEvent )
 {
-    if( updateSelection() )
-    {
-        // Ok, got selection. We don't just end the modal dialog here, but
-        // wait for the MouseUp event to occur. Otherwise something (broken?)
-        // happens: the dialog will close and will deliver the 'MouseUp' event
-        // to the eeschema canvas, that will immediately place the component.
-        //
-        // NOW, here's where it gets really fun. wxTreeListCtrl eats MouseUp.
-        // This isn't really feasible to bypass without a fully custom
-        // wxDataViewCtrl implementation, and even then might not be fully
-        // possible (docs are vague). To get around this, we use a one-shot
-        // timer to schedule the dialog close.
-        //
-        // See DIALOG_CHOOSE_COMPONENT::OnCloseTimer for the other end of this
-        // spaghetti noodle.
-        m_dbl_click_timer->StartOnce( DIALOG_CHOOSE_COMPONENT::DblClickDelay );
-    }
+    updateSelection();
+    HandleItemSelection();
 }
 
 
@@ -229,43 +202,22 @@ void DIALOG_CHOOSE_COMPONENT::OnCloseTimer( wxTimerEvent& aEvent )
 }
 
 
-// Test strategy to see if OnInterceptTreeEnter() works:
-//  - search for an item.
-//  - click into the tree once to set focus on tree; navigate. Press 'Enter'
-//  -> The dialog should close and the component be available to place.
-void DIALOG_CHOOSE_COMPONENT::OnInterceptTreeEnter( wxKeyEvent& aEvent )
-{
-    // We have to do some special handling for double-click on a tree-item because
-    // of some superfluous event delivery bug in wxWidgets (see OnDoubleClickTreeActivation()).
-    // In tree-activation, we assume we got a double-click and need to take special precaution
-    // that the mouse-up event is not delivered to the window one level up by going through
-    // a state-sequence OnDoubleClickTreeActivation() -> OnTreeMouseUp().
-
-    // Pressing 'Enter' within a tree will also call OnDoubleClickTreeActivation(),
-    // but since this is not due to the double-click and we have no way of knowing that it is
-    // not, we need to intercept the 'Enter' key before that to know that it is time to exit.
-    if( aEvent.GetKeyCode() == WXK_RETURN )
-        EndModal( wxID_OK );    // Dialog is done.
-    else
-        aEvent.Skip();          // Let tree handle that key for navigation.
-}
-
-
 void DIALOG_CHOOSE_COMPONENT::OnStartComponentBrowser( wxMouseEvent& aEvent )
 {
     m_external_browser_requested = true;
-    EndModal( wxID_OK );   // We are done.
+    EndModal( wxID_OK );
 }
 
 
 bool DIALOG_CHOOSE_COMPONENT::updateSelection()
 {
-    int unit = 0;
-    LIB_ALIAS* selection = m_search_container->GetSelectedAlias( &unit );
+    auto sel = m_libraryComponentTree->GetSelection();
+    int unit = m_adapter->GetUnitFor( sel );
+    LIB_ALIAS* alias = m_adapter->GetAliasFor( sel );
 
     m_componentView->Refresh();
 
-    if( selection == NULL )
+    if( alias == NULL )
     {
         if( m_footprintPreviewPanel )
         {
@@ -277,7 +229,7 @@ bool DIALOG_CHOOSE_COMPONENT::updateSelection()
         return false;
     }
 
-    m_componentDetails->SetPage( GenerateAliasInfo( selection, unit ) );
+    m_componentDetails->SetPage( GenerateAliasInfo( alias, unit ) );
 
     updateFootprint();
 
@@ -290,14 +242,14 @@ void DIALOG_CHOOSE_COMPONENT::updateFootprint()
     if( !m_footprintPreviewPanel )
         return;
 
-    int dummy_unit = 0;
-    LIB_ALIAS* selection = m_search_container->GetSelectedAlias( &dummy_unit );
+    auto sel = m_libraryComponentTree->GetSelection();
+    LIB_ALIAS* alias = m_adapter->GetAliasFor( sel );
 
-    if( !selection )
+    if( !alias )
         return;
 
     LIB_FIELDS fields;
-    selection->GetPart()->GetFields( fields );
+    alias->GetPart()->GetFields( fields );
 
     for( auto const & field: fields )
     {
@@ -328,16 +280,18 @@ void DIALOG_CHOOSE_COMPONENT::OnDatasheetClick( wxHtmlLinkEvent& aEvent )
 
 void DIALOG_CHOOSE_COMPONENT::OnHandlePreviewRepaint( wxPaintEvent& aRepaintEvent )
 {
-    int unit = 0;
-    LIB_ALIAS*  selection = m_search_container->GetSelectedAlias( &unit );
-    LIB_PART*   part = selection ? selection->GetPart() : NULL;
+    auto sel = m_libraryComponentTree->GetSelection();
+
+    int unit = m_adapter->GetUnitFor( sel );
+    LIB_ALIAS* alias = m_adapter->GetAliasFor( sel );
+    LIB_PART*   part = alias ? alias->GetPart() : NULL;
 
     // Don't draw anything (not even the background) if we don't have
     // a part to show
     if( !part )
         return;
 
-    if( selection->IsRoot() )
+    if( alias->IsRoot() )
     {
         // just show the part directly
         renderPreview( part, unit );
@@ -346,7 +300,7 @@ void DIALOG_CHOOSE_COMPONENT::OnHandlePreviewRepaint( wxPaintEvent& aRepaintEven
     {
         // switch out the name temporarily for the alias name
         wxString tmp( part->GetName() );
-        part->SetName( selection->GetName() );
+        part->SetName( alias->GetName() );
 
         renderPreview( part, unit );
 
@@ -398,55 +352,79 @@ void DIALOG_CHOOSE_COMPONENT::renderPreview( LIB_PART* aComponent, int aUnit )
 }
 
 
-static wxTreeListItem GetPrevItem( const wxTreeListCtrl& tree, const wxTreeListItem& item )
+void DIALOG_CHOOSE_COMPONENT::HandleItemSelection()
 {
-    wxTreeListItem prevItem = GetPrevSibling( tree, item );
+    if( m_adapter->GetAliasFor( m_libraryComponentTree->GetSelection() ) )
+    {
+        // Got a selection. We can't just end the modal dialog here, because
+        // wx leaks some events back to the parent window (in particular, the
+        // MouseUp following a double click).
+        //
+        // NOW, here's where it gets really fun. wxTreeListCtrl eats MouseUp.
+        // This isn't really feasible to bypass without a fully custom
+        // wxDataViewCtrl implementation, and even then might not be fully
+        // possible (docs are vague). To get around this, we use a one-shot
+        // timer to schedule the dialog close.
+        //
+        // See DIALOG_CHOOSE_COMPONENT::OnCloseTimer for the other end of this
+        // spaghetti noodle.
+        m_dbl_click_timer->StartOnce( DIALOG_CHOOSE_COMPONENT::DblClickDelay );
+    }
+    else
+    {
+        auto const sel = m_libraryComponentTree->GetSelection();
+
+        if( m_libraryComponentTree->IsExpanded( sel ) )
+            m_libraryComponentTree->Collapse( sel );
+        else
+            m_libraryComponentTree->Expand( sel );
+    }
+}
+
+
+static wxDataViewItem GetPrevItem( const wxDataViewCtrl& tree, const wxDataViewItem& item )
+{
+    auto prevItem = GetPrevSibling( tree, item );
 
     if( !prevItem.IsOk() )
     {
-        prevItem = tree.GetItemParent( item );
+        prevItem = tree.GetModel()->GetParent( item );
     }
     else if( tree.IsExpanded( prevItem ) )
     {
-        // wxTreeListCtrl has no .GetLastChild. Simulate it
-        prevItem = tree.GetFirstChild( prevItem );
-        wxTreeListItem next;
-        do
-        {
-            next = tree.GetNextSibling( prevItem );
-            if( next.IsOk() )
-            {
-                prevItem = next;
-            }
-        } while( next.IsOk() );
+        wxDataViewItemArray children;
+        tree.GetModel()->GetChildren( prevItem, children );
+        prevItem = children[children.size() - 1];
     }
 
     return prevItem;
 }
 
 
-static wxTreeListItem GetNextItem( const wxTreeListCtrl& tree, const wxTreeListItem& item )
+static wxDataViewItem GetNextItem( const wxDataViewCtrl& tree, const wxDataViewItem& item )
 {
-    wxTreeListItem nextItem;
+    wxDataViewItem nextItem;
 
     if( !item.IsOk() )
-        return nextItem;    // item is not valid: return a not valid wxTreeListItem
+    {
+        // No selection. Select the first.
+        wxDataViewItemArray children;
+        tree.GetModel()->GetChildren( item, children );
+        return children[0];
+    }
 
     if( tree.IsExpanded( item ) )
     {
-        nextItem = tree.GetFirstChild( item );
+        wxDataViewItemArray children;
+        tree.GetModel()->GetChildren( item, children );
+        nextItem = children[0];
     }
     else
     {
-        wxTreeListItem root_cell=  tree.GetRootItem();
-
         // Walk up levels until we find one that has a next sibling.
-        for ( wxTreeListItem walk = item; walk.IsOk(); walk = tree.GetItemParent( walk ) )
+        for ( wxDataViewItem walk = item; walk.IsOk(); walk = tree.GetModel()->GetParent( walk ) )
         {
-            if( walk == root_cell )     // the root cell (not displayed) is reached
-                break;                  // Exit (calling GetNextSibling( root_cell ) crashes.
-
-            nextItem = tree.GetNextSibling( walk );
+            nextItem = GetNextSibling( tree, walk );
 
             if( nextItem.IsOk() )
                 break;
@@ -457,30 +435,47 @@ static wxTreeListItem GetNextItem( const wxTreeListCtrl& tree, const wxTreeListI
 }
 
 
-static wxTreeListItem GetPrevSibling( const wxTreeListCtrl& tree, const wxTreeListItem& item )
+static wxDataViewItem GetPrevSibling( const wxDataViewCtrl& tree, const wxDataViewItem& item )
 {
-    // Why wxTreeListCtrl has no GetPrevSibling when it does have GetNextSibling
-    // is beyond me. wxTreeCtrl has this.
+    wxDataViewItemArray siblings;
+    wxDataViewItem invalid;
+    wxDataViewItem parent = tree.GetModel()->GetParent( item );
 
-    wxTreeListItem last_item;
-    wxTreeListItem parent = tree.GetItemParent( item );
+    tree.GetModel()->GetChildren( parent, siblings );
 
-    if( !parent.IsOk() )
-        return last_item; // invalid signifies not found
-
-    last_item = tree.GetFirstChild( parent );
-    while( last_item.IsOk() )
+    for( size_t i = 0; i < siblings.size(); ++i )
     {
-        wxTreeListItem next_item = tree.GetNextSibling( last_item );
-        if( next_item == item )
+        if( siblings[i] == item )
         {
-            return last_item;
-        }
-        else
-        {
-            last_item = next_item;
+            if( i == 0 )
+                return invalid;
+            else
+                return siblings[i - 1];
         }
     }
 
-    return last_item;
+    return invalid;
+}
+
+
+static wxDataViewItem GetNextSibling( const wxDataViewCtrl& tree, const wxDataViewItem& item )
+{
+    wxDataViewItemArray siblings;
+    wxDataViewItem invalid;
+    wxDataViewItem parent = tree.GetModel()->GetParent( item );
+
+    tree.GetModel()->GetChildren( parent, siblings );
+
+    for( size_t i = 0; i < siblings.size(); ++i )
+    {
+        if( siblings[i] == item )
+        {
+            if( i == siblings.size() - 1 )
+                return invalid;
+            else
+                return siblings[i + 1];
+        }
+    }
+
+    return invalid;
 }

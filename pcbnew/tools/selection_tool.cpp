@@ -89,24 +89,25 @@ TOOL_ACTION PCB_ACTIONS::selectNet( "pcbnew.InteractiveSelection.SelectNet",
         AS_GLOBAL, 0,
         _( "Whole Net" ), _( "Selects all tracks & vias belonging to the same net." ) );
 
-TOOL_ACTION PCB_ACTIONS::selectOnSheet( "pcbnew.InteractiveSelection.SelectOnSheet",
+TOOL_ACTION PCB_ACTIONS::selectOnSheetFromEeschema( "pcbnew.InteractiveSelection.SelectOnSheet",
         AS_GLOBAL,  0,
         _( "Sheet" ), _( "Selects all modules and tracks in the schematic sheet" ) );
 
 TOOL_ACTION PCB_ACTIONS::selectSameSheet( "pcbnew.InteractiveSelection.SelectSameSheet",
-        AS_GLOBAL,  'P',
-        _( "Same Sheet" ), _( "Selects all modules and tracks in the same schematic sheet" ) );
+        AS_GLOBAL,  0,
+        _( "Items in Same Hierarchical Sheet" ),
+        _( "Selects all modules and tracks in the same schematic sheet" ) );
 
 TOOL_ACTION PCB_ACTIONS::find( "pcbnew.InteractiveSelection.Find",
         AS_GLOBAL, 0, //TOOL_ACTION::LegacyHotKey( HK_FIND_ITEM ), // handled by wxWidgets
-        _( "Find Item" ), _( "Searches the document for an item" ), find_xpm );
+        _( "Find Item" ),_( "Searches the document for an item" ), find_xpm );
 
 TOOL_ACTION PCB_ACTIONS::findMove( "pcbnew.InteractiveSelection.FindMove",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_GET_AND_MOVE_FOOTPRINT ) );
 
 TOOL_ACTION PCB_ACTIONS::filterSelection( "pcbnew.InteractiveSelection.FilterSelection",
-        AS_GLOBAL, MD_SHIFT + 'F',
-        _( "Filter selection" ), _( "Filter the types of items in the selection" ),
+        AS_GLOBAL, 0,
+        _( "Filter Selection" ), _( "Filter the types of items in the selection" ),
         nullptr );
 
 
@@ -168,8 +169,7 @@ SELECTION_TOOL::SELECTION_TOOL() :
         m_locked( true ), m_menu( *this ),
         m_priv( std::make_unique<PRIV>() )
 {
-    // Do not leave uninitialized members:
-    m_preliminary = false;
+
 }
 
 
@@ -201,7 +201,6 @@ void SELECTION_TOOL::Reset( RESET_REASON aReason )
 {
     m_frame = getEditFrame<PCB_BASE_FRAME>();
     m_locked = true;
-    m_preliminary = true;
 
     if( aReason == TOOL_BASE::MODEL_RELOAD )
     {
@@ -255,8 +254,6 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
                 selectPoint( evt->Position() );
 
             m_menu.ShowContextMenu( m_selection );
-
-            m_preliminary = emptySelection;
         }
 
         // double click? Display the properties window
@@ -273,14 +270,10 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
         {
             if( m_additive )
             {
-                m_preliminary = false;
-
                 selectMultiple();
             }
             else if( m_selection.Empty() )
             {
-                m_preliminary = false;
-
                 // There is nothing selected, so try to select something
                 if( !selectCursor() )
                 {
@@ -317,9 +310,6 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
 
         else if( evt->Action() == TA_CONTEXT_MENU_CLOSED )
         {
-            if( m_preliminary )
-                clearSelection();
-
             m_menu.CloseContextMenu( evt );
         }
     }
@@ -333,19 +323,31 @@ int SELECTION_TOOL::Main( const TOOL_EVENT& aEvent )
 
 SELECTION& SELECTION_TOOL::GetSelection()
 {
-    // The selected items list has been requested, so it is no longer preliminary
-    m_preliminary = false;
+    return m_selection;
+}
 
-    auto items = m_selection.GetItems();
 
-    // Filter out not modifiable items
-    for( auto item : items )
+SELECTION& SELECTION_TOOL::RequestSelection( int aFlags )
+{
+    if ( m_selection.Empty() )
     {
-        if( !modifiable( static_cast<BOARD_ITEM*>( item ) ) )
+        m_toolMgr->RunAction( PCB_ACTIONS::selectionCursor, true, 0 );
+        m_selection.SetIsHover( true );
+    }
+    else
+    {
+        m_selection.SetIsHover( false );
+    }
+
+    for( auto item : m_selection )
+    {
+        if( ( aFlags & SELECTION_EDITABLE ) && item->Type() == PCB_MARKER_T )
         {
-            m_selection.Remove( item );
+            unselect( static_cast<BOARD_ITEM *>( item ) );
         }
     }
+    if ( aFlags & SELECTION_SANITIZE_PADS )
+        SanitizeSelection();
 
     return m_selection;
 }
@@ -545,7 +547,7 @@ void SELECTION_TOOL::SetTransitions()
     Go( &SELECTION_TOOL::selectCopper, PCB_ACTIONS::selectCopper.MakeEvent() );
     Go( &SELECTION_TOOL::selectNet, PCB_ACTIONS::selectNet.MakeEvent() );
     Go( &SELECTION_TOOL::selectSameSheet, PCB_ACTIONS::selectSameSheet.MakeEvent() );
-    Go( &SELECTION_TOOL::selectOnSheet, PCB_ACTIONS::selectOnSheet.MakeEvent() );
+    Go( &SELECTION_TOOL::selectOnSheetFromEeschema, PCB_ACTIONS::selectOnSheetFromEeschema.MakeEvent() );
 }
 
 
@@ -622,7 +624,6 @@ int SELECTION_TOOL::ClearSelection( const TOOL_EVENT& aEvent )
 
     return 0;
 }
-
 
 int SELECTION_TOOL::SelectItem( const TOOL_EVENT& aEvent )
 {
@@ -775,7 +776,9 @@ int SELECTION_TOOL::selectNet( const TOOL_EVENT& aEvent )
 
     return 0;
 }
-void SELECTION_TOOL::selectAllItemsOnSheet( wxString aSheet )
+
+
+void SELECTION_TOOL::selectAllItemsOnSheet( wxString& aSheetpath )
 {
     auto modules = board()->m_Modules.GetFirst();
     std::list<MODULE*> modList;
@@ -783,7 +786,7 @@ void SELECTION_TOOL::selectAllItemsOnSheet( wxString aSheet )
     // store all modules that are on that sheet
     for( MODULE* mitem = modules; mitem; mitem = mitem->Next() )
     {
-        if( mitem != NULL && mitem->GetPath().Contains( aSheet ) )
+        if( mitem != NULL && mitem->GetPath().Contains( aSheetpath ) )
         {
             modList.push_back( mitem );
         }
@@ -858,40 +861,43 @@ void SELECTION_TOOL::selectAllItemsOnSheet( wxString aSheet )
 
 void SELECTION_TOOL::zoomFitSelection( void )
 {
-	//Should recalculate the view to zoom in on the selection
-	auto selectionBox = m_selection.ViewBBox();
+    //Should recalculate the view to zoom in on the selection
+    auto selectionBox = m_selection.ViewBBox();
     auto canvas = m_frame->GetGalCanvas();
-	auto view = getView();
+    auto view = getView();
 
-	VECTOR2D screenSize = view->ToWorld( canvas->GetClientSize(), false );
+    VECTOR2D screenSize = view->ToWorld( canvas->GetClientSize(), false );
 
-	if( !( selectionBox.GetWidth() == 0 ) || !( selectionBox.GetHeight() == 0 ) )
-	{
-		VECTOR2D vsize = selectionBox.GetSize();
-		double scale = view->GetScale() / std::max( fabs( vsize.x / screenSize.x ),
-				fabs( vsize.y / screenSize.y ) );
-		view->SetScale( scale );
-		view->SetCenter( selectionBox.Centre() );
-		view->Add( &m_selection );
-	}
+    if( !( selectionBox.GetWidth() == 0 ) || !( selectionBox.GetHeight() == 0 ) )
+    {
+        VECTOR2D vsize = selectionBox.GetSize();
+        double scale = view->GetScale() / std::max( fabs( vsize.x / screenSize.x ),
+                fabs( vsize.y / screenSize.y ) );
+        view->SetScale( scale );
+        view->SetCenter( selectionBox.Centre() );
+        view->Add( &m_selection );
+    }
 
-	m_frame->GetGalCanvas()->ForceRefresh();
+    m_frame->GetGalCanvas()->ForceRefresh();
 }
 
-int SELECTION_TOOL::selectOnSheet( const TOOL_EVENT& aEvent )
+
+int SELECTION_TOOL::selectOnSheetFromEeschema( const TOOL_EVENT& aEvent )
 {
     clearSelection();
-    wxString* sheet = aEvent.Parameter<wxString*>();
-    selectAllItemsOnSheet( *sheet );
+    wxString* sheetpath = aEvent.Parameter<wxString*>();
 
-	zoomFitSelection();
+    selectAllItemsOnSheet( *sheetpath );
 
-	if( m_selection.Size() > 0 )
-		m_toolMgr->ProcessEvent( SelectedEvent );
+    zoomFitSelection();
+
+    if( m_selection.Size() > 0 )
+        m_toolMgr->ProcessEvent( SelectedEvent );
 
 
     return 0;
 }
+
 
 int SELECTION_TOOL::selectSameSheet( const TOOL_EVENT& aEvent )
 {
@@ -901,10 +907,13 @@ int SELECTION_TOOL::selectSameSheet( const TOOL_EVENT& aEvent )
     // this function currently only supports modules since they are only
     // on one sheet.
     auto item = m_selection.Front();
+
     if( item->Type() != PCB_MODULE_T )
         return 0;
+
     if( !item )
         return 0;
+
     auto mod = dynamic_cast<MODULE*>( item );
 
     clearSelection();
@@ -1329,16 +1338,6 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
     return board()->IsLayerVisible( aItem->GetLayer() );
 }
 
-
-bool SELECTION_TOOL::modifiable( const BOARD_ITEM* aItem ) const
-{
-    if( aItem->Type() == PCB_MARKER_T )
-        return false;
-
-    return true;
-}
-
-
 void SELECTION_TOOL::select( BOARD_ITEM* aItem )
 {
     if( aItem->IsSelected() )
@@ -1354,8 +1353,9 @@ void SELECTION_TOOL::select( BOARD_ITEM* aItem )
             return;
     }
 
-    selectVisually( aItem );
     m_selection.Add( aItem );
+    selectVisually( aItem );
+
 
     if( m_selection.Size() == 1 )
     {
@@ -1375,8 +1375,8 @@ void SELECTION_TOOL::unselect( BOARD_ITEM* aItem )
     if( !aItem->IsSelected() )
         return;
 
-    unselectVisually( aItem );
     m_selection.Remove( aItem );
+    unselectVisually( aItem );
 
     if( m_selection.Empty() )
     {
@@ -1386,7 +1386,7 @@ void SELECTION_TOOL::unselect( BOARD_ITEM* aItem )
 }
 
 
-void SELECTION_TOOL::selectVisually( BOARD_ITEM* aItem ) const
+void SELECTION_TOOL::selectVisually( BOARD_ITEM* aItem )
 {
     // Hide the original item, so it is shown only on overlay
     aItem->SetSelected();
@@ -1405,10 +1405,12 @@ void SELECTION_TOOL::selectVisually( BOARD_ITEM* aItem ) const
             view()->Update( item, KIGFX::GEOMETRY );
         } );
     }
+
+    view()->Update( &m_selection );
 }
 
 
-void SELECTION_TOOL::unselectVisually( BOARD_ITEM* aItem ) const
+void SELECTION_TOOL::unselectVisually( BOARD_ITEM* aItem )
 {
     // Restore original item visibility
     aItem->ClearSelected();
@@ -1427,6 +1429,8 @@ void SELECTION_TOOL::unselectVisually( BOARD_ITEM* aItem ) const
             view()->Update( item, KIGFX::ALL );
         });
     }
+
+    view()->Update( &m_selection );
 }
 
 
@@ -1791,7 +1795,7 @@ bool SELECTION_TOOL::SanitizeSelection()
             select( item );
 
         // Inform other potentially interested tools
-        m_toolMgr->ProcessEvent( UnselectedEvent );
+        m_toolMgr->ProcessEvent( SelectedEvent );
     }
 
     return true;
@@ -1829,12 +1833,12 @@ const BOX2I SELECTION::ViewBBox() const
     EDA_RECT eda_bbox;
 
     if( Size() == 1 )
-	{
-		eda_bbox = Front()->GetBoundingBox();
-	}
+    {
+        eda_bbox = Front()->GetBoundingBox();
+    }
     else if( Size() > 1 )
     {
-		eda_bbox = Front()->GetBoundingBox();
+        eda_bbox = Front()->GetBoundingBox();
         auto i = m_items.begin();
         ++i;
 
@@ -1843,9 +1847,9 @@ const BOX2I SELECTION::ViewBBox() const
             eda_bbox.Merge( (*i)->GetBoundingBox() );
         }
     }
-	return BOX2I( eda_bbox.GetOrigin(), eda_bbox.GetSize() );
-}
 
+    return BOX2I( eda_bbox.GetOrigin(), eda_bbox.GetSize() );
+}
 
 const KIGFX::VIEW_GROUP::ITEMS SELECTION::updateDrawList() const
 {

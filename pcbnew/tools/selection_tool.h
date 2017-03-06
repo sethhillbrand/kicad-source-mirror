@@ -84,6 +84,15 @@ public:
      */
     SELECTION& GetSelection();
 
+    /**
+     * Function RequestSelection()
+     *
+     * Returns the current selection set, filtered according to aFlags.
+     * If the set is empty, performs the legacy-style hover selection.
+     */
+    SELECTION& RequestSelection( int aFlags = SELECTION_DEFAULT );
+
+
     inline TOOL_MENU& GetToolMenu()
     {
         return m_menu;
@@ -182,13 +191,16 @@ private:
 
     /**
      * Selects all items with the given sheet timestamp name
+     * (the sheet path)
      */
-    void selectAllItemsOnSheet( wxString aSheet );
+    void selectAllItemsOnSheet( wxString& aSheetpath );
 
-    ///> Selects all modules belonging to same sheet.
-    int selectOnSheet( const TOOL_EVENT& aEvent );
+    ///> Selects all modules belonging to same sheet, from Eeschema,
+    ///> using crossprobing
+    int selectOnSheetFromEeschema( const TOOL_EVENT& aEvent );
 
-    ///> Selects all modules belonging to same sheet.
+    ///> Selects all modules belonging to same hierarchical sheet
+    ///> as the selected footprint.
     int selectSameSheet( const TOOL_EVENT& aEvent );
 
     ///> Find dialog callback.
@@ -272,14 +284,14 @@ private:
      * Marks item as selected, but does not add it to the ITEMS_PICKED_LIST.
      * @param aItem is an item to be be marked.
      */
-    void selectVisually( BOARD_ITEM* aItem ) const;
+    void selectVisually( BOARD_ITEM* aItem );
 
     /**
      * Function unselectVisually()
      * Marks item as selected, but does not add it to the ITEMS_PICKED_LIST.
      * @param aItem is an item to be be marked.
      */
-    void unselectVisually( BOARD_ITEM* aItem ) const;
+    void unselectVisually( BOARD_ITEM* aItem );
 
     /**
      * Function selectionContains()
@@ -311,9 +323,6 @@ private:
 
     /// Can other tools modify locked items.
     bool m_locked;
-
-    /// Determines if the selection is preliminary or final.
-    bool m_preliminary;
 
     /// Menu model displayed by the tool.
     TOOL_MENU m_menu;
