@@ -82,7 +82,10 @@ CMP_TREE_MODEL_ADAPTER::CMP_TREE_MODEL_ADAPTER( PART_LIBS* aLibs )
     :m_filter( CMP_FILTER_NONE ),
      m_show_units( true ),
      m_libs( aLibs ),
-     m_preselect_unit( 0 )
+     m_preselect_unit( 0 ),
+     m_col_part( nullptr ),
+     m_col_desc( nullptr ),
+     m_widget( nullptr )
 {}
 
 
@@ -198,10 +201,14 @@ void CMP_TREE_MODEL_ADAPTER::AttachTo( wxDataViewCtrl* aDataViewCtrl )
     aDataViewCtrl->SetIndent( kDataViewIndent );
     aDataViewCtrl->AssociateModel( this );
     aDataViewCtrl->ClearColumns();
-    m_col_part = aDataViewCtrl->AppendTextColumn( _( "Part" ), 0, wxDATAVIEW_CELL_INERT,
-                ColWidth( m_tree, 0 ) );
-    m_col_desc = aDataViewCtrl->AppendTextColumn( _( "Description" ), 1, wxDATAVIEW_CELL_INERT,
-                ColWidth( m_tree, 1 ) );
+
+    wxString part_head = _( "Part" );
+    wxString desc_head = _( "Desc" );
+
+    m_col_part = aDataViewCtrl->AppendTextColumn( part_head, 0, wxDATAVIEW_CELL_INERT,
+                ColWidth( m_tree, 0, part_head ) );
+    m_col_desc = aDataViewCtrl->AppendTextColumn( desc_head, 1, wxDATAVIEW_CELL_INERT,
+                ColWidth( m_tree, 1, desc_head ) );
     aDataViewCtrl->Thaw();
 }
 
@@ -303,38 +310,28 @@ void CMP_TREE_MODEL_ADAPTER::GetValue(
 }
 
 
-int CMP_TREE_MODEL_ADAPTER::Compare(
-        wxDataViewItem const& aFirst, wxDataViewItem const& aSecond,
-        unsigned int aCol, bool aAscending ) const
-{
-    auto node1 = ToNode( aFirst );
-    auto node2 = ToNode( aSecond );
-
-    if( aAscending )
-        return -CMP_TREE_NODE::Compare(*node1, *node2);
-    else
-        return CMP_TREE_NODE::Compare(*node1, *node2);
-}
-
-
-int CMP_TREE_MODEL_ADAPTER::ColWidth( CMP_TREE_NODE& aNode, int aCol )
+int CMP_TREE_MODEL_ADAPTER::ColWidth( CMP_TREE_NODE& aTree, int aCol, wxString const& aHeading )
 {
     const int indent = aCol ? 0 : kDataViewIndent;
-    int max_width = aNode.Score > 0 ? WidthFor( aNode, aCol ) : 0;
 
-    for( auto& node: aNode.Children )
+    int min_width = WidthFor( aHeading, aCol );
+    int width = std::max( aTree.Score > 0 ? WidthFor( aTree, aCol ) : 0, min_width );
+
+    if( aTree.Score > 0 )
     {
-        if( aNode.Score > 0 )
-            max_width = std::max( max_width, ColWidth( *node, aCol ) + indent );
+        for( auto& node: aTree.Children )
+        {
+            width = std::max( width, ColWidth( *node, aCol, aHeading ) + indent );
+        }
     }
 
-    return max_width;
+    return width;
 }
 
 
 int CMP_TREE_MODEL_ADAPTER::WidthFor( CMP_TREE_NODE& aNode, int aCol )
 {
-    auto result = m_width_cache.find( &aNode );
+    auto result = m_width_cache.find( aNode.Name );
 
     if( result != m_width_cache.end() )
     {
@@ -345,10 +342,29 @@ int CMP_TREE_MODEL_ADAPTER::WidthFor( CMP_TREE_NODE& aNode, int aCol )
         int wname = m_widget->GetTextExtent( aNode.Name ).x + kDataViewIndent;
         int wdesc = m_widget->GetTextExtent( aNode.Desc ).x;
 
-        m_width_cache[&aNode][0] = wname;
-        m_width_cache[&aNode][1] = wdesc;
-        return m_width_cache[&aNode][aCol];
+        auto& val = m_width_cache[aNode.Name];
+        val.push_back( wname );
+        val.push_back( wdesc );
+        return val[aCol];
     }
+}
+
+
+int CMP_TREE_MODEL_ADAPTER::WidthFor( wxString const& aHeading, int aCol )
+{
+    static std::vector<int> widths;
+
+    for( int i = (int) widths.size(); i <= aCol; ++i )
+    {
+        widths.push_back( 0 );
+    }
+
+    if( widths[aCol] == 0 )
+    {
+        widths[aCol] = m_widget->GetTextExtent( aHeading ).x;
+    }
+
+    return widths[aCol];
 }
 
 

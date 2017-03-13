@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013 CERN
- * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
+ * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,45 +22,43 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "selection_area.h"
+#include <preview_items/bright_box.h>
 #include <gal/graphics_abstraction_layer.h>
-#include <gal/color4d.h>
-
-#include <view/view.h>
+#include <class_track.h>
 
 using namespace KIGFX;
 
-const BOX2I SELECTION_AREA::ViewBBox() const
-{
-    BOX2I tmp;
+const double BRIGHT_BOX::LINE_WIDTH = 10000.0;
+const COLOR4D BRIGHT_BOX::BOX_COLOR = KIGFX::COLOR4D( 0.0, 1.0, 0.0, 1.0 );
 
-    tmp.SetOrigin( m_origin );
-    tmp.SetEnd( m_end );
-    tmp.Normalize();
-    return tmp;
+BRIGHT_BOX::BRIGHT_BOX() :
+    EDA_ITEM( NOT_USED ),    // this item is never added to a BOARD so it needs no type
+    m_item( nullptr ),
+    m_lineWidth( LINE_WIDTH ),
+    m_color( BOX_COLOR )
+{
 }
 
 
-void SELECTION_AREA::ViewGetLayers( int aLayers[], int& aCount ) const
+void BRIGHT_BOX::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
 {
-    aLayers[0] = SelectionLayer;
-    aCount = 1;
-}
+    if( !m_item )
+        return;
 
-
-void SELECTION_AREA::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
-{
     auto gal = aView->GetGAL();
-    gal->SetLineWidth( 1.0 );
-    gal->SetStrokeColor( COLOR4D( 1.0, 1.0, 0.4, 1.0 ) );
-    gal->SetFillColor( COLOR4D( 0.3, 0.3, 0.5, 0.3 ) );
+
     gal->SetIsStroke( true );
-    gal->SetIsFill( true );
-    gal->DrawRectangle( m_origin, m_end );
+    gal->SetIsFill( false );
+    gal->SetLineWidth( m_lineWidth );
+    gal->SetStrokeColor( m_color );
+
+    BOX2I box = m_item->ViewBBox();
+
+    gal->DrawRectangle( box.GetOrigin(), box.GetOrigin() + box.GetSize() );
 }
 
 
-SELECTION_AREA::SELECTION_AREA() :
-    EDA_ITEM( NOT_USED )    // this item is never added to a BOARD so it needs no type.
+void BRIGHT_BOX::SetItem( EDA_ITEM* aItem )
 {
+    m_item = aItem;
 }

@@ -27,7 +27,7 @@
 
 #include <math/box2.h>
 #include <view/view.h>
-#include <class_board_item.h>
+#include <base_struct.h>
 #include <layers_id_colors_and_visibility.h>
 #include <gal/color4d.h>
 
@@ -44,11 +44,12 @@ public:
 
     virtual const BOX2I ViewBBox() const override
     {
-        BOX2I bb; bb.SetMaximum();
-        return bb;
-
         if( !m_item )
-            return BOX2I();
+        {
+            BOX2I bb;
+            bb.SetMaximum();
+            return bb;
+        }
 
         return m_item->ViewBBox();
     }
@@ -75,13 +76,25 @@ public:
         return wxT( "BRIGHT_BOX" );
     }
 
-    void SetItem( BOARD_ITEM* aItem );
+    void SetItem( EDA_ITEM* aItem );
 
-private:
+    void SetLineWidth( double aWidth )
+    {
+        m_lineWidth = aWidth;
+    }
+
+    void SetColor( KIGFX::COLOR4D aColor )
+    {
+        m_color = aColor;
+    }
+
+protected:
     static const KIGFX::COLOR4D BOX_COLOR;
     static const double LINE_WIDTH;
 
-    BOARD_ITEM* m_item;
+    EDA_ITEM* m_item;
+    double m_lineWidth;
+    KIGFX::COLOR4D m_color;
 };
 
 #endif

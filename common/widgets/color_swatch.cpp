@@ -26,6 +26,8 @@
 #include <wx/colour.h>
 #include <wx/colordlg.h>
 
+#include <memory>
+
 wxDEFINE_EVENT(COLOR_SWATCH_CHANGED, wxCommandEvent);
 
 using KIGFX::COLOR4D;
@@ -85,9 +87,9 @@ COLOR_SWATCH::COLOR_SWATCH( wxWindow* aParent, COLOR4D aColor, int aID,
     SetSizer( sizer );
 
     auto swatch = makeColorSwatch( this, m_color, aID );
-    m_swatch = swatch.get(); // hold a handle
+    m_swatch = swatch.release(); // hold a handle
 
-    sizer->Add( swatch.release(), 0, 0 );
+    sizer->Add( m_swatch, 0, 0 );
 
     // forward click to any other listeners, since we don't want them
     m_swatch->Bind( wxEVT_LEFT_DOWN, &COLOR_SWATCH::rePostEvent, this );
@@ -150,11 +152,11 @@ void COLOR_SWATCH::GetNewSwatchColor()
     {
         wxColourData colourData;
         colourData.SetColour( m_color.ToColour() );
-        wxColourDialog* dialog = new wxColourDialog( this, &colourData );
+        wxColourDialog dialog( this, &colourData );
 
-        if( dialog->ShowModal() == wxID_OK )
+        if( dialog.ShowModal() == wxID_OK )
         {
-            newColor = COLOR4D( dialog->GetColourData().GetColour() );
+            newColor = COLOR4D( dialog.GetColourData().GetColour() );
         }
     }
     else

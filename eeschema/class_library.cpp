@@ -166,24 +166,20 @@ void PART_LIB::GetAliases( std::vector<LIB_ALIAS*>& aAliases )
 
 void PART_LIB::GetEntryTypePowerNames( wxArrayString& aNames )
 {
-    wxArrayString aliases;
+    std::vector<LIB_ALIAS*> aliases;
 
     m_plugin->EnumerateSymbolLib( aliases, fileName.GetFullPath() );
 
-    for( size_t i = 0;  i < aliases.GetCount();  i++ )
+    for( size_t i = 0;  i < aliases.size();  i++ )
     {
-        LIB_ALIAS* alias = m_plugin->LoadSymbol( fileName.GetFullPath(), aliases[i], m_properties.get() );
-
-        wxCHECK2_MSG( alias != NULL, continue,
-                      wxString::Format( "alias '%s' not found in symbol  library '%s'",
-                                        aliases[i], fileName.GetFullPath() ) );
+        LIB_ALIAS* alias = aliases[i];
 
         LIB_PART* root = alias->GetPart();
 
         if( !root || !root->IsPower() )
             continue;
 
-        aNames.Add( aliases[i] );
+        aNames.Add( alias->GetName() );
     }
 
     aNames.Sort();
@@ -210,17 +206,13 @@ LIB_PART* PART_LIB::FindPart( const wxString& aName )
 bool PART_LIB::HasPowerParts()
 {
     // return true if at least one power part is found in lib
-    wxArrayString aliases;
+    std::vector<LIB_ALIAS*> aliases;
 
     m_plugin->EnumerateSymbolLib( aliases, fileName.GetFullPath(), m_properties.get() );
 
-    for( size_t i = 0;  i < aliases.GetCount();  i++ )
+    for( size_t i = 0;  i < aliases.size();  i++ )
     {
-        LIB_ALIAS* alias = m_plugin->LoadSymbol( fileName.GetFullPath(), aliases[i], m_properties.get() );
-
-        wxCHECK2_MSG( alias != NULL, continue,
-                      wxString::Format( "alias '%s' not found in symbol  library '%s'",
-                                        aliases[i], fileName.GetFullPath() ) );
+        LIB_ALIAS* alias = aliases[i];
 
         LIB_PART* root = alias->GetPart();
 
@@ -287,19 +279,18 @@ PART_LIB* PART_LIB::LoadLibrary( const wxString& aFileName ) throw( IO_ERROR, bo
 {
     std::unique_ptr<PART_LIB> lib( new PART_LIB( LIBRARY_TYPE_EESCHEMA, aFileName ) );
 
-    wxArrayString tmp;
+    std::vector<LIB_ALIAS*> aliases;
+    // This loads the library.
+    lib->GetAliases( aliases );
 
-    // This loads the library although we could probably do lazy loading.
-    lib->GetAliasNames( tmp );
-
-    // This not them most efficient way to set the LIB_PART m_library member but it will
-    // only be used when loading legacy libraries in the future.  Once the symbols in the
+    // Now, set the LIB_PART m_library member but it will only be used
+    // when loading legacy libraries in the future. Once the symbols in the
     // schematic have a full #LIB_ID, this will not get called.
-    for( size_t i = 0; i < tmp.GetCount();  i++ )
+    for( size_t ii = 0; ii < aliases.size(); ii++ )
     {
-        LIB_ALIAS* alias = lib->FindAlias( tmp[i] );
+        LIB_ALIAS* alias = aliases[ii];
 
-        if( alias && alias->GetPart() )
+        if( alias->GetPart() )
             alias->GetPart()->SetLib( lib.get() );
     }
 
