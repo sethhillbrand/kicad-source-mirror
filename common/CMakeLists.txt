@@ -185,6 +185,9 @@ set( COMMON_PAGE_LAYOUT_SRCS
     )
 
 set( COMMON_PREVIEW_ITEMS_SRCS
+    preview_items/arc_assistant.cpp
+    preview_items/arc_geom_manager.cpp
+    preview_items/centreline_rect_item.cpp
     preview_items/preview_utils.cpp
     preview_items/ruler_item.cpp
     preview_items/simple_overlay_item.cpp
@@ -369,6 +372,7 @@ set( PCB_COMMON_SRCS
     ../pcbnew/class_zone.cpp
     ../pcbnew/class_zone_settings.cpp
     ../pcbnew/classpcb.cpp
+    ../pcbnew/convert_drawsegment_list_to_polygon.cpp
     ../pcbnew/ratsnest_data.cpp
     ../pcbnew/ratsnest_viewitem.cpp
     ../pcbnew/collectors.cpp

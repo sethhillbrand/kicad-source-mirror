@@ -194,6 +194,10 @@ set( PCBNEW_AUTOROUTER_SRCS
     autorouter/work.cpp
     )
 
+set( PCBNEW_MICROWAVE_SRCS
+    microwave/microwave_inductor.cpp
+    )
+
 set( PCBNEW_CLASS_SRCS
     board_commit.cpp
     tool_modview.cpp
@@ -290,6 +294,7 @@ set( PCBNEW_CLASS_SRCS
     class_footprint_wizard.cpp
     class_action_plugin.cpp
 
+    tools/pcb_tool.cpp
     tools/selection_tool.cpp
     tools/pcb_selection_conditions.cpp
     tools/pcb_bright_box.cpp
@@ -300,6 +305,7 @@ set( PCBNEW_CLASS_SRCS
     tools/edit_tool.cpp
     tools/pcbnew_control.cpp
     tools/pcb_editor_control.cpp
+    tools/microwave_tool.cpp
     tools/module_editor_tools.cpp
     tools/placement_tool.cpp
     tools/pcb_actions.cpp
@@ -315,8 +321,12 @@ set( PCBNEW_CLASS_SRCS
     footprint_preview_panel.cpp
     )
 
-set( PCBNEW_SRCS ${PCBNEW_AUTOROUTER_SRCS} ${PCBNEW_CLASS_SRCS} ${PCBNEW_DIALOGS} )
-
+set( PCBNEW_SRCS
+    ${PCBNEW_AUTOROUTER_SRCS}
+    ${PCBNEW_MICROWAVE_SRCS}
+    ${PCBNEW_CLASS_SRCS}
+    ${PCBNEW_DIALOGS}
+    )
 
 # extra sources from common
 set( PCBNEW_COMMON_SRCS
