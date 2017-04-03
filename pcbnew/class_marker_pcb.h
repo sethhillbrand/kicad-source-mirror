@@ -109,13 +109,15 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  drc_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     const BOX2I ViewBBox() const override
     {
         // The following is based on the PCB_PAINTER::draw( const MARKER_PCB* )
         return BOX2I( m_Pos, VECTOR2I( 1300000, 1300000 ) );
     }
+
+    const EDA_RECT GetBoundingBox() const override;
 
     void ViewGetLayers( int aLayers[], int& aCount ) const override;
 

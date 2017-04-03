@@ -66,9 +66,10 @@ SHADER* OPENGL_GAL::shader = NULL;
 OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
                         wxEvtHandler* aMouseListener, wxEvtHandler* aPaintListener,
                         const wxString& aName ) :
+    GAL( aDisplayOptions ),
     wxGLCanvas( aParent, wxID_ANY, (int*) glAttributes, wxDefaultPosition, wxDefaultSize,
                 wxEXPAND, aName ),
-    options( aDisplayOptions ), mouseListener( aMouseListener ), paintListener( aPaintListener )
+    mouseListener( aMouseListener ), paintListener( aPaintListener )
 {
     if( glMainContext == NULL )
     {
@@ -101,8 +102,6 @@ OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
     SetViewWantsBestResolution( true );
 #endif
 
-    observerLink = options.Subscribe( this );
-
     // Connecting the event handlers
     Connect( wxEVT_PAINT,           wxPaintEventHandler( OPENGL_GAL::onPaint ) );
 
@@ -130,6 +129,7 @@ OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
 
     // Grid color settings are different in Cairo and OpenGL
     SetGridColor( COLOR4D( 0.8, 0.8, 0.8, 0.1 ) );
+    SetAxesColor( COLOR4D( BLUE ) );
 
     // Tesselator initialization
     tesselator = gluNewTess();
@@ -182,18 +182,27 @@ OPENGL_GAL::~OPENGL_GAL()
         GL_CONTEXT_MANAGER::Get().DestroyCtx( glMainContext );
         glMainContext = NULL;
     }
-
 }
 
 
-void OPENGL_GAL::OnGalDisplayOptionsChanged( const GAL_DISPLAY_OPTIONS& aDisplayOptions )
+bool OPENGL_GAL::updatedGalDisplayOptions( const GAL_DISPLAY_OPTIONS& aOptions )
 {
+    bool refresh = false;
+
     if( options.gl_antialiasing_mode != compositor->GetAntialiasingMode() )
     {
         compositor->SetAntialiasingMode( options.gl_antialiasing_mode );
         isFramebufferInitialized = false;
-        Refresh();
+        refresh = true;
     }
+
+    if( super::updatedGalDisplayOptions( aOptions ) || refresh )
+    {
+        Refresh();
+        refresh = true;
+    }
+
+    return refresh;
 }
 
 
@@ -523,12 +532,13 @@ void OPENGL_GAL::DrawArc( const VECTOR2D& aCenterPoint, double aRadius, double a
     // Swap the angles, if start angle is greater than end angle
     SWAP( aStartAngle, >, aEndAngle );
 
+    const double alphaIncrement = calcAngleStep( aRadius );
+
     Save();
     currentManager->Translate( aCenterPoint.x, aCenterPoint.y, 0.0 );
 
     if( isStrokeEnabled )
     {
-        const double alphaIncrement = 2.0 * M_PI / CIRCLE_POINTS;
         currentManager->Color( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
 
         VECTOR2D p( cos( aStartAngle ) * aRadius, sin( aStartAngle ) * aRadius );
@@ -552,7 +562,6 @@ void OPENGL_GAL::DrawArc( const VECTOR2D& aCenterPoint, double aRadius, double a
 
     if( isFillEnabled )
     {
-        const double alphaIncrement = 2 * M_PI / CIRCLE_POINTS;
         double alpha;
         currentManager->Color( fillColor.r, fillColor.g, fillColor.b, fillColor.a );
         currentManager->Shader( SHADER_NONE );
@@ -574,6 +583,96 @@ void OPENGL_GAL::DrawArc( const VECTOR2D& aCenterPoint, double aRadius, double a
         currentManager->Vertex( 0.0, 0.0, 0.0 );
         currentManager->Vertex( cos( alpha ) * aRadius, sin( alpha ) * aRadius, 0.0 );
         currentManager->Vertex( endPoint.x,    endPoint.y,     0.0 );
+    }
+
+    Restore();
+}
+
+
+void OPENGL_GAL::DrawArcSegment( const VECTOR2D& aCenterPoint, double aRadius, double aStartAngle,
+                                 double aEndAngle, double aWidth )
+{
+    if( aRadius <= 0 )
+        return;
+
+    // Swap the angles, if start angle is greater than end angle
+    SWAP( aStartAngle, >, aEndAngle );
+
+    const double alphaIncrement = calcAngleStep( aRadius );
+
+    Save();
+    currentManager->Translate( aCenterPoint.x, aCenterPoint.y, 0.0 );
+
+    if( isStrokeEnabled )
+    {
+        currentManager->Color( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a );
+
+        double width = aWidth / 2.0;
+        VECTOR2D startPoint( cos( aStartAngle ) * aRadius,
+                             sin( aStartAngle ) * aRadius );
+        VECTOR2D endPoint( cos( aEndAngle ) * aRadius,
+                           sin( aEndAngle ) * aRadius );
+
+        drawStrokedSemiCircle( startPoint, width, aStartAngle + M_PI );
+        drawStrokedSemiCircle( endPoint, width, aEndAngle );
+
+        VECTOR2D pOuter( cos( aStartAngle ) * ( aRadius + width ),
+                         sin( aStartAngle ) * ( aRadius + width ) );
+
+        VECTOR2D pInner( cos( aStartAngle ) * ( aRadius - width ),
+                         sin( aStartAngle ) * ( aRadius - width ) );
+
+        double alpha;
+
+        for( alpha = aStartAngle + alphaIncrement; alpha <= aEndAngle; alpha += alphaIncrement )
+        {
+            VECTOR2D pNextOuter( cos( alpha ) * ( aRadius + width ),
+                                 sin( alpha ) * ( aRadius + width ) );
+            VECTOR2D pNextInner( cos( alpha ) * ( aRadius - width ),
+                                 sin( alpha ) * ( aRadius - width ) );
+
+            DrawLine( pOuter, pNextOuter );
+            DrawLine( pInner, pNextInner );
+
+            pOuter = pNextOuter;
+            pInner = pNextInner;
+        }
+
+        // Draw the last missing part
+        if( alpha != aEndAngle )
+        {
+            VECTOR2D pLastOuter( cos( aEndAngle ) * ( aRadius + width ),
+                                 sin( aEndAngle ) * ( aRadius + width ) );
+            VECTOR2D pLastInner( cos( aEndAngle ) * ( aRadius - width ),
+                                 sin( aEndAngle ) * ( aRadius - width ) );
+
+            DrawLine( pOuter, pLastOuter );
+            DrawLine( pInner, pLastInner );
+        }
+    }
+
+    if( isFillEnabled )
+    {
+        currentManager->Color( fillColor.r, fillColor.g, fillColor.b, fillColor.a );
+        SetLineWidth( aWidth );
+
+        VECTOR2D p( cos( aStartAngle ) * aRadius, sin( aStartAngle ) * aRadius );
+        double alpha;
+
+        for( alpha = aStartAngle + alphaIncrement; alpha <= aEndAngle; alpha += alphaIncrement )
+        {
+            VECTOR2D p_next( cos( alpha ) * aRadius, sin( alpha ) * aRadius );
+            DrawLine( p, p_next );
+
+            p = p_next;
+        }
+
+        // Draw the last missing part
+        if( alpha != aEndAngle )
+        {
+            VECTOR2D p_last( cos( aEndAngle ) * aRadius, sin( aEndAngle ) * aRadius );
+            DrawLine( p, p_last );
+        }
     }
 
     Restore();
@@ -632,7 +731,12 @@ void OPENGL_GAL::DrawPolyline( const VECTOR2D aPointList[], int aListSize )
 
 void OPENGL_GAL::DrawPolyline( const SHAPE_LINE_CHAIN& aLineChain )
 {
-    drawPolyline( [&](int idx) { return aLineChain.CPoint(idx); }, aLineChain.PointCount() + 1 );
+    auto numPoints = aLineChain.PointCount();
+
+    if( aLineChain.IsClosed() )
+        numPoints += 1;
+
+    drawPolyline( [&](int idx) { return aLineChain.CPoint(idx); }, numPoints );
 }
 
 
@@ -834,14 +938,17 @@ void OPENGL_GAL::BitmapText( const wxString& aText, const VECTOR2D& aPosition,
 
 void OPENGL_GAL::DrawGrid()
 {
-    if( !gridVisibility )
-        return;
-
     int gridScreenSizeDense  = KiROUND( gridSize.x * worldScale );
     int gridScreenSizeCoarse = KiROUND( gridSize.x * static_cast<double>( gridTick ) * worldScale );
 
+    // sub-pixel lines all render the same
+    double minorLineWidth = std::max( 1.0, gridLineWidth );
+    double majorLineWidth = minorLineWidth * 2.0;
+
+    const double gridThreshold = computeMinGridSpacing();
+
     // Check if the grid would not be too dense
-    if( std::max( gridScreenSizeDense, gridScreenSizeCoarse ) < gridDrawThreshold )
+    if( std::max( gridScreenSizeDense, gridScreenSizeCoarse ) < gridThreshold )
         return;
 
     SetTarget( TARGET_NONCACHED );
@@ -853,6 +960,26 @@ void OPENGL_GAL::DrawGrid()
     VECTOR2D worldStartPoint = screenWorldMatrix * VECTOR2D( 0.0, 0.0 );
     VECTOR2D worldEndPoint = screenWorldMatrix * VECTOR2D( screenSize );
 
+    // Draw axes if desired
+    if( axesEnabled )
+    {
+        glLineWidth( minorLineWidth );
+        glColor4d( axesColor.r, axesColor.g, axesColor.b, 1.0 );
+
+        glBegin( GL_LINES );
+        glVertex2d( worldStartPoint.x, 0 );
+        glVertex2d( worldEndPoint.x, 0 );
+        glEnd();
+
+        glBegin( GL_LINES );
+        glVertex2d( 0, worldStartPoint.y );
+        glVertex2d( 0, worldEndPoint.y );
+        glEnd();
+    }
+
+    if( !gridVisibility )
+        return;
+
     // Compute grid variables
     int gridStartX = KiROUND( worldStartPoint.x / gridSize.x );
     int gridEndX = KiROUND( worldEndPoint.x / gridSize.x );
@@ -863,7 +990,7 @@ void OPENGL_GAL::DrawGrid()
     gridStartY -= std::abs( gridOrigin.y / gridSize.y ) + 1;
     gridEndY += std::abs( gridOrigin.y / gridSize.y ) + 1;
 
-    if ( gridStartX <= gridEndX )
+    if( gridStartX <= gridEndX )
     {
         gridStartX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
         gridEndX += std::abs( gridOrigin.x / gridSize.x ) + 1;
@@ -880,7 +1007,7 @@ void OPENGL_GAL::DrawGrid()
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_TEXTURE_2D );
 
-    if( gridStyle == GRID_STYLE_DOTS )
+    if( gridStyle == GRID_STYLE::DOTS )
     {
         glEnable( GL_STENCIL_TEST );
         glStencilFunc( GL_ALWAYS, 1, 1 );
@@ -892,50 +1019,100 @@ void OPENGL_GAL::DrawGrid()
         glColor4d( gridColor.r, gridColor.g, gridColor.b, 1.0 );
     }
 
-    // Vertical lines
-    for( int j = gridStartY; j != gridEndY; j += dirY )
+    if( gridStyle == GRID_STYLE::SMALL_CROSS )
     {
-        if( j % gridTick == 0 && gridScreenSizeDense > gridDrawThreshold )
-            glLineWidth( 2.0 );
-        else
-            glLineWidth( 1.0 );
+        glLineWidth( minorLineWidth );
 
-        if( ( j % gridTick == 0 && gridScreenSizeCoarse > gridDrawThreshold )
-            || gridScreenSizeDense > gridDrawThreshold )
+        // calculate a line len = 2 minorLineWidth, in internal unit value
+        // (in fact the size of cross is lineLen*2)
+        int lineLen = KiROUND( minorLineWidth / worldScale *2 );
+
+        // Vertical positions
+        for( int j = gridStartY; j != gridEndY; j += dirY )
         {
-            glBegin( GL_LINES );
-            glVertex2d( gridStartX * gridSize.x, j * gridSize.y + gridOrigin.y );
-            glVertex2d( gridEndX * gridSize.x, j * gridSize.y + gridOrigin.y );
-            glEnd();
+            if( ( j % gridTick == 0 && gridScreenSizeCoarse > gridThreshold )
+                || gridScreenSizeDense > gridThreshold )
+            {
+                int posY =  j * gridSize.y + gridOrigin.y;
+
+                // Horizontal positions
+                for( int i = gridStartX; i != gridEndX; i += dirX )
+                {
+                    if( ( i % gridTick == 0 && gridScreenSizeCoarse > gridThreshold )
+                        || gridScreenSizeDense > gridThreshold )
+                    {
+                        int posX = i * gridSize.x + gridOrigin.x;
+
+                        glBegin( GL_LINES );
+                        glVertex2d( posX -lineLen, posY );
+                        glVertex2d( posX + lineLen, posY );
+                        glVertex2d( posX, posY - lineLen );
+                        glVertex2d( posX, posY + lineLen );
+                        glEnd();
+                    }
+                }
+            }
         }
     }
-
-    if( gridStyle == GRID_STYLE_DOTS )
+    else
     {
-        glStencilFunc( GL_NOTEQUAL, 0, 1 );
-        glColor4d( gridColor.r, gridColor.g, gridColor.b, 1.0 );
-    }
-
-    // Horizontal lines
-    for( int i = gridStartX; i != gridEndX; i += dirX )
-    {
-        if( i % gridTick == 0 && gridScreenSizeDense > gridDrawThreshold )
-            glLineWidth( 2.0 );
-        else
-            glLineWidth( 1.0 );
-
-        if( ( i % gridTick == 0 && gridScreenSizeCoarse > gridDrawThreshold )
-            || gridScreenSizeDense > gridDrawThreshold )
+        // Vertical lines
+        for( int j = gridStartY; j != gridEndY; j += dirY )
         {
-            glBegin( GL_LINES );
-            glVertex2d( i * gridSize.x + gridOrigin.x, gridStartY * gridSize.y );
-            glVertex2d( i * gridSize.x + gridOrigin.x, gridEndY * gridSize.y );
-            glEnd();
-        }
-    }
+            const double y = j * gridSize.y + gridOrigin.y;
 
-    if( gridStyle == GRID_STYLE_DOTS )
-        glDisable( GL_STENCIL_TEST );
+            // If axes are drawn, skip the lines that would cover them
+            if( axesEnabled && y == 0 )
+                continue;
+
+            if( j % gridTick == 0 && gridScreenSizeDense > gridThreshold )
+                glLineWidth( majorLineWidth );
+            else
+                glLineWidth( minorLineWidth );
+
+            if( ( j % gridTick == 0 && gridScreenSizeCoarse > gridThreshold )
+                || gridScreenSizeDense > gridThreshold )
+            {
+                glBegin( GL_LINES );
+                glVertex2d( gridStartX * gridSize.x, y );
+                glVertex2d( gridEndX * gridSize.x, y );
+                glEnd();
+            }
+        }
+
+        if( gridStyle == GRID_STYLE::DOTS )
+        {
+            glStencilFunc( GL_NOTEQUAL, 0, 1 );
+            glColor4d( gridColor.r, gridColor.g, gridColor.b, 1.0 );
+        }
+
+        // Horizontal lines
+        for( int i = gridStartX; i != gridEndX; i += dirX )
+        {
+            const double x = i * gridSize.x + gridOrigin.x;
+
+            // If axes are drawn, skip the lines that would cover them
+            if( axesEnabled && x == 0 )
+                continue;
+
+            if( i % gridTick == 0 && gridScreenSizeDense > gridThreshold )
+                glLineWidth( majorLineWidth );
+            else
+                glLineWidth( minorLineWidth );
+
+            if( ( i % gridTick == 0 && gridScreenSizeCoarse > gridThreshold )
+                || gridScreenSizeDense > gridThreshold )
+            {
+                glBegin( GL_LINES );
+                glVertex2d( i * gridSize.x + gridOrigin.x, gridStartY * gridSize.y );
+                glVertex2d( i * gridSize.x + gridOrigin.x, gridEndY * gridSize.y );
+                glEnd();
+            }
+        }
+
+        if( gridStyle == GRID_STYLE::DOTS )
+            glDisable( GL_STENCIL_TEST );
+    }
 
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_TEXTURE_2D );

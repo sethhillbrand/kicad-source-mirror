@@ -37,6 +37,7 @@
 #include <dialog_helpers.h>
 #include <pcbnew_id.h>
 #include <hotkeys.h>
+#include <bitmaps.h>
 
 
 void FOOTPRINT_EDIT_FRAME::ReCreateHToolbar()
@@ -193,6 +194,11 @@ void FOOTPRINT_EDIT_FRAME::ReCreateVToolbar()
     m_drawToolBar->AddTool( ID_MODEDIT_PLACE_GRID_COORD, wxEmptyString,
                             KiBitmap( grid_select_axis_xpm ),
                             _( "Set the origin point for the grid" ),
+                            wxITEM_CHECK );
+
+    m_drawToolBar->AddTool( ID_MODEDIT_MEASUREMENT_TOOL, wxEmptyString,
+                            KiBitmap( measurement_xpm ),
+                            _( "Measure distance between two points" ),
                             wxITEM_CHECK );
 
     m_drawToolBar->Realize();

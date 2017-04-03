@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2010-2014 Jean-Pierre Charras, jean-pierre.charras at wanadoo.fr
- * Copyright (C) 1992-2014 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,17 +27,20 @@
  */
 #include <dialog_display_options_base.h>
 
+class GAL_OPTIONS_PANEL;
+
 class DIALOG_DISPLAY_OPTIONS : public DIALOG_DISPLAY_OPTIONS_BASE
 {
-private:
-   PCB_EDIT_FRAME* m_Parent;
-
-   void init();
-
 public:
    DIALOG_DISPLAY_OPTIONS( PCB_EDIT_FRAME* parent );
-   ~DIALOG_DISPLAY_OPTIONS( ) { };
-   void OnOkClick( wxCommandEvent& event ) override;
-   void OnCancelClick( wxCommandEvent& event ) override;
+   ~DIALOG_DISPLAY_OPTIONS() {};
+
+   bool TransferDataFromWindow() override;
+   bool TransferDataToWindow() override;
+
+private:
+   PCB_EDIT_FRAME* m_parent;
+
+   GAL_OPTIONS_PANEL* m_galOptsPanel;
 };
 

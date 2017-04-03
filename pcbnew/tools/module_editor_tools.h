@@ -26,7 +26,6 @@
 #define MODULE_EDITOR_TOOLS_H
 
 #include <tool/tool_interactive.h>
-#include <origin_viewitem.h>
 
 namespace KIGFX
 {
@@ -49,9 +48,6 @@ public:
 
     /// @copydoc TOOL_INTERACTIVE::Reset()
     void Reset( RESET_REASON aReason ) override;
-
-    /// @copydoc TOOL_INTERACTIVE::Init()
-    bool Init() override;
 
     /**
      * Function PlacePad()
@@ -108,9 +104,6 @@ private:
     KIGFX::VIEW_CONTROLS* m_controls;
     BOARD* m_board;
     PCB_EDIT_FRAME* m_frame;
-
-    ///> Axis 0 marker
-    KIGFX::ORIGIN_VIEWITEM* m_axisOrigin;
 
 };
 

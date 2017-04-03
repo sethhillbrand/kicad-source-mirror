@@ -32,7 +32,7 @@
 #include <wx_html_report_panel.h>
 #include <board_netlist_updater.h>
 #include <tool/tool_manager.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 #include <class_draw_panel_gal.h>
 #include <class_drawpanel.h>
 #include <class_board.h>
@@ -70,13 +70,13 @@ void DIALOG_UPDATE_PCB::PerformUpdate( bool aDryRun )
 
     // keep trace of the initial baord area, if we want to place new footprints
     // outside the existinag board
-    EDA_RECT bbox = board->ComputeBoundingBox( false );
+    EDA_RECT bbox = board->GetBoundingBox();
 
     if( !aDryRun )
     {
 
         // Clear selection, just in case a selected item has to be removed
-        toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
+        toolManager->RunAction( PCB_ACTIONS::selectionClear, true );
     }
 
     m_netlist->SetDeleteExtraFootprints( true );
@@ -135,7 +135,7 @@ void DIALOG_UPDATE_PCB::PerformUpdate( bool aDryRun )
         {
             for( MODULE* footprint : newFootprints )
             {
-                toolManager->RunAction( COMMON_ACTIONS::selectItem, true, footprint );
+                toolManager->RunAction( PCB_ACTIONS::selectItem, true, footprint );
             }
 
             toolManager->InvokeTool( "pcbnew.InteractiveEdit" );

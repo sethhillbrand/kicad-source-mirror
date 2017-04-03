@@ -26,12 +26,13 @@
 #ifndef __TOOL_MANAGER_H
 #define __TOOL_MANAGER_H
 
-#include <deque>
 #include <typeinfo>
 #include <map>
 #include <list>
+#include <stack>
 
 #include <tool/tool_base.h>
+#include <view/view_controls.h>
 
 class TOOL_BASE;
 class ACTION_MANAGER;
@@ -47,10 +48,19 @@ class wxWindow;
  */
 class TOOL_MANAGER
 {
+private:
+    struct TOOL_STATE;
+
 public:
     TOOL_MANAGER();
 
     ~TOOL_MANAGER();
+
+    // Helper typedefs
+    typedef std::map<TOOL_BASE*, TOOL_STATE*> TOOL_STATE_MAP;
+    typedef std::map<std::string, TOOL_STATE*> NAME_STATE_MAP;
+    typedef std::map<TOOL_ID, TOOL_STATE*> ID_STATE_MAP;
+    typedef std::list<TOOL_ID> ID_LIST;
 
     /**
      * Generates a unique ID from for a tool with given name.
@@ -210,7 +220,7 @@ public:
      * Propagates an event to tools that requested events of matching type(s).
      * @param aEvent is the event to be processed.
      */
-    bool ProcessEvent( const TOOL_EVENT& aEvent );
+    void ProcessEvent( const TOOL_EVENT& aEvent );
 
     /**
      * Puts an event to the event queue to be processed at the end of event processing cycle.
@@ -257,7 +267,7 @@ public:
      */
     inline int GetCurrentToolId() const
     {
-        return m_activeTools.front();
+        return m_activeTools.empty() ? -1 : m_activeTools.front();
     }
 
     /**
@@ -268,6 +278,16 @@ public:
     inline TOOL_BASE* GetCurrentTool() const
     {
         return FindTool( GetCurrentToolId() );
+    }
+
+    /**
+     * Returns the TOOL_STATE object representing the state of the active tool. If there are no
+     * tools active, it returns nullptr.
+     */
+    TOOL_STATE* GetCurrentToolState() const
+    {
+        auto it = m_toolIdIndex.find( GetCurrentToolId() );
+        return ( it != m_toolIdIndex.end() ) ? it->second : nullptr;
     }
 
     /**
@@ -332,7 +352,6 @@ public:
     std::string GetClipboard() const;
 
 private:
-    struct TOOL_STATE;
     typedef std::pair<TOOL_EVENT_LIST, TOOL_STATE_FUNC> TRANSITION;
 
     /**
@@ -406,11 +425,10 @@ private:
      * Deactivates a tool and does the necessary clean up.
      *
      * @param aState is the state variable of the tool to be stopped.
-     * @param aDeactivate decides if the tool should be removed from the active tools set.
-     * @return True if the tool should be deactivated (note it does not necessarily  mean it has
-     * been deactivated, aDeactivate parameter decides).
+     * @return m_activeTools iterator. If the tool has been completely deactivated, it points
+     * to the next active tool on the list. Otherwise it is an iterator pointing to aState.
      */
-    bool finishTool( TOOL_STATE* aState, bool aDeactivate = true );
+    ID_LIST::iterator finishTool( TOOL_STATE* aState );
 
     /**
      * Function isRegistered()
@@ -433,23 +451,54 @@ private:
      */
     bool isActive( TOOL_BASE* aTool );
 
+    /**
+     * Function saveViewControls()
+     * Saves the VIEW_CONTROLS settings to the tool state object. If VIEW_CONTROLS
+     * settings are affected by TOOL_MANAGER, the original settings are saved.
+     */
+    void saveViewControls( TOOL_STATE* aState );
+
+    /**
+     * Function applyViewControls()
+     * Applies VIEW_CONTROLS settings stored in a TOOL_STATE object.
+     */
+    void applyViewControls( TOOL_STATE* aState );
+
+    /**
+     * Function pushViewControls()
+     * Stores the current VIEW_CONTROLS settings on the stack.
+     */
+    void pushViewControls();
+
+    /**
+     * Function pushViewControls()
+     * Restores VIEW_CONTROLS settings from the stack.
+     */
+    void popViewControls();
+
+    ///> Main function for event processing.
+    void processEvent( const TOOL_EVENT& aEvent );
+
     /// Index of registered tools current states, associated by tools' objects.
-    std::map<TOOL_BASE*, TOOL_STATE*> m_toolState;
+    TOOL_STATE_MAP m_toolState;
 
     /// Index of the registered tools current states, associated by tools' names.
-    std::map<std::string, TOOL_STATE*> m_toolNameIndex;
+    NAME_STATE_MAP m_toolNameIndex;
+
+    /// Index of the registered tools current states, associated by tools' ID numbers.
+    ID_STATE_MAP m_toolIdIndex;
 
     /// Index of the registered tools to easily lookup by their type.
     std::map<const char*, TOOL_BASE*> m_toolTypes;
 
-    /// Index of the registered tools current states, associated by tools' ID numbers.
-    std::map<TOOL_ID, TOOL_STATE*> m_toolIdIndex;
-
     /// Stack of the active tools
-    std::list<TOOL_ID> m_activeTools;
+    ID_LIST m_activeTools;
 
     /// Instance of ACTION_MANAGER that handles TOOL_ACTIONs
     ACTION_MANAGER* m_actionMgr;
+
+    /// Original cursor position, if overridden by the context menu handler
+    boost::optional<VECTOR2D> m_origCursor;
 
     EDA_ITEM* m_model;
     KIGFX::VIEW* m_view;
@@ -459,8 +508,14 @@ private:
     /// Queue that stores events to be processed at the end of the event processing cycle.
     std::list<TOOL_EVENT> m_eventQueue;
 
+    ///> VIEW_CONTROLS settings stack
+    std::stack<KIGFX::VC_SETTINGS> m_vcStack;
+
     /// Flag saying if the currently processed event should be passed to other tools.
     bool m_passEvent;
+
+    /// Flag indicating whether a context menu is currently displayed
+    bool m_menuActive;
 };
 
 #endif

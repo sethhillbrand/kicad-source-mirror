@@ -31,10 +31,11 @@ using namespace std::placeholders;
 #include <geometry/seg.h>
 #include <confirm.h>
 
-#include "common_actions.h"
+#include "pcb_actions.h"
 #include "selection_tool.h"
 #include "point_editor.h"
 #include <board_commit.h>
+#include <bitmaps.h>
 
 #include <wxPcbStruct.h>
 #include <class_edge_mod.h>
@@ -43,6 +44,16 @@ using namespace std::placeholders;
 #include <class_board.h>
 #include <class_module.h>
 #include <ratsnest_data.h>
+
+// Point editor
+TOOL_ACTION PCB_ACTIONS::pointEditorAddCorner( "pcbnew.PointEditor.addCorner",
+        AS_GLOBAL, 0,
+        _( "Create Corner" ), _( "Create a corner" ), add_corner_xpm );
+
+TOOL_ACTION PCB_ACTIONS::pointEditorRemoveCorner( "pcbnew.PointEditor.removeCorner",
+        AS_GLOBAL, 0,
+        _( "Remove Corner" ), _( "Remove corner" ), delete_xpm );
+
 
 // Few constants to avoid using bare numbers for point indices
 enum SEG_POINTS
@@ -213,8 +224,8 @@ bool POINT_EDITOR::Init()
     }
 
     auto& menu = m_selectionTool->GetToolMenu().GetMenu();
-    menu.AddItem( COMMON_ACTIONS::pointEditorAddCorner, POINT_EDITOR::addCornerCondition );
-    menu.AddItem( COMMON_ACTIONS::pointEditorRemoveCorner,
+    menu.AddItem( PCB_ACTIONS::pointEditorAddCorner, POINT_EDITOR::addCornerCondition );
+    menu.AddItem( PCB_ACTIONS::pointEditorRemoveCorner,
                   std::bind( &POINT_EDITOR::removeCornerCondition, this, _1 ) );
 
     return true;
@@ -243,113 +254,109 @@ int POINT_EDITOR::OnSelectionChange( const TOOL_EVENT& aEvent )
 {
     const SELECTION& selection = m_selectionTool->GetSelection();
 
-    if( selection.Size() == 1 )
+    if( selection.Size() != 1 )
+        return 0;
+
+    Activate();
+
+    KIGFX::VIEW_CONTROLS* controls = getViewControls();
+    KIGFX::VIEW* view = getView();
+    PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
+    auto item = selection.Front();
+
+    m_editPoints = EDIT_POINTS_FACTORY::Make( item, getView()->GetGAL() );
+
+    if( !m_editPoints )
+        return 0;
+
+    view->Add( m_editPoints.get() );
+    m_editedPoint = NULL;
+    bool modified = false;
+
+    BOARD_COMMIT commit( editFrame );
+
+    // Main loop: keep receiving events
+    while( OPT_TOOL_EVENT evt = Wait() )
     {
-        Activate();
-
-        KIGFX::VIEW_CONTROLS* controls = getViewControls();
-        KIGFX::VIEW* view = getView();
-        PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
-        auto item = selection.Front();
-
-        m_editPoints = EDIT_POINTS_FACTORY::Make( item, getView()->GetGAL() );
-
-        if( !m_editPoints )
-            return 0;
-
-        view->Add( m_editPoints.get() );
-        m_editedPoint = NULL;
-        bool modified = false;
-
-        BOARD_COMMIT commit( editFrame );
-
-        // Main loop: keep receiving events
-        while( OPT_TOOL_EVENT evt = Wait() )
+        if( !m_editPoints ||
+            evt->Matches( m_selectionTool->ClearedEvent ) ||
+            evt->Matches( m_selectionTool->UnselectedEvent ) ||
+            evt->Matches( m_selectionTool->SelectedEvent ) )
         {
-            if( !m_editPoints ||
-                evt->Matches( m_selectionTool->ClearedEvent ) ||
-                evt->Matches( m_selectionTool->UnselectedEvent ) ||
-                evt->Matches( m_selectionTool->SelectedEvent ) )
+            break;
+        }
+
+        if ( !modified )
+            updateEditedPoint( *evt );
+
+        if( evt->IsDrag( BUT_LEFT ) && m_editedPoint )
+        {
+            if( !modified )
             {
-                break;
+                commit.StageItems( selection, CHT_MODIFY );
+
+                controls->ForceCursorPosition( false );
+                m_original = *m_editedPoint;    // Save the original position
+                controls->SetAutoPan( true );
+                modified = true;
             }
 
-            if ( !modified )
-                updateEditedPoint( *evt );
+            bool enableAltConstraint = !!evt->Modifier( MD_CTRL );
 
-            if( evt->IsDrag( BUT_LEFT ) && m_editedPoint )
-            {
-                if( !modified )
-                {
-                    commit.StageItems( selection, CHT_MODIFY );
+            if( enableAltConstraint != (bool) m_altConstraint )  // alternative constraint
+                setAltConstraint( enableAltConstraint );
 
-                    controls->ForceCursorPosition( false );
-                    m_original = *m_editedPoint;    // Save the original position
-                    controls->SetAutoPan( true );
-                    modified = true;
-                }
+            m_editedPoint->SetPosition( controls->GetCursorPosition() );
 
-                bool enableAltConstraint = !!evt->Modifier( MD_CTRL );
-
-                if( enableAltConstraint != (bool) m_altConstraint )  // alternative constraint
-                    setAltConstraint( enableAltConstraint );
-
-                m_editedPoint->SetPosition( controls->GetCursorPosition() );
-
-                if( m_altConstraint )
-                    m_altConstraint->Apply();
-                else
-                    m_editedPoint->ApplyConstraint();
-
-                updateItem();
-                updatePoints();
-            }
-
-            else if( evt->IsMouseUp( BUT_LEFT ) )
-            {
-                controls->SetAutoPan( false );
-                setAltConstraint( false );
-
-                if( modified )
-                {
-                    commit.Push( _( "Drag a line ending" ) );
-                    modified = false;
-                }
-
-                m_toolMgr->PassEvent();
-            }
-
-            else if( evt->IsCancel() )
-            {
-                if( modified )      // Restore the last change
-                {
-                    commit.Revert();
-                    updatePoints();
-                    modified = false;
-                }
-
-                // Let the selection tool receive the event too
-                m_toolMgr->PassEvent();
-
-                break;
-            }
-
+            if( m_altConstraint )
+                m_altConstraint->Apply();
             else
-            {
-                m_toolMgr->PassEvent();
-            }
+                m_editedPoint->ApplyConstraint();
+
+            updateItem();
+            updatePoints();
         }
 
-        if( m_editPoints )
+        else if( evt->IsMouseUp( BUT_LEFT ) )
         {
-            finishItem();
-            view->Remove( m_editPoints.get() );
-            m_editPoints.reset();
+            controls->SetAutoPan( false );
+            setAltConstraint( false );
+
+            if( modified )
+            {
+                commit.Push( _( "Drag a line ending" ) );
+                modified = false;
+            }
+
+            m_toolMgr->PassEvent();
         }
 
-        controls->ShowCursor( false );
-        controls->SetAutoPan( false );
-        controls->SetSnapping( false );
+        else if( evt->IsCancel() )
+        {
+            if( modified )      // Restore the last change
+            {
+                commit.Revert();
+                updatePoints();
+                modified = false;
+            }
+
+            // Let the selection tool receive the event too
+            m_toolMgr->PassEvent();
+
+            break;
+        }
+
+        else
+        {
+            m_toolMgr->PassEvent();
+        }
+    }
+
+    if( m_editPoints )
+    {
+        finishItem();
+        view->Remove( m_editPoints.get() );
+        m_editPoints.reset();
     }
 
     return 0;
@@ -457,6 +464,8 @@ void POINT_EDITOR::updateItem() const
             outline->SetX( i, point.x );
             outline->SetY( i, point.y );
         }
+
+        outline->Hatch();
 
         break;
     }
@@ -711,9 +720,9 @@ EDIT_POINT POINT_EDITOR::get45DegConstrainer() const
 
 void POINT_EDITOR::SetTransitions()
 {
-    Go( &POINT_EDITOR::addCorner, COMMON_ACTIONS::pointEditorAddCorner.MakeEvent() );
-    Go( &POINT_EDITOR::removeCorner, COMMON_ACTIONS::pointEditorRemoveCorner.MakeEvent() );
-    Go( &POINT_EDITOR::modifiedSelection, COMMON_ACTIONS::editModifiedSelection.MakeEvent() );
+    Go( &POINT_EDITOR::addCorner, PCB_ACTIONS::pointEditorAddCorner.MakeEvent() );
+    Go( &POINT_EDITOR::removeCorner, PCB_ACTIONS::pointEditorRemoveCorner.MakeEvent() );
+    Go( &POINT_EDITOR::modifiedSelection, PCB_ACTIONS::editModifiedSelection.MakeEvent() );
     Go( &POINT_EDITOR::OnSelectionChange, SELECTION_TOOL::SelectedEvent );
     Go( &POINT_EDITOR::OnSelectionChange, SELECTION_TOOL::UnselectedEvent );
 }

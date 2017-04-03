@@ -114,7 +114,7 @@ void GERBER_LAYER_WIDGET::ReFillRender()
 
     for( unsigned row=0;  row<DIM(renderRows);  ++row )
     {
-        if( renderRows[row].color != -1 )       // does this row show a color?
+        if( renderRows[row].color != COLOR4D::UNSPECIFIED )       // does this row show a color?
         {
             renderRows[row].color = myframe->GetVisibleElementColor(
                                     (GERBER_VISIBLE_ID)renderRows[row].id );
@@ -252,7 +252,7 @@ void GERBER_LAYER_WIDGET::ReFill()
 
 //-----<LAYER_WIDGET callbacks>-------------------------------------------
 
-void GERBER_LAYER_WIDGET::OnLayerColorChange( int aLayer, EDA_COLOR_T aColor )
+void GERBER_LAYER_WIDGET::OnLayerColorChange( int aLayer, COLOR4D aColor )
 {
     myframe->SetLayerColor( aLayer, aColor );
     myframe->m_SelLayerBox->ResyncBitmapOnly();
@@ -291,7 +291,7 @@ void GERBER_LAYER_WIDGET::OnLayerVisible( int aLayer, bool isVisible, bool isFin
         myframe->GetCanvas()->Refresh();
 }
 
-void GERBER_LAYER_WIDGET::OnRenderColorChange( int aId, EDA_COLOR_T aColor )
+void GERBER_LAYER_WIDGET::OnRenderColorChange( int aId, COLOR4D aColor )
 {
     myframe->SetVisibleElementColor( (GERBER_VISIBLE_ID)aId, aColor );
     myframe->GetCanvas()->Refresh();
@@ -313,25 +313,4 @@ void GERBER_LAYER_WIDGET::OnRenderEnable( int aId, bool isEnabled )
 bool GERBER_LAYER_WIDGET::useAlternateBitmap(int aRow)
 {
     return GetImagesList()->GetGbrImage( aRow ) != NULL;
-}
-
-/*
- * Update the layer manager icons (layers only)
- * Useful when loading a file or clearing a layer because they change
- */
-void GERBER_LAYER_WIDGET::UpdateLayerIcons()
-{
-    int row_count = GetLayerRowCount();
-    for( int row = 0; row < row_count ; row++ )
-    {
-        wxStaticBitmap* bm = (wxStaticBitmap*) getLayerComp( row, COLUMN_ICON_ACTIVE );
-        if( bm == NULL)
-            continue;
-
-        if( row == m_CurrentRow )
-            bm->SetBitmap( useAlternateBitmap(row) ? *m_RightArrowAlternateBitmap :
-                           *m_RightArrowBitmap );
-        else
-            bm->SetBitmap( useAlternateBitmap(row) ? *m_BlankAlternateBitmap : *m_BlankBitmap );
-    }
 }

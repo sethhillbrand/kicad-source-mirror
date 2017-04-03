@@ -50,6 +50,8 @@ PCB_RENDER_SETTINGS::PCB_RENDER_SETTINGS()
     m_netNamesOnTracks = true;
     m_displayZone = DZ_SHOW_FILLED;
     m_clearance = CL_NONE;
+    m_sketchBoardGfx = false;
+    m_sketchFpGfx = false;
 
     // By default everything should be displayed as filled
     for( unsigned int i = 0; i < TOTAL_LAYER_COUNT; ++i )
@@ -64,10 +66,13 @@ PCB_RENDER_SETTINGS::PCB_RENDER_SETTINGS()
 void PCB_RENDER_SETTINGS::ImportLegacyColors( const COLORS_DESIGN_SETTINGS* aSettings )
 {
     for( int i = 0; i < LAYER_ID_COUNT; i++ )
-        m_layerColors[i] = m_legacyColorMap[aSettings->GetLayerColor( i )];
+    {
+        m_layerColors[i] = aSettings->GetLayerColor( i );
+        m_layerColors[i].a = 0.8;   // slightly transparent
+    }
 
     for( int i = 0; i < END_PCB_VISIBLE_LIST; i++ )
-        m_layerColors[ITEM_GAL_LAYER( i )] = m_legacyColorMap[aSettings->GetItemColor( i )];
+        m_layerColors[ITEM_GAL_LAYER( i )] = aSettings->GetItemColor( i );
 
     m_layerColors[ITEM_GAL_LAYER( MOD_TEXT_FR_VISIBLE )]            = m_layerColors[F_SilkS];
     m_layerColors[ITEM_GAL_LAYER( MOD_TEXT_BK_VISIBLE )]            = m_layerColors[B_SilkS];
@@ -113,6 +118,8 @@ void PCB_RENDER_SETTINGS::LoadDisplayOptions( const DISPLAY_OPTIONS* aOptions )
 
     m_hiContrastEnabled = aOptions->m_ContrastModeDisplay;
     m_padNumbers        = aOptions->m_DisplayPadNum;
+    m_sketchBoardGfx    = !aOptions->m_DisplayDrawItemsFill;
+    m_sketchFpGfx       = !aOptions->m_DisplayModEdgeFill;
 
     // Whether to draw tracks, vias & pads filled or as outlines
     m_sketchMode[ITEM_GAL_LAYER( PADS_VISIBLE )]         = !aOptions->m_DisplayPadFill;
@@ -222,20 +229,6 @@ const COLOR4D& PCB_RENDER_SETTINGS::GetColor( const VIEW_ITEM* aItem, int aLayer
 
     // No special modificators enabled
     return m_layerColors[aLayer];
-}
-
-
-void PCB_RENDER_SETTINGS::update()
-{
-    RENDER_SETTINGS::update();
-
-    // Calculate darkened/highlighted variants of layer colors
-    for( int i = 0; i < TOTAL_LAYER_COUNT; i++ )
-    {
-        m_layerColorsHi[i]   = m_layerColors[i].Brightened( m_highlightFactor );
-        m_layerColorsDark[i] = m_layerColors[i].Darkened( 1.0 - m_highlightFactor );
-        m_layerColorsSel[i]  = m_layerColors[i].Brightened( m_selectFactor );
-    }
 }
 
 
@@ -545,7 +538,7 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
 
             // do not display descriptions upside down
             NORMALIZE_ANGLE_90( orientation );
-            m_gal->Rotate( -orientation * M_PI / 1800.0 );
+            m_gal->Rotate( DECIDEG2RAD( -orientation ) );
 
             // Default font settings
             m_gal->SetHorizontalJustify( GR_TEXT_HJUSTIFY_CENTER );
@@ -794,58 +787,70 @@ void PCB_PAINTER::draw( const D_PAD* aPad, int aLayer )
 void PCB_PAINTER::draw( const DRAWSEGMENT* aSegment, int aLayer )
 {
     const COLOR4D& color = m_pcbSettings.GetColor( aSegment, aSegment->GetLayer() );
+    bool sketch = ( aSegment->Type() == PCB_LINE_T && m_pcbSettings.m_sketchBoardGfx )
+        || ( aSegment->Type() == PCB_MODULE_EDGE_T && m_pcbSettings.m_sketchFpGfx );
 
-    m_gal->SetIsFill( false );
-    m_gal->SetIsStroke( true );
+    int thickness = getLineThickness( aSegment->GetWidth() );
+    VECTOR2D start( aSegment->GetStart() );
+    VECTOR2D end( aSegment->GetEnd() );
+
+    m_gal->SetIsFill( !sketch );
+    m_gal->SetIsStroke( sketch );
+    m_gal->SetFillColor( color );
     m_gal->SetStrokeColor( color );
-
-    if( m_pcbSettings.m_sketchMode[aLayer] )
-        m_gal->SetLineWidth( m_pcbSettings.m_outlineWidth );    // Outline mode
-    else
-        m_gal->SetLineWidth( getLineThickness( aSegment->GetWidth() ) );     // Filled mode
+    m_gal->SetLineWidth( m_pcbSettings.m_outlineWidth );
 
     switch( aSegment->GetShape() )
     {
     case S_SEGMENT:
-        m_gal->DrawLine( VECTOR2D( aSegment->GetStart() ), VECTOR2D( aSegment->GetEnd() ) );
+        m_gal->DrawSegment( start, end, thickness );
         break;
 
     case S_RECT:
         wxASSERT_MSG( false, wxT( "Not tested yet" ) );
-        m_gal->DrawRectangle( VECTOR2D( aSegment->GetStart() ), VECTOR2D( aSegment->GetEnd() ) );
+        m_gal->DrawRectangle( start, end );
         break;
 
     case S_ARC:
-        m_gal->DrawArc( VECTOR2D( aSegment->GetCenter() ), aSegment->GetRadius(),
-                        aSegment->GetArcAngleStart() * M_PI / 1800.0,
-                        ( aSegment->GetArcAngleStart() + aSegment->GetAngle() ) * M_PI / 1800.0 );
+        m_gal->DrawArcSegment( start, aSegment->GetRadius(),
+                        DECIDEG2RAD( aSegment->GetArcAngleStart() ),
+                        DECIDEG2RAD( aSegment->GetArcAngleStart() + aSegment->GetAngle() ),
+                        thickness );
         break;
 
     case S_CIRCLE:
-        m_gal->DrawCircle( VECTOR2D( aSegment->GetCenter() ), aSegment->GetRadius() );
+        if( sketch )
+        {
+            m_gal->DrawCircle( start, aSegment->GetRadius() - thickness / 2 );
+            m_gal->DrawCircle( start, aSegment->GetRadius() + thickness / 2 );
+        }
+        else
+        {
+            m_gal->SetLineWidth( thickness );
+            m_gal->SetIsFill( false );
+            m_gal->SetIsStroke( true );
+            m_gal->DrawCircle( start, aSegment->GetRadius() );
+        }
         break;
 
     case S_POLYGON:
     {
         std::deque<VECTOR2D> pointsList;
 
-        m_gal->SetIsFill( true );
+        m_gal->SetIsFill( true );       // draw polygons the legacy way
         m_gal->SetIsStroke( false );
-        m_gal->SetFillColor( color );
-
         m_gal->Save();
+        m_gal->SetLineWidth( thickness );
 
-        MODULE* module = aSegment->GetParentModule();
-        if( module )
+        if( MODULE* module = aSegment->GetParentModule() )
         {
             m_gal->Translate( module->GetPosition() );
             m_gal->Rotate( -module->GetOrientationRadians() );
         }
         else
         {
-            // not tested
             m_gal->Translate( aSegment->GetPosition() );
-            m_gal->Rotate( -aSegment->GetAngle() * M_PI / 1800.0 );
+            m_gal->Rotate( DECIDEG2RAD( -aSegment->GetAngle() ) );
         }
 
         std::copy( aSegment->GetPolyPoints().begin(), aSegment->GetPolyPoints().end(),
@@ -979,6 +984,12 @@ void PCB_PAINTER::draw( const ZONE_CONTAINER* aZone )
             corners.push_back( corners[0] );
             m_gal->DrawPolyline( corners );
             corners.clear();
+        }
+
+        for( unsigned ic = 0; ic < polygon->m_HatchLines.size(); ic++ )
+        {
+            auto& hatchLine = polygon->m_HatchLines[ic];
+            m_gal->DrawLine( hatchLine.m_Start, hatchLine.m_End );
         }
     }
 
@@ -1116,7 +1127,16 @@ void PCB_PAINTER::draw( const MARKER_PCB* aMarker )
 
     m_gal->Save();
     m_gal->Translate( aMarker->GetPosition() );
-    m_gal->SetFillColor( COLOR4D( 1.0, 0.0, 0.0, 1.0 ) );
+
+    if( aMarker->IsSelected() )
+    {
+        m_gal->SetFillColor( COLOR4D( 1.0, 0.5, 0.5, 1.0 ) );
+    }
+    else
+    {
+        m_gal->SetFillColor( COLOR4D( 1.0, 0.0, 0.0, 1.0 ) );
+    }
+
     m_gal->SetIsFill( true );
     m_gal->SetIsStroke( false );
     m_gal->DrawPolygon( arrow, sizeof( arrow ) / sizeof( VECTOR2D ) );

@@ -28,8 +28,9 @@
 #include <pcb_netlist.h>
 #include <dialogs/dialog_update_pcb.h>
 
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 #include <tool/tool_manager.h>
+#include <tools/selection_tool.h>
 #include <pcb_draw_panel_gal.h>
 
 /* Execute a remote command send by Eeschema via a socket,
@@ -75,6 +76,15 @@ void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
 
         if( module )
             pos = module->GetPosition();
+    }
+    else if( strcmp( idcmd, "$SHEET:" ) == 0 )
+    {
+        msg.Printf( _( "Selecting all from sheet '%s'" ), FROM_UTF8( text ) );
+        wxString sheetStamp( FROM_UTF8( text ) );
+        SetStatusText( msg );
+        GetToolManager()->RunAction( PCB_ACTIONS::selectOnSheetFromEeschema, true,
+                                     static_cast<void*>( &sheetStamp ) );
+        return;
     }
     else if( strcmp( idcmd, "$PIN:" ) == 0 )
     {
@@ -135,7 +145,7 @@ void PCB_EDIT_FRAME::ExecuteRemoteCommand( const char* cmdline )
     {
         if( IsGalCanvasActive() )
         {
-            GetToolManager()->RunAction( COMMON_ACTIONS::crossProbeSchToPcb,
+            GetToolManager()->RunAction( PCB_ACTIONS::crossProbeSchToPcb,
                 true,
                 pad ?
                     static_cast<BOARD_ITEM*>( pad ) :

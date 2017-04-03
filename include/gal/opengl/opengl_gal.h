@@ -62,7 +62,7 @@ class SHADER;
  * and quads. The purpose is to provide a fast graphics interface, that takes advantage of modern
  * graphics card GPUs. All methods here benefit thus from the hardware acceleration.
  */
-class OPENGL_GAL : public GAL, public wxGLCanvas, GAL_DISPLAY_OPTIONS_OBSERVER
+class OPENGL_GAL : public GAL, public wxGLCanvas
 {
 public:
     /**
@@ -99,8 +99,6 @@ public:
         return IsShownOnScreen();
     }
 
-    void OnGalDisplayOptionsChanged( const GAL_DISPLAY_OPTIONS& ) override;
-
     // ---------------
     // Drawing methods
     // ---------------
@@ -130,6 +128,10 @@ public:
     /// @copydoc GAL::DrawArc()
     virtual void DrawArc( const VECTOR2D& aCenterPoint, double aRadius,
                           double aStartAngle, double aEndAngle ) override;
+
+    /// @copydoc GAL::DrawArcSegment()
+    virtual void DrawArcSegment( const VECTOR2D& aCenterPoint, double aRadius,
+                                 double aStartAngle, double aEndAngle, double aWidth ) override;
 
     /// @copydoc GAL::DrawRectangle()
     virtual void DrawRectangle( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint ) override;
@@ -282,9 +284,6 @@ private:
     /// Super class definition
     typedef GAL super;
 
-    GAL_DISPLAY_OPTIONS&    options;
-    UTIL::LINK              observerLink;
-
     static const int    CIRCLE_POINTS   = 64;   ///< The number of points for circle approximation
     static const int    CURVE_POINTS    = 32;   ///< The number of points for curve approximation
 
@@ -321,6 +320,9 @@ private:
     bool                    isInitialized;              ///< Basic initialization flag, has to be done
                                                         ///< when the window is visible
     bool                    isGrouping;                 ///< Was a group started?
+
+    ///< Update handler for OpenGL settings
+    bool updatedGalDisplayOptions( const GAL_DISPLAY_OPTIONS& aOptions ) override;
 
     // Polygon tesselation
     /// The tessellator
@@ -437,6 +439,15 @@ private:
      * @return An unique group number that is not used by any other group.
      */
     unsigned int getNewGroupNumber();
+
+    /**
+     * @brief Compute the angle step when drawing arcs/circles approximated with lines.
+     */
+    double calcAngleStep( double aRadius ) const
+    {
+        // Bigger arcs need smaller alpha increment to make them look smooth
+        return std::min( 1e6 / aRadius, 2.0 * M_PI / CIRCLE_POINTS );
+    }
 
     /**
      * @brief Basic OpenGL initialization.

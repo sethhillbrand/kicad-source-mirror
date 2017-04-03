@@ -34,6 +34,7 @@
 #include <wxstruct.h>
 #include <trigo.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <pcbnew.h>
 #include <class_marker_pcb.h>
@@ -137,8 +138,19 @@ wxString MARKER_PCB::GetSelectMenuText() const
 }
 
 
+BITMAP_DEF MARKER_PCB::GetMenuImage() const
+{
+    return drc_xpm;
+}
+
+
 void MARKER_PCB::ViewGetLayers( int aLayers[], int& aCount ) const
 {
     aCount = 1;
     aLayers[0] = ITEM_GAL_LAYER( DRC_VISIBLE );
+}
+
+const EDA_RECT MARKER_PCB::GetBoundingBox() const
+{
+    return EDA_RECT( m_Pos, wxSize( 1300000, 1300000 ) );
 }

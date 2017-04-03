@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Dec 15 2016)
+// C++ code generated with wxFormBuilder (version Jan  9 2017)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -19,7 +19,6 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	wxBoxSizer* bupperSizer;
 	bupperSizer = new wxBoxSizer( wxHORIZONTAL );
 	
-	wxBoxSizer* sLeftSizer;
 	sLeftSizer = new wxBoxSizer( wxVERTICAL );
 	
 	wxStaticBoxSizer* sSketchModeSizer;
@@ -32,19 +31,7 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	sSketchModeSizer->Add( m_OptDisplayVias, 0, wxALL, 5 );
 	
 	
-	sLeftSizer->Add( sSketchModeSizer, 0, wxEXPAND|wxALL, 5 );
-	
-	wxStaticBoxSizer* sOpenGLRenderingSizer;
-	sOpenGLRenderingSizer = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("OpenGL Rendering:") ), wxVERTICAL );
-	
-	wxString m_choiceAntialiasingChoices[] = { _("No Antialiasing"), _("Subpixel Antialiasing (High Quality)"), _("Subpixel Antialiasing (Ultra Quality)"), _("Supersampling (2x)"), _("Supersampling (4x)") };
-	int m_choiceAntialiasingNChoices = sizeof( m_choiceAntialiasingChoices ) / sizeof( wxString );
-	m_choiceAntialiasing = new wxChoice( sOpenGLRenderingSizer->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, m_choiceAntialiasingNChoices, m_choiceAntialiasingChoices, 0 );
-	m_choiceAntialiasing->SetSelection( 0 );
-	sOpenGLRenderingSizer->Add( m_choiceAntialiasing, 0, wxALL|wxEXPAND, 5 );
-	
-	
-	sLeftSizer->Add( sOpenGLRenderingSizer, 1, wxEXPAND, 5 );
+	sLeftSizer->Add( sSketchModeSizer, 0, wxALL|wxEXPAND, 5 );
 	
 	
 	bupperSizer->Add( sLeftSizer, 1, wxEXPAND, 5 );
@@ -117,13 +104,10 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	sRightSizer->Add( s_otherSizer, 1, wxEXPAND|wxALL, 5 );
 	
 	
-	bupperSizer->Add( sRightSizer, 0, 0, 5 );
+	bupperSizer->Add( sRightSizer, 0, wxEXPAND, 5 );
 	
 	
 	bMainSizer->Add( bupperSizer, 1, wxEXPAND, 5 );
-	
-	m_staticline1 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-	bMainSizer->Add( m_staticline1, 0, wxBOTTOM|wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 5 );
 	
 	m_sdbSizer = new wxStdDialogButtonSizer();
 	m_sdbSizerOK = new wxButton( this, wxID_OK );
@@ -138,16 +122,8 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	this->SetSizer( bMainSizer );
 	this->Layout();
 	bMainSizer->Fit( this );
-	
-	// Connect Events
-	m_sdbSizerCancel->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_DISPLAY_OPTIONS_BASE::OnCancelClick ), NULL, this );
-	m_sdbSizerOK->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_DISPLAY_OPTIONS_BASE::OnOkClick ), NULL, this );
 }
 
 DIALOG_DISPLAY_OPTIONS_BASE::~DIALOG_DISPLAY_OPTIONS_BASE()
 {
-	// Disconnect Events
-	m_sdbSizerCancel->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_DISPLAY_OPTIONS_BASE::OnCancelClick ), NULL, this );
-	m_sdbSizerOK->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( DIALOG_DISPLAY_OPTIONS_BASE::OnOkClick ), NULL, this );
-	
 }

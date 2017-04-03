@@ -100,10 +100,10 @@ public:
     void ReFillRender();
 
     //-----<implement LAYER_WIDGET abstract callback functions>-----------
-    void OnLayerColorChange( int aLayer, EDA_COLOR_T aColor ) override;
+    void OnLayerColorChange( int aLayer, COLOR4D aColor ) override;
     bool OnLayerSelect( int aLayer ) override;
     void OnLayerVisible( int aLayer, bool isVisible, bool isFinal ) override;
-    void OnRenderColorChange( int aId, EDA_COLOR_T aColor ) override;
+    void OnRenderColorChange( int aId, COLOR4D aColor ) override;
     void OnRenderEnable( int aId, bool isEnabled ) override;
 
     /**
@@ -125,13 +125,6 @@ public:
     bool OnLayerSelected();     // postprocess after an active layer selection
                                 // ensure active layer visible if
                                 // m_alwaysShowActiveCopperLayer is true;
-
-    /**
-     * Function UpdateLayerIcons
-     * Update the layer manager icons (layers only)
-     * Useful when loading a file or clearing a layer because they change
-     */
-    void UpdateLayerIcons();
 };
 
 #endif  // _CLASS_GERBER_LAYER_WIDGET_H_

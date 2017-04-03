@@ -54,7 +54,7 @@
 #include <modview_frame.h>
 #include <collectors.h>
 #include <tool/tool_manager.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 
 #include <dialog_edit_module_for_Modedit.h>
 #include <dialog_move_exact.h>
@@ -436,8 +436,8 @@ void FOOTPRINT_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
                 break;
             }
 
-            m_toolManager->RunAction( COMMON_ACTIONS::selectionClear, true );
-            pcbframe->GetToolManager()->RunAction( COMMON_ACTIONS::selectionClear, true );
+            m_toolManager->RunAction( PCB_ACTIONS::selectionClear, true );
+            pcbframe->GetToolManager()->RunAction( PCB_ACTIONS::selectionClear, true );
             BOARD_COMMIT commit( pcbframe );
 
             // Create the "new" module
@@ -962,6 +962,11 @@ void FOOTPRINT_EDIT_FRAME::OnVerticalToolbar( wxCommandEvent& aEvent )
         SetToolID( id, wxCURSOR_BULLSEYE, _( "Delete item" ) );
         break;
 
+    case ID_MODEDIT_MEASUREMENT_TOOL:
+        DisplayError( this, wxT( "Unsupported tool in legacy canvas" ) );
+        SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+        break;
+
     default:
         wxFAIL_MSG( wxT( "Unknown command id." ) );
         SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
@@ -969,7 +974,7 @@ void FOOTPRINT_EDIT_FRAME::OnVerticalToolbar( wxCommandEvent& aEvent )
 }
 
 
-EDA_COLOR_T FOOTPRINT_EDIT_FRAME::GetGridColor() const
+COLOR4D FOOTPRINT_EDIT_FRAME::GetGridColor() const
 {
     return g_ColorsSettings.GetItemColor( GRID_VISIBLE );
 }

@@ -33,7 +33,6 @@
 
 #include <wx/window.h>
 #include <wx/timer.h>
-#include <layers_id_colors_and_visibility.h>
 #include <math/vector2d.h>
 #include <msgpanel.h>
 
@@ -150,13 +149,13 @@ public:
      * Function SetHighContrastLayer
      * Takes care of display settings for the given layer to be displayed in high contrast mode.
      */
-    virtual void SetHighContrastLayer( LAYER_ID aLayer );
+    virtual void SetHighContrastLayer( int aLayer );
 
     /**
      * Function SetTopLayer
      * Moves the selected layer to the top, so it is displayed above all others.
      */
-    virtual void SetTopLayer( LAYER_ID aLayer );
+    virtual void SetTopLayer( int aLayer );
 
     virtual void GetMsgPanelInfo( std::vector<MSG_PANEL_ITEM>& aList )
     {
@@ -179,22 +178,28 @@ public:
     }
 
     /**
-     * Function SaveGalSettings()
-     * Stores GAL related settings in the configuration storage.
-     */
-    virtual bool SaveGalSettings();
-
-    /**
-     * Function LoadGalSettings()
-     * Loads GAL related settings from the configuration storage.
-     */
-    virtual bool LoadGalSettings();
-
-    /**
      * Function OnShow()
      * Called when the window is shown for the first time.
      */
     virtual void OnShow() {}
+
+    /**
+     * Set whether focus is taken on certain events (mouseover, keys, etc). This should
+     * be true (and is by default) for any primary canvas, but can be false to make
+     * well-behaved preview panes and the like.
+     */
+    void SetStealsFocus( bool aStealsFocus )
+    {
+        m_stealsFocus = aStealsFocus;
+    }
+
+    /**
+     * Get whether focus is taken on certain events (see SetStealsFocus()).
+     */
+    bool GetStealsFocus() const
+    {
+        return m_stealsFocus;
+    }
 
 protected:
     void onPaint( wxPaintEvent& WXUNUSED( aEvent ) );
@@ -254,8 +259,9 @@ protected:
     /// for cases when the panel loses keyboard focus, so it does not react to hotkeys anymore.
     bool                     m_lostFocus;
 
-    /// Grid style setting string
-    static const wxChar GRID_STYLE_CFG[];
+    /// Flag to indicate whether the panel should take focus at certain times (when moused over,
+    /// and on various mouse/key events)
+    bool                     m_stealsFocus;
 };
 
 #endif

@@ -34,6 +34,7 @@
 #include <schframe.h>
 #include <menus_helpers.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <eeschema_id.h>
 #include <general.h>
@@ -84,6 +85,10 @@ SCH_ITEM* SCH_EDIT_FRAME::LocateAndShowItem( const wxPoint& aPosition, const KIC
     case LIB_FIELD_T:
         component = (SCH_COMPONENT*) item->GetParent();
         SendMessageToPCBNEW( item, component );
+        break;
+
+    case SCH_SHEET_T:
+        SendMessageToPCBNEW( item, nullptr );
         break;
 
     case SCH_COMPONENT_T:

@@ -18,15 +18,22 @@
  */
 
 #include "edit_teardrops.h"
-#include "class_board.h"
-#include "class_module.h"
-#include "ratsnest_data.h"
-#include "view/view.h"
-#include "common_actions.h"
-#include "router/pns_router.h"
-#include "tool/tool_manager.h"
+#include <class_board.h>
+#include <class_module.h>
+#include <ratsnest_data.h>
+#include <view/view.h>
+#include <bitmaps.h>
+#include <hotkeys.h>
+
+#include <router/pns_router.h>
+#include <tool/tool_manager.h>
+#include "tools/pcb_actions.h"
 
 #include <boost/foreach.hpp>
+
+TOOL_ACTION PCB_ACTIONS::teardropsEditor( "pcbnew.TeardropsEditor.EditTeardrops",
+        AS_GLOBAL, 0,
+        _( "Run teardrops editor" ), _( "Run teardrops editor" ), NULL, AF_ACTIVATE);
 
 TEARDROPS_EDITOR::TEARDROPS_EDITOR() :
     TOOL_BASE( BATCH, TOOL_MANAGER::MakeToolId( "pcbnew.TeardropsEditor" ),
@@ -202,7 +209,7 @@ bool TEARDROPS_EDITOR::addToSelected(SELECTION& aSelection,
 
     if( aSettings.m_clearSelection == true )
     {
-        GetManager()->RunAction( COMMON_ACTIONS::selectionClear, true );
+        GetManager()->RunAction( PCB_ACTIONS::selectionClear, true );
     }
 
     if( addedNum > 0 )

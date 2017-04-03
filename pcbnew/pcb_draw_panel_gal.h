@@ -26,6 +26,7 @@
 #define PCB_DRAW_PANEL_GAL_H_
 
 #include <class_draw_panel_gal.h>
+#include <layers_id_colors_and_visibility.h>
 
 namespace KIGFX
 {
@@ -66,10 +67,22 @@ public:
     void UseColorScheme( const COLORS_DESIGN_SETTINGS* aSettings );
 
     ///> @copydoc EDA_DRAW_PANEL_GAL::SetHighContrastLayer()
-    virtual void SetHighContrastLayer( LAYER_ID aLayer ) override;
+    virtual void SetHighContrastLayer( int aLayer ) override
+    {
+        SetHighContrastLayer( static_cast< LAYER_ID >( aLayer ) );
+    }
+
+    ///> SetHighContrastLayer(), with some extra smarts for PCB
+    void SetHighContrastLayer( LAYER_ID aLayer );
 
     ///> @copydoc EDA_DRAW_PANEL_GAL::SetTopLayer()
-    virtual void SetTopLayer( LAYER_ID aLayer ) override;
+    virtual void SetTopLayer( int aLayer ) override
+    {
+        SetTopLayer( static_cast< LAYER_ID >( aLayer ) );
+    }
+
+    ///> SetTopLayer(), with some extra smarts for PCB
+    void SetTopLayer( LAYER_ID aLayer );
 
     /**
      * Function SyncLayersVisibility
@@ -94,10 +107,10 @@ protected:
     void setDefaultLayerDeps();
 
     ///> Currently used worksheet
-    KIGFX::WORKSHEET_VIEWITEM* m_worksheet;
+    std::unique_ptr<KIGFX::WORKSHEET_VIEWITEM> m_worksheet;
 
     ///> Ratsnest view item
-    KIGFX::RATSNEST_VIEWITEM* m_ratsnest;
+    std::unique_ptr<KIGFX::RATSNEST_VIEWITEM> m_ratsnest;
 };
 
 #endif /* PCB_DRAW_PANEL_GAL_H_ */

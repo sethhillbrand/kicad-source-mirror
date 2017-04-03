@@ -36,6 +36,7 @@
 #include <schframe.h>
 #include <plot_common.h>
 #include <msgpanel.h>
+#include <bitmaps.h>
 
 #include <general.h>
 #include <class_library.h>
@@ -171,9 +172,11 @@ SCH_COMPONENT::SCH_COMPONENT( LIB_PART& aPart, SCH_SHEET_PATH* sheet, int unit,
             schField = AddField( fld );
         }
 
-        schField->SetTextPos( m_Pos + it->GetTextPos() );
         schField->ImportValues( *it );
         schField->SetText( it->GetText() );
+
+        // Now the field is initialized, place it to the right position:
+        schField->SetTextPos( m_Pos + it->GetTextPos() );
     }
 
     wxString msg = aPart.GetReferenceField().GetText();
@@ -284,17 +287,54 @@ bool SCH_COMPONENT::Resolve( PART_LIBS* aLibs )
     return false;
 }
 
+// Helper sort function, used in SCH_COMPONENT::ResolveAll, to sort
+// sch component by lib_id
+static bool sort_by_libid( const SCH_COMPONENT* ref, SCH_COMPONENT* cmp )
+{
+    return ref->GetLibId() < cmp->GetLibId();
+}
 
 void SCH_COMPONENT::ResolveAll(
         const SCH_COLLECTOR& aComponents, PART_LIBS* aLibs )
 {
+    // Usually, many components use the same part lib.
+    // to avoid too long calculation time the list of components is grouped
+    // and once the lib part is found for one member of a group, it is also
+    // set for all other members of this group
+    std::vector<SCH_COMPONENT*> cmp_list;
+
+    // build the cmp list.
     for( int i = 0;  i < aComponents.GetCount();  ++i )
     {
         SCH_COMPONENT* cmp = dynamic_cast<SCH_COMPONENT*>( aComponents[i] );
         wxASSERT( cmp );
 
         if( cmp )   // cmp == NULL should not occur.
-            cmp->Resolve( aLibs );
+            cmp_list.push_back( cmp );
+    }
+
+    // sort it by lib part. Cmp will be grouped by same lib part.
+    std::sort( cmp_list.begin(), cmp_list.end(), sort_by_libid );
+
+    LIB_ID curr_libid;
+
+    for( unsigned ii = 0; ii < cmp_list.size (); ++ii )
+    {
+        SCH_COMPONENT* cmp = cmp_list[ii];
+        curr_libid = cmp->m_lib_id;
+        cmp->Resolve( aLibs );
+
+        // Propagate the m_part pointer to other members using the same lib_id
+        for( unsigned jj = ii+1; jj < cmp_list.size (); ++jj )
+        {
+            SCH_COMPONENT* next_cmp = cmp_list[jj];
+
+            if( curr_libid != next_cmp->m_lib_id )
+                break;
+
+            next_cmp->m_part = cmp->m_part;
+            ii = jj;
+        }
     }
 }
 
@@ -346,21 +386,32 @@ int SCH_COMPONENT::GetUnitCount() const
 
 
 void SCH_COMPONENT::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, const wxPoint& aOffset,
-                          GR_DRAWMODE aDrawMode, EDA_COLOR_T aColor,
+                          GR_DRAWMODE aDrawMode, COLOR4D aColor,
                           bool aDrawPinText )
 {
+    auto opts = PART_DRAW_OPTIONS::Default();
+    opts.draw_mode = aDrawMode;
+    opts.color = aColor;
+    opts.transform = m_transform;
+    opts.show_pin_text = aDrawPinText;
+    opts.draw_visible_fields = false;
+    opts.draw_hidden_fields = false;
+
     if( PART_SPTR part = m_part.lock() )
     {
         // Draw pin targets if part is being dragged
         bool dragging = aPanel->GetScreen()->GetCurItem() == this && aPanel->IsMouseCaptured();
 
-        part->Draw( aPanel, aDC, m_Pos + aOffset, m_unit, m_convert, aDrawMode, aColor,
-                    m_transform, aDrawPinText, false, false, dragging ? NULL : &m_isDangling );
+        if( !dragging )
+        {
+            opts.dangling = m_isDangling;
+        }
+
+        part->Draw( aPanel, aDC, m_Pos + aOffset, m_unit, m_convert, opts );
     }
     else    // Use dummy() part if the actual cannot be found.
     {
-        dummy()->Draw( aPanel, aDC, m_Pos + aOffset, 0, 0, aDrawMode, aColor,
-                       m_transform, aDrawPinText, false );
+        dummy()->Draw( aPanel, aDC, m_Pos + aOffset, 0, 0, opts );
     }
 
     SCH_FIELD* field = GetField( REFERENCE );
@@ -1562,6 +1613,12 @@ void SCH_COMPONENT::GetMsgPanelInfo( MSG_PANEL_ITEMS& aList )
         aList.push_back( MSG_PANEL_ITEM( _( "Description" ), alias->GetDescription(), DARKCYAN ) );
         aList.push_back( MSG_PANEL_ITEM( _( "Key Words" ), alias->GetKeyWords(), DARKCYAN ) );
     }
+}
+
+
+BITMAP_DEF SCH_COMPONENT::GetMenuImage() const
+{
+    return add_component_xpm;
 }
 
 

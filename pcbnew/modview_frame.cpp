@@ -39,6 +39,7 @@
 #include <fp_lib_table.h>
 #include <lib_id.h>
 #include <confirm.h>
+#include <bitmaps.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -54,8 +55,9 @@
 
 #include <tool/tool_manager.h>
 #include <tool/tool_dispatcher.h>
+#include <tool/common_tools.h>
 #include "tools/pcbnew_control.h"
-#include "tools/common_actions.h"
+#include "tools/pcb_actions.h"
 
 #include <functional>
 using namespace std::placeholders;
@@ -195,10 +197,12 @@ FOOTPRINT_VIEWER_FRAME::FOOTPRINT_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent
     m_toolManager = new TOOL_MANAGER;
     m_toolManager->SetEnvironment( GetBoard(), drawPanel->GetView(),
                                    drawPanel->GetViewControls(), this );
-    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager );
+    m_actions = new PCB_ACTIONS();
+    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager, m_actions );
     drawPanel->SetEventDispatcher( m_toolDispatcher );
 
     m_toolManager->RegisterTool( new PCBNEW_CONTROL );
+    m_toolManager->RegisterTool( new COMMON_TOOLS );
     m_toolManager->InitTools();
 
     // If a footprint was previously loaded, reload it
@@ -678,7 +682,7 @@ void FOOTPRINT_VIEWER_FRAME::Update3D_Frame( bool aForceReloadFootprint )
 }
 
 
-EDA_COLOR_T FOOTPRINT_VIEWER_FRAME::GetGridColor() const
+COLOR4D FOOTPRINT_VIEWER_FRAME::GetGridColor() const
 {
     return g_ColorsSettings.GetItemColor( GRID_VISIBLE );
 }
@@ -871,7 +875,7 @@ void FOOTPRINT_VIEWER_FRAME::updateView()
     {
         static_cast<PCB_DRAW_PANEL_GAL*>( GetGalCanvas() )->DisplayBoard( GetBoard() );
         m_toolManager->ResetTools( TOOL_BASE::MODEL_RELOAD );
-        m_toolManager->RunAction( COMMON_ACTIONS::zoomFitScreen, true );
+        m_toolManager->RunAction( ACTIONS::zoomFitScreen, true );
     }
 }
 

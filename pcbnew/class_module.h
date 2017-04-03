@@ -549,7 +549,7 @@ public:
 
     wxString GetSelectMenuText() const override;
 
-    BITMAP_DEF GetMenuImage() const override { return  module_xpm; }
+    BITMAP_DEF GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 
@@ -640,6 +640,21 @@ public:
     /// Return the initial comments block or NULL if none, without transfer of ownership.
     const wxArrayString* GetInitialComments() const { return m_initial_comments; }
 
+    /** Used in DRC to test the courtyard area (a complex polygon)
+     * @return the courtyard polygon
+     */
+    SHAPE_POLY_SET& GetPolyCourtyardFront() { return m_poly_courtyard_front; }
+    SHAPE_POLY_SET& GetPolyCourtyardBack() { return m_poly_courtyard_back; }
+
+    /** Used in DRC to build the courtyard area (a complex polygon)
+     * from graphic items put on the courtyard
+     * @return true if OK, or no courtyard defined,
+     * false only if the polygon cannot be built due to amalformed courtyard shape
+     * The polygon cannot be built if segments/arcs on courtyard layers
+     * cannot be grouped in a polygon.
+     */
+    bool BuildPolyCourtyard();
+
 #if defined(DEBUG)
     virtual void Show( int nestLevel, std::ostream& os ) const override { ShowDummy( os ); }
 #endif
@@ -682,6 +697,11 @@ private:
 
     wxArrayString*    m_initial_comments;   ///< leading s-expression comments in the module,
                                             ///< lazily allocated only if needed for speed
+
+    /// Used in DRC to test the courtyard area (a polygon which can be not basic
+    /// Note also a footprint can have courtyards on bot board sides
+    SHAPE_POLY_SET m_poly_courtyard_front;
+    SHAPE_POLY_SET m_poly_courtyard_back;
 };
 
 #endif     // MODULE_H_

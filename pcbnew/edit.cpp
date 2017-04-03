@@ -58,7 +58,7 @@
 #include <dialog_move_exact.h>
 
 #include <tool/tool_manager.h>
-#include <tools/common_actions.h>
+#include <tools/pcb_actions.h>
 
 // Handles the selection of command events.
 void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
@@ -1524,6 +1524,11 @@ void PCB_EDIT_FRAME::OnSelectTool( wxCommandEvent& aEvent )
         if( ( GetBoard()->m_Status_Pcb & LISTE_RATSNEST_ITEM_OK ) == 0 )
             Compile_Ratsnest( &dc, true );
 
+        break;
+
+    // collect GAL-only tools here
+    case ID_PCB_MEASUREMENT_TOOL:
+        SetToolID( id, wxCURSOR_DEFAULT, _( "Unsupported tool in this canvas" ) );
         break;
     }
 }

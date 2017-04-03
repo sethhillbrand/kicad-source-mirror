@@ -44,15 +44,22 @@
 #include <3d_canvas/eda_3d_canvas.h>
 
 // Define min and max parameter values
-#define MAX_SCALE          100.0
+#define MAX_SCALE          10000.0
 #define MAX_ROTATION       180.0
 #define MAX_OFFSET         1000.0
 
-#define SCALE_INCREMENT    0.02
-#define ROTATION_INCREMENT 5            // in degrees, for spin button command
-#define ROTATION_INCREMENT_WHEEL 1      // in degrees, for mouse wheel command
-#define OFFSET_INCREMENT_MM   0.1
-#define OFFSET_INCREMENT_MIL   5.0
+#define SCALE_INCREMENT_FINE    0.02
+#define SCALE_INCREMENT     0.1
+
+#define ROTATION_INCREMENT 5             // in degrees, for spin button command
+#define ROTATION_INCREMENT_WHEEL 15      // in degrees, for mouse wheel command
+#define ROTATION_INCREMENT_WHEEL_FINE 1  // in degrees, for mouse wheel command
+
+#define OFFSET_INCREMENT_MM   0.5
+#define OFFSET_INCREMENT_MM_FINE 0.1
+
+#define OFFSET_INCREMENT_MIL   25.0
+#define OFFSET_INCREMENT_MIL_FINE   5.0
 
 
 // Declared classes to create pointers
@@ -62,16 +69,14 @@ class BOARD;
 class CINFO3D_VISU;
 class MODULE;
 
-#define PANEL_PREV_3D_B PANEL_PREV_3D
-
-class PANEL_PREV_3D_B: public PANEL_PREV_3D_BASE
+class PANEL_PREV_3D: public PANEL_PREV_3D_BASE
 {
 public:
-    PANEL_PREV_3D_B( wxWindow* aParent, S3D_CACHE* aCacheManager,
+    PANEL_PREV_3D( wxWindow* aParent, S3D_CACHE* aCacheManager,
                      MODULE* aModuleCopy,
                      std::vector<S3D_INFO> *aParentInfoList = NULL );
 
-    ~PANEL_PREV_3D_B();
+    ~PANEL_PREV_3D();
 
 private:
     wxString                currentModelFile;   ///< Used to check if the model file was changed

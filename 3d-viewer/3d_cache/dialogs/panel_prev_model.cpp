@@ -32,6 +32,7 @@
 #include <common_ogl/cogl_att_list.h>
 #include <cstdlib>
 #include <limits.h>
+#include <bitmaps.h>
 
 #include <wx/valnum.h>
 #include <wx/tglbtn.h>
@@ -41,7 +42,7 @@
 #include <class_board.h>
 
 
-PANEL_PREV_3D_B::PANEL_PREV_3D_B( wxWindow* aParent, S3D_CACHE* aCacheManager,
+PANEL_PREV_3D::PANEL_PREV_3D( wxWindow* aParent, S3D_CACHE* aCacheManager,
                                   MODULE* aModuleCopy,
                                   std::vector<S3D_INFO> *aParentInfoList ):
                 PANEL_PREV_3D_BASE( aParent, wxID_ANY )
@@ -69,14 +70,14 @@ PANEL_PREV_3D_B::PANEL_PREV_3D_B( wxWindow* aParent, S3D_CACHE* aCacheManager,
         m_SizerPanelView->Add( m_previewPane, 1, wxEXPAND );
 
         m_previewPane->Connect( wxEVT_ENTER_WINDOW, wxMouseEventHandler(
-                            PANEL_PREV_3D_B::onEnterPreviewCanvas ), NULL, this );
+                            PANEL_PREV_3D::onEnterPreviewCanvas ), NULL, this );
     }
 
 
-PANEL_PREV_3D_B::~PANEL_PREV_3D_B()
+PANEL_PREV_3D::~PANEL_PREV_3D()
 {
     m_previewPane->Disconnect( wxEVT_ENTER_WINDOW,
-            wxMouseEventHandler( PANEL_PREV_3D_B::onEnterPreviewCanvas ), NULL, this );
+            wxMouseEventHandler( PANEL_PREV_3D::onEnterPreviewCanvas ), NULL, this );
 
     delete m_settings3Dviewer;
     delete m_dummyBoard;
@@ -84,7 +85,7 @@ PANEL_PREV_3D_B::~PANEL_PREV_3D_B()
 }
 
 
-void PANEL_PREV_3D_B::initPanel()
+void PANEL_PREV_3D::initPanel()
 {
     m_resolver = NULL;
     currentModelFile.clear();
@@ -475,6 +476,9 @@ void PANEL_PREV_3D::onMouseWheelScale( wxMouseEvent& event )
 
     double step = SCALE_INCREMENT;
 
+    if( event.ShiftDown( ) )
+        step = SCALE_INCREMENT_FINE;
+
     if( event.GetWheelRotation() >= 0 )
         step = -step;
 
@@ -486,7 +490,12 @@ void PANEL_PREV_3D::onMouseWheelRot( wxMouseEvent& event )
 {
     wxTextCtrl* textCtrl = (wxTextCtrl*) event.GetEventObject();
 
+    wxKeyboardState kbdState;
+
     double step = ROTATION_INCREMENT_WHEEL;
+
+    if( event.ShiftDown( ) )
+        step = ROTATION_INCREMENT_WHEEL_FINE;
 
     if( event.GetWheelRotation() >= 0 )
         step = -step;
@@ -499,9 +508,15 @@ void PANEL_PREV_3D::onMouseWheelOffset( wxMouseEvent& event )
     wxTextCtrl* textCtrl = (wxTextCtrl*) event.GetEventObject();
 
     double step = OFFSET_INCREMENT_MM;
+    if( event.ShiftDown( ) )
+        step = OFFSET_INCREMENT_MM_FINE;
 
     if( g_UserUnit == INCHES )
+    {
         step = OFFSET_INCREMENT_MIL/1000.0;
+        if( event.ShiftDown( ) )
+            step = OFFSET_INCREMENT_MIL_FINE/1000.0;
+    }
 
     if( event.GetWheelRotation() >= 0 )
         step = -step;

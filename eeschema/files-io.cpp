@@ -275,23 +275,30 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     SetStatusText( wxEmptyString );
     ClearMsgPanel();
 
+    LoadProjectFile();
+
     // PROJECT::SetProjectFullName() is an impactful function.  It should only be
     // called under carefully considered circumstances.
 
     // The calling code should know not to ask me here to change projects unless
     // it knows what consequences that will have on other KIFACEs running and using
     // this same PROJECT.  It can be very harmful if that calling code is stupid.
-    Prj().SetProjectFullName( pro.GetFullPath() );
 
-    LoadProjectFile();
+    // Don't reload the symbol libraries if we are just launching Eeschema from KiCad again.
+    // They are already saved in the kiface project object.
+    if( pro.GetFullPath() != Prj().GetProjectFullName()
+      || !Prj().GetElem( PROJECT::ELEM_SCH_PART_LIBS ) )
+    {
+        Prj().SetProjectFullName( pro.GetFullPath() );
 
-    // load the libraries here, not in SCH_SCREEN::Draw() which is a context
-    // that will not tolerate DisplayError() dialog since we're already in an
-    // event handler in there.
-    // And when a schematic file is loaded, we need these libs to initialize
-    // some parameters (links to PART LIB, dangling ends ...)
-    Prj().SetElem( PROJECT::ELEM_SCH_PART_LIBS, NULL );
-    Prj().SchLibs();
+        // load the libraries here, not in SCH_SCREEN::Draw() which is a context
+        // that will not tolerate DisplayError() dialog since we're already in an
+        // event handler in there.
+        // And when a schematic file is loaded, we need these libs to initialize
+        // some parameters (links to PART LIB, dangling ends ...)
+        Prj().SetElem( PROJECT::ELEM_SCH_PART_LIBS, NULL );
+        Prj().SchLibs();
+    }
 
     if( is_new )
     {
@@ -313,6 +320,11 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         }
         catch( const IO_ERROR& ioe )
         {
+            // Do not leave g_RootSheet == NULL because it is expected to be
+            // a valid sheet. Therefore create a dummy empty root sheet and screen.
+            CreateScreens();
+            Zoom_Automatique( false );
+
             wxString msg;
             msg.Printf( _( "Error loading schematic file '%s'.\n%s" ),
                         GetChars( fullFileName ), GetChars( ioe.What() ) );
@@ -320,10 +332,6 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
             msg.Printf( _( "Failed to load '%s'" ), GetChars( fullFileName ) );
             AppendMsgPanel( wxEmptyString, msg, CYAN );
-
-            // When g_RootSheet is NULL, create a dummy root sheet and screen.
-            CreateScreens();
-            Zoom_Automatique( false );
 
             return false;
         }
@@ -342,12 +350,13 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
 
         if( !rescueNeverShow )
         {
-            if( RescueProject( false ) )
-            {
-                GetScreen()->CheckComponentsToPartsLinks();
-                GetScreen()->TestDanglingEnds();
-            }
+            RescueProject( false );
         }
+
+        SCH_SCREENS schematic;
+
+        schematic.UpdateSymbolLinks();      // Update all symbol library links for all sheets.
+        GetScreen()->TestDanglingEnds();    // Only perform the dangling end test on root sheet.
     }
 
     GetScreen()->SetGrid( ID_POPUP_GRID_LEVEL_1000 + m_LastGridSizeId );

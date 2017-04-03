@@ -42,7 +42,7 @@
 #include <wx/image.h>
 #include <wx/icon.h>
 #include <layers_id_colors_and_visibility.h>
-#include <colors.h>
+#include <gal/color4d.h>
 
 #define LYR_COLUMN_COUNT        4           ///< Layer tab column count
 #define RND_COLUMN_COUNT        2           ///< Rendering tab column count
@@ -52,6 +52,7 @@
 #define COLUMN_COLOR_LYR_CB 2
 #define COLUMN_COLOR_LYRNAME 3
 
+using KIGFX::COLOR4D;
 
 /**
  * Class LAYER_WIDGET
@@ -84,11 +85,11 @@ public:
     {
         wxString    rowName;    ///< the prompt or layername
         int         id;         ///< either a layer or "visible element" id
-        EDA_COLOR_T color;      ///< -1 if none.
+        COLOR4D     color;      ///< COLOR4D::UNSPECIFIED if none.
         bool        state;      ///< initial wxCheckBox state
         wxString    tooltip;    ///< if not empty, use this tooltip on row
 
-        ROW( const wxString& aRowName, int aId, EDA_COLOR_T aColor = UNSPECIFIED_COLOR,
+        ROW( const wxString& aRowName, int aId, COLOR4D aColor = COLOR4D::UNSPECIFIED,
             const wxString& aTooltip = wxEmptyString, bool aState = true )
         {
             rowName = aRowName;
@@ -112,15 +113,8 @@ protected:
     wxFlexGridSizer*    m_RenderFlexGridSizer;
 
     wxWindow*           m_FocusOwner;
-    wxBitmap*           m_BlankBitmap;
-    wxBitmap*           m_BlankAlternateBitmap;
-    wxBitmap*           m_RightArrowBitmap;
-    wxBitmap*           m_RightArrowAlternateBitmap;
-    wxSize              m_BitmapSize;
     int                 m_CurrentRow;           ///< selected row of layer list
     int                 m_PointSize;
-
-    static wxBitmap makeBitmap( EDA_COLOR_T aColor );
 
     /**
      * Virtual Function useAlternateBitmap
@@ -131,6 +125,12 @@ protected:
      * (alternate bitmaps to show layers in use, normal fo others)
      */
     virtual bool useAlternateBitmap(int aRow) { return false; }
+
+    /**
+     * Subclasses can override this to provide logic for allowing
+     * arbitrary color selection via wxColourPicker instead of DisplayColorFrame.
+     */
+    virtual bool AreArbitraryColorsAllowed() { return false; }
 
     /**
      * Function encodeId
@@ -149,19 +149,13 @@ protected:
      */
     static LAYER_NUM getDecodedId( int aControlId );
 
-    /**
-     * Function makeColorButton
-     * creates a wxBitmapButton and assigns it a solid color and a control ID
-     */
-    wxBitmapButton* makeColorButton( wxWindow* aParent, EDA_COLOR_T aColor, int aID );
-
     void OnLeftDownLayers( wxMouseEvent& event );
 
     /**
-     * Function OnMiddleDownLayerColor
-     * is called only from a color button when user right clicks.
+     * Function OnSwatchChanged()
+     * is called when a user changes a swatch color
      */
-    void OnMiddleDownLayerColor( wxMouseEvent& event );
+    void OnLayerSwatchChanged( wxCommandEvent& aEvent );
 
     /**
      * Function OnLayerCheckBox
@@ -170,7 +164,11 @@ protected:
      */
     void OnLayerCheckBox( wxCommandEvent& event );
 
-    void OnMiddleDownRenderColor( wxMouseEvent& event );
+    /**
+     * Function OnRenderSwatchChanged
+     * Called when user has changed the swatch color of a render entry
+     */
+    void OnRenderSwatchChanged( wxCommandEvent& aEvent );
 
     void OnRenderCheckBox( wxCommandEvent& event );
 
@@ -332,13 +330,13 @@ public:
      * Function SetLayerColor
      * changes the color of \a aLayer
      */
-    void SetLayerColor( LAYER_NUM aLayer, EDA_COLOR_T aColor );
+    void SetLayerColor( LAYER_NUM aLayer, COLOR4D aColor );
 
     /**
      * Function GetLayerColor
      * returns the color of the layer ROW associated with \a aLayer id.
      */
-    EDA_COLOR_T GetLayerColor( LAYER_NUM aLayer ) const;
+    COLOR4D GetLayerColor( LAYER_NUM aLayer ) const;
 
     /**
      * Function SetRenderState
@@ -359,6 +357,14 @@ public:
     bool GetRenderState( int aId );
 
     void UpdateLayouts();
+
+    /**
+     * Function UpdateLayerIcons
+     * Update all layer manager icons (layers only)
+     * Useful when loading a file or clearing a layer because they change,
+     * and the indicator arrow icon needs to be updated
+     */
+    void UpdateLayerIcons();
 
 /*  did not help:
     void Freeze()
@@ -385,7 +391,7 @@ public:
      * @param aLayer is the board layer to change
      * @param aColor is the new color
      */
-    virtual void OnLayerColorChange( int aLayer, EDA_COLOR_T aColor ) = 0;
+    virtual void OnLayerColorChange( int aLayer, COLOR4D aColor ) = 0;
 
     /**
      * Function OnLayerSelect
@@ -416,7 +422,7 @@ public:
      * via the AddRenderRow() function.
      * @param aColor is the new color
      */
-    virtual void OnRenderColorChange( int aId, EDA_COLOR_T aColor ) = 0;
+    virtual void OnRenderColorChange( int aId, COLOR4D aColor ) = 0;
 
     /**
      * Function OnRenderEnable

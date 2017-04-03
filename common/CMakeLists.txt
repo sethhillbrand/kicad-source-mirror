@@ -1,3 +1,8 @@
+# .cpp files are compiled with extra ${WSHADOW_FLAGS}
+if( COMPILER_SUPPORTS_WSHADOW )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WSHADOW_FLAGS}")
+endif()
+
 include_directories( BEFORE ${INC_BEFORE} )
 include_directories(
     ./dialogs
@@ -160,8 +165,13 @@ set( COMMON_DLG_SRCS
     )
 
 set( COMMON_WIDGET_SRCS
+    widgets/color_swatch.cpp
+    widgets/gal_options_panel.cpp
     widgets/mathplot.cpp
     widgets/widget_hotkey_list.cpp
+    widgets/two_column_tree_list.cpp
+    widgets/footprint_preview_widget.cpp
+    widgets/indicator_icon.cpp
     )
 
 set( COMMON_PAGE_LAYOUT_SRCS
@@ -174,12 +184,24 @@ set( COMMON_PAGE_LAYOUT_SRCS
     page_layout/page_layout_reader.cpp
     )
 
+set( COMMON_PREVIEW_ITEMS_SRCS
+    preview_items/arc_assistant.cpp
+    preview_items/arc_geom_manager.cpp
+    preview_items/centreline_rect_item.cpp
+    preview_items/preview_utils.cpp
+    preview_items/ruler_item.cpp
+    preview_items/simple_overlay_item.cpp
+    preview_items/selection_area.cpp
+    preview_items/bright_box.cpp
+    )
+
 set( COMMON_SRCS
     ${LIB_KICAD_SRCS}
     ${COMMON_ABOUT_DLG_SRCS}
     ${COMMON_DLG_SRCS}
     ${COMMON_WIDGET_SRCS}
     ${COMMON_PAGE_LAYOUT_SRCS}
+    ${COMMON_PREVIEW_ITEMS_SRCS}
     base_struct.cpp
     basicframe.cpp
     bezier_curves.cpp
@@ -228,6 +250,7 @@ set( COMMON_SRCS
     gr_basic.cpp
     hotkeys_basic.cpp
     html_messagebox.cpp
+    incremental_text_ctrl.cpp
     kiface_i.cpp
     kiway.cpp
     kiway_express.cpp
@@ -274,6 +297,8 @@ endif()
 
 set( COMMON_SRCS
     ${COMMON_SRCS}
+    system/libcontext.cpp
+
     kicad_curl/kicad_curl.cpp
     kicad_curl/kicad_curl_easy.cpp
 
@@ -291,6 +316,13 @@ set( COMMON_SRCS
     tool/tool_interactive.cpp
     tool/action_manager.cpp
     tool/context_menu.cpp
+    tool/actions.cpp
+    tool/common_tools.cpp
+    tool/grid_menu.cpp
+    tool/zoom_menu.cpp
+    tool/tool_menu.cpp
+    tool/conditional_menu.cpp
+    tool/selection_conditions.cpp
 
     geometry/seg.cpp
     geometry/shape.cpp
@@ -304,6 +336,7 @@ add_library( common STATIC ${COMMON_SRCS} )
 add_dependencies( common lib-dependencies )
 add_dependencies( common version_header )
 target_link_libraries( common
+    gal
     ${Boost_LIBRARIES}
     ${CURL_LIBRARIES}
     ${OPENSSL_LIBRARIES}        # empty on Apple
@@ -340,6 +373,7 @@ set( PCB_COMMON_SRCS
     ../pcbnew/class_zone_settings.cpp
     ../pcbnew/class_teardrop.cpp
     ../pcbnew/classpcb.cpp
+    ../pcbnew/convert_drawsegment_list_to_polygon.cpp
     ../pcbnew/ratsnest_data.cpp
     ../pcbnew/ratsnest_viewitem.cpp
     ../pcbnew/collectors.cpp

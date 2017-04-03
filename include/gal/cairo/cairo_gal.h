@@ -81,7 +81,8 @@ public:
      *
      * @param aName is the name of this window for use by wxWindow::FindWindowByName()
      */
-    CAIRO_GAL( wxWindow* aParent, wxEvtHandler* aMouseListener = NULL,
+    CAIRO_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions,
+               wxWindow* aParent, wxEvtHandler* aMouseListener = NULL,
                wxEvtHandler* aPaintListener = NULL, const wxString& aName = wxT( "CairoCanvas" ) );
 
     virtual ~CAIRO_GAL();
@@ -113,6 +114,10 @@ public:
     /// @copydoc GAL::DrawArc()
     virtual void DrawArc( const VECTOR2D& aCenterPoint, double aRadius,
                           double aStartAngle, double aEndAngle ) override;
+
+    /// @copydoc GAL::DrawArcSegment()
+    virtual void DrawArcSegment( const VECTOR2D& aCenterPoint, double aRadius,
+                                 double aStartAngle, double aEndAngle, double aWidth ) override;
 
     /// @copydoc GAL::DrawRectangle()
     virtual void DrawRectangle( const VECTOR2D& aStartPoint, const VECTOR2D& aEndPoint ) override;
@@ -351,6 +356,9 @@ private:
     COLOR4D             backgroundColor;        ///< Background color
 
     int wxBufferWidth;
+
+    ///> Cairo-specific update handlers
+    bool updatedGalDisplayOptions( const GAL_DISPLAY_OPTIONS& aOptions ) override;
 
     void flushPath();
     // Methods

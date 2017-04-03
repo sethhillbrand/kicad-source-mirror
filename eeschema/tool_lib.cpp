@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2004 Jean-Pierre Charras, jaen-pierre.charras@gipsa-lab.inpg.com
- * Copyright (C) 2008-2011 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2004-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2008-2017 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2004-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,6 +34,7 @@
 #include <general.h>
 #include <libeditframe.h>
 #include <dialog_helpers.h>
+#include <bitmaps.h>
 
 #include <help_common_strings.h>
 
@@ -110,19 +111,22 @@ void LIB_EDIT_FRAME::ReCreateHToolbar()
                                       wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORZ_LAYOUT );
 
     // Set up toolbar
+    m_mainToolBar->AddTool( ID_LIBEDIT_SELECT_CURRENT_LIB, wxEmptyString, KiBitmap( library_xpm ),
+                            _( "Select working library" ) );
+
     m_mainToolBar->AddTool( ID_LIBEDIT_SAVE_CURRENT_LIB, wxEmptyString,
                             KiBitmap( save_library_xpm ),
                             _( "Save current library to disk" ) );
 
-    m_mainToolBar->AddTool( ID_LIBEDIT_SELECT_CURRENT_LIB, wxEmptyString, KiBitmap( library_xpm ),
-                            _( "Select working library" ) );
+    m_mainToolBar->AddTool( CreateNewLibAndSavePartId, wxEmptyString, KiBitmap( new_library_xpm ),
+                            _( "Save current component to new library" ) );
 
-    m_mainToolBar->AddTool( ID_LIBEDIT_DELETE_PART, wxEmptyString, KiBitmap( delete_xpm ),
-                            _( "Delete component in current library" ) );
-
-    m_mainToolBar->AddSeparator();
     m_mainToolBar->AddTool( ID_TO_LIBVIEW, wxEmptyString, KiBitmap( library_browse_xpm ),
                             HELP_RUN_LIB_VIEWER );
+
+    m_mainToolBar->AddSeparator();
+    m_mainToolBar->AddTool( ID_LIBEDIT_DELETE_PART, wxEmptyString, KiBitmap( delete_xpm ),
+                            _( "Delete component in current library" ) );
 
     m_mainToolBar->AddSeparator();
     m_mainToolBar->AddTool( ID_LIBEDIT_NEW_PART, wxEmptyString, KiBitmap( new_component_xpm ),
@@ -137,7 +141,7 @@ void LIB_EDIT_FRAME::ReCreateHToolbar()
                             _( "Create a new component from the current one" ) );
 
     m_mainToolBar->AddTool( ID_LIBEDIT_SAVE_CURRENT_PART, wxEmptyString,
-                         KiBitmap( save_part_in_mem_xpm ),
+                            KiBitmap( save_part_in_mem_xpm ),
                             _( "Update current component in current library" ) );
 
     m_mainToolBar->AddTool( ImportPartId, wxEmptyString, KiBitmap( import_xpm ),
@@ -145,9 +149,6 @@ void LIB_EDIT_FRAME::ReCreateHToolbar()
 
     m_mainToolBar->AddTool( ExportPartId, wxEmptyString, KiBitmap( export_xpm ),
                             _( "Export component" ) );
-
-    m_mainToolBar->AddTool( CreateNewLibAndSavePartId, wxEmptyString, KiBitmap( new_library_xpm ),
-                            _( "Save current component to new library" ) );
 
     m_mainToolBar->AddSeparator();
     msg = AddHotkeyName( _( "Undo last command" ), g_Libedit_Hokeys_Descr, HK_UNDO, IS_COMMENT );

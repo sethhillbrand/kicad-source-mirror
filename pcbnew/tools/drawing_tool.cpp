@@ -24,7 +24,7 @@
  */
 
 #include "drawing_tool.h"
-#include "common_actions.h"
+#include "pcb_actions.h"
 
 #include <wxPcbStruct.h>
 #include <class_draw_panel_gal.h>
@@ -44,6 +44,10 @@
 #include <ratsnest_data.h>
 #include <board_commit.h>
 #include <scoped_set_reset.h>
+#include <bitmaps.h>
+#include <hotkeys.h>
+
+#include <preview_items/arc_assistant.h>
 
 #include <class_board.h>
 #include <class_edge_mod.h>
@@ -56,6 +60,76 @@
 #include <tools/tool_event_utils.h>
 
 using SCOPED_DRAW_MODE = SCOPED_SET_RESET<DRAWING_TOOL::MODE>;
+
+// Drawing tool actions
+TOOL_ACTION PCB_ACTIONS::drawLine( "pcbnew.InteractiveDrawing.line",
+        AS_GLOBAL, 0,
+        _( "Draw Line" ), _( "Draw a line" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawCircle( "pcbnew.InteractiveDrawing.circle",
+        AS_GLOBAL, 0,
+        _( "Draw Circle" ), _( "Draw a circle" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawArc( "pcbnew.InteractiveDrawing.arc",
+        AS_GLOBAL, 0,
+        _( "Draw Arc" ), _( "Draw an arc" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::placeText( "pcbnew.InteractiveDrawing.text",
+        AS_GLOBAL, 0,
+        _( "Add Text" ), _( "Add a text" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawDimension( "pcbnew.InteractiveDrawing.dimension",
+        AS_GLOBAL, 0,
+        _( "Add Dimension" ), _( "Add a dimension" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawZone( "pcbnew.InteractiveDrawing.zone",
+        AS_GLOBAL, 0,
+        _( "Add Filled Zone" ), _( "Add a filled zone" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawKeepout( "pcbnew.InteractiveDrawing.keepout",
+        AS_GLOBAL, 0,
+        _( "Add Keepout Area" ), _( "Add a keepout area" ), NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawZoneCutout( "pcbnew.InteractiveDrawing.zoneCutout",
+        AS_GLOBAL, 0,
+        _( "Add a Zone Cutout" ), _( "Add a cutout area of an existing zone" ),
+        add_zone_cutout_xpm, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::drawSimilarZone( "pcbnew.InteractiveDrawing.similarZone",
+        AS_GLOBAL, 0,
+        _( "Add a Similar Zone" ), _( "Add a zone with the same settings as an existing zone" ),
+        add_zone_xpm, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::placeDXF( "pcbnew.InteractiveDrawing.placeDXF",
+        AS_GLOBAL, 0,
+        "Place DXF", "", NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::setAnchor( "pcbnew.InteractiveDrawing.setAnchor",
+        AS_GLOBAL, 0,
+        _( "Place the Footprint Anchor" ), _( "Place the footprint anchor" ),
+        NULL, AF_ACTIVATE );
+
+TOOL_ACTION PCB_ACTIONS::incWidth( "pcbnew.InteractiveDrawing.incWidth",
+        AS_CONTEXT, '+',
+        _( "Increase Line Width" ), _( "Increase the line width" ) );
+
+TOOL_ACTION PCB_ACTIONS::decWidth( "pcbnew.InteractiveDrawing.decWidth",
+        AS_CONTEXT, '-',
+        _( "Decrease Line Width" ), _( "Decrease the line width" ) );
+
+TOOL_ACTION PCB_ACTIONS::arcPosture( "pcbnew.InteractiveDrawing.arcPosture",
+        AS_CONTEXT, TOOL_ACTION::LegacyHotKey( HK_SWITCH_TRACK_POSTURE ),
+        _( "Switch Arc Posture" ), _( "Switch the arc posture" ) );
+
+/*
+ * Contextual actions
+ */
+
+static TOOL_ACTION deleteLastPoint( "pcbnew.InteractiveDrawing.deleteLastPoint",
+        AS_CONTEXT, WXK_BACK,
+        _( "Delete Last Point" ), _( "Delete the last point added to the current item" ),
+        undo_xpm );
+
 
 DRAWING_TOOL::DRAWING_TOOL() :
     PCB_TOOL( "pcbnew.InteractiveDrawing" ),
@@ -74,6 +148,24 @@ DRAWING_TOOL::~DRAWING_TOOL()
 
 bool DRAWING_TOOL::Init()
 {
+    auto activeToolFunctor = [ this ] ( const SELECTION& aSel ) {
+        return m_mode != MODE::NONE;
+    };
+
+    auto canUndoPoint = [ this ] ( const SELECTION& aSel ) {
+        return m_mode == MODE::ARC;
+    };
+
+    auto& ctxMenu = m_menu.GetMenu();
+
+    // cancel current toool goes in main context menu at the top if present
+    ctxMenu.AddItem( ACTIONS::cancelInteractive, activeToolFunctor, 1000 );
+
+    // some interactive drawing tools can undo the last point
+    ctxMenu.AddItem( deleteLastPoint, canUndoPoint, 1000 );
+
+    ctxMenu.AddSeparator( activeToolFunctor, 1000 );
+
     // Drawing type-specific options will be added by the PCB control tool
     m_menu.AddStandardSubMenus( *getEditFrame<PCB_BASE_FRAME>() );
 
@@ -200,7 +292,7 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
     SELECTION preview;
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
     // do not capture or auto-pan until we start placing some text
@@ -216,7 +308,7 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
     {
         VECTOR2I cursorPos = m_controls->GetCursorPosition();
 
-        if( evt->IsCancel() || evt->IsActivate() )
+        if( TOOL_EVT_UTILS::IsCancelInteractive( *evt ) )
         {
             if( text )
             {
@@ -247,7 +339,7 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
                 text->Rotate( text->GetPosition(), rotationAngle );
                 m_view->Update( &preview );
             }
-            else if( evt->IsAction( &COMMON_ACTIONS::flip ) )
+            else if( evt->IsAction( &PCB_ACTIONS::flip ) )
             {
                 text->Flip( text->GetPosition() );
                 m_view->Update( &preview );
@@ -349,11 +441,6 @@ int DRAWING_TOOL::PlaceText( const TOOL_EVENT& aEvent )
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
-
     m_view->Remove( &preview );
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
@@ -372,7 +459,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
     SELECTION preview;
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
 
@@ -396,7 +483,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
     {
         VECTOR2I cursorPos = m_controls->GetCursorPosition();
 
-        if( evt->IsCancel() || evt->IsActivate() )
+        if( TOOL_EVT_UTILS::IsCancelInteractive( *evt ) )
         {
             if( step != SET_ORIGIN )    // start from the beginning
             {
@@ -412,14 +499,14 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
                 break;
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::incWidth ) && step != SET_ORIGIN )
+        else if( evt->IsAction( &PCB_ACTIONS::incWidth ) && step != SET_ORIGIN )
         {
             m_lineWidth += WIDTH_STEP;
             dimension->SetWidth( m_lineWidth );
             m_view->Update( &preview );
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::decWidth ) && step != SET_ORIGIN )
+        else if( evt->IsAction( &PCB_ACTIONS::decWidth ) && step != SET_ORIGIN )
         {
             if( m_lineWidth > WIDTH_STEP )
             {
@@ -441,6 +528,9 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
             case SET_ORIGIN:
                 {
                     LAYER_ID layer = getDrawingLayer();
+
+                    if( layer == Edge_Cuts )    // dimensions are not allowed on EdgeCuts
+                        layer = Dwgs_User;
 
                     // Init the new item attributes
                     dimension = new DIMENSION( m_board );
@@ -528,12 +618,7 @@ int DRAWING_TOOL::DrawDimension( const TOOL_EVENT& aEvent )
     if( step != SET_ORIGIN )
         delete dimension;
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
-
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
@@ -603,10 +688,10 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
         preview.Add( item );
     }
 
-    BOARD_ITEM* firstItem = preview.Front();
+    BOARD_ITEM* firstItem = static_cast<BOARD_ITEM*>( preview.Front() );
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
 
@@ -624,7 +709,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
             delta = cursorPos - firstItem->GetPosition();
 
             for( auto item : preview )
-                item->Move( wxPoint( delta.x, delta.y ) );
+                static_cast<BOARD_ITEM*>( item )->Move( wxPoint( delta.x, delta.y ) );
 
             m_view->Update( &preview );
         }
@@ -640,19 +725,19 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
 
                 for( auto item : preview )
                 {
-                    item->Rotate( rotationPoint, rotationAngle );
+                    static_cast<BOARD_ITEM*>( item )->Rotate( rotationPoint, rotationAngle );
                 }
 
                 m_view->Update( &preview );
             }
-            else if( evt->IsAction( &COMMON_ACTIONS::flip ) )
+            else if( evt->IsAction( &PCB_ACTIONS::flip ) )
             {
                 for( auto item : preview )
-                    item->Flip( wxPoint( cursorPos.x, cursorPos.y ) );
+                    static_cast<BOARD_ITEM*>( item )->Flip( wxPoint( cursorPos.x, cursorPos.y ) );
 
                 m_view->Update( &preview );
             }
-            else if( evt->IsCancel() || evt->IsActivate() )
+            else if( TOOL_EVT_UTILS::IsCancelInteractive( *evt ) )
             {
                 preview.FreeItems();
                 break;
@@ -735,7 +820,7 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
                     }
 
                     if( converted )
-                        converted->SetLayer( item->GetLayer() );
+                        converted->SetLayer( static_cast<BOARD_ITEM*>( item )->GetLayer() );
 
                     delete item;
                     item = converted;
@@ -751,11 +836,6 @@ int DRAWING_TOOL::PlaceDXF( const TOOL_EVENT& aEvent )
     }
 
     preview.Clear();
-
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return 0;
@@ -800,14 +880,9 @@ int DRAWING_TOOL::SetAnchor( const TOOL_EVENT& aEvent )
         {
             m_menu.ShowContextMenu();
         }
-        else if( evt->IsCancel() || evt->IsActivate() )
+        else if( TOOL_EVT_UTILS::IsCancelInteractive( *evt )  )
             break;
     }
-
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->ShowCursor( false );
 
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
@@ -827,7 +902,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
     SELECTION preview;
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
 
@@ -882,7 +957,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
             m_view->Update( &preview );
         }
 
-        if( evt->IsCancel() || evt->IsActivate() )
+        if( TOOL_EVT_UTILS::IsCancelInteractive( *evt ) )
         {
             preview.Clear();
             m_view->Update( &preview );
@@ -890,7 +965,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
             aGraphic = NULL;
             break;
         }
-        else if( evt->IsAction( &COMMON_ACTIONS::layerChanged ) )
+        else if( evt->IsAction( &PCB_ACTIONS::layerChanged ) )
         {
             aGraphic->SetLayer( getDrawingLayer() );
             m_view->Update( &preview );
@@ -961,7 +1036,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
             m_view->Update( &preview );
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::incWidth ) )
+        else if( evt->IsAction( &PCB_ACTIONS::incWidth ) )
         {
             m_lineWidth += WIDTH_STEP;
             aGraphic->SetWidth( m_lineWidth );
@@ -969,7 +1044,7 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
             m_view->Update( &preview );
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::decWidth ) && ( m_lineWidth > WIDTH_STEP ) )
+        else if( evt->IsAction( &PCB_ACTIONS::decWidth ) && ( m_lineWidth > WIDTH_STEP ) )
         {
             m_lineWidth -= WIDTH_STEP;
             aGraphic->SetWidth( m_lineWidth );
@@ -978,191 +1053,146 @@ bool DRAWING_TOOL::drawSegment( int aShape, DRAWSEGMENT*& aGraphic,
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
 
     return started;
 }
 
 
+/**
+ * Update an arc DRAWSEGMENT from the current state
+ * of an Arc Geoemetry Manager
+ */
+static void updateArcFromConstructionMgr(
+        const KIGFX::PREVIEW::ARC_GEOM_MANAGER& aMgr,
+        DRAWSEGMENT& aArc )
+{
+    auto vec = aMgr.GetOrigin();
+
+    aArc.SetCenter( { vec.x, vec.y } );
+
+    vec = aMgr.GetStartRadiusEnd();
+    aArc.SetArcStart( { vec.x, vec.y } );
+
+    aArc.SetAngle( RAD2DECIDEG( -aMgr.GetSubtended() ) );
+}
+
+
 bool DRAWING_TOOL::drawArc( DRAWSEGMENT*& aGraphic )
 {
-    bool clockwise = true;      // drawing direction of the arc
-    double startAngle = 0.0f;   // angle of the first arc line
-    VECTOR2I cursorPos = m_controls->GetCursorPosition();
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
 
-    // Line from the arc center to its origin, to visualize its radius
-    DRAWSEGMENT helperLine;
-    helperLine.SetShape( S_SEGMENT );
-    helperLine.SetLayer( Dwgs_User );
-    helperLine.SetWidth( 1 );
+    // Arc geometric construction manager
+    KIGFX::PREVIEW::ARC_GEOM_MANAGER arcManager;
+
+    // Arc drawing assistant overlay
+    KIGFX::PREVIEW::ARC_ASSISTANT arcAsst( arcManager );
 
     // Add a VIEW_GROUP that serves as a preview for the new item
     SELECTION preview;
     m_view->Add( &preview );
+    m_view->Add( &arcAsst );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
 
     Activate();
 
-    enum ARC_STEPS
-    {
-        SET_ORIGIN = 0,
-        SET_END,
-        SET_ANGLE,
-        FINISHED
-    };
-    int step = SET_ORIGIN;
+    bool firstPoint = false;
 
     // Main loop: keep receiving events
     while( OPT_TOOL_EVENT evt = Wait() )
     {
-        cursorPos = m_controls->GetCursorPosition();
+        const VECTOR2I cursorPos = m_controls->GetCursorPosition();
 
-        if( evt->IsCancel() || evt->IsActivate() )
+        if( evt->IsClick( BUT_LEFT ) )
+        {
+            if( !firstPoint )
+            {
+                m_controls->SetAutoPan( true );
+                m_controls->CaptureCursor( true );
+
+                LAYER_ID layer = getDrawingLayer();
+
+                // Init the new item attributes
+                // (non-geometric, those are handled by the manager)
+                aGraphic->SetShape( S_ARC );
+                aGraphic->SetWidth( m_lineWidth );
+                aGraphic->SetLayer( layer );
+
+                preview.Add( aGraphic );
+                firstPoint = true;
+            }
+
+            arcManager.AddPoint( cursorPos, true );
+        }
+
+        else if( evt->IsAction( &deleteLastPoint ) )
+        {
+            arcManager.RemoveLastPoint();
+        }
+
+        else if( evt->IsMotion() )
+        {
+            // set angle snap
+            arcManager.SetAngleSnap( evt->Modifier( MD_CTRL ) );
+
+            // update, but don't step the manager state
+            arcManager.AddPoint( cursorPos, false );
+        }
+
+        else if( TOOL_EVT_UTILS::IsCancelInteractive( *evt ) )
         {
             preview.Clear();
             delete aGraphic;
-            aGraphic = NULL;
+            aGraphic = nullptr;
             break;
         }
         else if( evt->IsClick( BUT_RIGHT ) )
         {
             m_menu.ShowContextMenu();
         }
-        else if( evt->IsClick( BUT_LEFT ) )
-        {
-            switch( step )
-            {
-            case SET_ORIGIN:
-            {
-                LAYER_ID layer = getDrawingLayer();
 
-                if( layer == Edge_Cuts )    // dimensions are not allowed on EdgeCuts
-                    layer = Dwgs_User;
-
-                // Init the new item attributes
-                aGraphic->SetShape( S_ARC );
-                aGraphic->SetAngle( 0.0 );
-                aGraphic->SetWidth( m_lineWidth );
-                aGraphic->SetCenter( wxPoint( cursorPos.x, cursorPos.y ) );
-                aGraphic->SetLayer( layer );
-
-                helperLine.SetStart( aGraphic->GetCenter() );
-                helperLine.SetEnd( aGraphic->GetCenter() );
-
-                preview.Add( aGraphic );
-                preview.Add( &helperLine );
-
-                m_controls->SetAutoPan( true );
-                m_controls->CaptureCursor( true );
-            }
-            break;
-
-            case SET_END:
-            {
-                if( wxPoint( cursorPos.x, cursorPos.y ) != aGraphic->GetCenter() )
-                {
-                    VECTOR2D startLine( aGraphic->GetArcStart() - aGraphic->GetCenter() );
-                    startAngle = startLine.Angle();
-                    aGraphic->SetArcStart( wxPoint( cursorPos.x, cursorPos.y ) );
-                }
-                else
-                    --step;     // one another chance to draw a proper arc
-            }
-            break;
-
-            case SET_ANGLE:
-            {
-                if( wxPoint( cursorPos.x, cursorPos.y ) != aGraphic->GetArcStart() && aGraphic->GetAngle() != 0 )
-                {
-                    assert( aGraphic->GetArcStart() != aGraphic->GetArcEnd() );
-                    assert( aGraphic->GetWidth() > 0 );
-
-                    preview.Remove( aGraphic );
-                    preview.Remove( &helperLine );
-                }
-                else
-                    --step;     // one another chance to draw a proper arc
-            }
-            break;
-            }
-
-            if( ++step == FINISHED )
-                break;
-        }
-
-        else if( evt->IsMotion() )
-        {
-            switch( step )
-            {
-            case SET_END:
-                helperLine.SetEnd( wxPoint( cursorPos.x, cursorPos.y ) );
-                aGraphic->SetArcStart( wxPoint( cursorPos.x, cursorPos.y ) );
-                break;
-
-            case SET_ANGLE:
-            {
-                VECTOR2D endLine( wxPoint( cursorPos.x, cursorPos.y ) - aGraphic->GetCenter() );
-                double newAngle = RAD2DECIDEG( endLine.Angle() - startAngle );
-
-                // Adjust the new angle to (counter)clockwise setting
-                if( clockwise && newAngle < 0.0 )
-                    newAngle += 3600.0;
-                else if( !clockwise && newAngle > 0.0 )
-                    newAngle -= 3600.0;
-
-                aGraphic->SetAngle( newAngle );
-            }
-            break;
-            }
-
-            m_view->Update( &preview );
-        }
-
-        else if( evt->IsAction( &COMMON_ACTIONS::incWidth ) )
+        else if( evt->IsAction( &PCB_ACTIONS::incWidth ) )
         {
             m_lineWidth += WIDTH_STEP;
             aGraphic->SetWidth( m_lineWidth );
             m_view->Update( &preview );
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::decWidth ) && m_lineWidth > WIDTH_STEP )
+        else if( evt->IsAction( &PCB_ACTIONS::decWidth ) && m_lineWidth > WIDTH_STEP )
         {
             m_lineWidth -= WIDTH_STEP;
             aGraphic->SetWidth( m_lineWidth );
             m_view->Update( &preview );
         }
 
-        else if( evt->IsAction( &COMMON_ACTIONS::arcPosture ) )
+        else if( evt->IsAction( &PCB_ACTIONS::arcPosture ) )
         {
-            if( clockwise )
-                aGraphic->SetAngle( aGraphic->GetAngle() - 3600.0 );
-            else
-                aGraphic->SetAngle( aGraphic->GetAngle() + 3600.0 );
+            arcManager.ToggleClockwise();
+        }
 
-            clockwise = !clockwise;
+        if( arcManager.IsComplete() )
+        {
+            break;
+        }
+        else if( arcManager.HasGeometryChanged() )
+        {
+            updateArcFromConstructionMgr( arcManager, *aGraphic );
             m_view->Update( &preview );
+            m_view->Update( &arcAsst );
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
+    preview.Remove( aGraphic );
+    m_view->Remove( &arcAsst );
     m_view->Remove( &preview );
 
-    return ( step > SET_ORIGIN );
+    return !arcManager.IsReset();
 }
 
 
-std::unique_ptr<ZONE_CONTAINER> DRAWING_TOOL::createNewZone(
-        bool aKeepout )
+std::unique_ptr<ZONE_CONTAINER> DRAWING_TOOL::createNewZone( bool aKeepout )
 {
     const auto& board = *getModel<BOARD>();
 
@@ -1230,7 +1260,7 @@ bool DRAWING_TOOL::getSourceZoneForAction( ZONE_MODE aMode, ZONE_CONTAINER*& aZo
     const SELECTION& selection = selTool->GetSelection();
 
     if( selection.Empty() )
-        m_toolMgr->RunAction( COMMON_ACTIONS::selectionCursor, true );
+        m_toolMgr->RunAction( PCB_ACTIONS::selectionCursor, true );
 
     // we want a single zone
     if( selection.Size() != 1 )
@@ -1269,7 +1299,7 @@ void DRAWING_TOOL::performZoneCutout( ZONE_CONTAINER& aExistingZone, ZONE_CONTAI
         selection.Clear();
         selection.Add( &aExistingZone );
 
-        m_toolMgr->RunAction( COMMON_ACTIONS::zoneFill, true );
+        m_toolMgr->RunAction( PCB_ACTIONS::zoneFill, true );
     }
 }
 
@@ -1290,7 +1320,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout, ZONE_MODE aMode )
     SELECTION preview;
     m_view->Add( &preview );
 
-    m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
+    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
     m_controls->ShowCursor( true );
     m_controls->SetSnapping( true );
 
@@ -1324,7 +1354,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout, ZONE_MODE aMode )
             m_view->Update( &preview );
         }
 
-        if( evt->IsCancel() || evt->IsActivate() )
+        if( TOOL_EVT_UTILS::IsCancelInteractive( *evt ) )
         {
             if( numPoints > 0 )         // cancel the current zone
             {
@@ -1368,6 +1398,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout, ZONE_MODE aMode )
 
                     zone->Outline()->CloseLastContour();
                     zone->Outline()->RemoveNullSegments();
+                    zone->Outline()->Hatch();
 
                     if( !aKeepout )
                         static_cast<PCB_EDIT_FRAME*>( m_frame )->Fill_Zone( zone.get() );
@@ -1468,12 +1499,7 @@ int DRAWING_TOOL::drawZone( bool aKeepout, ZONE_MODE aMode )
         }
     }
 
-    m_controls->ShowCursor( false );
-    m_controls->SetSnapping( false );
-    m_controls->SetAutoPan( false );
-    m_controls->CaptureCursor( false );
     m_view->Remove( &preview );
-
     m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
 
     return 0;
@@ -1504,17 +1530,17 @@ void DRAWING_TOOL::make45DegLine( DRAWSEGMENT* aSegment, DRAWSEGMENT* aHelper ) 
 
 void DRAWING_TOOL::SetTransitions()
 {
-    Go( &DRAWING_TOOL::DrawLine,         COMMON_ACTIONS::drawLine.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawCircle,       COMMON_ACTIONS::drawCircle.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawArc,          COMMON_ACTIONS::drawArc.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawDimension,    COMMON_ACTIONS::drawDimension.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawZone,         COMMON_ACTIONS::drawZone.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawKeepout,      COMMON_ACTIONS::drawKeepout.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawZoneCutout,   COMMON_ACTIONS::drawZoneCutout.MakeEvent() );
-    Go( &DRAWING_TOOL::DrawSimilarZone,  COMMON_ACTIONS::drawSimilarZone.MakeEvent() );
-    Go( &DRAWING_TOOL::PlaceText,        COMMON_ACTIONS::placeText.MakeEvent() );
-    Go( &DRAWING_TOOL::PlaceDXF,         COMMON_ACTIONS::placeDXF.MakeEvent() );
-    Go( &DRAWING_TOOL::SetAnchor,        COMMON_ACTIONS::setAnchor.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawLine,         PCB_ACTIONS::drawLine.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawCircle,       PCB_ACTIONS::drawCircle.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawArc,          PCB_ACTIONS::drawArc.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawDimension,    PCB_ACTIONS::drawDimension.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawZone,         PCB_ACTIONS::drawZone.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawKeepout,      PCB_ACTIONS::drawKeepout.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawZoneCutout,   PCB_ACTIONS::drawZoneCutout.MakeEvent() );
+    Go( &DRAWING_TOOL::DrawSimilarZone,  PCB_ACTIONS::drawSimilarZone.MakeEvent() );
+    Go( &DRAWING_TOOL::PlaceText,        PCB_ACTIONS::placeText.MakeEvent() );
+    Go( &DRAWING_TOOL::PlaceDXF,         PCB_ACTIONS::placeDXF.MakeEvent() );
+    Go( &DRAWING_TOOL::SetAnchor,        PCB_ACTIONS::setAnchor.MakeEvent() );
 }
 
 

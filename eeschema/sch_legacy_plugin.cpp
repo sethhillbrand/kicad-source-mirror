@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2016 CERN
- * Copyright (C) 2016-2017 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2016-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * @author Wayne Stambaugh <stambaughw@gmail.com>
  *
@@ -2141,6 +2141,9 @@ void SCH_LEGACY_PLUGIN_CACHE::Load()
                  wxString::Format( "Cannot use relative file paths in legacy plugin to "
                                    "open library '%s'.", m_libFileName.GetFullPath() ) );
 
+    wxLogTrace( traceSchLegacyPlugin, "Loading legacy symbol file '%s'",
+                m_libFileName.GetFullPath() );
+
     FILE_LINE_READER reader( m_libFileName.GetFullPath() );
 
     if( !reader.ReadLine() )
@@ -2263,41 +2266,44 @@ void SCH_LEGACY_PLUGIN_CACHE::loadDocs()
         else
             alias = it->second;
 
-        if( alias )
+        // Read the curent alias associated doc.
+        // if the alias does not exist, just skip the description
+        // (Can happen if a .dcm is not synchronized with the corresponding .lib file)
+        while( reader.ReadLine() )
         {
-            while( reader.ReadLine() )
+            line = reader.Line();
+
+            if( !line )
+                SCH_PARSE_ERROR( "unexpected end of file", reader, line );
+
+            if( strCompare( "$ENDCMP", line, &line ) )
+                break;
+
+            text = FROM_UTF8( line + 2 );
+            text = text.Trim();
+
+            switch( line[0] )
             {
-                line = reader.Line();
-
-                if( !line )
-                    SCH_PARSE_ERROR( "unexpected end of file", reader, line );
-
-                if( strCompare( "$ENDCMP", line, &line ) )
-                    break;
-
-                text = FROM_UTF8( line + 2 );
-                text = text.Trim();
-
-                switch( line[0] )
-                {
-                case 'D':
+            case 'D':
+                if( alias )
                     alias->SetDescription( text );
-                    break;
+                break;
 
-                case 'K':
+            case 'K':
+                if( alias )
                     alias->SetKeyWords( text );
-                    break;
+                break;
 
-                case 'F':
+            case 'F':
+                if( alias )
                     alias->SetDocFileName( text );
-                    break;
+                break;
 
-                case '#':
-                    break;
+            case '#':
+                break;
 
-                default:
-                    SCH_PARSE_ERROR( "expected token in symbol definition", reader, line );
-                }
+            default:
+                SCH_PARSE_ERROR( "expected token in symbol definition", reader, line );
             }
         }
     }
@@ -2385,6 +2391,11 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
         value.SetVisible( false );
     }
 
+    // There are some code paths in SetText() that do not set the root alias to the
+    // alias list so add it here if it didn't get added by SetText().
+    if( !part->HasAlias( part->GetName() ) )
+        part->AddAlias( part->GetName() );
+
     LIB_FIELD& reference = part->GetReferenceField();
 
     if( prefix == "~" )
@@ -2411,10 +2422,10 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
 
         if( locked == 'L' )
             part->LockUnits( true );
-        else if( locked == 'F' )
+        else if( locked == 'F' || locked == '0' )
             part->LockUnits( false );
         else
-            SCH_PARSE_ERROR( "expected L or F", aReader, line );
+            SCH_PARSE_ERROR( "expected L, F, or 0", aReader, line );
     }
 
 
@@ -2437,7 +2448,7 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
     while( line )
     {
         if( *line == '#' )                               // Comment
-            continue;
+            ;
         else if( strCompare( "Ti", line, &line ) )       // Modification date is ignored.
             continue;
         else if( strCompare( "ALIAS", line, &line ) )    // Aliases
@@ -2450,9 +2461,12 @@ LIB_PART* SCH_LEGACY_PLUGIN_CACHE::loadPart( FILE_LINE_READER& aReader )
             loadFootprintFilters( part, aReader );
         else if( strCompare( "ENDDEF", line, &line ) )   // End of part description
         {
-            // Add the root alias to the alias list.
-            part->m_aliases.push_back( new LIB_ALIAS( name, part.get() ) );
-            m_aliases[ part->GetName() ] = part->GetAlias( name );
+            // Now all is good, Add the root alias to the cache alias list.
+            m_aliases[ part->GetName() ] = part->GetAlias( part->GetName() );
+
+            // Add aliases when exist
+            for( size_t ii = 0; ii < part->GetAliasCount(); ++ii )
+                m_aliases[ part->GetAlias( ii )->GetName() ] = part->GetAlias( ii );
 
             return part.release();
         }
@@ -2507,7 +2521,6 @@ void SCH_LEGACY_PLUGIN_CACHE::loadAliases( std::unique_ptr< LIB_PART >& aPart,
         newAlias = alias;
         checkForDuplicates( newAlias );
         aPart->AddAlias( newAlias );
-        m_aliases[ newAlias ] = aPart->GetAlias( newAlias );
         alias.clear();
         parseUnquotedString( alias, aReader, line, &line, true );
     }
@@ -2641,8 +2654,10 @@ void SCH_LEGACY_PLUGIN_CACHE::loadField( std::unique_ptr< LIB_PART >& aPart,
 
         *fixedField = *field;
 
-        if( field->GetId() == VALUE )
-            aPart->m_name = field->GetText();
+        // Ensure the VALUE field = the part name (can be not the case
+        // with malformed libraries: edited by hand, or converted from other tools)
+        if( fixedField->GetId() == VALUE )
+            fixedField->m_Text = aPart->m_name;
     }
     else
     {
@@ -2899,42 +2914,46 @@ LIB_TEXT* SCH_LEGACY_PLUGIN_CACHE::loadText( std::unique_ptr< LIB_PART >& aPart,
         if( parseInt( aReader, line, &line ) > 0 )
             text->SetBold( true );
 
-        switch( parseChar( aReader, line, &line ) )
+        // Some old libaries version > 2.0 do not have these options for text justification:
+        if( !is_eol( *line ) )
         {
-        case 'L':
-            text->SetHorizJustify( GR_TEXT_HJUSTIFY_LEFT );
-            break;
+            switch( parseChar( aReader, line, &line ) )
+            {
+            case 'L':
+                text->SetHorizJustify( GR_TEXT_HJUSTIFY_LEFT );
+                break;
 
-        case 'C':
-            text->SetHorizJustify( GR_TEXT_HJUSTIFY_CENTER );
-            break;
+            case 'C':
+                text->SetHorizJustify( GR_TEXT_HJUSTIFY_CENTER );
+                break;
 
-        case 'R':
-            text->SetHorizJustify( GR_TEXT_HJUSTIFY_RIGHT );
-            break;
+            case 'R':
+                text->SetHorizJustify( GR_TEXT_HJUSTIFY_RIGHT );
+                break;
 
-        default:
-            SCH_PARSE_ERROR( _( "invalid horizontal text justication parameter, expected L, C, or R" ),
-                             aReader, line );
-        }
+            default:
+                SCH_PARSE_ERROR( _( "invalid horizontal text justication parameter, expected L, C, or R" ),
+                                 aReader, line );
+            }
 
-        switch( parseChar( aReader, line, &line ) )
-        {
-        case 'T':
-            text->SetVertJustify( GR_TEXT_VJUSTIFY_TOP );
-            break;
+            switch( parseChar( aReader, line, &line ) )
+            {
+            case 'T':
+                text->SetVertJustify( GR_TEXT_VJUSTIFY_TOP );
+                break;
 
-        case 'C':
-            text->SetVertJustify( GR_TEXT_VJUSTIFY_CENTER );
-            break;
+            case 'C':
+                text->SetVertJustify( GR_TEXT_VJUSTIFY_CENTER );
+                break;
 
-        case 'B':
-            text->SetVertJustify( GR_TEXT_VJUSTIFY_BOTTOM );
-            break;
+            case 'B':
+                text->SetVertJustify( GR_TEXT_VJUSTIFY_BOTTOM );
+                break;
 
-        default:
-            SCH_PARSE_ERROR( _( "invalid vertical text justication parameter, expected T, C, or B" ),
-                             aReader, line );
+            default:
+                SCH_PARSE_ERROR( _( "invalid vertical text justication parameter, expected T, C, or B" ),
+                                 aReader, line );
+            }
         }
     }
 
@@ -3251,19 +3270,21 @@ void SCH_LEGACY_PLUGIN_CACHE::Save( bool aSaveDocFile )
     if( !m_isModified )
         return;
 
-    FILE_OUTPUTFORMATTER formatter( m_libFileName.GetFullPath() );
-    formatter.Print( 0, "%s %d.%d\n", LIBFILE_IDENT, LIB_VERSION_MAJOR, LIB_VERSION_MINOR );
-    formatter.Print( 0, "#encoding utf-8\n");
+    std::unique_ptr< FILE_OUTPUTFORMATTER > formatter( new FILE_OUTPUTFORMATTER( m_libFileName.GetFullPath() ) );
+    formatter->Print( 0, "%s %d.%d\n", LIBFILE_IDENT, LIB_VERSION_MAJOR, LIB_VERSION_MINOR );
+    formatter->Print( 0, "#encoding utf-8\n");
 
     for( LIB_ALIAS_MAP::iterator it = m_aliases.begin();  it != m_aliases.end();  it++ )
     {
         if( !it->second->IsRoot() )
             continue;
 
-        it->second->GetPart()->Save( formatter );
+        it->second->GetPart()->Save( *formatter.get() );
     }
 
-    formatter.Print( 0, "#\n#End Library\n" );
+    formatter->Print( 0, "#\n#End Library\n" );
+    formatter.reset();
+
     m_fileModTime = m_libFileName.GetModificationTime();
     m_isModified = false;
 
@@ -3371,12 +3392,7 @@ bool SCH_LEGACY_PLUGIN::writeDocFile( const PROPERTIES* aProperties )
 
 bool SCH_LEGACY_PLUGIN::isBuffering( const PROPERTIES* aProperties )
 {
-    std::string propName( SCH_LEGACY_PLUGIN::PropBuffering );
-
-    if( aProperties && aProperties->find( propName ) != aProperties->end() )
-        return true;
-
-    return false;
+    return ( aProperties && aProperties->Exists( SCH_LEGACY_PLUGIN::PropBuffering ) );
 }
 
 
@@ -3416,7 +3432,24 @@ void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( wxArrayString&    aAliasNameList,
     const LIB_ALIAS_MAP& aliases = m_cache->m_aliases;
 
     for( LIB_ALIAS_MAP::const_iterator it = aliases.begin();  it != aliases.end();  ++it )
-        aAliasNameList.Add( FROM_UTF8( it->first.c_str() ) );
+        aAliasNameList.Add( it->first );
+}
+
+
+void SCH_LEGACY_PLUGIN::EnumerateSymbolLib( std::vector<LIB_ALIAS*>& aAliasList,
+                                            const wxString&   aLibraryPath,
+                                            const PROPERTIES* aProperties )
+{
+    LOCALE_IO   toggle;     // toggles on, then off, the C locale.
+
+    m_props = aProperties;
+
+    cacheLib( aLibraryPath );
+
+    const LIB_ALIAS_MAP& aliases = m_cache->m_aliases;
+
+    for( LIB_ALIAS_MAP::const_iterator it = aliases.begin();  it != aliases.end();  ++it )
+        aAliasList.push_back( it->second );
 }
 
 
@@ -3429,7 +3462,7 @@ LIB_ALIAS* SCH_LEGACY_PLUGIN::LoadSymbol( const wxString& aLibraryPath, const wx
 
     cacheLib( aLibraryPath );
 
-    LIB_ALIAS_MAP::const_iterator it = m_cache->m_aliases.find( TO_UTF8( aAliasName ) );
+    LIB_ALIAS_MAP::const_iterator it = m_cache->m_aliases.find( aAliasName );
 
     if( it == m_cache->m_aliases.end() )
         return NULL;

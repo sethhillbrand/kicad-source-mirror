@@ -166,6 +166,7 @@ void PCB_EDIT_FRAME::Autoroute( wxDC* DC, int mode )
 
     /* Calculated ncol and nrow, matrix size for routing. */
     RoutingMatrix.ComputeMatrixSize( GetBoard() );
+    AUTOROUTER_CONTEXT ctx = { this, GetBoard(), RoutingMatrix.m_BrdBox, DC };
 
     m_messagePanel->EraseMsgBox();
 
@@ -190,7 +191,7 @@ void PCB_EDIT_FRAME::Autoroute( wxDC* DC, int mode )
 
     // DisplayRoutingMatrix( m_canvas, DC );
 
-    Solve( DC, RoutingMatrix.m_RoutingLayersCount );
+    Solve( ctx, RoutingMatrix.m_RoutingLayersCount );
 
     /* Free memory. */
     FreeQueue();
@@ -222,7 +223,7 @@ void PCB_EDIT_FRAME::Reset_Noroutable( wxDC* DC )
 void DisplayRoutingMatrix( EDA_DRAW_PANEL* panel, wxDC* DC )
 {
     int dcell0;
-    EDA_COLOR_T color;
+    COLOR4D color;
 
     int maxi = 600 / RoutingMatrix.m_Ncols;
     maxi = ( maxi * 3 ) / 4;
@@ -236,11 +237,11 @@ void DisplayRoutingMatrix( EDA_DRAW_PANEL* panel, wxDC* DC )
     {
         for( int row = 0; row < RoutingMatrix.m_Nrows; row++ )
         {
-            color  = BLACK;
+            color  = COLOR4D::BLACK;
             dcell0 = RoutingMatrix.GetCell( row, col, BOTTOM );
 
             if( dcell0 & HOLE )
-                color = GREEN;
+                color = COLOR4D( GREEN );
 
 #if 0
             int dcell1 = 0;
@@ -249,17 +250,17 @@ void DisplayRoutingMatrix( EDA_DRAW_PANEL* panel, wxDC* DC )
                 dcell1 = GetCell( row, col, TOP );
 
             if( dcell1 & HOLE )
-                color = RED;
+                color = COLOR4D( RED );
 
             dcell0 |= dcell1;
 #endif
-            if( !color && ( dcell0 & VIA_IMPOSSIBLE ) )
-                color = BLUE;
+            if( ( color == COLOR4D::BLACK ) && ( dcell0 & VIA_IMPOSSIBLE ) )
+                color = COLOR4D( BLUE );
 
             if( dcell0 & CELL_is_EDGE )
-                color = YELLOW;
+                color = COLOR4D( YELLOW );
             else if( dcell0 & CELL_is_ZONE )
-                color = YELLOW;
+                color = COLOR4D( YELLOW );
 
             #define DRAW_OFFSET_X -20
             #define DRAW_OFFSET_Y 20

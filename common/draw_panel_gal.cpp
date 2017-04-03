@@ -2,6 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2013-2017 CERN
+ * Copyright (C) 2013-2017 KiCad Developers, see AUTHORS.txt for contributors.
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -30,7 +31,7 @@
 #include <class_draw_panel_gal.h>
 #include <view/view.h>
 #include <view/wx_view_controls.h>
-#include <pcb_painter.h>
+#include <painter.h>
 
 #include <gal/graphics_abstraction_layer.h>
 #include <gal/opengl/opengl_gal.h>
@@ -38,8 +39,6 @@
 
 #include <tool/tool_dispatcher.h>
 #include <tool/tool_manager.h>
-
-#include <pcbstruct.h>  // display options definition
 
 #ifdef PROFILE
 #include <profile.h>
@@ -59,6 +58,7 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
     m_painter    = NULL;
     m_eventDispatcher = NULL;
     m_lostFocus  = false;
+    m_stealsFocus = true;
 
     SetLayoutDirection( wxLayout_LeftToRight );
 
@@ -73,10 +73,7 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
 #endif
     EnableScrolling( false, false );    // otherwise Zoom Auto disables GAL canvas
 
-    m_painter = new KIGFX::PCB_PAINTER( m_gal );
-
     m_view = new KIGFX::VIEW( true );
-    m_view->SetPainter( m_painter );
     m_view->SetGAL( m_gal );
 
     Connect( wxEVT_SIZE, wxSizeEventHandler( EDA_DRAW_PANEL_GAL::onSize ), NULL, this );
@@ -119,19 +116,15 @@ EDA_DRAW_PANEL_GAL::EDA_DRAW_PANEL_GAL( wxWindow* aParentWindow, wxWindowID aWin
     Connect( m_onShowTimer.GetId(), wxEVT_TIMER,
             wxTimerEventHandler( EDA_DRAW_PANEL_GAL::onShowTimer ), NULL, this );
     m_onShowTimer.Start( 10 );
-
-    LoadGalSettings();
 }
 
 
 EDA_DRAW_PANEL_GAL::~EDA_DRAW_PANEL_GAL()
 {
     StopDrawing();
-    SaveGalSettings();
 
     assert( !m_drawing );
 
-    delete m_painter;
     delete m_viewControls;
     delete m_view;
     delete m_gal;
@@ -165,8 +158,10 @@ void EDA_DRAW_PANEL_GAL::onPaint( wxPaintEvent& WXUNUSED( aEvent ) )
     PROF_COUNTER totalRealTime;
 #endif /* PROFILE */
 
+    wxASSERT( m_painter );
+
     m_drawing = true;
-    KIGFX::PCB_RENDER_SETTINGS* settings = static_cast<KIGFX::PCB_RENDER_SETTINGS*>( m_painter->GetSettings() );
+    KIGFX::RENDER_SETTINGS* settings = static_cast<KIGFX::RENDER_SETTINGS*>( m_painter->GetSettings() );
 
 // Scrollbars broken in GAL on OSX
 #ifndef __WXMAC__
@@ -306,7 +301,7 @@ void EDA_DRAW_PANEL_GAL::StopDrawing()
 }
 
 
-void EDA_DRAW_PANEL_GAL::SetHighContrastLayer( LAYER_ID aLayer )
+void EDA_DRAW_PANEL_GAL::SetHighContrastLayer( int aLayer )
 {
     // Set display settings for high contrast mode
     KIGFX::RENDER_SETTINGS* rSettings = m_view->GetPainter()->GetSettings();
@@ -320,7 +315,7 @@ void EDA_DRAW_PANEL_GAL::SetHighContrastLayer( LAYER_ID aLayer )
 }
 
 
-void EDA_DRAW_PANEL_GAL::SetTopLayer( LAYER_ID aLayer )
+void EDA_DRAW_PANEL_GAL::SetTopLayer( int aLayer )
 {
     m_view->ClearTopLayers();
     m_view->SetTopLayer( aLayer );
@@ -357,7 +352,7 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
             break;
 
         case GAL_TYPE_CAIRO:
-            new_gal = new KIGFX::CAIRO_GAL( this, this, this );
+            new_gal = new KIGFX::CAIRO_GAL( m_options, this, this, this );
             break;
 
         default:
@@ -367,19 +362,21 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
         case GAL_TYPE_NONE:
             // KIGFX::GAL is a stub - it actually does cannot display anything,
             // but prevents code relying on GAL canvas existence from crashing
-            new_gal = new KIGFX::GAL();
+            new_gal = new KIGFX::GAL( m_options );
             break;
         }
     }
     catch( std::runtime_error& err )
     {
-        new_gal = new KIGFX::GAL();
+        new_gal = new KIGFX::GAL( m_options );
         aGalType = GAL_TYPE_NONE;
         DisplayError( m_parent, wxString( err.what() ) );
         result = false;
     }
 
-    SaveGalSettings();
+    // trigger update of the gal options in case they differ
+    // from the defaults
+    m_options.NotifyChanged();
 
     assert( new_gal );
     delete m_gal;
@@ -395,52 +392,14 @@ bool EDA_DRAW_PANEL_GAL::SwitchBackend( GAL_TYPE aGalType )
         m_view->SetGAL( m_gal );
 
     m_backend = aGalType;
-    LoadGalSettings();
 
     return result;
 }
 
 
-bool EDA_DRAW_PANEL_GAL::SaveGalSettings()
-{
-    if( !m_edaFrame || !m_gal )
-        return false;
-
-    wxConfigBase* cfg = Kiface().KifaceSettings();
-    wxString baseCfgName = m_edaFrame->GetName();
-
-    if( !cfg )
-        return false;
-
-    if( !cfg->Write( baseCfgName + GRID_STYLE_CFG, (long) GetGAL()->GetGridStyle() ) )
-        return false;
-
-    return true;
-}
-
-
-bool EDA_DRAW_PANEL_GAL::LoadGalSettings()
-{
-    if( !m_edaFrame || !m_gal )
-        return false;
-
-    wxConfigBase* cfg = Kiface().KifaceSettings();
-    wxString baseCfgName = m_edaFrame->GetName();
-
-    if( !cfg )
-        return false;
-
-    long gridStyle;
-    cfg->Read( baseCfgName + GRID_STYLE_CFG, &gridStyle, (long) KIGFX::GRID_STYLE::GRID_STYLE_DOTS );
-    GetGAL()->SetGridStyle( (KIGFX::GRID_STYLE) gridStyle );
-
-    return true;
-}
-
-
 void EDA_DRAW_PANEL_GAL::onEvent( wxEvent& aEvent )
 {
-    if( m_lostFocus )
+    if( m_lostFocus && m_stealsFocus )
         SetFocus();
 
     if( !m_eventDispatcher )
@@ -455,7 +414,8 @@ void EDA_DRAW_PANEL_GAL::onEvent( wxEvent& aEvent )
 void EDA_DRAW_PANEL_GAL::onEnter( wxEvent& aEvent )
 {
     // Getting focus is necessary in order to receive key events properly
-    SetFocus();
+    if( m_stealsFocus )
+        SetFocus();
 
     aEvent.Skip();
 }
@@ -501,6 +461,3 @@ void EDA_DRAW_PANEL_GAL::onShowTimer( wxTimerEvent& aEvent )
         OnShow();
     }
 }
-
-
-const wxChar EDA_DRAW_PANEL_GAL::GRID_STYLE_CFG[] = wxT( "GridStyle" );

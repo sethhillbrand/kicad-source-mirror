@@ -42,6 +42,8 @@
 #include <3d_viewer/eda_3d_viewer.h>
 #include <msgpanel.h>
 #include <fp_lib_table.h>
+#include <bitmaps.h>
+#include <gal/graphics_abstraction_layer.h>
 
 #include <class_board.h>
 #include <class_module.h>
@@ -49,6 +51,7 @@
 #include <pcbnew.h>
 #include <pcbnew_id.h>
 #include <hotkeys.h>
+#include <dialogs/dialog_modedit_display_options.h>
 #include <dialog_hotkeys_editor.h>
 #include <module_editor_frame.h>
 #include <modview_frame.h>
@@ -57,7 +60,9 @@
 #include <invoke_pcb_dialog.h>
 
 #include <tool/tool_manager.h>
+#include <tool/common_tools.h>
 #include <tool/tool_dispatcher.h>
+
 #include "tools/selection_tool.h"
 #include "tools/zoom_tool.h"
 #include "tools/edit_tool.h"
@@ -68,7 +73,7 @@
 #include "tools/placement_tool.h"
 #include "tools/picker_tool.h"
 #include "tools/pad_tool.h"
-#include "tools/common_actions.h"
+#include "tools/pcb_actions.h"
 
 
 BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
@@ -112,7 +117,7 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     // Vertical tool bar button click event handler.
     EVT_TOOL( ID_NO_TOOL_SELECTED, FOOTPRINT_EDIT_FRAME::OnVerticalToolbar )
     EVT_TOOL( ID_ZOOM_SELECTION, FOOTPRINT_EDIT_FRAME::OnVerticalToolbar )
-    EVT_TOOL_RANGE( ID_MODEDIT_PAD_TOOL, ID_MODEDIT_PLACE_GRID_COORD,
+    EVT_TOOL_RANGE( ID_MODEDIT_PAD_TOOL, ID_MODEDIT_MEASUREMENT_TOOL,
                     FOOTPRINT_EDIT_FRAME::OnVerticalToolbar )
 
     // Options Toolbar (ID_TB_OPTIONS_SHOW_PADS_SKETCH id is managed in PCB_BASE_FRAME)
@@ -134,6 +139,8 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_MENU( ID_PCB_LIB_TABLE_EDIT,
               FOOTPRINT_EDIT_FRAME::ProcessPreferences )
     EVT_MENU( wxID_PREFERENCES,
+              FOOTPRINT_EDIT_FRAME::ProcessPreferences )
+    EVT_MENU( ID_PCB_DISPLAY_OPTIONS_SETUP,
               FOOTPRINT_EDIT_FRAME::ProcessPreferences )
     EVT_MENU( ID_PREFERENCES_CONFIGURE_PATHS, FOOTPRINT_EDIT_FRAME::OnConfigurePaths )
 
@@ -191,7 +198,7 @@ BEGIN_EVENT_TABLE( FOOTPRINT_EDIT_FRAME, PCB_BASE_FRAME )
     EVT_UPDATE_UI( ID_NO_TOOL_SELECTED, FOOTPRINT_EDIT_FRAME::OnUpdateVerticalToolbar )
     EVT_UPDATE_UI( ID_ZOOM_SELECTION, FOOTPRINT_EDIT_FRAME::OnUpdateVerticalToolbar )
 
-    EVT_UPDATE_UI_RANGE( ID_MODEDIT_PAD_TOOL, ID_MODEDIT_PLACE_GRID_COORD,
+    EVT_UPDATE_UI_RANGE( ID_MODEDIT_PAD_TOOL, ID_MODEDIT_MEASUREMENT_TOOL,
                          FOOTPRINT_EDIT_FRAME::OnUpdateVerticalToolbar )
 
     // Option toolbar:
@@ -327,6 +334,7 @@ FOOTPRINT_EDIT_FRAME::FOOTPRINT_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     // Create the manager and dispatcher & route draw panel events to the dispatcher
     setupTools();
+    GetGalCanvas()->GetGAL()->SetAxesEnabled( true );
     UseGalCanvas( parentFrame->IsGalCanvasActive() );
 
     if( m_auimgr.GetPane( "m_LayersManagerToolBar" ).IsShown() )
@@ -807,7 +815,7 @@ void FOOTPRINT_EDIT_FRAME::updateView()
 {
     static_cast<PCB_DRAW_PANEL_GAL*>( GetGalCanvas() )->DisplayBoard( GetBoard() );
     m_toolManager->ResetTools( TOOL_BASE::MODEL_RELOAD );
-    m_toolManager->RunAction( COMMON_ACTIONS::zoomFitScreen, true );
+    m_toolManager->RunAction( ACTIONS::zoomFitScreen, true );
 }
 
 
@@ -924,6 +932,10 @@ void FOOTPRINT_EDIT_FRAME::ProcessPreferences( wxCommandEvent& event )
         InvokeFPEditorPrefsDlg( this );
         break;
 
+    case ID_PCB_DISPLAY_OPTIONS_SETUP:
+        DIALOG_MODEDIT_DISPLAY_OPTIONS::Invoke( *this );
+        break;
+
     default:
         DisplayError( this, "FOOTPRINT_EDIT_FRAME::ProcessPreferences error" );
     }
@@ -944,10 +956,12 @@ void FOOTPRINT_EDIT_FRAME::setupTools()
     m_toolManager = new TOOL_MANAGER;
     m_toolManager->SetEnvironment( GetBoard(), drawPanel->GetView(),
                                    drawPanel->GetViewControls(), this );
-    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager );
+    m_actions = new PCB_ACTIONS();
+    m_toolDispatcher = new TOOL_DISPATCHER( m_toolManager, m_actions );
 
     drawPanel->SetEventDispatcher( m_toolDispatcher );
 
+    m_toolManager->RegisterTool( new COMMON_TOOLS );
     m_toolManager->RegisterTool( new SELECTION_TOOL );
     m_toolManager->RegisterTool( new ZOOM_TOOL );
     m_toolManager->RegisterTool( new EDIT_TOOL );
@@ -958,11 +972,13 @@ void FOOTPRINT_EDIT_FRAME::setupTools()
     m_toolManager->RegisterTool( new MODULE_EDITOR_TOOLS );
     m_toolManager->RegisterTool( new PLACEMENT_TOOL );
     m_toolManager->RegisterTool( new PICKER_TOOL );
-    m_toolManager->InitTools();
 
+    m_toolManager->GetTool<PAD_TOOL>()->SetEditModules( true );
     m_toolManager->GetTool<SELECTION_TOOL>()->SetEditModules( true );
     m_toolManager->GetTool<EDIT_TOOL>()->SetEditModules( true );
     m_toolManager->GetTool<DRAWING_TOOL>()->SetEditModules( true );
+
+    m_toolManager->InitTools();
 
     m_toolManager->InvokeTool( "pcbnew.InteractiveSelection" );
 }

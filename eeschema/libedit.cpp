@@ -44,9 +44,10 @@
 #include <class_library.h>
 #include <template_fieldnames.h>
 #include <wildcards_and_files_ext.h>
+#include <schframe.h>
 
 #include <dialog_choose_component.h>
-#include <component_tree_search_container.h>
+#include <cmp_tree_model_adapter.h>
 
 #include <dialogs/dialog_lib_new_component.h>
 
@@ -253,12 +254,13 @@ void LIB_EDIT_FRAME::RedrawComponent( wxDC* aDC, wxPoint aOffset  )
         wxString    fieldfullText = field->GetFullText( m_unit );
 
         field->EDA_TEXT::SetText( fieldfullText );  // change the field text string only
-        part->Draw( m_canvas, aDC, aOffset, m_unit, m_convert, GR_DEFAULT_DRAWMODE,
-                    UNSPECIFIED_COLOR, DefaultTransform,
-                    true, true,false, NULL, GetShowElectricalType() );
+        auto opts = PART_DRAW_OPTIONS::Default();
+        opts.show_elec_type = GetShowElectricalType();
+        part->Draw( m_canvas, aDC, aOffset, m_unit, m_convert, opts );
         field->EDA_TEXT::SetText( fieldText );      // restore the field text string
     }
 }
+
 
 void LIB_EDIT_FRAME::RedrawActiveWindow( wxDC* DC, bool EraseBg )
 {
@@ -321,7 +323,24 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     if( GetScreen()->IsModify() )
     {
         if( IsOK( this, _( "Include last component changes?" ) ) )
-            SaveOnePart( lib, false );
+        {
+            lib->EnableBuffering();
+
+            try
+            {
+                SaveOnePart( lib, false );
+            }
+            catch( ... )
+            {
+                lib->EnableBuffering( false );
+                msg.Printf( _( "Unexpected error occured saving part to '%s' symbol library." ),
+                            lib->GetName() );
+                DisplayError( this, msg );
+                return false;
+            }
+
+            lib->EnableBuffering( false );
+        }
     }
 
     if( newFile )
@@ -381,7 +400,8 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
         if( !wxRenameFile( libFileName.GetFullPath(), backupFileName.GetFullPath() ) )
         {
             libFileName.MakeAbsolute();
-            msg = _( "Failed to rename old component library file " ) + backupFileName.GetFullPath();
+            msg = _( "Failed to rename old component library file " ) +
+                  backupFileName.GetFullPath();
             DisplayError( this, msg );
         }
     }
@@ -425,6 +445,9 @@ bool LIB_EDIT_FRAME::SaveActiveLibrary( bool newFile )
     wxString msg1;
     msg1.Printf( _( "Documentation file '%s' saved" ), GetChars( fn.GetFullPath() ) );
     AppendMsgPanel( msg, msg1, BLUE );
+    UpdateAliasSelectList();
+    UpdatePartSelectList();
+    refreshSchematic();
 
     return true;
 }
@@ -507,17 +530,17 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
         }
     }
 
-    COMPONENT_TREE_SEARCH_CONTAINER search_container( Prj().SchLibs() );
+    auto adapter( CMP_TREE_MODEL_ADAPTER::Create( Prj().SchLibs() ) );
 
     wxString name = part ? part->GetName() : wxString( wxEmptyString );
-    search_container.SetPreselectNode( name, /* aUnit */ 0 );
-    search_container.ShowUnits( false );
-    search_container.AddLibrary( *lib );
+    adapter->SetPreselectNode( name, /* aUnit */ 0 );
+    adapter->ShowUnits( false );
+    adapter->AddLibrary( *lib );
 
     wxString dialogTitle;
-    dialogTitle.Printf( _( "Delete Component (%u items loaded)" ), search_container.GetComponentsCount() );
+    dialogTitle.Printf( _( "Delete Component (%u items loaded)" ), adapter->GetComponentsCount() );
 
-    DIALOG_CHOOSE_COMPONENT dlg( this, dialogTitle, &search_container, m_convert );
+    DIALOG_CHOOSE_COMPONENT dlg( this, dialogTitle, adapter, m_convert );
 
     if( dlg.ShowModal() == wxID_CANCEL )
     {
@@ -576,7 +599,6 @@ void LIB_EDIT_FRAME::DeleteOnePart( wxCommandEvent& event )
 
     m_canvas->Refresh();
 }
-
 
 
 void LIB_EDIT_FRAME::CreateNewLibraryPart( wxCommandEvent& event )

@@ -34,6 +34,7 @@
 #include <pgm_base.h>
 #include <wxPcbStruct.h>
 
+
 #include "help_common_strings.h"
 #include "hotkeys.h"
 #include "module_editor_frame.h"
@@ -325,6 +326,11 @@ void FOOTPRINT_EDIT_FRAME::ReCreateMenuBar()
     AddMenuItem( prefs_menu, wxID_PREFERENCES,
                  _( "&Settings" ), _( "Change the footprint editor settings." ),
                  KiBitmap( preference_xpm ) );
+
+    AddMenuItem( prefs_menu, ID_PCB_DISPLAY_OPTIONS_SETUP,
+                 _( "&Display" ),
+                 _( "Change footprint editor display settings" ),
+                 KiBitmap( display_options_xpm ) );
 
     // Language submenu
     Pgm().AddMenuLanguageList( prefs_menu );

@@ -1,3 +1,8 @@
+# .cpp files are compiled with extra ${WSHADOW_FLAGS}
+if( COMPILER_SUPPORTS_WSHADOW )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WSHADOW_FLAGS}")
+endif()
+
 add_definitions( -DEESCHEMA )
 
 if( KICAD_SPICE )
@@ -22,7 +27,6 @@ set( EESCHEMA_DLGS
     dialogs/dialog_bom_base.cpp
     dialogs/dialog_bom_cfg_keywords.cpp
     dialogs/dialog_choose_component.cpp
-    dialogs/dialog_choose_component_base.cpp
     dialogs/dialog_lib_edit_text.cpp
     dialogs/dialog_lib_edit_text_base.cpp
     dialogs/dialog_edit_component_in_lib.cpp
@@ -103,7 +107,9 @@ set( EESCHEMA_SRCS
     files-io.cpp
     find.cpp
     getpart.cpp
-    component_tree_search_container.cpp
+    cmp_tree_model.cpp
+    cmp_tree_model_adapter.cpp
+    generate_alias_info.cpp
     hierarch.cpp
     highlight_connection.cpp
     hotkeys.cpp
@@ -275,6 +281,7 @@ target_link_libraries( eeschema
     # There's way too much crap coming in from common yet.
     common
     bitmaps
+    gal
     ${wxWidgets_LIBRARIES}
     )
 

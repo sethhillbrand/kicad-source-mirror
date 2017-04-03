@@ -42,6 +42,7 @@
 #include <class_gbr_display_options.h>
 
 #include <gr_basic.h>
+#include <class_eda_rect.h>
 
 class GERBER_FILE_IMAGE_LIST;
 
@@ -98,7 +99,7 @@ public:
      * may be called soon after ComputeBoundingBox() to return the same EDA_RECT,
      * as long as the CLASS_GBR_LAYOUT has not changed.
      */
-    EDA_RECT GetBoundingBox() const { return m_BoundingBox; }    // override
+    EDA_RECT GetBoundingBox() const { return m_BoundingBox; }
 
     void SetBoundingBox( const EDA_RECT& aBox ) { m_BoundingBox = aBox; }
 
@@ -125,7 +126,7 @@ public:
      * @param aDrawColor = the color of dcode texts
      */
     void DrawItemsDCodeID( EDA_DRAW_PANEL* aPanel, wxDC* aDC,
-                           GR_DRAWMODE aDrawMode, EDA_COLOR_T aDrawColor );
+                           GR_DRAWMODE aDrawMode, COLOR4D aDrawColor );
 
 
     /**
@@ -173,7 +174,7 @@ public:
     bool    IsLayerPrintable( int aLayer ) const;
 
 #if defined(DEBUG)
-    void    Show( int nestLevel, std::ostream& os ) const;  // overload
+    void    Show( int nestLevel, std::ostream& os ) const;
 
 #endif
 };

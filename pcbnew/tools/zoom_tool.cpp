@@ -23,10 +23,10 @@
 #include <view/view_controls.h>
 #include <view/view.h>
 #include <tool/tool_manager.h>
+#include <preview_items/selection_area.h>
 
 #include "zoom_tool.h"
-#include "selection_area.h"
-#include "common_actions.h"
+#include "pcb_actions.h"
 
 
 ZOOM_TOOL::ZOOM_TOOL() :
@@ -76,7 +76,7 @@ bool ZOOM_TOOL::selectRegion()
     auto canvas = m_frame->GetGalCanvas();
     getViewControls()->SetAutoPan( true );
 
-    SELECTION_AREA area;
+    KIGFX::PREVIEW::SELECTION_AREA area;
     view->Add( &area );
 
     while( auto evt = Wait() )
@@ -129,5 +129,5 @@ bool ZOOM_TOOL::selectRegion()
 
 void ZOOM_TOOL::SetTransitions()
 {
-    Go( &ZOOM_TOOL::Main, COMMON_ACTIONS::zoomTool.MakeEvent() );
+    Go( &ZOOM_TOOL::Main, PCB_ACTIONS::zoomTool.MakeEvent() );
 }

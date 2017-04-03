@@ -2,6 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2016 CERN
+ * Copyright (C) 2016-2017 KiCad Developers, see AUTHORS.txt for contributors.
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
@@ -446,7 +447,7 @@ void SIM_PLOT_FRAME::removePlot( const wxString& aPlotName, bool aErase )
         traceMap.erase( traceIt );
     }
 
-    wxASSERT( plotPanel->IsShown( aPlotName ) );
+    wxASSERT( plotPanel->TraceShown( aPlotName ) );
     plotPanel->DeleteTrace( aPlotName );
     plotPanel->Fit();
 
@@ -561,7 +562,7 @@ void SIM_PLOT_FRAME::updateSignalList()
     {
         wxBitmap bitmap( isize, isize );
         bmDC.SelectObject( bitmap );
-        wxColor tcolor = trace.second->GetTraceColour();
+        wxColour tcolor = trace.second->GetTraceColour();
 
         wxColour bgColor = m_signals->wxWindow::GetBackgroundColour();
         bmDC.SetPen( wxPen( bgColor ) );

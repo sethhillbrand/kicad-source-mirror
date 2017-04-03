@@ -777,9 +777,9 @@ void BOARD::SetElementVisibility( int aPCB_VISIBLE, bool isEnabled )
 }
 
 
-EDA_COLOR_T BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
+COLOR4D BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
 {
-    EDA_COLOR_T color = UNSPECIFIED_COLOR;
+    COLOR4D color = COLOR4D::UNSPECIFIED;
 
     switch( aPCB_VISIBLE )
     {
@@ -806,7 +806,7 @@ EDA_COLOR_T BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
 }
 
 
-void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, EDA_COLOR_T aColor )
+void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, COLOR4D aColor )
 {
     switch( aPCB_VISIBLE )
     {
@@ -831,13 +831,13 @@ void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, EDA_COLOR_T aColor )
 }
 
 
-void BOARD::SetLayerColor( LAYER_ID aLayer, EDA_COLOR_T aColor )
+void BOARD::SetLayerColor( LAYER_ID aLayer, COLOR4D aColor )
 {
     GetColorsSettings()->SetLayerColor( aLayer, aColor );
 }
 
 
-EDA_COLOR_T BOARD::GetLayerColor( LAYER_ID aLayer ) const
+COLOR4D BOARD::GetLayerColor( LAYER_ID aLayer ) const
 {
     return GetColorsSettings()->GetLayerColor( aLayer );
 }
@@ -1054,7 +1054,7 @@ unsigned BOARD::GetNodesCount() const
 }
 
 
-EDA_RECT BOARD::ComputeBoundingBox( bool aBoardEdgesOnly )
+EDA_RECT BOARD::ComputeBoundingBox( bool aBoardEdgesOnly ) const
 {
     bool hasItems = false;
     EDA_RECT area;
@@ -1122,8 +1122,6 @@ EDA_RECT BOARD::ComputeBoundingBox( bool aBoardEdgesOnly )
             hasItems = true;
         }
     }
-
-    m_BoundingBox = area;   // save for BOARD::GetBoundingBox()
 
     return area;
 }
@@ -2364,6 +2362,7 @@ ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, LAYER_ID layer, int x
         m_ZoneDescriptorList.push_back( new_area );
 
     new_area->Outline()->Start( layer, x, y, hatch );
+
     return new_area;
 }
 
@@ -2425,7 +2424,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
     if( !IsEmpty() )
     {
         // Position new components below any existing board features.
-        EDA_RECT bbbox = ComputeBoundingBox( true );
+        EDA_RECT bbbox = GetBoardEdgesBoundingBox();
 
         if( bbbox.GetWidth() || bbbox.GetHeight() )
         {
@@ -2875,13 +2874,14 @@ BOARD_ITEM* BOARD::Duplicate( const BOARD_ITEM* aItem,
  * All contours should be closed, i.e. are valid vertices for a closed polygon
  * return true if success, false if a contour is not valid
  */
-#include <specctra.h>
+extern bool BuildBoardPolygonOutlines( BOARD* aBoard,
+                                SHAPE_POLY_SET& aOutlines,
+                                SHAPE_POLY_SET& aHoles,
+                                wxString* aErrorText );
+
 bool BOARD::GetBoardPolygonOutlines( SHAPE_POLY_SET& aOutlines,
                                      SHAPE_POLY_SET& aHoles,
                                      wxString* aErrorText )
 {
-    // the SPECCTRA_DB function to extract board outlines:
-    DSN::SPECCTRA_DB dummy;
-    return dummy.GetBoardPolygonOutlines( this, aOutlines,
-                                          aHoles, aErrorText );
+    return BuildBoardPolygonOutlines( this, aOutlines, aHoles, aErrorText );
 }
