@@ -2,8 +2,8 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2010-2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
- * Copyright (C) 2012-2016 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 2012-2016 KiCad Developers, see change_log.txt for contributors.
+ * Copyright (C) 2012-2017 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 2012-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,7 +30,8 @@
 #include <io_mgr.h>
 
 class MODULE;
-class FP_TBL_MODEL;
+class FP_LIB_TABLE_GRID;
+
 
 /**
  * Class FP_LIB_TABLE_ROW
@@ -101,6 +102,8 @@ private:
 
 class FP_LIB_TABLE : public LIB_TABLE
 {
+    friend class FP_LIB_TABLE_GRID;
+
 public:
 
     virtual void Parse( LIB_TABLE_LEXER* aLexer ) override;
@@ -144,6 +147,19 @@ public:
      * @throw IO_ERROR if the library cannot be found, or footprint cannot be loaded.
      */
     wxArrayString FootprintEnumerate( const wxString& aNickname );
+
+    /**
+     * Function PrefetchLib
+     * If possible, prefetches the specified library (e.g. performing downloads). Does not parse.
+     * Threadsafe.
+     *
+     * This is a no-op for libraries that cannot be prefetched.
+     *
+     * @param aNickname is a locator for the library; it is a name in LIB_TABLE_ROW.
+     *
+     * @throw IO_ERROR if there is an error prefetching the library.
+     */
+    void PrefetchLib( const wxString& aNickname );
 
     /**
      * Function FootprintLoad

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jan  9 2017)
+// C++ code generated with wxFormBuilder (version Feb  6 2017)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -21,18 +21,6 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	
 	sLeftSizer = new wxBoxSizer( wxVERTICAL );
 	
-	wxStaticBoxSizer* sSketchModeSizer;
-	sSketchModeSizer = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Tracks and Vias:") ), wxVERTICAL );
-	
-	m_OptDisplayTracks = new wxCheckBox( sSketchModeSizer->GetStaticBox(), wxID_ANY, _("Show tracks in sketch mode"), wxDefaultPosition, wxDefaultSize, 0 );
-	sSketchModeSizer->Add( m_OptDisplayTracks, 0, wxALL, 5 );
-	
-	m_OptDisplayVias = new wxCheckBox( sSketchModeSizer->GetStaticBox(), wxID_ANY, _("Show vias in sketch mode"), wxDefaultPosition, wxDefaultSize, 0 );
-	sSketchModeSizer->Add( m_OptDisplayVias, 0, wxALL, 5 );
-	
-	
-	sLeftSizer->Add( sSketchModeSizer, 0, wxALL|wxEXPAND, 5 );
-	
 	
 	bupperSizer->Add( sLeftSizer, 1, wxEXPAND, 5 );
 	
@@ -43,7 +31,7 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	int m_ShowNetNamesOptionNChoices = sizeof( m_ShowNetNamesOptionChoices ) / sizeof( wxString );
 	m_ShowNetNamesOption = new wxRadioBox( sMiddleSizer->GetStaticBox(), wxID_ANY, _("Show Net Names:"), wxDefaultPosition, wxDefaultSize, m_ShowNetNamesOptionNChoices, m_ShowNetNamesOptionChoices, 1, wxRA_SPECIFY_COLS );
 	m_ShowNetNamesOption->SetSelection( 0 );
-	m_ShowNetNamesOption->SetToolTip( _("Show or hide net names on pads and/or tracks") );
+	m_ShowNetNamesOption->SetToolTip( _("Show or hide net names on pads and/or tracks.") );
 	
 	sMiddleSizer->Add( m_ShowNetNamesOption, 0, wxALL|wxEXPAND, 5 );
 	
@@ -51,7 +39,7 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	int m_OptDisplayTracksClearanceNChoices = sizeof( m_OptDisplayTracksClearanceChoices ) / sizeof( wxString );
 	m_OptDisplayTracksClearance = new wxRadioBox( sMiddleSizer->GetStaticBox(), ID_SHOW_CLEARANCE, _("Show Track Clearance:"), wxDefaultPosition, wxDefaultSize, m_OptDisplayTracksClearanceNChoices, m_OptDisplayTracksClearanceChoices, 1, wxRA_SPECIFY_COLS );
 	m_OptDisplayTracksClearance->SetSelection( 0 );
-	m_OptDisplayTracksClearance->SetToolTip( _("Show or hide the track and via clearance area.\nIf New track is selected,  track clearance area is shown only when creating the track.") );
+	m_OptDisplayTracksClearance->SetToolTip( _("Show or hide the track and via clearance area. If \"New track\" is selected, track clearance area is shown only when creating the track.") );
 	
 	sMiddleSizer->Add( m_OptDisplayTracksClearance, 1, wxALL|wxEXPAND, 5 );
 	
@@ -60,6 +48,18 @@ DIALOG_DISPLAY_OPTIONS_BASE::DIALOG_DISPLAY_OPTIONS_BASE( wxWindow* parent, wxWi
 	
 	wxBoxSizer* sRightSizer;
 	sRightSizer = new wxBoxSizer( wxVERTICAL );
+	
+	wxStaticBoxSizer* sSketchModeSizer;
+	sSketchModeSizer = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Tracks and Vias:") ), wxVERTICAL );
+	
+	m_OptDisplayTracks = new wxCheckBox( sSketchModeSizer->GetStaticBox(), wxID_ANY, _("Show tracks in sketch mode"), wxDefaultPosition, wxDefaultSize, 0 );
+	sSketchModeSizer->Add( m_OptDisplayTracks, 0, wxALL, 5 );
+	
+	m_OptDisplayVias = new wxCheckBox( sSketchModeSizer->GetStaticBox(), wxID_ANY, _("Show vias in sketch mode"), wxDefaultPosition, wxDefaultSize, 0 );
+	sSketchModeSizer->Add( m_OptDisplayVias, 0, wxALL, 5 );
+	
+	
+	sRightSizer->Add( sSketchModeSizer, 0, wxALL|wxEXPAND, 5 );
 	
 	wxStaticBoxSizer* sfootprintSizer;
 	sfootprintSizer = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Footprints:") ), wxVERTICAL );

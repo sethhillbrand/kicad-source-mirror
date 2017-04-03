@@ -1,4 +1,3 @@
-
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
@@ -650,7 +649,7 @@ void DRC::testKeepoutAreas()
                 if( segm->GetLayer() != area->GetLayer() )
                     continue;
 
-                if( area->Outline()->Distance( segm->GetStart(), segm->GetEnd(),
+                if( area->Outline()->Distance( SEG( segm->GetStart(), segm->GetEnd() ),
                                                segm->GetWidth() ) == 0 )
                 {
                     addMarkerToPcb( fillMarker( segm, NULL,
@@ -821,7 +820,7 @@ bool DRC::doTrackKeepoutDrc( TRACK* aRefSeg )
             if( aRefSeg->GetLayer() != area->GetLayer() )
                 continue;
 
-            if( area->Outline()->Distance( aRefSeg->GetStart(), aRefSeg->GetEnd(),
+            if( area->Outline()->Distance( SEG( aRefSeg->GetStart(), aRefSeg->GetEnd() ),
                                            aRefSeg->GetWidth() ) == 0 )
             {
                 m_currentMarker = fillMarker( aRefSeg, NULL,
@@ -994,9 +993,9 @@ bool DRC::doFootprintOverlappingDrc()
     // Update courtyard polygons, and test for missing courtyard definition:
     for( MODULE* footprint = m_pcb->m_Modules; footprint; footprint = footprint->Next() )
     {
-        bool diag = footprint->BuildPolyCourtyard();
+        bool is_ok = footprint->BuildPolyCourtyard();
 
-        if( !diag && m_doFootprintOverlapping )
+        if( !is_ok && m_doFootprintOverlapping )
         {
             msg.Printf( _( "footprint '%s' has malformed courtyard" ),
                         footprint->GetReference().GetData() );
@@ -1013,7 +1012,7 @@ bool DRC::doFootprintOverlappingDrc()
 
         if( footprint->GetPolyCourtyardFront().OutlineCount() == 0 &&
             footprint->GetPolyCourtyardBack().OutlineCount() == 0 &&
-            !diag )
+            is_ok )
         {
             msg.Printf( _( "footprint '%s' has no courtyard defined" ),
                         footprint->GetReference().GetData() );
@@ -1056,7 +1055,7 @@ bool DRC::doFootprintOverlappingDrc()
                 msg.Printf( _( "footprints '%s' and '%s' overlap on front (top) layer" ),
                             footprint->GetReference().GetData(),
                             candidate->GetReference().GetData() );
-                VECTOR2I& pos = courtyard.Vertex( 0, 0 );
+                VECTOR2I& pos = courtyard.Vertex( 0, 0, -1 );
                 wxPoint loc( pos.x, pos.y );
                 m_currentMarker = fillMarker( loc, DRCE_OVERLAPPING_FOOTPRINTS, msg, m_currentMarker );
                 addMarkerToPcb( m_currentMarker );
@@ -1091,7 +1090,7 @@ bool DRC::doFootprintOverlappingDrc()
                 msg.Printf( _( "footprints '%s' and '%s' overlap on back (bottom) layer" ),
                             footprint->GetReference().GetData(),
                             candidate->GetReference().GetData() );
-                VECTOR2I& pos = courtyard.Vertex( 0, 0 );
+                VECTOR2I& pos = courtyard.Vertex( 0, 0, -1 );
                 wxPoint loc( pos.x, pos.y );
                 m_currentMarker = fillMarker( loc, DRCE_OVERLAPPING_FOOTPRINTS, msg, m_currentMarker );
                 addMarkerToPcb( m_currentMarker );

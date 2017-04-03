@@ -67,10 +67,6 @@ option( KICAD_SCRIPTING_ACTION_MENU
     "Build a tools menu with registred python plugins: actions plugins (default OFF)."
     )
 
-option( KICAD_USE_SCH_IO_MANAGER
-    "Build Eeschema with the I/O manager for handling schematic and symbol library I/O. (default OFF)"
-    )
-
 option( KICAD_USE_OCE
     "Build tools and plugins related to OpenCascade Community Edition (default OFF)"
     )
@@ -100,8 +96,6 @@ endif()
 option( BUILD_GITHUB_PLUGIN "Build the GITHUB_PLUGIN for pcbnew." ON )
 
 option( KICAD_SPICE "Build Kicad with internal Spice simulator." OFF )
-
-option( KICAD_FOOTPRINT_SELECTOR "Build experimental eeschema footprint selector." OFF )
 
 # Global setting: exports are explicit
 set( CMAKE_CXX_VISIBILITY_PRESET "hidden" )
@@ -334,10 +328,6 @@ endif()
 
 if( KICAD_SPICE )
     add_definitions( -DKICAD_SPICE )
-endif()
-
-if( KICAD_FOOTPRINT_SELECTOR )
-    add_definitions( -DKICAD_FOOTPRINT_SELECTOR )
 endif()
 
 if( KICAD_USE_SCH_IO_MANAGER )

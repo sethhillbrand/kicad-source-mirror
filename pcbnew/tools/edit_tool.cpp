@@ -111,14 +111,14 @@ TOOL_ACTION PCB_ACTIONS::createArray( "pcbnew.InteractiveEdit.createArray",
         _( "Create Array" ), _( "Create array" ), array_module_xpm, AF_ACTIVATE );
 
 TOOL_ACTION PCB_ACTIONS::rotateCw( "pcbnew.InteractiveEdit.rotateCw",
-        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ROTATE_ITEM ),
+        AS_GLOBAL, MD_SHIFT + 'R',
         _( "Rotate Clockwise" ), _( "Rotates selected item(s) clockwise" ),
-        rotate_cw_xpm, AF_NONE, (void*) 1 );
+        rotate_cw_xpm, AF_NONE, (void*) -1 );
 
 TOOL_ACTION PCB_ACTIONS::rotateCcw( "pcbnew.InteractiveEdit.rotateCcw",
-        AS_GLOBAL, MD_SHIFT + 'R',
+        AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_ROTATE_ITEM ),
         _( "Rotate Counter-clockwise" ), _( "Rotates selected item(s) counter-clockwise" ),
-        rotate_ccw_xpm, AF_NONE, (void*) -1 );
+        rotate_ccw_xpm, AF_NONE, (void*) 1 );
 
 TOOL_ACTION PCB_ACTIONS::flip( "pcbnew.InteractiveEdit.flip",
         AS_GLOBAL, TOOL_ACTION::LegacyHotKey( HK_FLIP_ITEM ),
@@ -195,8 +195,8 @@ bool EDIT_TOOL::Init()
     // Add context menu entries that are displayed when selection tool is active
     CONDITIONAL_MENU& menu = m_selectionTool->GetToolMenu().GetMenu();
     menu.AddItem( PCB_ACTIONS::editActivate, SELECTION_CONDITIONS::NotEmpty );
-    menu.AddItem( PCB_ACTIONS::rotateCw, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( PCB_ACTIONS::rotateCcw, SELECTION_CONDITIONS::NotEmpty );
+    menu.AddItem( PCB_ACTIONS::rotateCw, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( PCB_ACTIONS::flip, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( PCB_ACTIONS::remove, SELECTION_CONDITIONS::NotEmpty );
     menu.AddItem( PCB_ACTIONS::properties, SELECTION_CONDITIONS::Count( 1 )
@@ -950,7 +950,10 @@ int EDIT_TOOL::MeasureTool( const TOOL_EVENT& aEvent )
                                          : ID_PCB_MEASUREMENT_TOOL,
                         wxCURSOR_PENCIL, _( "Measure distance between two points" ) );
 
-    KIGFX::PREVIEW::RULER_ITEM ruler;
+    KIGFX::PREVIEW::TWO_POINT_GEOMETRY_MANAGER twoPtMgr;
+
+    KIGFX::PREVIEW::RULER_ITEM ruler( twoPtMgr );
+
     view.Add( &ruler );
     view.SetVisible( &ruler, false );
 
@@ -974,8 +977,8 @@ int EDIT_TOOL::MeasureTool( const TOOL_EVENT& aEvent )
         {
             if( !evt->IsDrag( BUT_LEFT ) )
             {
-                ruler.SetOrigin( cursorPos );
-                ruler.SetEnd( cursorPos );
+                twoPtMgr.SetOrigin( cursorPos );
+                twoPtMgr.SetEnd( cursorPos );
             }
 
             controls.CaptureCursor( true );
@@ -988,8 +991,8 @@ int EDIT_TOOL::MeasureTool( const TOOL_EVENT& aEvent )
         {
             // make sure the origin is set before a drag starts
             // otherwise you can miss a step
-            ruler.SetOrigin( cursorPos );
-            ruler.SetEnd( cursorPos );
+            twoPtMgr.SetOrigin( cursorPos );
+            twoPtMgr.SetEnd( cursorPos );
         }
 
         // second click or mouse up after drag ends
@@ -1008,7 +1011,8 @@ int EDIT_TOOL::MeasureTool( const TOOL_EVENT& aEvent )
         else if( originSet &&
                 ( evt->IsMotion() || evt->IsDrag( BUT_LEFT ) ) )
         {
-            ruler.SetEnd( cursorPos );
+            twoPtMgr.SetAngleSnap( evt->Modifier( MD_CTRL ) );
+            twoPtMgr.SetEnd( cursorPos );
 
             view.SetVisible( &ruler, true );
             view.Update( &ruler, KIGFX::GEOMETRY );

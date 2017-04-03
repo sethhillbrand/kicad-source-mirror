@@ -339,13 +339,18 @@ SELECTION& SELECTION_TOOL::RequestSelection( int aFlags )
         m_selection.SetIsHover( false );
     }
 
-    for( auto item : m_selection )
+    // Be careful with iterators: items can be removed from list
+    // that invalidate iterators.
+    for( unsigned ii = 0; ii < m_selection.GetSize(); ii++ )
     {
+        EDA_ITEM* item = m_selection[ii];
+
         if( ( aFlags & SELECTION_EDITABLE ) && item->Type() == PCB_MARKER_T )
         {
             unselect( static_cast<BOARD_ITEM *>( item ) );
         }
     }
+
     if ( aFlags & SELECTION_SANITIZE_PADS )
         SanitizeSelection();
 
@@ -1000,7 +1005,7 @@ static bool itemIsIncludedByFilter( const BOARD_ITEM& aItem,
                                     const DIALOG_BLOCK_OPTIONS::OPTIONS& aBlockOpts )
 {
     bool include = true;
-    const LAYER_ID layer = aItem.GetLayer();
+    const PCB_LAYER_ID layer = aItem.GetLayer();
 
     // can skip without even checking item type
     if( !aBlockOpts.includeItemsOnInvisibleLayers
@@ -1276,7 +1281,7 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
     case PCB_VIA_T:
         {
             // For vias it is enough if only one of layers is visible
-            LAYER_ID top, bottom;
+            PCB_LAYER_ID top, bottom;
 
             static_cast<const VIA*>( aItem )->LayerPair( &top, &bottom );
 
@@ -1285,10 +1290,10 @@ bool SELECTION_TOOL::selectable( const BOARD_ITEM* aItem ) const
         break;
 
     case PCB_MODULE_T:
-        if( aItem->IsOnLayer( F_Cu ) && board()->IsElementVisible( MOD_FR_VISIBLE ) )
+        if( aItem->IsOnLayer( F_Cu ) && board()->IsElementVisible( LAYER_MOD_FR ) )
             return !m_editModules;
 
-        if( aItem->IsOnLayer( B_Cu ) && board()->IsElementVisible( MOD_BK_VISIBLE ) )
+        if( aItem->IsOnLayer( B_Cu ) && board()->IsElementVisible( LAYER_MOD_BK ) )
             return !m_editModules;
 
         return false;
@@ -1545,7 +1550,7 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
     // its unique area).
     const double commonAreaRatio = 0.6;
 
-    LAYER_ID actLayer = m_frame->GetActiveLayer();
+    PCB_LAYER_ID actLayer = m_frame->GetActiveLayer();
 
     LSET silkLayers( 2, B_SilkS, F_SilkS );
 

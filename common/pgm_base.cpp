@@ -51,6 +51,8 @@
 #include <menus_helpers.h>
 #include <confirm.h>
 #include <dialog_env_var_config.h>
+#include <lockfile.h>
+#include <systemdirsappend.h>
 
 
 #define KICAD_COMMON                     wxT( "kicad_common" )
@@ -513,6 +515,22 @@ bool PGM_BASE::InitPgm()
         {
             tmpFileName = baseSharePath;
             tmpFileName.AppendDir( wxT( "template" ) );
+            envVarItem.SetDefinedExternally( false );
+        }
+        envVarItem.SetValue( tmpFileName.GetFullPath() );
+        m_local_env_vars[ envVarName ] = envVarItem;
+
+        // KICAD_SYMBOLS
+        envVarName = wxT( "KICAD_SYMBOL_DIR" );
+        if( wxGetEnv( envVarName, &envValue ) == true && !envValue.IsEmpty() )
+        {
+            tmpFileName.AssignDir( envValue );
+            envVarItem.SetDefinedExternally( true );
+        }
+        else
+        {
+            tmpFileName = baseSharePath;
+            tmpFileName.AppendDir( wxT( "library" ) );
             envVarItem.SetDefinedExternally( false );
         }
         envVarItem.SetValue( tmpFileName.GetFullPath() );

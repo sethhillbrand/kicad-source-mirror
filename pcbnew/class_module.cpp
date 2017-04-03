@@ -239,11 +239,11 @@ void MODULE::DrawAncre( EDA_DRAW_PANEL* panel, wxDC* DC, const wxPoint& offset,
 {
     GRSetDrawMode( DC, draw_mode );
 
-    if( GetBoard()->IsElementVisible( ANCHOR_VISIBLE ) )
+    if( GetBoard()->IsElementVisible( LAYER_ANCHOR ) )
     {
         GRDrawAnchor( panel->GetClipBox(), DC, m_Pos.x, m_Pos.y,
                       dim_ancre,
-                      g_ColorsSettings.GetItemColor( ANCHOR_VISIBLE ) );
+                      g_ColorsSettings.GetItemColor( LAYER_ANCHOR ) );
     }
 }
 
@@ -404,13 +404,13 @@ void MODULE::Draw( EDA_DRAW_PANEL* aPanel, wxDC* aDC, GR_DRAWMODE aDrawMode,
     DrawAncre( aPanel, aDC, aOffset, DIM_ANCRE_MODULE, aDrawMode );
 
     // Draw graphic items
-    if( brd->IsElementVisible( MOD_REFERENCES_VISIBLE ) )
+    if( brd->IsElementVisible( LAYER_MOD_REFERENCES ) )
     {
         if( !(m_Reference->IsMoving()) )
             m_Reference->Draw( aPanel, aDC, aDrawMode, aOffset );
     }
 
-    if( brd->IsElementVisible( MOD_VALUES_VISIBLE ) )
+    if( brd->IsElementVisible( LAYER_MOD_VALUES ) )
     {
         if( !(m_Value->IsMoving()) )
             m_Value->Draw( aPanel, aDC, aDrawMode, aOffset );
@@ -837,7 +837,7 @@ void MODULE::RunOnChildren( std::function<void (BOARD_ITEM*)> aFunction )
 void MODULE::ViewGetLayers( int aLayers[], int& aCount ) const
 {
     aCount = 2;
-    aLayers[0] = ITEM_GAL_LAYER( ANCHOR_VISIBLE );
+    aLayers[0] = LAYER_ANCHOR;
 
     switch( m_Layer )
     {
@@ -846,11 +846,11 @@ void MODULE::ViewGetLayers( int aLayers[], int& aCount ) const
         wxASSERT_MSG( false, "Illegal layer" );    // do you really have modules placed on other layers?
         // pass through
     case F_Cu:
-        aLayers[1] = ITEM_GAL_LAYER( MOD_FR_VISIBLE );
+        aLayers[1] = LAYER_MOD_FR;
         break;
 
     case B_Cu:
-        aLayers[1] = ITEM_GAL_LAYER( MOD_BK_VISIBLE );
+        aLayers[1] = LAYER_MOD_BK;
         break;
     }
 }
@@ -858,11 +858,11 @@ void MODULE::ViewGetLayers( int aLayers[], int& aCount ) const
 
 unsigned int MODULE::ViewGetLOD( int aLayer, KIGFX::VIEW* aView ) const
 {
-    int layer = ( m_Layer == F_Cu ) ? MOD_FR_VISIBLE :
-                ( m_Layer == B_Cu ) ? MOD_BK_VISIBLE : ANCHOR_VISIBLE;
+    int layer = ( m_Layer == F_Cu ) ? LAYER_MOD_FR :
+                ( m_Layer == B_Cu ) ? LAYER_MOD_BK : LAYER_ANCHOR;
 
     // Currently it is only for anchor layer
-    if( aView->IsLayerVisible( ITEM_GAL_LAYER( layer ) ) )
+    if( aView->IsLayerVisible( layer ) )
         return 30;
 
     return std::numeric_limits<unsigned int>::max();
@@ -1223,7 +1223,8 @@ double MODULE::PadCoverageRatio() const
 
 // see convert_drawsegment_list_to_polygon.cpp:
 extern bool ConvertOutlineToPolygon( std::vector< DRAWSEGMENT* >& aSegList,
-                                     SHAPE_POLY_SET& aPolygons, wxString* aErrorText);
+                                     SHAPE_POLY_SET& aPolygons, int aSegmentsByCircle,
+                                     wxString* aErrorText);
 
 bool MODULE::BuildPolyCourtyard()
 {
@@ -1252,10 +1253,13 @@ bool MODULE::BuildPolyCourtyard()
 
     wxString error_msg;
 
-    bool success = ConvertOutlineToPolygon( list_front, m_poly_courtyard_front, &error_msg );
+    const int STEPS = 36;     // for a segmentation of an arc of 360 degrees
+    bool success = ConvertOutlineToPolygon( list_front, m_poly_courtyard_front,
+                                            STEPS, &error_msg );
 
     if( success )
-        success = ConvertOutlineToPolygon( list_back, m_poly_courtyard_back, &error_msg );
+        success = ConvertOutlineToPolygon( list_back, m_poly_courtyard_back,
+                                           STEPS, &error_msg );
 
     if( !error_msg.IsEmpty() )
     {

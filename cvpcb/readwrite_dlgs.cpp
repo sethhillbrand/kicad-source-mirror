@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Jean-Pierre Charras, jean-pierre.charras
  * Copyright (C) 2011-2016 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,7 +26,6 @@
  * or you may write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-
 #include <fctsys.h>
 #include <kiway.h>
 #include <common.h>
@@ -78,7 +77,7 @@ void CVPCB_MAINFRAME::SetNewPkg( const wxString& aFootprintName )
 
         if( !aFootprintName.IsEmpty() )
         {
-            wxCHECK_RET( fpid.Parse( aFootprintName ) < 0,
+            wxCHECK_RET( fpid.Parse( TO_UTF8( aFootprintName ) ) < 0,
                          wxString::Format( wxT( "<%s> is not a valid LIB_ID." ),
                                            GetChars( aFootprintName ) ) );
         }
@@ -125,7 +124,7 @@ static int guessNickname( FP_LIB_TABLE* aTbl, LIB_ID* aFootprintId )
         return 0;
 
     wxString    nick;
-    wxString    fpname = aFootprintId->GetLibItemName();
+    wxString    fpname = FROM_UTF8( aFootprintId->GetLibItemName() );
 
     std::vector<wxString> nicks = aTbl->GetLogicalLibs();
 
@@ -148,7 +147,7 @@ static int guessNickname( FP_LIB_TABLE* aTbl, LIB_ID* aFootprintId )
 
     if( nick.size() )
     {
-        aFootprintId->SetLibNickname( nick );
+        aFootprintId->SetLibNickname( TO_UTF8( nick ) );
         return 0;
     }
 
@@ -212,7 +211,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles( const std::string& aNetlist )
                     if( component->GetFPID().IsLegacy() )
                     {
                         // get this first here, it's possibly obsoleted if we get it too soon.
-                        FP_LIB_TABLE*   tbl = Prj().PcbFootprintLibs();
+                        FP_LIB_TABLE*   tbl = Prj().PcbFootprintLibs( Kiway() );
 
                         int guess = guessNickname( tbl, (LIB_ID*) &component->GetFPID() );
 
@@ -228,7 +227,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles( const std::string& aNetlist )
                             msg += wxString::Format( _(
                                     "Component '%s' footprint '%s' was <b>not found</b> in any library.\n" ),
                                     GetChars( component->GetReference() ),
-                                    GetChars( component->GetFPID().GetLibItemName() )
+                                    GetChars( FROM_UTF8( component->GetFPID().GetLibItemName() ) )
                                     );
                             break;
 
@@ -236,7 +235,7 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles( const std::string& aNetlist )
                             msg += wxString::Format( _(
                                     "Component '%s' footprint '%s' was found in <b>multiple</b> libraries.\n" ),
                                     GetChars( component->GetReference() ),
-                                    GetChars( component->GetFPID().GetLibItemName() )
+                                    GetChars( FROM_UTF8( component->GetFPID().GetLibItemName() ) )
                                     );
                             break;
                         }
@@ -317,8 +316,8 @@ bool CVPCB_MAINFRAME::ReadNetListAndLinkFiles( const std::string& aNetlist )
         {
             COMPONENT* component = m_netlist.GetComponent( m_indexes[ii] );
 
-            wxString cmpfpid = component->GetFPID().Format();
-            wxString schfpid = component->GetAltFPID().Format();
+            wxString cmpfpid = FROM_UTF8( component->GetFPID().Format() );
+            wxString schfpid = FROM_UTF8( component->GetAltFPID().Format() );
 
             dlg.Add( component->GetReference(), schfpid, cmpfpid );
         }

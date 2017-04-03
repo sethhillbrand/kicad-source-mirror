@@ -282,7 +282,7 @@ inline bool is_leg_copperlayer_valid( int aCu_Count, LAYER_NUM aLegacyLayerNum )
 }
 
 
-LAYER_ID LEGACY_PLUGIN::leg_layer2new( int cu_count, LAYER_NUM aLayerNum )
+PCB_LAYER_ID LEGACY_PLUGIN::leg_layer2new( int cu_count, LAYER_NUM aLayerNum )
 {
     int         newid;
     unsigned    old = aLayerNum;
@@ -325,7 +325,7 @@ LAYER_ID LEGACY_PLUGIN::leg_layer2new( int cu_count, LAYER_NUM aLayerNum )
         }
     }
 
-    return LAYER_ID( newid );
+    return PCB_LAYER_ID( newid );
 }
 
 
@@ -868,8 +868,8 @@ void LEGACY_PLUGIN::loadSETUP()
         {
             // eg: "Layer[n]  <a_Layer_name_with_no_spaces> <LAYER_T>"
 
-            LAYER_NUM   layer_num = layerParse( line + SZ( "Layer[" ), &data );
-            LAYER_ID    layer_id  = leg_layer2new( m_cu_count, layer_num );
+            LAYER_NUM    layer_num = layerParse( line + SZ( "Layer[" ), &data );
+            PCB_LAYER_ID layer_id  = leg_layer2new( m_cu_count, layer_num );
 
             /*
             switch( layer_num )
@@ -883,7 +883,7 @@ void LEGACY_PLUGIN::loadSETUP()
                 break;
 
             default:
-                layer_id = LAYER_ID( layer_num );
+                layer_id = PCB_LAYER_ID( layer_num );
             }
             */
 
@@ -1214,8 +1214,8 @@ void LEGACY_PLUGIN::loadMODULE( MODULE* aModule )
             BIU pos_y  = biuParse( data, &data );
             int orient = intParse( data, &data );
 
-            LAYER_NUM layer_num = layerParse( data, &data );
-            LAYER_ID  layer_id  = leg_layer2new( m_cu_count,  layer_num );
+            LAYER_NUM    layer_num = layerParse( data, &data );
+            PCB_LAYER_ID layer_id  = leg_layer2new( m_cu_count,  layer_num );
 
             long edittime  = hexParse( data, &data );
             time_t timestamp = hexParse( data, &data );
@@ -1373,7 +1373,7 @@ void LEGACY_PLUGIN::loadMODULE( MODULE* aModule )
 
     wxString msg = wxString::Format(
         wxT( "Missing '$EndMODULE' for MODULE '%s'" ),
-        GetChars( aModule->GetFPID().GetLibItemName() ) );
+        FROM_UTF8( aModule->GetFPID().GetLibItemName() ) );
 
     THROW_IO_ERROR( msg );
 }
@@ -1428,7 +1428,7 @@ void LEGACY_PLUGIN::loadPAD( MODULE* aModule )
                                 padchar,
                                 padchar,
                                 m_reader->LineNumber(),
-                                GetChars( aModule->GetFPID().GetLibItemName() )
+                                FROM_UTF8( aModule->GetFPID().GetLibItemName() )
                     );
                 THROW_IO_ERROR( m_error );
             }
@@ -1634,7 +1634,7 @@ void LEGACY_PLUGIN::loadMODULE_EDGE( MODULE* aModule )
                         (unsigned char) line[1],
                         (unsigned char) line[1],
                         m_reader->LineNumber(),
-                        GetChars( aModule->GetFPID().GetLibItemName() )
+                        FROM_UTF8( aModule->GetFPID().GetLibItemName() )
                         );
         THROW_IO_ERROR( m_error );
     }
@@ -2339,8 +2339,8 @@ void LEGACY_PLUGIN::loadTrackList( int aStructType )
                 via->SetLayerPair( F_Cu, B_Cu );
             else
             {
-                LAYER_ID  back  = leg_layer2new( m_cu_count, (layer_num >> 4) & 0xf );
-                LAYER_ID  front = leg_layer2new( m_cu_count, layer_num & 0xf );
+                PCB_LAYER_ID back  = leg_layer2new( m_cu_count, (layer_num >> 4) & 0xf );
+                PCB_LAYER_ID front = leg_layer2new( m_cu_count, layer_num & 0xf );
 
                 if( is_leg_copperlayer_valid( m_cu_count, back ) &&
                     is_leg_copperlayer_valid( m_cu_count, front ) )
@@ -2474,7 +2474,7 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
 {
     unique_ptr<ZONE_CONTAINER> zc( new ZONE_CONTAINER( m_board ) );
 
-    CPolyLine::HATCH_STYLE outline_hatch = CPolyLine::NO_HATCH;
+    ZONE_CONTAINER::HATCH_STYLE outline_hatch = ZONE_CONTAINER::NO_HATCH;
     bool    sawCorner = false;
     char    buf[1024];
     char*   line;
@@ -2489,17 +2489,13 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
             // e.g. "ZCorner 25650 49500 0"
             BIU x    = biuParse( line + SZ( "ZCorner" ), &data );
             BIU y    = biuParse( data, &data );
-            int flag = intParse( data );
 
             if( !sawCorner )
-                zc->Outline()->Start( zc->GetLayer(), x, y, outline_hatch );
+                zc->NewHole();
             else
                 zc->AppendCorner( wxPoint( x, y ) );
 
             sawCorner = true;
-
-            if( flag )
-                zc->Outline()->CloseLastContour();
         }
 
         else if( TESTLINE( "ZInfo" ) )      // general info found
@@ -2540,9 +2536,9 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
 
             switch( *hopt )   // upper case required
             {
-            case 'N':   outline_hatch = CPolyLine::NO_HATCH;        break;
-            case 'E':   outline_hatch = CPolyLine::DIAGONAL_EDGE;   break;
-            case 'F':   outline_hatch = CPolyLine::DIAGONAL_FULL;   break;
+            case 'N':   outline_hatch = ZONE_CONTAINER::NO_HATCH;        break;
+            case 'E':   outline_hatch = ZONE_CONTAINER::DIAGONAL_EDGE;   break;
+            case 'F':   outline_hatch = ZONE_CONTAINER::DIAGONAL_FULL;   break;
 
             default:
                 m_error.Printf( wxT( "Bad ZAux for CZONE_CONTAINER '%s'" ), zc->GetNetname().GetData() );
@@ -2724,9 +2720,8 @@ void LEGACY_PLUGIN::loadZONE_CONTAINER()
 
                 // Hatch here, after outlines corners are read
                 // Set hatch here, after outlines corners are read
-                zc->Outline()->SetHatch( outline_hatch,
-                                         Mils2iu( CPolyLine::GetDefaultHatchPitchMils() ),
-                                         true );
+                zc->SetHatch( outline_hatch, Mils2iu( ZONE_CONTAINER::GetDefaultHatchPitchMils() ),
+                              true );
 
                 m_board->Add( zc.release() );
             }

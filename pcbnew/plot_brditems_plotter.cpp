@@ -199,7 +199,7 @@ bool BRDITEMS_PLOTTER::PlotAllTextsModule( MODULE* aModule )
     TEXTE_MODULE* textModule = &aModule->Reference();
     LAYER_NUM     textLayer = textModule->GetLayer();
 
-    if( textLayer >= LAYER_ID_COUNT )       // how will this ever be true?
+    if( textLayer >= PCB_LAYER_ID_COUNT )       // how will this ever be true?
         return false;
 
     if( !m_layerMask[textLayer] )
@@ -211,7 +211,7 @@ bool BRDITEMS_PLOTTER::PlotAllTextsModule( MODULE* aModule )
     textModule = &aModule->Value();
     textLayer = textModule->GetLayer();
 
-    if( textLayer > LAYER_ID_COUNT )        // how will this ever be true?
+    if( textLayer > PCB_LAYER_ID_COUNT )        // how will this ever be true?
         return false;
 
     if( !m_layerMask[textLayer] )
@@ -249,7 +249,7 @@ bool BRDITEMS_PLOTTER::PlotAllTextsModule( MODULE* aModule )
 
         textLayer = textModule->GetLayer();
 
-        if( textLayer >= LAYER_ID_COUNT )
+        if( textLayer >= PCB_LAYER_ID_COUNT )
             return false;
 
         if( !m_layerMask[textLayer] )
@@ -646,7 +646,7 @@ void BRDITEMS_PLOTTER::PlotFilledAreas( ZONE_CONTAINER* aZone )
      *
      * in non filled mode the outline is plotted, but not the filling items
      */
-    for( SHAPE_POLY_SET::CONST_ITERATOR ic =  polysList.CIterate(); ic; ++ic )
+    for( auto ic = polysList.CIterate(); ic; ++ic )
     {
         wxPoint pos( ic->x, ic->y );
         cornerList.push_back( pos );

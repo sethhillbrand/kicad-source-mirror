@@ -275,7 +275,7 @@ void GRID_HELPER::computeAnchors( BOARD_ITEM* aItem, const VECTOR2I& aRefPos )
             DRAWSEGMENT* dseg = static_cast<DRAWSEGMENT*>( aItem );
             VECTOR2I start = dseg->GetStart();
             VECTOR2I end = dseg->GetEnd();
-            //LAYER_ID layer = dseg->GetLayer();
+            //PCB_LAYER_ID layer = dseg->GetLayer();
 
             switch( dseg->GetShape() )
             {
@@ -339,17 +339,15 @@ void GRID_HELPER::computeAnchors( BOARD_ITEM* aItem, const VECTOR2I& aRefPos )
 
         case PCB_ZONE_AREA_T:
         {
-            const CPolyLine* outline = static_cast<const ZONE_CONTAINER*>( aItem )->Outline();
-            int cornersCount = outline->GetCornersCount();
+            const SHAPE_POLY_SET* outline = static_cast<const ZONE_CONTAINER*>( aItem )->Outline();
 
             SHAPE_LINE_CHAIN lc;
             lc.SetClosed( true );
 
-            for( int i = 0; i < cornersCount; ++i )
+            for( auto iter = outline->CIterateWithHoles(); iter; iter++ )
             {
-                const VECTOR2I p ( outline->GetPos( i ) );
-                addAnchor( p, CORNER, aItem );
-                lc.Append( p );
+                addAnchor( *iter, CORNER, aItem );
+                lc.Append( *iter );
             }
 
             addAnchor( lc.NearestPoint( aRefPos ), OUTLINE, aItem );

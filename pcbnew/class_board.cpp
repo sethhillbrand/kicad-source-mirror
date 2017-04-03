@@ -10,7 +10,7 @@
  * Copyright (C) 2012 SoftPLC Corporation, Dick Hollenbeck <dick@softplc.com>
  * Copyright (C) 2011 Wayne Stambaugh <stambaughw@verizon.net>
  *
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -84,7 +84,7 @@ BOARD::BOARD() :
 
     BuildListOfNets();                      // prepare pad and netlist containers.
 
-    for( LAYER_NUM layer = 0; layer < LAYER_ID_COUNT; ++layer )
+    for( LAYER_NUM layer = 0; layer < PCB_LAYER_ID_COUNT; ++layer )
     {
         m_Layer[layer].m_name = GetStandardLayerName( ToLAYER_ID( layer ) );
 
@@ -503,7 +503,7 @@ void BOARD::PopHighLight()
 }
 
 
-bool BOARD::SetLayerDescr( LAYER_ID aIndex, const LAYER& aLayer )
+bool BOARD::SetLayerDescr( PCB_LAYER_ID aIndex, const LAYER& aLayer )
 {
     if( unsigned( aIndex ) < DIM( m_Layer ) )
     {
@@ -516,11 +516,11 @@ bool BOARD::SetLayerDescr( LAYER_ID aIndex, const LAYER& aLayer )
 
 #include <stdio.h>
 
-const LAYER_ID BOARD::GetLayerID( const wxString& aLayerName ) const
+const PCB_LAYER_ID BOARD::GetLayerID( const wxString& aLayerName ) const
 {
 
     // Look for the BOARD specific copper layer names
-    for( LAYER_NUM layer = 0; layer < LAYER_ID_COUNT; ++layer )
+    for( LAYER_NUM layer = 0; layer < PCB_LAYER_ID_COUNT; ++layer )
     {
         if ( IsCopperLayer( layer ) && ( m_Layer[ layer ].m_name == aLayerName ) )
         {
@@ -529,7 +529,7 @@ const LAYER_ID BOARD::GetLayerID( const wxString& aLayerName ) const
     }
 
     // Otherwise fall back to the system standard layer names
-    for( LAYER_NUM layer = 0; layer < LAYER_ID_COUNT; ++layer )
+    for( LAYER_NUM layer = 0; layer < PCB_LAYER_ID_COUNT; ++layer )
     {
         if( GetStandardLayerName( ToLAYER_ID( layer ) ) == aLayerName )
         {
@@ -540,7 +540,7 @@ const LAYER_ID BOARD::GetLayerID( const wxString& aLayerName ) const
     return UNDEFINED_LAYER;
 }
 
-const wxString BOARD::GetLayerName( LAYER_ID aLayer ) const
+const wxString BOARD::GetLayerName( PCB_LAYER_ID aLayer ) const
 {
     // All layer names are stored in the BOARD.
     if( IsLayerEnabled( aLayer ) )
@@ -556,7 +556,7 @@ const wxString BOARD::GetLayerName( LAYER_ID aLayer ) const
     return GetStandardLayerName( aLayer );
 }
 
-bool BOARD::SetLayerName( LAYER_ID aLayer, const wxString& aLayerName )
+bool BOARD::SetLayerName( PCB_LAYER_ID aLayer, const wxString& aLayerName )
 {
     if( !IsCopperLayer( aLayer ) )
         return false;
@@ -584,7 +584,7 @@ bool BOARD::SetLayerName( LAYER_ID aLayer, const wxString& aLayerName )
 #else
         for( LSEQ cu = GetEnabledLayers().CuStack();  cu;  ++cu )
         {
-            LAYER_ID id = *cu;
+            PCB_LAYER_ID id = *cu;
 
             // veto changing the name if it exists elsewhere.
             if( id != aLayer && nameTemp == m_Layer[id].m_name )
@@ -602,7 +602,7 @@ bool BOARD::SetLayerName( LAYER_ID aLayer, const wxString& aLayerName )
 }
 
 
-LAYER_T BOARD::GetLayerType( LAYER_ID aLayer ) const
+LAYER_T BOARD::GetLayerType( PCB_LAYER_ID aLayer ) const
 {
     if( !IsCopperLayer( aLayer ) )
         return LT_SIGNAL;
@@ -616,7 +616,7 @@ LAYER_T BOARD::GetLayerType( LAYER_ID aLayer ) const
 }
 
 
-bool BOARD::SetLayerType( LAYER_ID aLayer, LAYER_T aLayerType )
+bool BOARD::SetLayerType( PCB_LAYER_ID aLayer, LAYER_T aLayerType )
 {
     if( !IsCopperLayer( aLayer ) )
         return false;
@@ -717,9 +717,9 @@ void BOARD::SetVisibleElements( int aMask )
     // Call SetElementVisibility for each item
     // to ensure specific calculations that can be needed by some items,
     // just changing the visibility flags could be not sufficient.
-    for( int ii = 0; ii < PCB_VISIBLE( END_PCB_VISIBLE_LIST ); ii++ )
+    for( GAL_LAYER_ID ii = GAL_LAYER_ID_START; ii < GAL_LAYER_ID_BITMASK_END; ++ii )
     {
-        int item_mask = 1 << ii;
+        int item_mask = 1 << GAL_LAYER_INDEX( ii );
         SetElementVisibility( ii, aMask & item_mask );
     }
 }
@@ -731,7 +731,7 @@ void BOARD::SetVisibleAlls()
 
     // Call SetElementVisibility for each item,
     // to ensure specific calculations that can be needed by some items
-    for( int ii = 0; ii < PCB_VISIBLE(END_PCB_VISIBLE_LIST); ii++ )
+    for( GAL_LAYER_ID ii = GAL_LAYER_ID_START; ii < GAL_LAYER_ID_BITMASK_END; ++ii )
         SetElementVisibility( ii, true );
 }
 
@@ -742,24 +742,24 @@ int BOARD::GetVisibleElements() const
 }
 
 
-bool BOARD::IsElementVisible( int aPCB_VISIBLE ) const
+bool BOARD::IsElementVisible( GAL_LAYER_ID LAYER_aPCB ) const
 {
-    return m_designSettings.IsElementVisible( aPCB_VISIBLE );
+    return m_designSettings.IsElementVisible( LAYER_aPCB );
 }
 
 
-void BOARD::SetElementVisibility( int aPCB_VISIBLE, bool isEnabled )
+void BOARD::SetElementVisibility( GAL_LAYER_ID LAYER_aPCB, bool isEnabled )
 {
-    m_designSettings.SetElementVisibility( aPCB_VISIBLE, isEnabled );
+    m_designSettings.SetElementVisibility( LAYER_aPCB, isEnabled );
 
-    switch( aPCB_VISIBLE )
+    switch( LAYER_aPCB )
     {
-    case RATSNEST_VISIBLE:
+    case LAYER_RATSNEST:
 
         // we must clear or set the CH_VISIBLE flags to hide/show ratsnest
         // because we have a tool to show/hide ratsnest relative to a pad or a module
         // so the hide/show option is a per item selection
-        if( IsElementVisible( RATSNEST_VISIBLE ) )
+        if( IsElementVisible( LAYER_RATSNEST ) )
         {
             for( unsigned ii = 0; ii < GetRatsnestsCount(); ii++ )
                 m_FullRatsnest[ii].m_Status |= CH_VISIBLE;
@@ -777,81 +777,81 @@ void BOARD::SetElementVisibility( int aPCB_VISIBLE, bool isEnabled )
 }
 
 
-COLOR4D BOARD::GetVisibleElementColor( int aPCB_VISIBLE )
+COLOR4D BOARD::GetVisibleElementColor( GAL_LAYER_ID aLayerId )
 {
     COLOR4D color = COLOR4D::UNSPECIFIED;
 
-    switch( aPCB_VISIBLE )
+    switch( aLayerId )
     {
-    case NON_PLATED_VISIBLE:
-    case VIA_THROUGH_VISIBLE:
-    case VIA_MICROVIA_VISIBLE:
-    case VIA_BBLIND_VISIBLE:
-    case MOD_TEXT_FR_VISIBLE:
-    case MOD_TEXT_BK_VISIBLE:
-    case MOD_TEXT_INVISIBLE:
-    case ANCHOR_VISIBLE:
-    case PAD_FR_VISIBLE:
-    case PAD_BK_VISIBLE:
-    case RATSNEST_VISIBLE:
-    case GRID_VISIBLE:
-        color = GetColorsSettings()->GetItemColor( aPCB_VISIBLE );
+    case LAYER_NON_PLATED:
+    case LAYER_VIA_THROUGH:
+    case LAYER_VIA_MICROVIA:
+    case LAYER_VIA_BBLIND:
+    case LAYER_MOD_TEXT_FR:
+    case LAYER_MOD_TEXT_BK:
+    case LAYER_MOD_TEXT_INVISIBLE:
+    case LAYER_ANCHOR:
+    case LAYER_PAD_FR:
+    case LAYER_PAD_BK:
+    case LAYER_RATSNEST:
+    case LAYER_GRID:
+        color = GetColorsSettings()->GetItemColor( aLayerId );
         break;
 
     default:
-        wxLogDebug( wxT( "BOARD::GetVisibleElementColor(): bad arg %d" ), aPCB_VISIBLE );
+        wxLogDebug( wxT( "BOARD::GetVisibleElementColor(): bad arg %d" ), aLayerId );
     }
 
     return color;
 }
 
 
-void BOARD::SetVisibleElementColor( int aPCB_VISIBLE, COLOR4D aColor )
+void BOARD::SetVisibleElementColor( GAL_LAYER_ID aLayerId, COLOR4D aColor )
 {
-    switch( aPCB_VISIBLE )
+    switch( aLayerId )
     {
-    case NON_PLATED_VISIBLE:
-    case VIA_THROUGH_VISIBLE:
-    case VIA_MICROVIA_VISIBLE:
-    case VIA_BBLIND_VISIBLE:
-    case MOD_TEXT_FR_VISIBLE:
-    case MOD_TEXT_BK_VISIBLE:
-    case MOD_TEXT_INVISIBLE:
-    case ANCHOR_VISIBLE:
-    case PAD_FR_VISIBLE:
-    case PAD_BK_VISIBLE:
-    case GRID_VISIBLE:
-    case RATSNEST_VISIBLE:
-        GetColorsSettings()->SetItemColor( aPCB_VISIBLE, aColor );
+    case LAYER_NON_PLATED:
+    case LAYER_VIA_THROUGH:
+    case LAYER_VIA_MICROVIA:
+    case LAYER_VIA_BBLIND:
+    case LAYER_MOD_TEXT_FR:
+    case LAYER_MOD_TEXT_BK:
+    case LAYER_MOD_TEXT_INVISIBLE:
+    case LAYER_ANCHOR:
+    case LAYER_PAD_FR:
+    case LAYER_PAD_BK:
+    case LAYER_GRID:
+    case LAYER_RATSNEST:
+        GetColorsSettings()->SetItemColor( aLayerId, aColor );
         break;
 
     default:
-        wxLogDebug( wxT( "BOARD::SetVisibleElementColor(): bad arg %d" ), aPCB_VISIBLE );
+        wxLogDebug( wxT( "BOARD::SetVisibleElementColor(): bad arg %d" ), aLayerId );
     }
 }
 
 
-void BOARD::SetLayerColor( LAYER_ID aLayer, COLOR4D aColor )
+void BOARD::SetLayerColor( PCB_LAYER_ID aLayer, COLOR4D aColor )
 {
     GetColorsSettings()->SetLayerColor( aLayer, aColor );
 }
 
 
-COLOR4D BOARD::GetLayerColor( LAYER_ID aLayer ) const
+COLOR4D BOARD::GetLayerColor( PCB_LAYER_ID aLayer ) const
 {
     return GetColorsSettings()->GetLayerColor( aLayer );
 }
 
 
-bool BOARD::IsModuleLayerVisible( LAYER_ID layer )
+bool BOARD::IsModuleLayerVisible( PCB_LAYER_ID layer )
 {
     switch( layer )
     {
     case F_Cu:
-        return IsElementVisible( PCB_VISIBLE(MOD_FR_VISIBLE) );
+        return IsElementVisible( LAYER_MOD_FR );
 
     case B_Cu:
-        return IsElementVisible( PCB_VISIBLE(MOD_BK_VISIBLE) );
+        return IsElementVisible( LAYER_MOD_BK );
 
     default:
         wxFAIL_MSG( wxT( "BOARD::IsModuleLayerVisible() param error: bad layer" ) );
@@ -1470,7 +1470,7 @@ int BOARD::SortedNetnamesList( wxArrayString& aNames, bool aSortbyPadsCount )
 }
 
 
-void BOARD::RedrawAreasOutlines( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, LAYER_ID aLayer )
+void BOARD::RedrawAreasOutlines( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, PCB_LAYER_ID aLayer )
 {
     if( !aDC )
         return;
@@ -1485,7 +1485,7 @@ void BOARD::RedrawAreasOutlines( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE a
 }
 
 
-void BOARD::RedrawFilledAreas( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, LAYER_ID aLayer )
+void BOARD::RedrawFilledAreas( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDrawMode, PCB_LAYER_ID aLayer )
 {
     if( !aDC )
         return;
@@ -1501,7 +1501,7 @@ void BOARD::RedrawFilledAreas( EDA_DRAW_PANEL* panel, wxDC* aDC, GR_DRAWMODE aDr
 
 
 ZONE_CONTAINER* BOARD::HitTestForAnyFilledArea( const wxPoint& aRefPos,
-    LAYER_ID aStartLayer, LAYER_ID aEndLayer,  int aNetCode )
+    PCB_LAYER_ID aStartLayer, PCB_LAYER_ID aEndLayer,  int aNetCode )
 {
     if( aEndLayer < 0 )
         aEndLayer = aStartLayer;
@@ -1568,7 +1568,7 @@ int BOARD::SetAreasNetCodesFromNetNames()
 }
 
 
-VIA* BOARD::GetViaByPosition( const wxPoint& aPosition, LAYER_ID aLayer) const
+VIA* BOARD::GetViaByPosition( const wxPoint& aPosition, PCB_LAYER_ID aLayer) const
 {
     for( VIA *via = GetFirstVia( m_Track); via; via = GetFirstVia( via->Next() ) )
     {
@@ -1776,7 +1776,7 @@ TRACK* BOARD::GetVisibleTrack( TRACK* aStartingTrace, const wxPoint& aPosition,
 {
     for( TRACK* track = aStartingTrace; track; track = track->Next() )
     {
-        LAYER_ID layer = track->GetLayer();
+        PCB_LAYER_ID layer = track->GetLayer();
 
         if( track->GetState( BUSY | IS_DELETED ) )
             continue;
@@ -2145,7 +2145,7 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
 }
 
 
-MODULE* BOARD::GetFootprint( const wxPoint& aPosition, LAYER_ID aActiveLayer,
+MODULE* BOARD::GetFootprint( const wxPoint& aPosition, PCB_LAYER_ID aActiveLayer,
                              bool aVisibleOnly, bool aIgnoreLocked )
 {
     MODULE* pt_module;
@@ -2165,7 +2165,7 @@ MODULE* BOARD::GetFootprint( const wxPoint& aPosition, LAYER_ID aActiveLayer,
         if( aIgnoreLocked && pt_module->IsLocked() )
             continue;
 
-        LAYER_ID layer = pt_module->GetLayer();
+        PCB_LAYER_ID layer = pt_module->GetLayer();
 
         // Filter non visible modules if requested
         if( !aVisibleOnly || IsModuleLayerVisible( layer ) )
@@ -2313,7 +2313,7 @@ TRACK* BOARD::CreateLockPoint( wxPoint& aPosition, TRACK* aSegment, PICKED_ITEMS
 
 
 ZONE_CONTAINER* BOARD::AddArea( PICKED_ITEMS_LIST* aNewZonesList, int aNetcode,
-                                LAYER_ID aLayer, wxPoint aStartPointPosition, int aHatch )
+                                PCB_LAYER_ID aLayer, wxPoint aStartPointPosition, int aHatch )
 {
     ZONE_CONTAINER* new_area = InsertArea( aNetcode,
                                            m_ZoneDescriptorList.size( ) - 1,
@@ -2348,7 +2348,7 @@ void BOARD::RemoveArea( PICKED_ITEMS_LIST* aDeletedList, ZONE_CONTAINER* area_to
 }
 
 
-ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, LAYER_ID layer, int x, int y, int hatch )
+ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, PCB_LAYER_ID layer, int x, int y, int hatch )
 {
     ZONE_CONTAINER* new_area = new ZONE_CONTAINER( this );
 
@@ -2361,7 +2361,8 @@ ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, LAYER_ID layer, int x
     else
         m_ZoneDescriptorList.push_back( new_area );
 
-    new_area->Outline()->Start( layer, x, y, hatch );
+    new_area->SetHatchStyle( (ZONE_CONTAINER::HATCH_STYLE) hatch );
+    new_area->AppendCorner( wxPoint( x, y ) );
 
     return new_area;
 }
@@ -2369,45 +2370,47 @@ ZONE_CONTAINER* BOARD::InsertArea( int netcode, int iarea, LAYER_ID layer, int x
 
 bool BOARD::NormalizeAreaPolygon( PICKED_ITEMS_LIST * aNewZonesList, ZONE_CONTAINER* aCurrArea )
 {
-    CPolyLine* curr_polygon = aCurrArea->Outline();
-
     // mark all areas as unmodified except this one, if modified
     for( unsigned ia = 0; ia < m_ZoneDescriptorList.size(); ia++ )
         m_ZoneDescriptorList[ia]->SetLocalFlags( 0 );
 
     aCurrArea->SetLocalFlags( 1 );
 
-    if( curr_polygon->IsPolygonSelfIntersecting() )
+    if( aCurrArea->Outline()->IsSelfIntersecting() )
     {
-        std::vector<CPolyLine*>* pa = new std::vector<CPolyLine*>;
-        curr_polygon->UnHatch();
-        int n_poly = aCurrArea->Outline()->NormalizeAreaOutlines( pa );
+        aCurrArea->UnHatch();
+
+        // Normalize copied area and store resulting number of polygons
+        int n_poly = aCurrArea->Outline()->NormalizeAreaOutlines();
 
         // If clipping has created some polygons, we must add these new copper areas.
         if( n_poly > 1 )
         {
             ZONE_CONTAINER* NewArea;
 
+            // Move the newly created polygons to new areas, removing them from the current area
             for( int ip = 1; ip < n_poly; ip++ )
             {
-                // create new copper area and copy poly into it
-                CPolyLine* new_p = (*pa)[ip - 1];
+                // Create new copper area and copy poly into it
+                SHAPE_POLY_SET* new_p = new SHAPE_POLY_SET( aCurrArea->Outline()->UnitSet( ip ) );
                 NewArea = AddArea( aNewZonesList, aCurrArea->GetNetCode(), aCurrArea->GetLayer(),
-                                   wxPoint(0, 0), CPolyLine::NO_HATCH );
+                                   wxPoint(0, 0), aCurrArea->GetHatchStyle() );
 
                 // remove the poly that was automatically created for the new area
                 // and replace it with a poly from NormalizeAreaOutlines
                 delete NewArea->Outline();
                 NewArea->SetOutline( new_p );
-                NewArea->Outline()->Hatch();
+                NewArea->Hatch();
                 NewArea->SetLocalFlags( 1 );
             }
-        }
 
-        delete pa;
+            SHAPE_POLY_SET* new_p = new SHAPE_POLY_SET( aCurrArea->Outline()->UnitSet( 0 ) );
+            delete aCurrArea->Outline();
+            aCurrArea->SetOutline( new_p );
+        }
     }
 
-    curr_polygon->Hatch();
+    aCurrArea->Hatch();
 
     return true;
 }
@@ -2454,7 +2457,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
             msg.Printf( _( "Checking netlist component footprint \"%s:%s:%s\".\n" ),
                         GetChars( component->GetReference() ),
                         GetChars( component->GetTimeStamp() ),
-                        GetChars( component->GetFPID().Format() ) );
+                        GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
             aReporter->Report( msg, REPORTER::RPT_INFO );
         }
 
@@ -2472,7 +2475,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                     msg.Printf( _( "Adding new component \"%s:%s\" footprint \"%s\".\n" ),
                                 GetChars( component->GetReference() ),
                                 GetChars( component->GetTimeStamp() ),
-                                GetChars( component->GetFPID().Format() ) );
+                                GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                     aReporter->Report( msg, REPORTER::RPT_ACTION );
                 }
@@ -2482,7 +2485,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                    "footprint \"%s\".\n" ),
                                 GetChars( component->GetReference() ),
                                 GetChars( component->GetTimeStamp() ),
-                                GetChars( component->GetFPID().Format() ) );
+                                GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                     aReporter->Report( msg, REPORTER::RPT_ERROR );
                 }
@@ -2515,8 +2518,8 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                            "\"%s\".\n" ),
                                         GetChars( footprint->GetReference() ),
                                         GetChars( footprint->GetPath() ),
-                                        GetChars( footprint->GetFPID().Format() ),
-                                        GetChars( component->GetFPID().Format() ) );
+                                        GetChars( FROM_UTF8( footprint->GetFPID().Format() ) ),
+                                        GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                             aReporter->Report( msg, REPORTER::RPT_ACTION );
                         }
@@ -2526,7 +2529,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                                            "footprint \"%s\".\n" ),
                                         GetChars( footprint->GetReference() ),
                                         GetChars( footprint->GetPath() ),
-                                        GetChars( component->GetFPID().Format() ) );
+                                        GetChars( FROM_UTF8( component->GetFPID().Format() ) ) );
 
                             aReporter->Report( msg, REPORTER::RPT_ERROR );
                         }
@@ -2811,7 +2814,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                 msg.Printf( _( "Component '%s' pad '%s' not found in footprint '%s'\n" ),
                             GetChars( component->GetReference() ),
                             GetChars( padname ),
-                            GetChars( footprint->GetFPID().Format() ) );
+                            GetChars( FROM_UTF8( footprint->GetFPID().Format() ) ) );
                 aReporter->Report( msg, REPORTER::RPT_ERROR );
             }
         }
@@ -2876,12 +2879,16 @@ BOARD_ITEM* BOARD::Duplicate( const BOARD_ITEM* aItem,
  */
 extern bool BuildBoardPolygonOutlines( BOARD* aBoard,
                                 SHAPE_POLY_SET& aOutlines,
-                                SHAPE_POLY_SET& aHoles,
                                 wxString* aErrorText );
 
 bool BOARD::GetBoardPolygonOutlines( SHAPE_POLY_SET& aOutlines,
-                                     SHAPE_POLY_SET& aHoles,
                                      wxString* aErrorText )
 {
-    return BuildBoardPolygonOutlines( this, aOutlines, aHoles, aErrorText );
+    bool success = BuildBoardPolygonOutlines( this, aOutlines, aErrorText );
+
+    // Make polygon strictly simple to avoid issues (especially in 3D viewer)
+    aOutlines.Simplify( SHAPE_POLY_SET::PM_STRICTLY_SIMPLE );
+
+    return success;
+
 }

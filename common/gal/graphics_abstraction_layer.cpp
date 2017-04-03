@@ -55,6 +55,7 @@ GAL::GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions ) :
     SetFlip( false, false );
     SetLineWidth( 1.0 );
     computeWorldScale();
+    SetAxesEnabled( false );
 
     // Set grid defaults
     SetGridVisibility( true );
@@ -65,8 +66,12 @@ GAL::GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions ) :
 
     // Initialize the cursor shape
     SetCursorColor( COLOR4D( 1.0, 1.0, 1.0, 1.0 ) );
-    SetCursorSize( 80 );
+    fullscreenCursor = false;
+    forceDisplayCursor = false;
     SetCursorEnabled( false );
+
+    // Initialize text properties
+    ResetTextAttributes();
 
     strokeFont.LoadNewStrokeFont( newstroke_font, newstroke_font_bufsize );
 
@@ -117,6 +122,18 @@ bool GAL::updatedGalDisplayOptions( const GAL_DISPLAY_OPTIONS& aOptions )
         refresh = true;
     }
 
+    if( options.m_forceDisplayCursor != forceDisplayCursor )
+    {
+        forceDisplayCursor = options.m_forceDisplayCursor;
+        refresh = true;
+    }
+
+    if( options.m_fullscreenCursor != fullscreenCursor )
+    {
+        fullscreenCursor = options.m_fullscreenCursor;
+        refresh = true;
+    }
+
     // tell the derived class if the base class needs an update or not
     return refresh;
 }
@@ -130,6 +147,21 @@ void GAL::SetTextAttributes( const EDA_TEXT* aText )
     SetFontBold( aText->IsBold() );
     SetFontItalic( aText->IsItalic() );
     SetTextMirrored( aText->IsMirrored() );
+}
+
+
+void GAL::ResetTextAttributes()
+{
+     // Tiny but non-zero - this will always need setting
+     // there is no built-in default
+    SetGlyphSize( { 1.0, 1.0 } );
+
+    SetHorizontalJustify( GR_TEXT_HJUSTIFY_CENTER );
+    SetVerticalJustify( GR_TEXT_VJUSTIFY_CENTER );
+
+    SetFontBold( false );
+    SetFontItalic( false );
+    SetTextMirrored( false );
 }
 
 
@@ -230,18 +262,10 @@ void GAL::DrawGrid()
 
     // Correct the index, else some lines are not correctly painted
     gridStartY -= std::abs( gridOrigin.y / gridSize.y ) + 1;
-    gridEndY += std::abs( gridOrigin.y / gridSize.y ) + 1;
+    gridEndY -= std::abs( gridOrigin.y / gridSize.y ) - 1;
 
-    if( gridStartX <= gridEndX )
-    {
-        gridStartX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
-        gridEndX += std::abs( gridOrigin.x / gridSize.x ) + 1;
-    }
-    else
-    {
-        gridStartX += std::abs( gridOrigin.x / gridSize.x ) + 1;
-        gridEndX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
-    }
+    gridStartX -= std::abs( gridOrigin.x / gridSize.x ) + 1;
+    gridEndX -= std::abs( gridOrigin.x / gridSize.x ) - 1;
 
     int dirX = gridEndX >= gridStartX ? 1 : -1;
     int dirY = gridEndY >= gridStartY ? 1 : -1;
@@ -273,8 +297,8 @@ void GAL::DrawGrid()
             if( ( j % gridTick == 0 && gridScreenSizeCoarse > gridThreshold )
                 || gridScreenSizeDense > gridThreshold )
             {
-                drawGridLine( VECTOR2D( gridStartX * gridSize.x, y ),
-                                VECTOR2D( gridEndX * gridSize.x,   y ) );
+                drawGridLine( VECTOR2D( gridStartX * gridSize.x + gridOrigin.x, y ),
+                              VECTOR2D( gridEndX * gridSize.x + gridOrigin.x, y ) );
             }
         }
 
@@ -294,8 +318,8 @@ void GAL::DrawGrid()
             if( ( i % gridTick == 0 && gridScreenSizeCoarse > gridThreshold )
                 || gridScreenSizeDense > gridThreshold )
             {
-                drawGridLine( VECTOR2D( x, gridStartY * gridSize.y ),
-                                VECTOR2D( x, gridEndY * gridSize.y ) );
+                drawGridLine( VECTOR2D( x, gridStartY * gridSize.y + gridOrigin.y ),
+                              VECTOR2D( x, gridEndY * gridSize.y + gridOrigin.y ) );
             }
         }
     }
@@ -378,3 +402,18 @@ VECTOR2D GAL::GetGridPoint( const VECTOR2D& aPoint ) const
 const int GAL::MIN_DEPTH = -1024;
 const int GAL::MAX_DEPTH = 1023;
 const int GAL::GRID_DEPTH = MAX_DEPTH - 1;
+
+
+COLOR4D GAL::getCursorColor() const
+{
+    auto color = cursorColor;
+
+    // dim the cursor if it's only on because it was forced
+    // (this helps to provide a hint for active tools)
+    if( !isCursorEnabled )
+    {
+        color.a = color.a * 0.5;
+    }
+
+    return color;
+}

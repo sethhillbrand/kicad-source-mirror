@@ -65,14 +65,6 @@ void DIALOG_GENERALOPTIONS::init()
     m_PolarDisplay->SetSelection( displ_opts->m_DisplayPolarCood ? 1 : 0 );
     m_UnitsSelection->SetSelection( g_UserUnit ? 1 : 0 );
 
-    // Cursor shape cannot be implemented on OS X
-#ifdef __APPLE__
-    m_CursorShape->Hide();
-#else
-    m_CursorShape->SetSelection( GetParent()->GetCursorShape() ? 1 : 0 );
-#endif // __APPLE__
-
-
     wxString rotationAngle;
     rotationAngle = AngleToStringDegrees( (double)GetParent()->GetRotationAngle() );
     m_RotationAngle->SetValue( rotationAngle );
@@ -83,7 +75,7 @@ void DIALOG_GENERALOPTIONS::init()
     m_MaxShowLinks->SetValue( displ_opts->m_MaxLinksShowed );
 
     m_DrcOn->SetValue( g_Drc_On );
-    m_ShowGlobalRatsnest->SetValue( m_Board->IsElementVisible( RATSNEST_VISIBLE ) );
+    m_ShowGlobalRatsnest->SetValue( m_Board->IsElementVisible( LAYER_RATSNEST ) );
     m_TrackAutodel->SetValue( g_AutoDeleteOldTrack );
     m_Track_45_Only_Ctrl->SetValue( g_Track_45_Only_Allowed );
     m_Segments_45_Only_Ctrl->SetValue( g_Segments_45_Only );
@@ -114,9 +106,6 @@ void DIALOG_GENERALOPTIONS::OnOkClick( wxCommandEvent& event )
     if( ii != g_UserUnit )
         GetParent()->ReCreateAuxiliaryToolbar();
 
-#ifndef __APPLE__
-    GetParent()->SetCursorShape( m_CursorShape->GetSelection() );
-#endif // !__APPLE__
     GetParent()->SetAutoSaveInterval( m_SaveTime->GetValue() * 60 );
     GetParent()->SetRotationAngle( wxRound( 10.0 * wxAtof( m_RotationAngle->GetValue() ) ) );
 
@@ -124,9 +113,9 @@ void DIALOG_GENERALOPTIONS::OnOkClick( wxCommandEvent& event )
     displ_opts->m_MaxLinksShowed = m_MaxShowLinks->GetValue();
     g_Drc_On = m_DrcOn->GetValue();
 
-    if( m_Board->IsElementVisible(RATSNEST_VISIBLE) != m_ShowGlobalRatsnest->GetValue() )
+    if( m_Board->IsElementVisible( LAYER_RATSNEST ) != m_ShowGlobalRatsnest->GetValue() )
     {
-        GetParent()->SetElementVisibility( RATSNEST_VISIBLE, m_ShowGlobalRatsnest->GetValue() );
+        GetParent()->SetElementVisibility( LAYER_RATSNEST, m_ShowGlobalRatsnest->GetValue() );
         GetParent()->GetCanvas()->Refresh();
         GetParent()->OnModify();
     }

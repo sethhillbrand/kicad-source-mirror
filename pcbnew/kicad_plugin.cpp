@@ -501,7 +501,7 @@ void PCB_IO::formatLayer( const BOARD_ITEM* aItem ) const
 {
     if( m_ctl & CTL_STD_LAYER_NAMES )
     {
-        LAYER_ID layer = aItem->GetLayer();
+        PCB_LAYER_ID layer = aItem->GetLayer();
 
         // English layer names should never need quoting.
         m_out->Print( 0, " (layer %s)", TO_UTF8( BOARD::GetStandardLayerName( layer ) ) );
@@ -548,7 +548,7 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
     for( LSEQ cu = aBoard->GetEnabledLayers().CuStack();  cu;  ++cu )
     {
-        LAYER_ID layer = *cu;
+        PCB_LAYER_ID layer = *cu;
 
         m_out->Print( aNestLevel+1, "(%d %s %s", layer,
                       m_out->Quotew( aBoard->GetLayerName( layer ) ).c_str(),
@@ -562,7 +562,7 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
     // Save used non-copper layers in the order they are defined.
     // desired sequence for non Cu BOARD layers.
-    static const LAYER_ID non_cu[] = {
+    static const PCB_LAYER_ID non_cu[] = {
         B_Adhes,        // 32
         F_Adhes,
         B_Paste,
@@ -585,7 +585,7 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
     for( LSEQ seq = aBoard->GetEnabledLayers().Seq( non_cu, DIM( non_cu ) );  seq;  ++seq )
     {
-        LAYER_ID layer = *seq;
+        PCB_LAYER_ID layer = *seq;
 
         m_out->Print( aNestLevel+1, "(%d %s user", layer,
                       m_out->Quotew( aBoard->GetLayerName( layer ) ).c_str() );
@@ -1211,15 +1211,15 @@ void PCB_IO::formatLayers( LSET aLayerMask, int aNestLevel ) const
 
     wxString layerName;
 
-    for( LAYER_NUM layer = 0; layer < LAYER_ID_COUNT; ++layer )
+    for( LAYER_NUM layer = 0; layer < PCB_LAYER_ID_COUNT; ++layer )
     {
         if( aLayerMask[layer] )
         {
             if( m_board && !( m_ctl & CTL_STD_LAYER_NAMES ) )
-                layerName = m_board->GetLayerName( LAYER_ID( layer ) );
+                layerName = m_board->GetLayerName( PCB_LAYER_ID( layer ) );
 
             else    // I am being called from FootprintSave()
-                layerName = BOARD::GetStandardLayerName( LAYER_ID( layer ) );
+                layerName = BOARD::GetStandardLayerName( PCB_LAYER_ID( layer ) );
 
             output += ' ';
             output += m_out->Quotew( layerName );
@@ -1437,7 +1437,7 @@ void PCB_IO::format( TRACK* aTrack, int aNestLevel ) const
 {
     if( aTrack->Type() == PCB_VIA_T )
     {
-        LAYER_ID  layer1, layer2;
+        PCB_LAYER_ID  layer1, layer2;
 
         const VIA*  via = static_cast<const VIA*>(aTrack);
         BOARD*      board = (BOARD*) via->GetParent();
@@ -1518,13 +1518,13 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
     switch( aZone->GetHatchStyle() )
     {
     default:
-    case CPolyLine::NO_HATCH:       hatch = "none";    break;
-    case CPolyLine::DIAGONAL_EDGE:  hatch = "edge";    break;
-    case CPolyLine::DIAGONAL_FULL:  hatch = "full";    break;
+    case ZONE_CONTAINER::NO_HATCH:       hatch = "none";    break;
+    case ZONE_CONTAINER::DIAGONAL_EDGE:  hatch = "edge";    break;
+    case ZONE_CONTAINER::DIAGONAL_FULL:  hatch = "full";    break;
     }
 
     m_out->Print( 0, " (hatch %s %s)\n", hatch.c_str(),
-                  FMT_IU( aZone->Outline()->GetHatchPitch() ).c_str() );
+                  FMT_IU( aZone->GetHatchPitch() ).c_str() );
 
     if( aZone->GetPriority() > 0 )
         m_out->Print( aNestLevel+1, "(priority %d)\n", aZone->GetPriority() );
@@ -1606,22 +1606,21 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
 
     m_out->Print( 0, ")\n" );
 
-    const CPOLYGONS_LIST& cv = aZone->Outline()->m_CornersList;
     int newLine = 0;
 
-    if( cv.GetCornersCount() )
+    if( aZone->GetNumCorners() )
     {
         m_out->Print( aNestLevel+1, "(polygon\n");
         m_out->Print( aNestLevel+2, "(pts\n" );
 
-        for( unsigned it = 0; it < cv.GetCornersCount(); ++it )
+        for( auto iterator = aZone->IterateWithHoles(); iterator; iterator++ )
         {
             if( newLine == 0 )
                 m_out->Print( aNestLevel+3, "(xy %s %s)",
-                              FMT_IU( cv.GetX( it ) ).c_str(), FMT_IU( cv.GetY( it ) ).c_str() );
+                              FMT_IU( iterator->x ).c_str(), FMT_IU( iterator->y ).c_str() );
             else
                 m_out->Print( 0, " (xy %s %s)",
-                              FMT_IU( cv.GetX( it ) ).c_str(), FMT_IU( cv.GetY( it ) ).c_str() );
+                              FMT_IU( iterator->x ).c_str(), FMT_IU( iterator->y ).c_str() );
 
             if( newLine < 4 )
             {
@@ -1633,14 +1632,14 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
                 m_out->Print( 0, "\n" );
             }
 
-            if( cv.IsEndContour( it ) )
+            if( iterator.IsEndContour() )
             {
                 if( newLine != 0 )
                     m_out->Print( 0, "\n" );
 
                 m_out->Print( aNestLevel+2, ")\n" );
 
-                if( it+1 != cv.GetCornersCount() )
+                if( !iterator.IsLastPolygon() )
                 {
                     newLine = 0;
                     m_out->Print( aNestLevel+1, ")\n" );
@@ -1662,7 +1661,7 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
         m_out->Print( aNestLevel+1, "(filled_polygon\n" );
         m_out->Print( aNestLevel+2, "(pts\n" );
 
-        for( SHAPE_POLY_SET::CONST_ITERATOR it = fv.CIterate(); it; ++it )
+        for( auto it = fv.CIterate(); it; ++it )
         {
             if( newLine == 0 )
                 m_out->Print( aNestLevel+3, "(xy %s %s)",
@@ -1688,7 +1687,7 @@ void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
 
                 m_out->Print( aNestLevel+2, ")\n" );
 
-                if( !it.IsLastContour() )
+                if( !it.IsLastPolygon() )
                 {
                     newLine = 0;
                     m_out->Print( aNestLevel+1, ")\n" );
@@ -1900,7 +1899,7 @@ void PCB_IO::FootprintSave( const wxString& aLibraryPath, const MODULE* aFootpri
     MODULE_MAP& mods = m_cache->GetModules();
 
     // Quietly overwrite module and delete module file from path for any by same name.
-    wxFileName fn( aLibraryPath, aFootprint->GetFPID().GetLibItemName(),
+    wxFileName fn( aLibraryPath, FROM_UTF8( aFootprint->GetFPID().GetLibItemName() ),
                    KiCadFootprintFileExtension );
 
     if( !fn.IsOk() )

@@ -93,11 +93,18 @@ void DIALOG_DISPLAY_OPTIONS::initOptDialog( )
     m_PolarDisplay->SetSelection( m_Parent->m_DisplayOptions.m_DisplayPolarCood ? 1 : 0 );
     m_BoxUnits->SetSelection( g_UserUnit ? 1 : 0 );
 
+    // @todo: LEGACY: Cursor shape can be set using the GAL options
+    // widget, when that is added to gerbview. For now, access the
+    // setting via the frame's GAL options object directly
+
     // Cursor shape cannot be implemented on OS X
 #ifdef __APPLE__
     m_CursorShape->Hide();
 #else
-    m_CursorShape->SetSelection( m_Parent->GetCursorShape() ? 1 : 0 );
+    {
+        auto& galOpts = m_Parent->GetGalDisplayOptions();
+        m_CursorShape->SetSelection( galOpts.m_fullscreenCursor ? 1 : 0 );
+    }
 #endif // __APPLE__
 
     // Show Option Draw Lines. We use DisplayPcbTrackFill as Lines draw option
@@ -123,7 +130,7 @@ void DIALOG_DISPLAY_OPTIONS::initOptDialog( )
         }
     }
 
-    m_OptDisplayDCodes->SetValue( m_Parent->IsElementVisible( DCODES_VISIBLE ) );
+    m_OptDisplayDCodes->SetValue( m_Parent->IsElementVisible( LAYER_DCODES ) );
 
 
     m_OptZoomNoCenter->SetValue( m_Parent->GetCanvas()->GetEnableZoomNoCenter() );
@@ -137,8 +144,12 @@ void DIALOG_DISPLAY_OPTIONS::OnOKBUttonClick( wxCommandEvent& event )
         (m_PolarDisplay->GetSelection() == 0) ? false : true;
     g_UserUnit  = (m_BoxUnits->GetSelection() == 0) ? INCHES : MILLIMETRES;
 
+    // @todo LEGACY: as above, this should be via the GAL display widget
 #ifndef __APPLE__
-    m_Parent->SetCursorShape( m_CursorShape->GetSelection() );
+    {
+        auto& galOpts = m_Parent->GetGalDisplayOptions();
+        galOpts.m_fullscreenCursor = m_CursorShape->GetSelection();
+    }
 #endif // !__APPLE__
 
     if( m_OptDisplayLines->GetSelection() == 1 )
@@ -161,7 +172,7 @@ void DIALOG_DISPLAY_OPTIONS::OnOKBUttonClick( wxCommandEvent& event )
     else
         m_Parent->m_DisplayOptions.m_DisplayPolygonsFill = true;
 
-    m_Parent->SetElementVisibility( DCODES_VISIBLE, m_OptDisplayDCodes->GetValue() );
+    m_Parent->SetElementVisibility( LAYER_DCODES, m_OptDisplayDCodes->GetValue() );
 
     int idx = m_ShowPageLimits->GetSelection();
 

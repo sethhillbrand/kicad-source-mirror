@@ -35,8 +35,10 @@
 #include <fctsys.h>
 #include <pgm_base.h>
 #include <kiface_i.h>
+#include <kiface_ids.h>
 #include <confirm.h>
 #include <macros.h>
+#include <make_unique.h>
 #include <class_drawpanel.h>
 #include <wxPcbStruct.h>
 #include <eda_dde.h>
@@ -58,24 +60,25 @@
 #include <modview_frame.h>
 #include <footprint_wizard_frame.h>
 #include <footprint_preview_panel.h>
+#include <footprint_info_impl.h>
 #include <gl_context_mgr.h>
 extern bool IsWxPythonLoaded();
 
 // Colors for layers and items
 COLORS_DESIGN_SETTINGS g_ColorsSettings;
 
-bool        g_Drc_On = true;
-bool        g_AutoDeleteOldTrack = true;
-bool        g_Raccord_45_Auto = true;
-bool        g_Alternate_Track_Posture = false;
-bool        g_Track_45_Only_Allowed = true;  // True to allow horiz, vert. and 45deg only tracks
-bool        g_Segments_45_Only;              // True to allow horiz, vert. and 45deg only graphic segments
-bool        g_TwoSegmentTrackBuild = true;
+bool         g_Drc_On = true;
+bool         g_AutoDeleteOldTrack = true;
+bool         g_Raccord_45_Auto = true;
+bool         g_Alternate_Track_Posture = false;
+bool         g_Track_45_Only_Allowed = true;  // True to allow horiz, vert. and 45deg only tracks
+bool         g_Segments_45_Only;              // True to allow horiz, vert. and 45deg only graphic segments
+bool         g_TwoSegmentTrackBuild = true;
 
-LAYER_ID    g_Route_Layer_TOP;
-LAYER_ID    g_Route_Layer_BOTTOM;
-int         g_MagneticPadOption   = CAPTURE_CURSOR_IN_TRACK_TOOL;
-int         g_MagneticTrackOption = CAPTURE_CURSOR_IN_TRACK_TOOL;
+PCB_LAYER_ID g_Route_Layer_TOP;
+PCB_LAYER_ID g_Route_Layer_BOTTOM;
+int          g_MagneticPadOption   = CAPTURE_CURSOR_IN_TRACK_TOOL;
+int          g_MagneticTrackOption = CAPTURE_CURSOR_IN_TRACK_TOOL;
 
 wxPoint     g_Offset_Module;     // module offset used when moving a footprint
 
@@ -170,7 +173,17 @@ static struct IFACE : public KIFACE_I
      */
     void* IfaceOrAddress( int aDataId ) override
     {
-        return NULL;
+        switch( aDataId )
+        {
+        case KIFACE_NEW_FOOTPRINT_LIST:
+            return (void*) static_cast<FOOTPRINT_LIST*>( new FOOTPRINT_LIST_IMPL() );
+
+        case KIFACE_G_FOOTPRINT_TABLE:
+            return (void*) new FP_LIB_TABLE( &GFootprintTable );
+
+        default:
+            return nullptr;
+        }
     }
 
 } kiface( "pcbnew", KIWAY::FACE_PCB );

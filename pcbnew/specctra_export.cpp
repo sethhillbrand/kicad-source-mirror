@@ -277,7 +277,7 @@ PADSTACK* SPECCTRA_DB::makePADSTACK( BOARD* aBoard, D_PAD* aPad )
 
     for( int layer=0; layer<copperCount; ++layer )
     {
-        LAYER_ID kilayer = pcbLayer2kicad[layer];
+        PCB_LAYER_ID kilayer = pcbLayer2kicad[layer];
 
         if( onAllCopperLayers || aPad->IsOnLayer( kilayer ) )
         {
@@ -713,8 +713,8 @@ PADSTACK* SPECCTRA_DB::makeVia( int aCopperDiameter, int aDrillDiameter,
 
 PADSTACK* SPECCTRA_DB::makeVia( const ::VIA* aVia )
 {
-    LAYER_ID    topLayerNum;
-    LAYER_ID    botLayerNum;
+    PCB_LAYER_ID    topLayerNum;
+    PCB_LAYER_ID    botLayerNum;
 
     aVia->LayerPair( &topLayerNum, &botLayerNum );
 
@@ -733,19 +733,16 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
 {
     wxString errMessage;
     SHAPE_POLY_SET outlines;
-    SHAPE_POLY_SET holes;
 
-    aBoard->GetBoardPolygonOutlines( outlines, holes, &errMessage );
+    aBoard->GetBoardPolygonOutlines( outlines, &errMessage );
 
-    //const int   STEPS = 36;     // for a segmentation of an arc of 360 degrees
-
-    if( outlines.OutlineCount() )   // Should be always true
+    for( int cnt = 0; cnt < outlines.OutlineCount(); cnt++ )   // Should be one outline
     {
         PATH*  path = new PATH( boundary );
         boundary->paths.push_back( path );
         path->layer_id = "pcb";
 
-        SHAPE_LINE_CHAIN& outline = outlines.Outline( 0 );
+        SHAPE_LINE_CHAIN& outline = outlines.Outline( cnt );
 
         for( int ii = 0; ii < outline.PointCount(); ii++ )
         {
@@ -754,35 +751,32 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
         }
 
         // Close polygon:
-        wxPoint pos( outline.Point( 0 ).x, outline.Point( 0 ).y );
-        path->AppendPoint( mapPt( pos ) );
-    }
+        wxPoint pos0( outline.Point( 0 ).x, outline.Point( 0 ).y );
+        path->AppendPoint( mapPt( pos0 ) );
 
-    // Output the interior Edge.Cuts graphics as keepouts, using same nearness
-    // metric as the board edge as otherwise we have trouble completing complex
-    // polygons.
-
-    for( int ii = 0; ii < holes.OutlineCount(); ii++ )
-    {
-        // emit a signal layers keepout for every interior polygon left...
-        KEEPOUT*    keepout = new KEEPOUT( NULL, T_keepout );
-        PATH*       poly_ko = new PATH( NULL, T_polygon );
-
-        keepout->SetShape( poly_ko );
-        poly_ko->SetLayerId( "signal" );
-        pcb->structure->keepouts.push_back( keepout );
-
-        SHAPE_LINE_CHAIN& hole = holes.Outline( ii );
-
-        for( int jj = 0; jj < hole.PointCount(); jj++ )
+        // Generate holes as keepout:
+        for( int ii = 0; ii < outlines.HoleCount( cnt ); ii++ )
         {
-            wxPoint pos( hole.Point( jj ).x, hole.Point( jj ).y );
+            // emit a signal layers keepout for every interior polygon left...
+            KEEPOUT*    keepout = new KEEPOUT( NULL, T_keepout );
+            PATH*       poly_ko = new PATH( NULL, T_polygon );
+
+            keepout->SetShape( poly_ko );
+            poly_ko->SetLayerId( "signal" );
+            pcb->structure->keepouts.push_back( keepout );
+
+            SHAPE_LINE_CHAIN& hole = outlines.Hole( cnt, ii );
+
+            for( int jj = 0; jj < hole.PointCount(); jj++ )
+            {
+                wxPoint pos( hole.Point( jj ).x, hole.Point( jj ).y );
+                poly_ko->AppendPoint( mapPt( pos ) );
+            }
+
+            // Close polygon:
+            wxPoint pos( hole.Point( 0 ).x, hole.Point( 0 ).y );
             poly_ko->AppendPoint( mapPt( pos ) );
         }
-
-        // Close polygon:
-        wxPoint pos( hole.Point( 0 ).x, hole.Point( 0 ).y );
-        poly_ko->AppendPoint( mapPt( pos ) );
     }
 
     if( !errMessage.IsEmpty() )
@@ -1022,26 +1016,27 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
 
             mainPolygon->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
 
-            int count = item->Outline()->m_CornersList.GetCornersCount();
-            int ndx = 0;  // used in 2 for() loops below
-            for( ; ndx<count; ++ndx )
+            // Handle the main outlines
+            SHAPE_POLY_SET::ITERATOR iterator;
+            for( iterator = item->IterateWithHoles(); iterator; iterator++ )
             {
-                wxPoint   point( item->Outline()->m_CornersList[ndx].x,
-                                 item->Outline()->m_CornersList[ndx].y );
+                wxPoint point( iterator->x, iterator->y );
                 mainPolygon->AppendPoint( mapPt(point) );
 
                 // this was the end of the main polygon
-                if( item->Outline()->m_CornersList[ndx].end_contour )
+                if( iterator.IsEndContour() )
                     break;
             }
 
             WINDOW* window  = 0;
             PATH*   cutout  = 0;
 
+            bool isStartContour = true;
+
             // handle the cutouts
-            for( ++ndx; ndx<count; ++ndx )
+            for( iterator++; iterator; iterator++ )
             {
-                if( item->Outline()->m_CornersList[ndx-1].end_contour )
+                if( isStartContour )
                 {
                     window = new WINDOW( plane );
 
@@ -1054,11 +1049,14 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
                     cutout->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
                 }
 
+                // If the point in this iteration is the last of the contour, the next iteration
+                // will start with a new contour.
+                isStartContour = iterator.IsEndContour();
+
                 wxASSERT( window );
                 wxASSERT( cutout );
 
-                wxPoint point(item->Outline()->m_CornersList[ndx].x,
-                              item->Outline()->m_CornersList[ndx].y );
+                wxPoint point(iterator->x, iterator->y );
                 cutout->AppendPoint( mapPt(point) );
             }
         }
@@ -1099,41 +1097,44 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
 
             mainPolygon->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
 
-            int count = item->Outline()->m_CornersList.GetCornersCount();
-            int ndx = 0;  // used in 2 for() loops below
-            for( ; ndx<count; ++ndx )
+            // Handle the main outlines
+            SHAPE_POLY_SET::ITERATOR iterator;
+            for( iterator = item->IterateWithHoles(); iterator; iterator++ )
             {
-                wxPoint   point( item->Outline()->m_CornersList[ndx].x,
-                                 item->Outline()->m_CornersList[ndx].y );
+                wxPoint point( iterator->x, iterator->y );
                 mainPolygon->AppendPoint( mapPt(point) );
 
                 // this was the end of the main polygon
-                if( item->Outline()->m_CornersList[ndx].end_contour )
+                if( iterator.IsEndContour() )
                     break;
             }
 
             WINDOW* window = 0;
             PATH*   cutout = 0;
 
+            bool isStartContour = true;
+
             // handle the cutouts
-            for( ++ndx; ndx<count; ++ndx )
+            for( iterator++; iterator; iterator++ )
             {
-                if( item->Outline()->m_CornersList[ndx-1].end_contour )
+                if( isStartContour )
                 {
                     window = new WINDOW( keepout );
                     keepout->AddWindow( window );
 
                     cutout = new PATH( window, T_polygon );
+
                     window->SetShape( cutout );
 
                     cutout->layer_id = layerIds[ kicadLayer2pcb[ item->GetLayer() ] ];
                 }
 
+                isStartContour = iterator.IsEndContour();
+
                 wxASSERT( window );
                 wxASSERT( cutout );
 
-                wxPoint point(item->Outline()->m_CornersList[ndx].x,
-                              item->Outline()->m_CornersList[ndx].y );
+                wxPoint point(iterator->x, iterator->y );
                 cutout->AppendPoint( mapPt(point) );
             }
         }
