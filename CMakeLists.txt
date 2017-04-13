@@ -31,6 +31,8 @@ endif()
 
 project( kicad )
 
+include( GNUInstallDirs )
+
 cmake_minimum_required( VERSION 2.8.12 FATAL_ERROR )
 # because of http://public.kitware.com/Bug/view.php?id=10395
 
@@ -379,13 +381,13 @@ if( NOT APPLE )
         set( KICAD_USER_PLUGIN ${KICAD_BIN}/plugins
             CACHE PATH "Location of KiCad user-loaded plugins" )
     else()
-        set( KICAD_PLUGINS lib/kicad/plugins
+        set( KICAD_PLUGINS ${CMAKE_INSTALL_LIBDIR}/kicad/plugins
             CACHE PATH "Location of KiCad plugins." )
 
-        set( KICAD_LIB lib
+        set( KICAD_LIB ${CMAKE_INSTALL_LIBDIR}
             CACHE PATH "Location of KiCad shared objects" )
 
-        set( KICAD_USER_PLUGIN lib/kicad/plugins
+        set( KICAD_USER_PLUGIN ${CMAKE_INSTALL_LIBDIR}/kicad/plugins
             CACHE PATH "Location of KiCad user-loaded plugins" )
     endif()
 
@@ -563,11 +565,8 @@ find_package( Cairo 1.8.8 REQUIRED )
 find_package( Pixman 0.30 REQUIRED )
 
 #
-# Find Boost library, required.
-#
-# Note: Prior to Boost 1.59, the Boost context library is not built when compiling on windows
-#       with GCC.  You must patch the Boost sources.
-find_package( Boost 1.54.0 REQUIRED COMPONENTS system )
+# Find Boost headers, required.
+find_package( Boost 1.54.0 REQUIRED )
 
 # Include MinGW resource compiler.
 include( MinGWResourceCompiler )
