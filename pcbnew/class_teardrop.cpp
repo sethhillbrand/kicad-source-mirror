@@ -340,7 +340,6 @@ BOARD_CONNECTED_ITEM* TEARDROP::getObjectOnEnd(TRACK& aTrack, ENDPOINT_T aEndPoi
 {
     wxPoint trackPoint;
     BOARD_CONNECTED_ITEM* item = NULL;
-    std::vector<TRACK*>::const_iterator iter;
 
     if( aEndPoint == ENDPOINT_START )
     {
@@ -352,7 +351,8 @@ BOARD_CONNECTED_ITEM* TEARDROP::getObjectOnEnd(TRACK& aTrack, ENDPOINT_T aEndPoi
     }
 
     // Check for vias first
-    for( iter = aTrack.m_TracksConnected.begin(); iter != aTrack.m_TracksConnected.end(); ++iter )
+    for( std::vector<TRACK*>::const_iterator iter = aTrack.m_TracksConnected.begin();
+    		iter != aTrack.m_TracksConnected.end(); ++iter )
     {
         KICAD_T type = (*iter)->Type();
         bool hitTest = (*iter)->HitTest( trackPoint );
