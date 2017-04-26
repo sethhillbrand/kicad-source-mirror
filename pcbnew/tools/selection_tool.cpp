@@ -4,6 +4,7 @@
  * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
+ * Copyright (C) 2017 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -553,6 +554,7 @@ void SELECTION_TOOL::SetTransitions()
     Go( &SELECTION_TOOL::selectNet, PCB_ACTIONS::selectNet.MakeEvent() );
     Go( &SELECTION_TOOL::selectSameSheet, PCB_ACTIONS::selectSameSheet.MakeEvent() );
     Go( &SELECTION_TOOL::selectOnSheetFromEeschema, PCB_ACTIONS::selectOnSheetFromEeschema.MakeEvent() );
+    Go( &SELECTION_TOOL::updateSelection, PCB_ACTIONS::selectionModified.MakeEvent() );
 }
 
 
@@ -1758,6 +1760,14 @@ void SELECTION_TOOL::guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) c
 }
 
 
+int SELECTION_TOOL::updateSelection( const TOOL_EVENT& aEvent )
+{
+    getView()->Update( &m_selection );
+
+    return 0;
+}
+
+
 bool SELECTION_TOOL::SanitizeSelection()
 {
     std::set<BOARD_ITEM*> rejected;
@@ -1811,30 +1821,76 @@ bool SELECTION_TOOL::SanitizeSelection()
 
 
 // TODO(JE) Only works for BOARD_ITEM
+VECTOR2I SELECTION::GetPosition() const
+{
+    return static_cast<VECTOR2I>( GetBoundingBox().GetPosition() );
+}
+
+
 VECTOR2I SELECTION::GetCenter() const
 {
-    VECTOR2I centre;
-
-    if( Size() == 1 )
-    {
-        centre = static_cast<BOARD_ITEM*>( Front() )->GetCenter();
-    }
-    else
-    {
-        EDA_RECT bbox = Front()->GetBoundingBox();
-        auto i = m_items.begin();
-        ++i;
-
-        for( ; i != m_items.end(); ++i )
-        {
-            bbox.Merge( (*i)->GetBoundingBox() );
-        }
-
-        centre = bbox.Centre();
-    }
-
-    return centre;
+    return static_cast<VECTOR2I>( GetBoundingBox().Centre() );
 }
+
+
+EDA_RECT SELECTION::GetBoundingBox() const
+{
+    EDA_RECT bbox;
+
+    bbox = Front()->GetBoundingBox();
+    auto i = m_items.begin();
+    ++i;
+
+    for( ; i != m_items.end(); ++i )
+    {
+        bbox.Merge( (*i)->GetBoundingBox() );
+    }
+
+    return bbox;
+}
+
+
+EDA_ITEM* SELECTION::GetTopLeftItem( bool onlyModules ) const
+{
+    BOARD_ITEM* topLeftItem = nullptr;
+    BOARD_ITEM* currentItem;
+
+    wxPoint pnt;
+
+    // find the leftmost (smallest x coord) and highest (smallest y with the smallest x) item in the selection
+    for( auto item : m_items )
+    {
+        currentItem = static_cast<BOARD_ITEM*>( item );
+        pnt = currentItem->GetPosition();
+
+        if( ( currentItem->Type() != PCB_MODULE_T ) && onlyModules )
+        {
+            continue;
+        }
+        else
+        {
+            if( topLeftItem == nullptr )
+            {
+                topLeftItem = currentItem;
+            }
+            else if( ( pnt.x < topLeftItem->GetPosition().x ) ||
+                     ( ( topLeftItem->GetPosition().x == pnt.x ) &&
+                     ( pnt.y < topLeftItem->GetPosition().y ) ) )
+            {
+                topLeftItem = currentItem;
+            }
+        }
+    }
+
+    return static_cast<EDA_ITEM*>( topLeftItem );
+}
+
+
+EDA_ITEM* SELECTION::GetTopLeftModule() const
+{
+    return GetTopLeftItem( true );
+}
+
 
 const BOX2I SELECTION::ViewBBox() const
 {
@@ -1858,6 +1914,7 @@ const BOX2I SELECTION::ViewBBox() const
 
     return BOX2I( eda_bbox.GetOrigin(), eda_bbox.GetSize() );
 }
+
 
 const KIGFX::VIEW_GROUP::ITEMS SELECTION::updateDrawList() const
 {

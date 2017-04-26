@@ -4,6 +4,7 @@
  * Copyright (C) 2013-2017 CERN
  * @author Tomasz Wlostowski <tomasz.wlostowski@cern.ch>
  * @author Maciej Suminski <maciej.suminski@cern.ch>
+ * Copyright (C) 2017 KiCad Developers, see CHANGELOG.TXT for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -307,6 +308,11 @@ private:
      * @param aCollector is the collector that has a list of items to be queried.
      */
     void guessSelectionCandidates( GENERAL_COLLECTOR& aCollector ) const;
+
+    /**
+     * Event handler to update the selection VIEW_ITEM.
+     */
+    int updateSelection( const TOOL_EVENT& aEvent );
 
     /// Pointer to the parent frame.
     PCB_BASE_FRAME* m_frame;
