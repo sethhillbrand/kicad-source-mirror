@@ -71,6 +71,9 @@ void LIB_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& aPosition )
 
     switch( GetToolId() )
     {
+    case ID_ZOOM_SELECTION:
+        break;
+
     case ID_NO_TOOL_SELECTED:
         // If an item is currently in edit, finish edit
         if( item_in_edit )
@@ -124,12 +127,12 @@ void LIB_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& aPosition )
     case ID_LIBEDIT_ANCHOR_ITEM_BUTT:
         SaveCopyInUndoList( part );
         PlaceAnchor();
-        SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+        SetNoToolSelected();
         break;
 
     default:
         wxFAIL_MSG( wxString::Format( wxT( "Unhandled command ID %d" ), GetToolId() ) );
-        SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+        SetNoToolSelected();
         break;
     }
 }

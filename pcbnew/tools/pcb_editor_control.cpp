@@ -394,7 +394,7 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
     controls->SetSnapping( true );
 
     Activate();
-    m_frame->SetToolID( ID_PCB_MODULE_BUTT, wxCURSOR_HAND, _( "Add footprint" ) );
+    m_frame->SetToolID( ID_PCB_MODULE_BUTT, wxCURSOR_PENCIL, _( "Add footprint" ) );
 
     // Main loop: keep receiving events
     while( OPT_TOOL_EVENT evt = Wait() )
@@ -482,7 +482,7 @@ int PCB_EDITOR_CONTROL::PlaceModule( const TOOL_EVENT& aEvent )
     }
 
     view->Remove( &preview );
-    m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
+    m_frame->SetNoToolSelected();
 
     return 0;
 }
@@ -626,7 +626,7 @@ int PCB_EDITOR_CONTROL::PlaceTarget( const TOOL_EVENT& aEvent )
     controls->SetSnapping( false );
     view->Remove( &preview );
 
-    m_frame->SetToolID( ID_NO_TOOL_SELECTED, wxCURSOR_DEFAULT, wxEmptyString );
+    m_frame->SetNoToolSelected();
 
     return 0;
 }
@@ -957,7 +957,7 @@ int PCB_EDITOR_CONTROL::DrillOrigin( const TOOL_EVENT& aEvent )
     PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
     assert( picker );
 
-    m_frame->SetToolID( ID_PCB_PLACE_OFFSET_COORD_BUTT, wxCURSOR_PENCIL, _( "Adjust zero" ) );
+    m_frame->SetToolID( ID_PCB_PLACE_OFFSET_COORD_BUTT, wxCURSOR_HAND, _( "Adjust zero" ) );
     picker->SetClickHandler( std::bind( setDrillOrigin, getView(), m_frame, m_placeOrigin.get(), _1 ) );
     picker->Activate();
     Wait();
@@ -1032,7 +1032,7 @@ int PCB_EDITOR_CONTROL::HighlightNet( const TOOL_EVENT& aEvent )
     else
     {
         // No net code specified, pick the net code belonging to the item under the cursor
-        highlightNet( m_toolMgr, getView()->ToWorld( getViewControls()->GetMousePosition() ) );
+        highlightNet( m_toolMgr, getViewControls()->GetMousePosition() );
     }
 
     return 0;
@@ -1046,7 +1046,7 @@ int PCB_EDITOR_CONTROL::HighlightNetCursor( const TOOL_EVENT& aEvent )
     PICKER_TOOL* picker = m_toolMgr->GetTool<PICKER_TOOL>();
     assert( picker );
 
-    m_frame->SetToolID( ID_PCB_HIGHLIGHT_BUTT, wxCURSOR_PENCIL, _( "Highlight net" ) );
+    m_frame->SetToolID( ID_PCB_HIGHLIGHT_BUTT, wxCURSOR_HAND, _( "Highlight net" ) );
     picker->SetClickHandler( std::bind( highlightNet, m_toolMgr, _1 ) );
     picker->SetSnapping( false );
     picker->Activate();

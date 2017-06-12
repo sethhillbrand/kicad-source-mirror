@@ -167,7 +167,7 @@ public:
 
     const wxString GetFileExtension() const override;
 
-    wxArrayString FootprintEnumerate( const wxString& aLibraryPath,
+    void FootprintEnumerate( wxArrayString& aFootprintNames, const wxString& aLibraryPath,
             const PROPERTIES* aProperties = NULL ) override;
 
     void PrefetchLib( const wxString& aLibraryPath,
@@ -221,7 +221,7 @@ protected:
      * is received into the m_input_stream. If the image has already been stored,
      * do nothing.
      */
-    void remoteGetZip( const wxString& aRepoURL ) throw( IO_ERROR );
+    void remoteGetZip( const wxString& aRepoURL );
 
     wxString    m_lib_path;     ///< from aLibraryPath, something like https://github.com/liftoff-sr/pretty_footprints
     std::string m_zip_image;    ///< byte image of the zip file in its entirety.

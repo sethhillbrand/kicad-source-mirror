@@ -432,7 +432,6 @@ void PCB_IO::Save( const wxString& aFileName, BOARD* aBoard, const PROPERTIES* a
 
 
 BOARD_ITEM* PCB_IO::Parse( const wxString& aClipboardSourceInput )
-    throw( FUTURE_FORMAT_ERROR, PARSE_ERROR, IO_ERROR )
 {
     std::string input = TO_UTF8( aClipboardSourceInput );
 
@@ -455,7 +454,6 @@ BOARD_ITEM* PCB_IO::Parse( const wxString& aClipboardSourceInput )
 
 
 void PCB_IO::Format( BOARD_ITEM* aItem, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     LOCALE_IO   toggle;     // public API function, perform anything convenient for caller
 
@@ -527,7 +525,6 @@ void PCB_IO::formatLayer( const BOARD_ITEM* aItem ) const
 
 
 void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     const BOARD_DESIGN_SETTINGS& dsnSettings = aBoard->GetDesignSettings();
 
@@ -784,7 +781,6 @@ void PCB_IO::format( BOARD* aBoard, int aNestLevel ) const
 
 
 void PCB_IO::format( DIMENSION* aDimension, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     m_out->Print( aNestLevel, "(dimension %s (width %s)",
                   FMT_IU( aDimension->GetValue() ).c_str(),
@@ -846,7 +842,6 @@ void PCB_IO::format( DIMENSION* aDimension, int aNestLevel ) const
 
 
 void PCB_IO::format( DRAWSEGMENT* aSegment, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     unsigned i;
 
@@ -912,7 +907,6 @@ void PCB_IO::format( DRAWSEGMENT* aSegment, int aNestLevel ) const
 
 
 void PCB_IO::format( EDGE_MODULE* aModuleDrawing, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     switch( aModuleDrawing->GetShape() )
     {
@@ -976,7 +970,6 @@ void PCB_IO::format( EDGE_MODULE* aModuleDrawing, int aNestLevel ) const
 
 
 void PCB_IO::format( PCB_TARGET* aTarget, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     m_out->Print( aNestLevel, "(target %s (at %s) (size %s)",
                   ( aTarget->GetShape() ) ? "x" : "plus",
@@ -996,7 +989,6 @@ void PCB_IO::format( PCB_TARGET* aTarget, int aNestLevel ) const
 
 
 void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     if( !( m_ctl & CTL_OMIT_INITIAL_COMMENTS ) )
     {
@@ -1147,7 +1139,6 @@ void PCB_IO::format( MODULE* aModule, int aNestLevel ) const
 
 
 void PCB_IO::formatLayers( LSET aLayerMask, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     std::string  output;
 
@@ -1246,7 +1237,6 @@ void PCB_IO::formatLayers( LSET aLayerMask, int aNestLevel ) const
 
 
 void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     const char* shape;
 
@@ -1365,7 +1355,6 @@ void PCB_IO::format( D_PAD* aPad, int aNestLevel ) const
 
 
 void PCB_IO::format( TEXTE_PCB* aText, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     m_out->Print( aNestLevel, "(gr_text %s (at %s",
                   m_out->Quotew( aText->GetText() ).c_str(),
@@ -1390,7 +1379,6 @@ void PCB_IO::format( TEXTE_PCB* aText, int aNestLevel ) const
 
 
 void PCB_IO::format( TEXTE_MODULE* aText, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     wxString type;
 
@@ -1448,7 +1436,6 @@ void PCB_IO::format( TEXTE_MODULE* aText, int aNestLevel ) const
 
 
 void PCB_IO::format( TRACK* aTrack, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     if( aTrack->Type() == PCB_VIA_T )
     {
@@ -1514,7 +1501,6 @@ void PCB_IO::format( TRACK* aTrack, int aNestLevel ) const
 
 
 void PCB_IO::format( ZONE_CONTAINER* aZone, int aNestLevel ) const
-    throw( IO_ERROR )
 {
     // Save the NET info; For keepout zones, net code and net name are irrelevant
     // so be sure a dummy value is stored, just for ZONE_CONTAINER compatibility
@@ -1833,11 +1819,11 @@ void PCB_IO::cacheLib( const wxString& aLibraryPath, const wxString& aFootprintN
 }
 
 
-wxArrayString PCB_IO::FootprintEnumerate( const wxString&   aLibraryPath,
-                                          const PROPERTIES* aProperties )
+void PCB_IO::FootprintEnumerate( wxArrayString&    aFootprintNames,
+                                 const wxString&   aLibraryPath,
+                                 const PROPERTIES* aProperties )
 {
     LOCALE_IO     toggle;     // toggles on, then off, the C locale.
-    wxArrayString ret;
     wxDir         dir( aLibraryPath );
 
     if( !dir.IsOpened() )
@@ -1848,31 +1834,28 @@ wxArrayString PCB_IO::FootprintEnumerate( const wxString&   aLibraryPath,
 
     init( aProperties );
 
-#if 1                         // Set to 0 to only read directory contents, not load cache.
-    cacheLib( aLibraryPath );
+    wxString errorMsg;
+
+    // Some of the files may have been parsed correctly so we want to add the valid files to
+    // the library.
+    try
+    {
+        cacheLib( aLibraryPath );
+    }
+    catch( const IO_ERROR& ioe )
+    {
+        errorMsg = ioe.What();
+    }
 
     const MODULE_MAP& mods = m_cache->GetModules();
 
-
     for( MODULE_CITER it = mods.begin();  it != mods.end();  ++it )
     {
-        ret.Add( FROM_UTF8( it->first.c_str() ) );
+        aFootprintNames.Add( FROM_UTF8( it->first.c_str() ) );
     }
-#else
-    wxString fpFileName;
-    wxString wildcard = wxT( "*." ) + KiCadFootprintFileExtension;
 
-    if( dir.GetFirst( &fpFileName, wildcard, wxDIR_FILES ) )
-    {
-        do
-        {
-            wxFileName fn( aLibraryPath, fpFileName );
-            ret.Add( fn.GetName() );
-        } while( dir.GetNext( &fpFileName ) );
-    }
-#endif
-
-    return ret;
+    if( !errorMsg.IsEmpty() )
+        THROW_IO_ERROR( errorMsg );
 }
 
 

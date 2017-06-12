@@ -55,8 +55,14 @@ public:
     /// Selects an item (specified as the event parameter).
     static TOOL_ACTION selectItem;
 
+    /// Selects a list of items (specified as the event parameter)
+    static TOOL_ACTION selectItems;
+
     /// Unselects an item (specified as the event parameter).
     static TOOL_ACTION unselectItem;
+
+    /// Unselects a list of items (specified as the event parameter)
+    static TOOL_ACTION unselectItems;
 
     /// Selects a connection between junctions.
     static TOOL_ACTION selectConnection;
@@ -214,7 +220,12 @@ public:
     /// Distributes items evenly along the vertical axis
     static TOOL_ACTION distributeVertically;
 
+    // Position Relative Tool
+    /// Activation of the position relative tool
+    static TOOL_ACTION positionRelative;
 
+    /// Selection of anchor item for position relative tool
+    static TOOL_ACTION selectpositionRelativeItem;
 
     // Display modes
     static TOOL_ACTION trackDisplayMode;

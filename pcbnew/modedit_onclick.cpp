@@ -170,7 +170,7 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
 
             // Usually, we do not need to change twice the anchor position,
             // so deselect the active tool
-            SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+            SetNoToolSelected();
             SetCurItem( NULL );
             m_canvas->Refresh();
         }
@@ -202,12 +202,12 @@ void FOOTPRINT_EDIT_FRAME::OnLeftClick( wxDC* DC, const wxPoint& MousePos )
 
     case ID_MODEDIT_MEASUREMENT_TOOL:
         DisplayError( this, wxT( "Unsupported tool in legacy canvas" ) );
-        SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+        SetNoToolSelected();
         break;
 
     default:
         DisplayError( this, wxT( "FOOTPRINT_EDIT_FRAME::ProcessCommand error" ) );
-        SetToolID( ID_NO_TOOL_SELECTED, m_canvas->GetDefaultCursor(), wxEmptyString );
+        SetNoToolSelected();
     }
 
     m_canvas->CrossHairOn( DC );
@@ -254,7 +254,7 @@ bool FOOTPRINT_EDIT_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopMen
                              _( "Place Block" ), KiBitmap( checked_ok_xpm ) );
                 AddMenuItem( PopMenu, ID_POPUP_COPY_BLOCK,
                              _( "Copy Block (shift + drag mouse)" ),
-                             KiBitmap( copyblock_xpm ) );
+                             KiBitmap( copy_xpm ) );
                 AddMenuItem( PopMenu, ID_POPUP_MIRROR_X_BLOCK,
                              _( "Mirror Block (alt + drag mouse)" ),
                              KiBitmap( mirror_h_xpm ) );
@@ -292,7 +292,7 @@ bool FOOTPRINT_EDIT_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopMen
             {
             wxMenu* transform_choice = new wxMenu;
             AddMenuItem( transform_choice, ID_MODEDIT_MODULE_ROTATE, _( "Rotate" ),
-                         KiBitmap( rotate_module_ccw_xpm ) );
+                         KiBitmap( rotate_ccw_xpm ) );
             AddMenuItem( transform_choice, ID_MODEDIT_MODULE_MIRROR, _( "Mirror" ),
                          KiBitmap( mirror_footprint_axisY_xpm ) );
             AddMenuItem( transform_choice, ID_MODEDIT_MODULE_MOVE_EXACT, _( "Move Exactly" ),
@@ -352,7 +352,7 @@ bool FOOTPRINT_EDIT_FRAME::OnRightClick( const wxPoint& MousePos, wxMenu* PopMen
 
             msg = AddHotkeyName( _("Rotate Text" ), g_Module_Editor_Hokeys_Descr,
                                  HK_ROTATE_ITEM );
-            AddMenuItem( PopMenu, ID_POPUP_PCB_ROTATE_TEXTMODULE, msg, KiBitmap( rotate_field_xpm ) );
+            AddMenuItem( PopMenu, ID_POPUP_PCB_ROTATE_TEXTMODULE, msg, KiBitmap( rotate_cw_xpm ) );
 
             {
                 // Do not show option to replicate value or reference fields

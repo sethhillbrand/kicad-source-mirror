@@ -40,6 +40,7 @@
 #include <tools/pad_tool.h>
 #include <tools/edit_teardrops.h>
 #include <tools/microwave_tool.h>
+#include <tools/position_relative_tool.h>
 #include <tools/pcb_actions.h>
 
 #include <router/router_tool.h>
@@ -62,4 +63,5 @@ void PCB_ACTIONS::RegisterAllTools( TOOL_MANAGER* aToolManager )
     aToolManager->RegisterTool( new PLACEMENT_TOOL );
     aToolManager->RegisterTool( new TEARDROPS_EDITOR );
     aToolManager->RegisterTool( new MICROWAVE_TOOL );
+    aToolManager->RegisterTool( new POSITION_RELATIVE_TOOL );
 }

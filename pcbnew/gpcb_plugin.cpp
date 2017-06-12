@@ -1,8 +1,8 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2012-2016 Wayne Stambaugh <stambaughw@verizon.net>
- * Copyright (C) 1992-2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2012-2017 Wayne Stambaugh <stambaughw@verizon.net>
+ * Copyright (C) 1992-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -187,7 +187,7 @@ class GPCB_FPL_CACHE
     wxDateTime      m_mod_time;     /// Footprint library path modified time stamp.
     MODULE_MAP      m_modules;      /// Map of footprint file name per MODULE*.
 
-    MODULE* parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR, PARSE_ERROR );
+    MODULE* parseMODULE( LINE_READER* aLineReader );
 
     /**
      * Function testFlags
@@ -326,11 +326,10 @@ void GPCB_FPL_CACHE::Load()
         catch( const IO_ERROR& ioe )
         {
             if( !cacheErrorMsg.IsEmpty() )
-                cacheErrorMsg += "\n";
+                cacheErrorMsg += "\n\n";
 
             cacheErrorMsg += ioe.What();
         }
-
     } while( dir.GetNext( &fpFileName ) );
 
     // Remember the file modification time of library file when the
@@ -338,10 +337,8 @@ void GPCB_FPL_CACHE::Load()
     // reload the cache as needed.
     m_mod_time = GetLibModificationTime();
 
-#if 0
     if( !cacheErrorMsg.IsEmpty() )
         THROW_IO_ERROR( cacheErrorMsg );
-#endif
 }
 
 
@@ -390,7 +387,7 @@ bool GPCB_FPL_CACHE::IsModified( const wxString& aLibPath, const wxString& aFoot
             wxFileName fn = m_lib_path;
 
             fn.SetName( it->second->GetFileName().GetName() );
-            fn.SetExt( KiCadFootprintFileExtension );
+            fn.SetExt( GedaPcbFootprintLibFileExtension );
 
             if( !fn.FileExists() )
             {
@@ -421,7 +418,7 @@ bool GPCB_FPL_CACHE::IsModified( const wxString& aLibPath, const wxString& aFoot
 }
 
 
-MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader ) throw( IO_ERROR, PARSE_ERROR )
+MODULE* GPCB_FPL_CACHE::parseMODULE( LINE_READER* aLineReader )
 {
     #define TEXT_DEFAULT_SIZE  ( 40*IU_PER_MILS )
     #define OLD_GPCB_UNIT_CONV IU_PER_MILS
@@ -974,11 +971,11 @@ void GPCB_PLUGIN::cacheLib( const wxString& aLibraryPath, const wxString& aFootp
 }
 
 
-wxArrayString GPCB_PLUGIN::FootprintEnumerate( const wxString&   aLibraryPath,
-                                               const PROPERTIES* aProperties )
+void GPCB_PLUGIN::FootprintEnumerate( wxArrayString&    aFootprintNames,
+                                      const wxString&   aLibraryPath,
+                                      const PROPERTIES* aProperties )
 {
     LOCALE_IO     toggle;     // toggles on, then off, the C locale.
-    wxArrayString ret;
     wxDir         dir( aLibraryPath );
 
     if( !dir.IsOpened() )
@@ -989,32 +986,28 @@ wxArrayString GPCB_PLUGIN::FootprintEnumerate( const wxString&   aLibraryPath,
 
     init( aProperties );
 
-#if 1                         // Set to 0 to only read directory contents, not load cache.
+    wxString errorMsg;
 
-    cacheLib( aLibraryPath );
+    // Some of the files may have been parsed correctly so we want to add the valid files to
+    // the library.
+    try
+    {
+        cacheLib( aLibraryPath );
+    }
+    catch( const IO_ERROR& ioe )
+    {
+        errorMsg = ioe.What();
+    }
 
     const MODULE_MAP& mods = m_cache->GetModules();
 
-
     for( MODULE_CITER it = mods.begin();  it != mods.end();  ++it )
     {
-        ret.Add( FROM_UTF8( it->first.c_str() ) );
+        aFootprintNames.Add( FROM_UTF8( it->first.c_str() ) );
     }
-#else
-    wxString fpFileName;
-    wxString wildcard = wxT( "*." ) + GedaPcbFootprintLibFileExtension;
 
-    if( dir.GetFirst( &fpFileName, wildcard, wxDIR_FILES ) )
-    {
-        do
-        {
-            wxFileName fn( aLibraryPath, fpFileName );
-            ret.Add( fn.GetName() );
-        } while( dir.GetNext( &fpFileName ) );
-    }
-#endif
-
-    return ret;
+    if( !errorMsg.IsEmpty() )
+        THROW_IO_ERROR( errorMsg );
 }
 
 

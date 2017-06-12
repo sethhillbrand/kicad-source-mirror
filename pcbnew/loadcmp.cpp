@@ -332,7 +332,6 @@ MODULE* PCB_BASE_FRAME::LoadFootprint( const LIB_ID& aFootprintId )
 
 
 MODULE* PCB_BASE_FRAME::loadFootprint( const LIB_ID& aFootprintId )
-    throw( IO_ERROR, PARSE_ERROR, boost::interprocess::lock_exception )
 {
     FP_LIB_TABLE*   fptbl = Prj().PcbFootprintLibs();
 
@@ -551,7 +550,9 @@ void FOOTPRINT_EDIT_FRAME::OnSaveLibraryAs( wxCommandEvent& aEvent )
         PLUGIN::RELEASER cur( IO_MGR::PluginFind( curType ) );
         PLUGIN::RELEASER dst( IO_MGR::PluginFind( dstType ) );
 
-        wxArrayString mods = cur->FootprintEnumerate( curLibPath );
+        wxArrayString mods;
+
+        cur->FootprintEnumerate( mods, curLibPath );
 
         for( unsigned i = 0;  i < mods.size();  ++i )
         {

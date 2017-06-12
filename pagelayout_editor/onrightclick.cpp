@@ -6,7 +6,7 @@
 /*
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
- * Copyright (C) 2013 Jean-Pierre Charras, jp.charras at wanadoo.fr
+ * Copyright (C) 2017 Jean-Pierre Charras, jp.charras at wanadoo.fr
  * Copyright (C) 2013 CERN
  *
  * This program is free software; you can redistribute it and/or
@@ -47,7 +47,7 @@ void AddNewItemsCommand( wxMenu* aMainMenu )
     AddMenuItem( aMainMenu, ID_POPUP_ITEM_ADD_RECT, _( "Add Rectangle" ),
                  KiBitmap( add_rectangle_xpm ) );
     AddMenuItem( aMainMenu, ID_POPUP_ITEM_ADD_TEXT, _( "Add Text" ),
-                 KiBitmap( add_text_xpm ) );
+                 KiBitmap( text_xpm ) );
     AddMenuItem( aMainMenu, ID_POPUP_ITEM_APPEND_PAGE_LAYOUT,
                  _( "Append Page Layout Descr File" ),
                  KiBitmap( import_xpm ) );
@@ -63,6 +63,14 @@ bool PL_EDITOR_FRAME::OnRightClick( const wxPoint& aPosition, wxMenu* aPopMenu )
 {
     bool busy = GetScreen()->GetCurItem() != NULL;
     wxString msg;
+
+    // If the tool ID_ZOOM_SELECTION is currently in use, add a
+    if( GetToolId() == ID_ZOOM_SELECTION && !busy )
+    {
+        AddMenuItem( aPopMenu, ID_NO_TOOL_SELECTED, _( "End Tool" ),
+                     KiBitmap( cursor_xpm ) );
+        aPopMenu->AppendSeparator();
+    }
 
     if( ! busy )     // No item currently edited
     {

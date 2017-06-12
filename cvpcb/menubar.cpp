@@ -78,21 +78,22 @@ void CVPCB_MAINFRAME::ReCreateMenuBar()
     wxMenu* preferencesMenu = new wxMenu;
 
     AddMenuItem( preferencesMenu, ID_CVPCB_LIB_TABLE_EDIT,
-                 _( "Footprint Li&braries" ), _( "Configure footprint libraries" ),
+                 _( "Footprint &Libraries" ), _( "Configure footprint libraries" ),
                  KiBitmap( library_table_xpm ) );
 
     // Path configuration edit dialog.
     AddMenuItem( preferencesMenu,
                  ID_PREFERENCES_CONFIGURE_PATHS,
-                 _( "Configure Pa&ths" ),
+                 _( "Configure &Paths" ),
                  _( "Edit path configuration environment variables" ),
                  KiBitmap( editor_xpm ) );
 
     preferencesMenu->AppendSeparator();
     AddMenuItem( preferencesMenu, ID_CVPCB_EQUFILES_LIST_EDIT,
-                 _( "&Edit Footprint Association File" ),
-                 _( "Modify footprint association file (.equ).  This is the file which "
-                    "assigns the footprint name by the component value" ),
+                 _( "Footprint &Association Files" ),
+                 _( "Configure footprint association file (.equ) list."
+                    "These files are used to automatically assign "
+                    "the footprint name (FPID) from the component value" ),
                  KiBitmap( library_table_xpm ) );
     preferencesMenu->AppendSeparator();
 
@@ -125,7 +126,7 @@ void CVPCB_MAINFRAME::ReCreateMenuBar()
     AddMenuItem( helpMenu, wxID_ABOUT,
                  _( "&About Kicad" ),
                  _( "About KiCad" ),
-                 KiBitmap( info_xpm ) );
+                 KiBitmap( about_xpm ) );
 
     // Create the menubar and append all submenus
     menuBar->Append( filesMenu, _( "&Save" ) );
