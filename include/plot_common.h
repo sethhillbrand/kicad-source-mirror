@@ -2,7 +2,7 @@
  * This program source code file is part of KiCad, a free EDA CAD application.
  *
  * Copyright (C) 2016 Jean-Pierre Charras, jp.charras at wanadoo.fr
- * Copyright (C) 2016 KiCad Developers, see AUTHORS.txt for contributors.
+ * Copyright (C) 2016-2017 KiCad Developers, see AUTHORS.txt for contributors.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -289,11 +289,9 @@ public:
     /**
      * virtual function FlashPadCircle
      * @param aPadPos Position of the shape (center of the rectangle
-     * @param aSize = size of rounded rect
-     * @param cornerRadius Radius of the rounded corners
-     * @param aOrient The rotation of the shape
+     * @param aDiameter diameter of round pad
      * @param aTraceMode FILLED or SKETCH
-     * @param aData an auxiliary info (mainly for gerber format)
+     * @param aData an auxiliary info (mainly for gerber format attributes)
      */
     virtual void FlashPadCircle( const wxPoint& aPadPos, int aDiameter,
                                  EDA_DRAW_MODE_T aTraceMode, void* aData ) = 0;
@@ -301,11 +299,10 @@ public:
     /**
      * virtual function FlashPadOval
      * @param aPadPos Position of the shape (center of the rectangle
-     * @param aSize = size of rounded rect
-     * @param cornerRadius Radius of the rounded corners
-     * @param aOrient The rotation of the shape
+     * @param aSize = size of oblong shape
+     * @param aPadOrient The rotation of the shape
      * @param aTraceMode FILLED or SKETCH
-     * @param aData an auxiliary info (mainly for gerber format)
+     * @param aData an auxiliary info (mainly for gerber format attributes)
      */
     virtual void FlashPadOval( const wxPoint& aPadPos, const wxSize& aSize, double aPadOrient,
                                EDA_DRAW_MODE_T aTraceMode, void* aData ) = 0;
@@ -314,10 +311,9 @@ public:
      * virtual function FlashPadRect
      * @param aPadPos Position of the shape (center of the rectangle
      * @param aSize = size of rounded rect
-     * @param cornerRadius Radius of the rounded corners
-     * @param aOrient The rotation of the shape
+     * @param aPadOrient The rotation of the shape
      * @param aTraceMode FILLED or SKETCH
-     * @param aData an auxuliary info (mainly for gerber format)
+     * @param aData an auxuliary info (mainly for gerber format attributes)
      */
     virtual void FlashPadRect( const wxPoint& aPadPos, const wxSize& aSize,
                                double aPadOrient, EDA_DRAW_MODE_T aTraceMode, void* aData ) = 0;
@@ -326,10 +322,10 @@ public:
      * virtual function FlashPadRoundRect
      * @param aPadPos Position of the shape (center of the rectangle
      * @param aSize = size of rounded rect
-     * @param cornerRadius Radius of the rounded corners
+     * @param aCornerRadius Radius of the rounded corners
      * @param aOrient The rotation of the shape
      * @param aTraceMode FILLED or SKETCH
-     * @param aData an auxiliary info (mainly for gerber format)
+     * @param aData an auxiliary info (mainly for gerber format attributes)
      */
     virtual void FlashPadRoundRect( const wxPoint& aPadPos, const wxSize& aSize,
                                     int aCornerRadius, double aOrient,
@@ -341,7 +337,7 @@ public:
      * @param aSize = size of round reference pad
      * @param aPolygons the shape as polygon set
      * @param aTraceMode FILLED or SKETCH
-     * @param aData an auxiliary info (mainly for gerber format)
+     * @param aData an auxiliary info (mainly for gerber format attributes)
      */
     virtual void FlashPadCustom( const wxPoint& aPadPos, const wxSize& aSize,
                                  SHAPE_POLY_SET* aPolygons,
@@ -353,10 +349,12 @@ public:
      * @param aCorners = the list of 4 corners positions,
      * 		relative to the shape position, pad orientation 0
      * @param aPadOrient = the rotation of the shape
-     * @param aTrace_Mode = FILLED or SKETCH
+     * @param aTraceMode = FILLED or SKETCH
+     * @param aData an auxiliary info (mainly for gerber format attributes)
      */
     virtual void FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCorners,
-                                 double aPadOrient, EDA_DRAW_MODE_T aTraceMode, void* aData ) = 0;
+                                 double aPadOrient, EDA_DRAW_MODE_T aTraceMode,
+                                 void* aData ) = 0;
 
 
     /**
@@ -382,8 +380,7 @@ public:
     static const unsigned MARKER_COUNT = 58;
 
     /**
-     * Draw a pattern shape number aShapeId, to coord x0, y0.
-     * x0, y0 = coordinates tables
+     * Draw a pattern shape number aShapeId, to coord position.
      * Diameter diameter = (coord table) hole
      * AShapeId = index (used to generate forms characters)
      */
@@ -610,12 +607,12 @@ public:
     virtual void Arc( const wxPoint& centre, double StAngle, double EndAngle,
                       int rayon, FILL_T fill, int width = USE_DEFAULT_LINE_WIDTH ) override;
     virtual void PenTo( const wxPoint& pos, char plume ) override;
-    virtual void FlashPadCircle( const wxPoint& pos, int diametre,
-                                 EDA_DRAW_MODE_T trace_mode, void* aData ) override;
-    virtual void FlashPadOval( const wxPoint& pos, const wxSize& size, double orient,
-                               EDA_DRAW_MODE_T trace_mode, void* aData ) override;
-    virtual void FlashPadRect( const wxPoint& pos, const wxSize& size,
-                               double orient, EDA_DRAW_MODE_T trace_mode, void* aData ) override;
+    virtual void FlashPadCircle( const wxPoint& aPadPos, int aDiameter,
+                                 EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
+    virtual void FlashPadOval( const wxPoint& aPadPos, const wxSize& aSize, double aPadOrient,
+                               EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
+    virtual void FlashPadRect( const wxPoint& aPadPos, const wxSize& aSize,
+                               double aOrient, EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
     virtual void FlashPadRoundRect( const wxPoint& aPadPos, const wxSize& aSize,
                                     int aCornerRadius, double aOrient,
                                     EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
@@ -623,7 +620,8 @@ public:
                                  SHAPE_POLY_SET* aPolygons,
                                  EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
     virtual void FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCorners,
-                                 double aPadOrient, EDA_DRAW_MODE_T aTrace_Mode, void* aData ) override;
+                                 double aPadOrient, EDA_DRAW_MODE_T aTraceMode,
+                                 void* aData ) override;
 
 protected:
     void penControl( char plume );
@@ -667,12 +665,13 @@ public:
     }
 
     // Pad routines are handled with lower level primitives
-    virtual void FlashPadCircle( const wxPoint& pos, int diametre,
-                                 EDA_DRAW_MODE_T trace_mode, void* aData ) override;
-    virtual void FlashPadOval( const wxPoint& pos, const wxSize& size, double orient,
-                               EDA_DRAW_MODE_T trace_mode, void* aData ) override;
-    virtual void FlashPadRect( const wxPoint& pos, const wxSize& size,
-                               double orient, EDA_DRAW_MODE_T trace_mode, void* aData ) override;
+    virtual void FlashPadCircle( const wxPoint& aPadPos, int aDiameter,
+                                 EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
+    virtual void FlashPadOval( const wxPoint& aPadPos, const wxSize& aSize, double aPadOrient,
+                               EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
+    virtual void FlashPadRect( const wxPoint& aPadPos, const wxSize& aSize,
+                               double aPadOrient, EDA_DRAW_MODE_T aTraceMode,
+                               void* aData ) override;
     virtual void FlashPadRoundRect( const wxPoint& aPadPos, const wxSize& aSize,
                                     int aCornerRadius, double aOrient,
                                     EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
@@ -680,7 +679,7 @@ public:
                                  SHAPE_POLY_SET* aPolygons,
                                  EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
     virtual void FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCorners,
-                                 double aPadOrient, EDA_DRAW_MODE_T aTrace_Mode, void* aData ) override;
+                                 double aPadOrient, EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
 
     /** The SetColor implementation is split with the subclasses:
      * The PSLIKE computes the rgb values, the subclass emits the
@@ -1088,7 +1087,7 @@ public:
      * TODO: always use flashed shapes (aperture macros)
      */
     virtual void FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCorners,
-                                 double aPadOrient, EDA_DRAW_MODE_T aTrace_Mode, void* aData ) override;
+                                 double aPadOrient, EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
 
     /**
      * Change the plot polarity and begin a new layer
@@ -1277,7 +1276,7 @@ public:
                                  SHAPE_POLY_SET* aPolygons,
                                  EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
     virtual void FlashPadTrapez( const wxPoint& aPadPos, const wxPoint *aCorners,
-                                 double aPadOrient, EDA_DRAW_MODE_T aTrace_Mode, void* aData ) override;
+                                 double aPadOrient, EDA_DRAW_MODE_T aTraceMode, void* aData ) override;
 
     virtual void Text( const wxPoint&              aPos,
                        const COLOR4D               aColor,

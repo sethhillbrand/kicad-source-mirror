@@ -292,15 +292,14 @@ public:
                                                 int             aCircleToSegmentsCount,
                                                 double          aCorrectionFactor ) const;
     /**
-     * Function BuildFilledSolidAreasPolygons
-     * Build the filled solid areas data from real outlines (stored in m_Poly)
+     * Build the filled solid areas polygons from zone outlines (stored in m_Poly)
      * The solid areas can be more than one on copper layers, and do not have holes
       ( holes are linked by overlapping segments to the main outline)
-     * in order to have drawable (and plottable) filled polygons
+     * in order to have drawable (and plottable) filled polygons.
      * @return true if OK, false if the solid polygons cannot be built
      * @param aPcb: the current board (can be NULL for non copper zones)
-     * @param aCornerBuffer: A reference to a buffer to store polygon corners, or NULL
-     * if NULL (default:
+     * @param aOutlineBuffer: A reference to a SHAPE_POLY_SET buffer to store polygons, or NULL.
+     * if NULL (default):
      * - m_FilledPolysList is used to store solid areas polygons.
      * - on copper layers, tracks and other items shapes of other nets are
      * removed from solid areas
@@ -538,18 +537,14 @@ public:
     }
 
     /**
-     * Function AppendCorner
-     * @param position          is the position of the new corner.
+     * Add a new corner to the zone outline (to the main outline or a hole)
+     * @param aPosition         is the position of the new corner.
+     * @param aHoleIdx          is the index of the hole (-1 for the main outline, >= 0 for hole).
      * @param aAllowDuplication is a flag to indicate whether it is allowed to add this corner
      *                          even if it is duplicated.
+     * @return true if the corner was added, false if error (aHoleIdx > hole count -1)
      */
-    void AppendCorner( wxPoint position, bool aAllowDuplication = false )
-    {
-        if( m_Poly->OutlineCount() == 0 )
-            m_Poly->NewOutline();
-
-        m_Poly->Append( position.x, position.y, -1, -1, aAllowDuplication );
-    }
+    bool AppendCorner( wxPoint aPosition, int aHoleIdx, bool aAllowDuplication = false );
 
     HATCH_STYLE GetHatchStyle() const
     {

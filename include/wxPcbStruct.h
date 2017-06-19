@@ -618,7 +618,7 @@ public:
      * Function SetElementVisibility
      * changes the visibility of an element category
      * @param aElement is from the enum by the same name
-     * @param GAL_LAYER_ID = The new visibility state of the element category
+     * @param aNewState The new visibility state of the element category
      * @see enum PCB_LAYER_ID
      */
     void SetElementVisibility( GAL_LAYER_ID aElement, bool aNewState );

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jan 13 2017)
+// C++ code generated with wxFormBuilder (version Feb 19 2017)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -86,7 +86,7 @@ DIALOG_MOVE_EXACT_BASE::DIALOG_MOVE_EXACT_BASE( wxWindow* parent, wxWindowID id,
 	m_cbOverride = new wxCheckBox( this, wxID_ANY, _("Override default component anchor with:"), wxDefaultPosition, wxDefaultSize, 0 );
 	bAnchorSizer->Add( m_cbOverride, 1, wxALL, 5 );
 	
-	wxString m_anchorChoiceChoices[] = { _("top left pad"), _("footprint center") };
+	wxString m_anchorChoiceChoices[] = { _("Top left pad"), _("Footprint center") };
 	int m_anchorChoiceNChoices = sizeof( m_anchorChoiceChoices ) / sizeof( wxString );
 	m_anchorChoice = new wxChoice( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_anchorChoiceNChoices, m_anchorChoiceChoices, 0 );
 	m_anchorChoice->SetSelection( 0 );
