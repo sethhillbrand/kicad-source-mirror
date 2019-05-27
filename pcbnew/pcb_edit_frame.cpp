@@ -1363,15 +1363,3 @@ void PCB_EDIT_FRAME::OnExportHyperlynx( wxCommandEvent& event )
 
     ExportBoardToHyperlynx( GetBoard(), fn );
 }
-
-
-void PCB_EDIT_FRAME::OnSimulateCrash( wxCommandEvent& event )
-{
-    bool crash = IsOK( this, _("Clicking on OK will crash KiCad. Did you save?" ) );
-
-    if(!crash)
-        return;
-
-    * (volatile int *) 0xdeafbeef = 0xcafebabe;
-}
-
