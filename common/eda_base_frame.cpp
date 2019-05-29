@@ -261,14 +261,13 @@ void EDA_BASE_FRAME::AddStandardHelpMenu( wxMenuBar* aMenuBar )
                  _( "Displays current hotkeys table and corresponding commands" ),
                  KiBitmap( hotkeys_xpm ) );
 
-    #ifdef KICAD_CRASH_REPORTER
-        helpMenu->AppendSeparator();
+#ifdef KICAD_CRASH_REPORTER
+    helpMenu->AppendSeparator();
 
-        AddMenuItem( helpMenu, ID_SIMULATE_CRASH,
-                    _( "Force KiCad crash" ),
-                    _( "Will crash KiCad. For testing of the Debug Report feature." ),
-                    KiBitmap( help_xpm ) );
-    #endif
+    AddMenuItem( helpMenu, ID_SIMULATE_CRASH, _( "Force KiCad crash" ),
+            _( "Will crash KiCad. For testing of the Debug Report feature." ),
+            KiBitmap( help_xpm ) );
+#endif
     helpMenu->AppendSeparator();
     AddMenuItem( helpMenu, ID_HELP_GET_INVOLVED, _( "Get &Involved" ),
                  _( "Open \"Contribute to KiCad\" in a web browser" ),

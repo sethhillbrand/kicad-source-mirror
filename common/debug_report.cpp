@@ -29,6 +29,7 @@
 #include <wx/base64.h>
 #include <wx/debugrpt.h>
 #include <wx/progdlg.h>
+#include <wx/utils.h>
 
 #include <dialogs/dialog_crash_report_base.h>
 #include <dialogs/dialog_crash_report_preview_base.h>
@@ -162,13 +163,6 @@ private:
     DEBUG_REPORT* m_report;
 };
 
-static const wxString formatHex( uint64_t addr )
-{
-    char tmp[1024];
-
-    snprintf( tmp, 1024, "%p", (void*) addr );
-    return wxString( tmp );
-}
 
 void DEBUG_REPORT::GenerateReport( wxDebugReport::Context ctx )
 {
@@ -230,8 +224,8 @@ void YAML_STACK_WALKER::OnStackFrame( const wxStackFrame& frame )
         m_msg << indent4 << indent4 << "function: " << func << eol;
     }
 
-    m_msg << indent4 << indent4 << "offset:  " << formatHex( frame.GetOffset() ) << eol;
-    m_msg << indent4 << indent4 << "address: " << formatHex( wxPtrToUInt( frame.GetAddress() ) )
+    m_msg << indent4 << indent4 << "offset:  " << wxDecToHex( frame.GetOffset() ) << eol;
+    m_msg << indent4 << indent4 << "address: " << wxDecToHex( wxPtrToUInt( frame.GetAddress() ) )
           << eol;
 }
 #endif
@@ -436,8 +430,8 @@ void DEBUG_REPORT::buildModulesInfo( wxString& aMsg )
         aMsg << indent4 << "- " << path << ": " << eol;
         if( info.GetAddress( &addr, &len ) )
         {
-            aMsg << indent4 << indent4 << "base:    " << formatHex( (uint64_t) addr ) << eol;
-            aMsg << indent4 << indent4 << "size:    " << formatHex( (uint64_t) len ) << eol;
+            aMsg << indent4 << indent4 << "base:    " << wxDecToHex( (uint64_t) addr ) << eol;
+            aMsg << indent4 << indent4 << "size:    " << wxDecToHex( (uint64_t) len ) << eol;
         }
 
         wxString ver = info.GetVersion();
@@ -464,29 +458,29 @@ void DEBUG_REPORT::buildExceptionContextInfo( wxString& aMsg )
 
     aMsg << "exception-context:" << eol;
 
-    aMsg << indent4 << "code:     " << formatHex( c.code ) << eol;
+    aMsg << indent4 << "code:     " << wxDecToHex( c.code ) << eol;
     aMsg << indent4 << "name:     " << c.GetExceptionString() << eol;
-    aMsg << indent4 << "address:  " << formatHex( c.addr ) << eol;
+    aMsg << indent4 << "address:  " << wxDecToHex( c.addr ) << eol;
     -
 
 #ifdef __INTEL__
     aMsg << indent4 << "x86-registers:  " << eol;
-    aMsg << indent4 << indent4 << "- eax:   " << formatHex( c.regs.eax ) << eol;
-    aMsg << indent4 << indent4 << "- ebx:   " << formatHex( c.regs.ebx ) << eol;
-    aMsg << indent4 << indent4 << "- ecx:   " << formatHex( c.regs.ecx ) << eol;
-    aMsg << indent4 << indent4 << "- edx:   " << formatHex( c.regs.edx ) << eol;
-    aMsg << indent4 << indent4 << "- esi:   " << formatHex( c.regs.esi ) << eol;
-    aMsg << indent4 << indent4 << "- edi:   " << formatHex( c.regs.edi ) << eol;
-    aMsg << indent4 << indent4 << "- ebp:   " << formatHex( c.regs.ebp ) << eol;
-    aMsg << indent4 << indent4 << "- esp:   " << formatHex( c.regs.esp ) << eol;
-    aMsg << indent4 << indent4 << "- eip:   " << formatHex( c.regs.eip ) << eol;
-    aMsg << indent4 << indent4 << "- cs:    " << formatHex( c.regs.cs ) << eol;
-    aMsg << indent4 << indent4 << "- ds:    " << formatHex( c.regs.ds ) << eol;
-    aMsg << indent4 << indent4 << "- es:    " << formatHex( c.regs.es ) << eol;
-    aMsg << indent4 << indent4 << "- fs:    " << formatHex( c.regs.fs ) << eol;
-    aMsg << indent4 << indent4 << "- gs:    " << formatHex( c.regs.gs ) << eol;
-    aMsg << indent4 << indent4 << "- ss:    " << formatHex( c.regs.ss ) << eol;
-    aMsg << indent4 << indent4 << "- flags: " << formatHex( c.regs.flags ) << eol;
+    aMsg << indent4 << indent4 << "- eax:   " << wxDecToHex( c.regs.eax ) << eol;
+    aMsg << indent4 << indent4 << "- ebx:   " << wxDecToHex( c.regs.ebx ) << eol;
+    aMsg << indent4 << indent4 << "- ecx:   " << wxDecToHex( c.regs.ecx ) << eol;
+    aMsg << indent4 << indent4 << "- edx:   " << wxDecToHex( c.regs.edx ) << eol;
+    aMsg << indent4 << indent4 << "- esi:   " << wxDecToHex( c.regs.esi ) << eol;
+    aMsg << indent4 << indent4 << "- edi:   " << wxDecToHex( c.regs.edi ) << eol;
+    aMsg << indent4 << indent4 << "- ebp:   " << wxDecToHex( c.regs.ebp ) << eol;
+    aMsg << indent4 << indent4 << "- esp:   " << wxDecToHex( c.regs.esp ) << eol;
+    aMsg << indent4 << indent4 << "- eip:   " << wxDecToHex( c.regs.eip ) << eol;
+    aMsg << indent4 << indent4 << "- cs:    " << wxDecToHex( c.regs.cs ) << eol;
+    aMsg << indent4 << indent4 << "- ds:    " << wxDecToHex( c.regs.ds ) << eol;
+    aMsg << indent4 << indent4 << "- es:    " << wxDecToHex( c.regs.es ) << eol;
+    aMsg << indent4 << indent4 << "- fs:    " << wxDecToHex( c.regs.fs ) << eol;
+    aMsg << indent4 << indent4 << "- gs:    " << wxDecToHex( c.regs.gs ) << eol;
+    aMsg << indent4 << indent4 << "- ss:    " << wxDecToHex( c.regs.ss ) << eol;
+    aMsg << indent4 << indent4 << "- flags: " << wxDecToHex( c.regs.flags ) << eol;
 #endif // __INTEL__
 #endif
 }

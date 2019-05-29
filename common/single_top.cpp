@@ -49,7 +49,9 @@
 #include <debug_report.h>
 
 
+#if defined( KICAD_CRASH_REPORTER ) && ( defined( _WIN32 ) || defined( _WIN64 ) )
 static void InstallWindowsExceptionHandler();
+#endif
 
 // Only a single KIWAY is supported in this single_top top level component,
 // which is dedicated to loading only a single DSO.
@@ -289,8 +291,7 @@ struct APP_SINGLE_TOP : public wxApp
 IMPLEMENT_APP( APP_SINGLE_TOP )
 
 
-
-#if defined(_WIN32) || defined(_WIN64)
+#if defined( KICAD_CRASH_REPORTER ) && ( defined( _WIN32 ) || defined( _WIN64 ) )
 
 // implement Windows exception handler, as wx doesn't have one...
 
