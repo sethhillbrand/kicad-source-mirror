@@ -42,6 +42,7 @@
 #include <pcb_tablecell.h>
 #include <pcb_marker.h>
 #include <pcb_dimension.h>
+#include "class_barcode.h"
 #include <pcb_target.h>
 #include <pcb_board_outline.h>
 
@@ -704,6 +705,10 @@ bool PCB_PAINTER::Draw( const VIEW_ITEM* aItem, int aLayer )
     case PCB_DIM_ORTHOGONAL_T:
     case PCB_DIM_LEADER_T:
         draw( static_cast<const PCB_DIMENSION_BASE*>( item ), aLayer );
+        break;
+
+    case PCB_BARCODE_T:
+        draw( static_cast<const BARCODE*>( item ), aLayer );
         break;
 
     case PCB_TARGET_T:
@@ -2811,6 +2816,42 @@ void PCB_PAINTER::draw( const ZONE* aZone, int aLayer )
 
         m_gal->DrawPolygon( *polySet, displayMode == ZONE_DISPLAY_MODE::SHOW_TRIANGULATION );
     }
+}
+
+
+void PCB_PAINTER::draw( const BARCODE* aBarcode, int aLayer )
+{
+    const COLOR4D& color = m_pcbSettings.GetColor( aBarcode, aLayer );
+
+    m_gal->SetIsFill( true );
+    m_gal->SetIsStroke( false );
+    m_gal->SetFillColor( color );
+    m_gal->SetStrokeColor( color );
+
+    wxPoint p11 = aBarcode->GetPosition()
+                  - wxPoint( aBarcode->GetWidth() / 2, aBarcode->GetHeight() / 2 );
+    wxPoint p12 = p11 + wxPoint( aBarcode->GetWidth(), 0 );
+    wxPoint p21 = p11 + wxPoint( 0, aBarcode->GetHeight() );
+    wxPoint p22 = p11 + wxPoint( aBarcode->GetWidth(), aBarcode->GetHeight() );
+
+    int linewidth = Millimeter2iu( 0.1 );
+
+    // draw bounding-box for development
+    m_gal->DrawSegment( p11, p12, linewidth );
+    m_gal->DrawSegment( p12, p22, linewidth );
+    m_gal->DrawSegment( p22, p21, linewidth );
+    m_gal->DrawSegment( p21, p11, linewidth );
+
+    // Draw a barcode
+    // TODO
+
+    // Draw text
+    TEXTE_PCB& text = aBarcode->Text();
+    VECTOR2D   position( text.GetTextPos().x, text.GetTextPos().y );
+
+    m_gal->SetLineWidth( getLineThickness( text.GetEffectiveTextPenWidth() ) );
+    m_gal->SetTextAttributes( &text );
+    m_gal->StrokeText( text.GetShownText(), position, text.GetTextAngleRadians() );
 }
 
 
