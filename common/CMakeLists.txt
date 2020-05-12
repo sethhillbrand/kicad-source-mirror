@@ -966,6 +966,7 @@ target_link_libraries( pcbcommon PUBLIC
     kimath
     kiplatform
     nanoflann
+    zint
 )
 
 message( STATUS "Including 3Dconnexion SpaceMouse navigation support in pcbcommon" )
