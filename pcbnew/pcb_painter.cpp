@@ -708,7 +708,7 @@ bool PCB_PAINTER::Draw( const VIEW_ITEM* aItem, int aLayer )
         break;
 
     case PCB_BARCODE_T:
-        draw( static_cast<const BARCODE*>( item ), aLayer );
+        draw( static_cast<const PCB_BARCODE*>( item ), aLayer );
         break;
 
     case PCB_TARGET_T:
@@ -2819,7 +2819,7 @@ void PCB_PAINTER::draw( const ZONE* aZone, int aLayer )
 }
 
 
-void PCB_PAINTER::draw( const BARCODE* aBarcode, int aLayer )
+void PCB_PAINTER::draw( const PCB_BARCODE* aBarcode, int aLayer )
 {
     const COLOR4D& color = m_pcbSettings.GetColor( aBarcode, aLayer );
 
@@ -2829,7 +2829,7 @@ void PCB_PAINTER::draw( const BARCODE* aBarcode, int aLayer )
     m_gal->SetStrokeColor( color );
 
     // Draw the barcode
-    SHAPE_POLY_SET& shape = ( (BARCODE*) aBarcode )->GetPolyShape();
+    SHAPE_POLY_SET& shape = ( (PCB_BARCODE*) aBarcode )->GetPolyShape();
     if( shape.OutlineCount() != 0 )
     {
         // On Opengl, a not convex filled polygon is usually drawn by using triangles as primitives.

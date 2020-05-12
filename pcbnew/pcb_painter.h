@@ -56,7 +56,7 @@ class PCB_FIELD;
 class PCB_TEXTBOX;
 class PCB_TABLE;
 class PCB_DIMENSION_BASE;
-class BARCODE;
+class PCB_BARCODE;
 class PCB_TARGET;
 class PCB_MARKER;
 class NET_SETTINGS;
@@ -210,7 +210,7 @@ protected:
     void draw( const FOOTPRINT* aFootprint, int aLayer );
     void draw( const PCB_GROUP* aGroup, int aLayer );
     void draw( const ZONE* aZone, int aLayer );
-    void draw( const BARCODE* aBarcode, int aLayer );
+    void draw( const PCB_BARCODE* aBarcode, int aLayer );
     void draw( const PCB_DIMENSION_BASE* aDimension, int aLayer );
     void draw( const PCB_TARGET* aTarget );
     void draw( const PCB_MARKER* aMarker, int aLayer );
