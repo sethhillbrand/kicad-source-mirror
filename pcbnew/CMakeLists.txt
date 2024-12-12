@@ -291,6 +291,12 @@ set( PCBNEW_DRC_SRCS
     drc/drc_test_provider_diff_pair_coupling.cpp
     drc/drc_test_provider_sliver_checker.cpp
     drc/drc_test_provider_text_mirroring.cpp
+
+    drc/rule_editor/dialog_drc_rule_editor.cpp
+    drc/rule_editor/panel_drc_rule_editor_base.cpp
+    drc/rule_editor/panel_drc_rule_editor.cpp
+    drc/rule_editor/drc_re_basic_clearance_panel_base.cpp
+    drc/rule_editor/drc_re_basic_clearance_panel.cpp
     )
 
 set( PCBNEW_NETLIST_SRCS
