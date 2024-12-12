@@ -686,6 +686,8 @@ enum class BITMAPS : unsigned int
     zoom_out_vertically,
     zoom_page,
     zoom_selection,
+
+    constraint_basic_clearance
 };
 
 

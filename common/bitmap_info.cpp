@@ -4973,5 +4973,5 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::stroke_none].emplace_back( BITMAPS::stroke_none, wxT( "stroke_none_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::twistedpair].emplace_back( BITMAPS::twistedpair, wxT( "twistedpair_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::viacalc].emplace_back( BITMAPS::viacalc, wxT( "viacalc_dark.png" ), -1, wxT( "dark" ) );
-
+    aBitmapInfoCache[BITMAPS::constraint_basic_clearance].emplace_back( BITMAPS::constraint_basic_clearance, wxT( "constraint_basic_clearance.png" ), -1, wxT( "light" ) );
 };
