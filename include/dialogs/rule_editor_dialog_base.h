@@ -38,32 +38,48 @@ struct RuleTreeNode
 {
     wxString                                 node_name;
     int                                      node_type;
-    std::optional<int>                       rule_type;
-    std::vector<RuleTreeNode>                children;
-    std::shared_ptr<RuleEditorBaseData>      rule_data;
+    int                                      node_level;
+    std::optional<int>                       node_type_map;
+    std::vector<RuleTreeNode>                child_nodes;
+    std::shared_ptr<RuleEditorBaseData>      node_data;
 };
 
 
 class RuleTreeItemData : public wxTreeItemData
 {
 public:
-    explicit RuleTreeItemData( RuleTreeNode* aData, wxTreeItemId aParentTreeItemId,
-                           wxTreeItemId aTreeItemId ) :
-            m_data( aData ),
-            m_ParentTreeItemId( aParentTreeItemId ), m_TreeItemId( aTreeItemId )
+    explicit RuleTreeItemData( RuleTreeNode* aNodeData, wxTreeItemId aParentTreeItemId,
+                               wxTreeItemId aTreeItemId ) :
+            m_TreeItem( aNodeData ),
+            m_ParentTreeItemId( aParentTreeItemId ), 
+            m_TreeItemId( aTreeItemId )
     {
     }
 
-    RuleTreeNode* GetData() const { return m_data; }
+    explicit RuleTreeItemData( RuleTreeNode* aNodeData ) :
+            m_TreeItem( aNodeData ),
+            m_ParentTreeItemId( nullptr ), 
+            m_TreeItemId( nullptr )
+    {
+    }
+
+    RuleTreeNode* GetTreeItem() const { return m_TreeItem; }
 
     wxTreeItemId  GetParentTreeItemId() const { return m_ParentTreeItemId; }
 
     wxTreeItemId  GetTreeItemId() const { return m_TreeItemId; }
 
+    wxString GetNodeName() { return this->GetTreeItem()->node_name; }
+
+    void SyncNodeName() 
+    {  
+        GetTreeItem()->node_name = this->GetTreeItem()->node_data->GetRuleName();
+    }
+
 private:
-    RuleTreeNode* m_data;             
+    RuleTreeNode* m_TreeItem;             
     wxTreeItemId  m_ParentTreeItemId; 
-    wxTreeItemId  m_TreeItemId;       
+    wxTreeItemId  m_TreeItemId; 
 };
 
 
@@ -82,7 +98,7 @@ public:
 
     static RULE_EDITOR_DIALOG_BASE* GetDialog( wxWindow* aWindow );
 
-    virtual std::vector<RuleTreeNode> GetDefaultTreeItems() const = 0;
+    virtual std::vector<RuleTreeNode> GetDefaultTreeItems() = 0;
 
     void InitTreeItems( wxTreeCtrl* aTreeCtrl, const std::vector<RuleTreeNode>& aRuleTreeNodes );
 
@@ -94,9 +110,15 @@ public:
 
     void AppendTreeItem( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId );    
 
-    virtual void AddNewRule( RuleTreeItemData* aTreeItemData ) = 0;
+    virtual void AddNewRule( RuleTreeItemData* aRuleTreeItemData ) = 0;
+
+    virtual void DuplicateRule( RuleTreeItemData* aRuleTreeItemData ) = 0;
 
     virtual void TreeItemSelectionChanged( RuleTreeItemData* aCurrentRuleTreeItemData ) = 0;
+
+    virtual void UpdateRuleTypeTreeItemData( RuleTreeItemData* aRuleTreeItemData ) = 0;
+
+    RuleTreeItemData* GetContextMenuActiveTreeItemData() { return m_contextMenuActiveTreeItemData; }
 
     RuleTreeItemData* GetCurrentlySelectedTreeItemData() { return m_selectedTreeItemData; }
 
@@ -107,6 +129,8 @@ public:
     virtual bool CanShowContextMenu( RuleTreeNode* aRuleTreeNode ) = 0;
 
     virtual bool CheckAndAppendRuleOperations( RuleTreeNode* aRuleTreeNode ) = 0;
+
+    void SetSelectedItem( wxTreeItemId aTreeItemId );
 
 protected:
 
@@ -142,6 +166,7 @@ private:
     wxString                  m_title;
     wxBoxSizer*               m_buttonsSizer;
     std::vector<RuleTreeNode> m_defaultTreeItems;
+    RuleTreeItemData*         m_contextMenuActiveTreeItemData;
     RuleTreeItemData*         m_selectedTreeItemData;
     wxTreeItemId              m_previouslySelectedTreeItemId;
 };
