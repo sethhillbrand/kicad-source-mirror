@@ -31,14 +31,19 @@ class DrcReBaseConstraintData : public RuleEditorBaseData
 {
 public:
     DrcReBaseConstraintData() = default;
+
+    explicit DrcReBaseConstraintData( unsigned int aId, unsigned int aParentId,
+                                      wxString aRuleName ) :
+            RuleEditorBaseData( aId, aParentId, aRuleName )
+    {
+    }
+
     virtual ~DrcReBaseConstraintData() = default;
 
     std::vector<wxString> GetLayers() { return m_layers; }
     void                  SetLayers( std::vector<wxString> aLayers ) { m_layers = aLayers; }
 
 private:
-    wxString              m_ruleName;
-    wxString              m_comment;
     std::vector<wxString> m_layers;
 };
 
