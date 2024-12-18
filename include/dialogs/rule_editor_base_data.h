@@ -28,7 +28,19 @@ class RuleEditorBaseData
 {
 public:
     RuleEditorBaseData() = default;
+
+    explicit RuleEditorBaseData( unsigned int aId, unsigned int aParentId,wxString aRuleName ) :
+            m_id( aId ), m_ParentId( aParentId ), m_ruleName( aRuleName )
+    {
+    }
+
     virtual ~RuleEditorBaseData() = default;
+
+    unsigned int GetId() { return m_id; }
+    void         SetId( unsigned int aId ) { m_id = aId; }
+
+    unsigned int GetParentId() { return m_ParentId.value_or( -1 ); }
+    void         SetParentId( unsigned int aParentId ) { m_ParentId = aParentId; }
 
     wxString GetRuleName() { return m_ruleName; }
     void     SetRuleName( wxString aRuleName ) { m_ruleName = aRuleName; }
@@ -36,7 +48,9 @@ public:
     wxString GetComment() { return m_comment; }
     void     SetComment( wxString aComment ) { m_comment = aComment; }
 
-private:
+protected:
+    unsigned int m_id;
+    std::optional<unsigned int> m_ParentId;
     wxString m_ruleName;
     wxString m_comment;
 };

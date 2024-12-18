@@ -41,6 +41,9 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 		wxTextCtrl* m_textCommentCtrl;
 		wxButton* m_button1;
 		wxBoxSizer* m_constraintSizer;
+		wxStaticText* m_constraintHeaderTitle;
+		wxStaticLine* m_staticline3;
+		wxBoxSizer* m_constraintContentSizer;
 		wxStaticText* m_staticText71;
 		wxStaticLine* m_staticline11;
 		wxTextCtrl* m_textConditionCtrl;

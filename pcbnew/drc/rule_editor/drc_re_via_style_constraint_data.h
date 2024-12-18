@@ -21,24 +21,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DRC_RE_BASE_CLEARANCE_CONSTRAINT_DATA_H_
-#define DRC_RE_BASE_CLEARANCE_CONSTRAINT_DATA_H_
+#ifndef DRC_RE_VIA_STYLE_CONSTRAINT_DATA_H_
+#define DRC_RE_VIA_STYLE_CONSTRAINT_DATA_H_
 
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReBaseClearanceConstraintData : public DrcReBaseConstraintData
+class DrcReViaStyleConstraintData : public DrcReBaseConstraintData
 {
 public:
-    DrcReBaseClearanceConstraintData() = default;
-    virtual ~DrcReBaseClearanceConstraintData() = default;
+    DrcReViaStyleConstraintData() = default;
 
-    double GetClearanceValue() { return m_clearanceValue; }
-    void   SetClearanceValue( double aClearanceValue ) { m_clearanceValue = aClearanceValue; }
+    explicit DrcReViaStyleConstraintData( unsigned int aId, unsigned int aParentId,
+                                                double aClearanceValue, wxString aRuleName) :
+            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
+            m_viaStyle( aClearanceValue )
+    {
+    }
+
+    virtual ~DrcReViaStyleConstraintData() = default;
+
+    double GetViaStyle() { return m_viaStyle; }
+    void   SetViaStyle( double aViaStyle ) { m_viaStyle = aViaStyle; }
 
 private:
-    double m_clearanceValue;
+    double m_viaStyle;
 };
 
 
-#endif // DRC_RE_BASE_CLEARANCE_CONSTRAINT_DATA_H_
+#endif // DRC_RE_VIA_STYLE_CONSTRAINT_DATA_H_

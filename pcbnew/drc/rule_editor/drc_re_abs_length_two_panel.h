@@ -17,20 +17,20 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DRC_RE_BASIC_CLEARANCE_PANEL_H
-#define DRC_RE_BASIC_CLEARANCE_PANEL_H
+#ifndef DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H
+#define DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H
 
-#include "drc_re_basic_clearance_panel_base.h"
+#include "drc_re_abs_length_two_panel_base.h"
 #include "drc_re_content_panel_base.h"
-#include "drc_re_base_clearance_constraint_data.h"
+#include "drc_re_abs_length_two_constraint_data.h"
 
 
-class DRC_RE_BASIC_CLEARANCE_PANEL : public DRC_RE_BASIC_CLEARANCE_PANEL_BASE, public DrcRuleEditorContentPanelBase
+class DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL : public DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE, public DrcRuleEditorContentPanelBase
 {
 public:
-    DRC_RE_BASIC_CLEARANCE_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReBaseClearanceConstraintData> aConstraintData );
+    DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> aConstraintData );
 
-    ~DRC_RE_BASIC_CLEARANCE_PANEL() override;
+    ~DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL() override;
 
     bool TransferDataToWindow() override;
 
@@ -40,11 +40,11 @@ public:
 
     void BindStoredValues() override;
 
-    double GetClearance() { return m_clearanceValue; }
+    double GetAbsoluteLengthTwo() { return m_absoluteLengthTwo; }
 
 private:
-    double m_clearanceValue;
-    std::shared_ptr<DrcReBaseClearanceConstraintData> m_constraintData;
+    double m_absoluteLengthTwo;
+    std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> m_constraintData;
 };
 
-#endif // DRC_RE_BASIC_CLEARANCE_PANEL_H
+#endif // DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H

@@ -50,6 +50,18 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 
 	m_constraintSizer = new wxBoxSizer( wxVERTICAL );
 
+	m_constraintHeaderTitle = new wxStaticText( this, wxID_ANY, _("Constraint"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_constraintHeaderTitle->Wrap( -1 );
+	m_constraintSizer->Add( m_constraintHeaderTitle, 0, wxALL, 5 );
+
+	m_staticline3 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
+	m_constraintSizer->Add( m_staticline3, 0, wxEXPAND | wxALL, 5 );
+
+	m_constraintContentSizer = new wxBoxSizer( wxVERTICAL );
+
+
+	m_constraintSizer->Add( m_constraintContentSizer, 0, wxEXPAND, 5 );
+
 
 	bSizer3->Add( m_constraintSizer, 0, wxEXPAND|wxTOP, 15 );
 

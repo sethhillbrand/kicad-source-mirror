@@ -295,8 +295,16 @@ set( PCBNEW_DRC_SRCS
     drc/rule_editor/dialog_drc_rule_editor.cpp
     drc/rule_editor/panel_drc_rule_editor_base.cpp
     drc/rule_editor/panel_drc_rule_editor.cpp
-    drc/rule_editor/drc_re_basic_clearance_panel_base.cpp
-    drc/rule_editor/drc_re_basic_clearance_panel.cpp
+    drc/rule_editor/drc_re_numeric_input_panel_base.cpp
+    drc/rule_editor/drc_re_numeric_input_panel.cpp
+    drc/rule_editor/drc_re_bool_input_panel_base.cpp
+    drc/rule_editor/drc_re_bool_input_panel.cpp
+    drc/rule_editor/drc_re_via_style_panel_base.cpp
+    drc/rule_editor/drc_re_via_style_panel.cpp
+    drc/rule_editor/drc_re_abs_length_two_panel_base.cpp
+    drc/rule_editor/drc_re_abs_length_two_panel.cpp
+    drc/rule_editor/drc_re_min_txt_ht_th_panel_base.cpp
+    drc/rule_editor/drc_re_min_txt_ht_th_panel.cpp
     )
 
 set( PCBNEW_NETLIST_SRCS

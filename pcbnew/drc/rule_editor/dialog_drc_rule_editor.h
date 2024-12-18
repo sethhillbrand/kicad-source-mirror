@@ -36,29 +36,41 @@ public:
 
     ~DIALOG_DRC_RULE_EDITOR();
   
-    std::vector<RuleTreeNode> GetDefaultTreeItems() const override;
+    std::vector<RuleTreeNode> GetDefaultTreeItems() override;
 
     void AddNewRule( RuleTreeItemData* aRuleTreeItemData ) override;
 
-    void TreeItemSelectionChanged( RuleTreeItemData* aCurrentRuleTreeItemData ) override;   
+    void DuplicateRule( RuleTreeItemData* aRuleTreeItemData ) override;
+
+    void TreeItemSelectionChanged( RuleTreeItemData* aCurrentRuleTreeItemData ) override;
+
+    void UpdateRuleTypeTreeItemData( RuleTreeItemData* aCurrentRuleTreeItemData ) override;   
 
     bool CanShowContextMenu( RuleTreeNode* aRuleTreeNode ) override;
 
     bool CheckAndAppendRuleOperations( RuleTreeNode* aRuleTreeNode ) override;    
 
 private:
-    std::vector<RuleTreeNode> createElectricalItems() const;
+    std::vector<RuleTreeNode> createElectricalItems( unsigned int& parentId );
 
-    std::vector<RuleTreeNode> createManufacturabilityItems() const;
+    std::vector<RuleTreeNode> createManufacturabilityItems( unsigned int& parentId );
 
-    std::vector<RuleTreeNode> createHighspeedDesignItems() const;
+    std::vector<RuleTreeNode> createHighspeedDesignItems( unsigned int& parentId );
 
-    std::vector<RuleTreeNode> createFootprintsItems() const;
+    std::vector<RuleTreeNode> createFootprintsItems( unsigned int& parentId );
 
     RuleTreeNode              buildNewTreeData( RuleTreeItemData* aRuleTreeItemData );
 
     void                      addRuleNodeToAConstraint( std::vector<RuleTreeNode>& aRuleTreeItemDatas,
-                                                        const RuleTreeNode& aRuleTreeNode );
+                                                        const RuleTreeNode& aRuleTreeNode, 
+                                                        const unsigned int& parentId );
+
+    RuleTreeNode              buildTreeNode(const std::string& name, 
+                                            const DRC_RULE_EDITOR_ITEM_TYPE& nodeType,    
+                                            const std::vector<RuleTreeNode>& childNodes = {}, 
+                                            const std::optional<unsigned int>& id = std::nullopt,
+                                            const std::optional<unsigned int>& parentId = std::nullopt,
+                                            const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& constraintType = std::nullopt );
 
 protected:
     PCB_EDIT_FRAME* m_frame;
@@ -66,6 +78,7 @@ protected:
 private:
     std::vector<RuleTreeNode> m_RuleTreeNodes;
     PANEL_DRC_RULE_EDITOR*    m_parentPanel;
+    unsigned int              m_MaxTreeItemId;
 };
 
 #endif //DIALOG_DRC_RULE_EDITOR_H

@@ -28,7 +28,7 @@
 #include <widgets/std_bitmap_button.h>
 #include <grid_tricks.h>
 #include <eda_text.h>
-#include "drc_re_basic_clearance_panel.h"
+#include "drc_re_via_style_panel.h"
 #include <grid_layer_box_helpers.h>
 #include <bitmaps.h>
 #include <confirm.h>
@@ -36,29 +36,27 @@
 #include <wx/bitmap.h>
 #include <wx/statbmp.h>
 
-DRC_RE_BASIC_CLEARANCE_PANEL::DRC_RE_BASIC_CLEARANCE_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
-                                                            std::shared_ptr<DrcReBaseClearanceConstraintData> aConstraintData ) :
-        DRC_RE_BASIC_CLEARANCE_PANEL_BASE( aParent ),
+DRC_RE_VIA_STYLE_PANEL::DRC_RE_VIA_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
+                                                std::shared_ptr<DrcReViaStyleConstraintData> aConstraintData ) :
+        DRC_RE_VIA_STYLE_PANEL_BASE( aParent ),
         m_constraintData( aConstraintData ), 
-        m_clearanceValue( 0 )
+        m_viaStyle( 0 )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_basic_clearance ) );
+    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_via_style ) );
 
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );
-
-    m_constraintHeaderTitle->SetLabelText( *aConstraintTitle );
+    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );    
 
     BindStoredValues();
 }
 
 
-DRC_RE_BASIC_CLEARANCE_PANEL::~DRC_RE_BASIC_CLEARANCE_PANEL()
+DRC_RE_VIA_STYLE_PANEL::~DRC_RE_VIA_STYLE_PANEL()
 {
 }
 
 
-bool DRC_RE_BASIC_CLEARANCE_PANEL::TransferDataToWindow()
+bool DRC_RE_VIA_STYLE_PANEL::TransferDataToWindow()
 {
     SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
 
@@ -66,7 +64,7 @@ bool DRC_RE_BASIC_CLEARANCE_PANEL::TransferDataToWindow()
 }
 
 
-bool DRC_RE_BASIC_CLEARANCE_PANEL::TransferDataFromWindow()
+bool DRC_RE_VIA_STYLE_PANEL::TransferDataFromWindow()
 {
     SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
 
@@ -74,16 +72,16 @@ bool DRC_RE_BASIC_CLEARANCE_PANEL::TransferDataFromWindow()
 }
 
 
-void DRC_RE_BASIC_CLEARANCE_PANEL::StoreCatpuredValues()
+void DRC_RE_VIA_STYLE_PANEL::StoreCatpuredValues()
 {
-    m_clearanceValue = std::stod( m_textBasicClearance->GetValue().ToStdString() );   
+    //m_viaStyle = std::stod( m_textViaStyle->GetValue().ToStdString() );
 }
 
 
-void DRC_RE_BASIC_CLEARANCE_PANEL::BindStoredValues()
+void DRC_RE_VIA_STYLE_PANEL::BindStoredValues()
 { 
     if( m_constraintData )
     {
-        m_textBasicClearance->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetClearanceValue() ) );
+        //m_textViaStyle->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetViaStyle() ) );
     }
 }

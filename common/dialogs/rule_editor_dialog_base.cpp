@@ -55,7 +55,8 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
         DIALOG_SHIM( aParent, wxID_ANY, aTitle, wxDefaultPosition, aInitialSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
         m_title( aTitle ), 
         m_treeCtrl( nullptr ), 
-        m_selectedTreeItemData( nullptr )
+        m_selectedTreeItemData( nullptr ),
+        m_contextMenuActiveTreeItemData( nullptr )
 {
     // Create the main vertical sizer
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
@@ -188,7 +189,7 @@ void RULE_EDITOR_DIALOG_BASE::InitTreeItems( wxTreeCtrl* aTreeCtrl, const std::v
     wxTreeItemId rootId = aTreeCtrl->AddRoot( aRuleTreeNodes[0].node_name );
 
     // Add all children recursively
-    for( const auto& child : aRuleTreeNodes[0].children )
+    for( const auto& child : aRuleTreeNodes[0].child_nodes )
     {
         PopulateTreeCtrl( aTreeCtrl, child, rootId );
     }
@@ -212,7 +213,7 @@ void RULE_EDITOR_DIALOG_BASE::PopulateTreeCtrl( wxTreeCtrl* aTreeCtrl, const Rul
     aTreeCtrl->SetItemData( currentId, itemData );
 
     // Recursively add children 
-    for( const auto& child : aRuleTreeNode.children )
+    for( const auto& child : aRuleTreeNode.child_nodes )
     {
         PopulateTreeCtrl( aTreeCtrl, child, currentId );
     }
@@ -264,7 +265,7 @@ void RULE_EDITOR_DIALOG_BASE::AppendTreeItem( wxTreeCtrl* aTreeCtrl, const RuleT
 
 void RULE_EDITOR_DIALOG_BASE::UpdateTreeItem( wxTreeCtrl* aTreeCtrl, RuleTreeItemData aRuleTreeItemData )
 {
-    aTreeCtrl->SetItemText( aRuleTreeItemData.GetTreeItemId(), aRuleTreeItemData.GetData()->node_name );
+    aTreeCtrl->SetItemText( aRuleTreeItemData.GetTreeItemId(), aRuleTreeItemData.GetTreeItem()->node_name );
 }
 
 
@@ -285,15 +286,18 @@ void RULE_EDITOR_DIALOG_BASE::onTreeContextMenu( wxContextMenuEvent& aEvent )
     if( !ruleTreeItemData )
         return;
 
-    if( !CanShowContextMenu( ruleTreeItemData->GetData() ) )
+    if( !CanShowContextMenu( ruleTreeItemData->GetTreeItem() ) )
         return;
 
-    m_selectedTreeItemData = ruleTreeItemData;
+    if( m_selectedTreeItemData )
+        UpdateRuleTypeTreeItemData( m_selectedTreeItemData );
+
+    m_contextMenuActiveTreeItemData = ruleTreeItemData;
 
     wxMenu menu;
     menu.Append( 1, "New Rule" );
 
-    if( CheckAndAppendRuleOperations( ruleTreeItemData->GetData() ) )
+    if( CheckAndAppendRuleOperations( ruleTreeItemData->GetTreeItem() ) )
     {
         menu.Append( 2, "Duplicate Rule" );
         menu.Append( 3, "Delete Rule" );
@@ -309,13 +313,13 @@ void RULE_EDITOR_DIALOG_BASE::onTreeContextMenu( wxContextMenuEvent& aEvent )
 
 void RULE_EDITOR_DIALOG_BASE::onNewRule( wxCommandEvent& aEvent )
 {
-    AddNewRule( m_selectedTreeItemData );
+    AddNewRule( m_contextMenuActiveTreeItemData );
 }
 
 
 void RULE_EDITOR_DIALOG_BASE::onDuplicateRule( wxCommandEvent& aEvent )
 {
-    wxLogMessage( "Duplicate Rule action triggered." );
+    DuplicateRule( m_contextMenuActiveTreeItemData );
 }
 
 
