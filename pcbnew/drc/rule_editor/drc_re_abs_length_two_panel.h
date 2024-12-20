@@ -36,10 +36,6 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    void StoreCatpuredValues() override;
-
-    void BindStoredValues() override;
-
     double GetAbsoluteLengthTwo() { return m_absoluteLengthTwo; }
 
 private:

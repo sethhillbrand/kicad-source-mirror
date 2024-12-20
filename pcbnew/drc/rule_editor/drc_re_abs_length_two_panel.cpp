@@ -45,9 +45,7 @@ DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aP
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_absolute_length_2 ) );
 
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );    
-
-    BindStoredValues();
+    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );   
 }
 
 
@@ -58,30 +56,11 @@ DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::~DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL()
 
 bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::TransferDataToWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
     return true;
 }
 
 
 bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::TransferDataFromWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
     return false;
-}
-
-
-void DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::StoreCatpuredValues()
-{
-    //m_absoluteLengthTwo = std::stod( m_textAbsoluteLengthTwo->GetValue().ToStdString() );
-}
-
-
-void DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::BindStoredValues()
-{ 
-    if( m_constraintData )
-    {
-        //m_textAbsoluteLengthTwo->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetAbsoluteLengthTwo() ) );
-    }
 }

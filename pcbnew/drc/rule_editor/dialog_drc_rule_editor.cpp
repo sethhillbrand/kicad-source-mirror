@@ -26,6 +26,7 @@
 #include "panel_drc_rule_editor.h"
 #include "drc_rule_editor_enums.h"
 #include "drc_re_numeric_input_constraint_data.h"
+#include "drc_re_bool_input_constraint_data.h"
 
 
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
@@ -54,6 +55,18 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
 
 DIALOG_DRC_RULE_EDITOR::~DIALOG_DRC_RULE_EDITOR()
 {
+}
+
+
+bool DIALOG_DRC_RULE_EDITOR::TransferDataToWindow()
+{
+    return RULE_EDITOR_DIALOG_BASE::TransferDataToWindow();
+}
+
+
+bool DIALOG_DRC_RULE_EDITOR::TransferDataFromWindow()
+{
+    return RULE_EDITOR_DIALOG_BASE::TransferDataFromWindow();
 }
 
 
@@ -167,11 +180,11 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createManufacturabilityItems( 
         buildTreeNode( "Hole Size", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
         {
             buildTreeNode( "Minimum through hole", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_THROUGH_HOLE ),
-            buildTreeNode( "Hole size", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  HOLE_SIZE ),
+            //buildTreeNode( "Hole size", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  HOLE_SIZE ),
             buildTreeNode( "Hole to hole distance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  HOLE_TO_HOLE_DISTANCE ),
             buildTreeNode( "Minimum uvia hole", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_UVIA_HOLE ),
             buildTreeNode( "Minimum uvia diameter", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_UVIA_DIAMETER ),
-            buildTreeNode( "Minimum via diameter", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_VIA_DIAMETER ),
+            //buildTreeNode( "Minimum via diameter", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_VIA_DIAMETER ),
             buildTreeNode( "Via style", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  VIA_STYLE ),
         }, std::nullopt, parentId ),
         buildTreeNode( "Text Geometry", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
@@ -199,7 +212,7 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createManufacturabilityItems( 
         buildTreeNode( "Angles", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
         {
             buildTreeNode( "Minimum acute angle", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ACUTE_ANGLE ),
-            buildTreeNode( "Minimum angular ring", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ANGULAR_RING ),
+            buildTreeNode( "Minimum annular ring", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ANGULAR_RING ),
         }, std::nullopt, parentId ),
     };
 
@@ -223,7 +236,7 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createHighspeedDesignItems( un
             buildTreeNode( "Matched length diff pair", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MATCHED_LENGTH_DIFF_PAIR ),
             buildTreeNode( "Matched length all traces in group",DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MATCHED_LENGTH_ALL_TRACES_IN_GROUP ),
             buildTreeNode( "Absolute length", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ABSOLUTE_LENGTH ),
-            buildTreeNode( "Absolute length 2", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ABSOLUTE_LENGTH_2 ),
+            buildTreeNode( "Segment Length", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ABSOLUTE_LENGTH_2 ),
         }, std::nullopt, parentId ),
         buildTreeNode( "Parallelism", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
         {
@@ -336,6 +349,8 @@ void DIALOG_DRC_RULE_EDITOR::TreeItemSelectionChanged( RuleTreeItemData* aCurren
                                                    &constraintName, dynamic_pointer_cast<DrcReBaseConstraintData>( itemData->node_data) );
 
         SetContentPanel( m_parentPanel );
+
+        m_parentPanel->TransferDataToWindow();
     }
 }
 
@@ -346,7 +361,7 @@ void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RuleTreeItemData* aRule
 
     if( itemData->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE && m_parentPanel )
     {            
-        m_parentPanel->ProcessConstraintData();
+        m_parentPanel->TransferDataFromWindow();
 
         aRuleTreeItemData->SyncNodeName();
 
@@ -433,8 +448,16 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildNewTreeData( RuleTreeItemData* aRuleTr
     m_MaxTreeItemId++;
     unsigned int newId = m_MaxTreeItemId;
 
-    DrcReNumericInputConstraintData clearanceData( newId, treeNode->node_data->GetId(), 0, newRuleNode.node_name );
-    newRuleNode.node_data = std::make_shared<DrcReNumericInputConstraintData>( clearanceData );
+    if( DrcRuleEditorUtils::IsNumericInputType( static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( newRuleNode.node_type_map.value_or(-1) ) ) )
+    {
+        DrcReNumericInputConstraintData clearanceData( newId, treeNode->node_data->GetId(), 0, newRuleNode.node_name );
+        newRuleNode.node_data = std::make_shared<DrcReNumericInputConstraintData>( clearanceData );
+    }
+    else if( DrcRuleEditorUtils::IsBoolInputType( static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( newRuleNode.node_type_map.value_or(-1) ) ) )
+    {
+        DrcReBoolInputConstraintData clearanceData( newId, treeNode->node_data->GetId(), 0, newRuleNode.node_name );
+        newRuleNode.node_data = std::make_shared<DrcReBoolInputConstraintData>( clearanceData );
+    }
 
     addRuleNodeToAConstraint( m_RuleTreeNodes, newRuleNode, treeNode->node_data->GetId() );
 

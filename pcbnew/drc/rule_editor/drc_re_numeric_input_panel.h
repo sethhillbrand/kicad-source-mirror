@@ -38,10 +38,6 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    void StoreCatpuredValues() override;
-
-    void BindStoredValues() override;
-
     double GetNumericInputValue() { return m_numericInputValue; }
 
 private:

@@ -35,11 +35,11 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 	private:
 
 	protected:
-		wxStaticText* m_staticText3;
-		wxTextCtrl* m_textNameCtrl;
-		wxStaticText* m_staticText6;
-		wxTextCtrl* m_textCommentCtrl;
-		wxButton* m_button1;
+		wxStaticText* m_nameLabel;
+		wxTextCtrl* m_nameCtrl;
+		wxStaticText* m_commentLabel;
+		wxTextCtrl* m_commentCtrl;
+		wxButton* m_validateBtn;
 		wxBoxSizer* m_constraintSizer;
 		wxStaticText* m_constraintHeaderTitle;
 		wxStaticLine* m_staticline3;

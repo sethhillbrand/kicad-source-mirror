@@ -45,9 +45,7 @@ DRC_RE_VIA_STYLE_PANEL::DRC_RE_VIA_STYLE_PANEL( wxWindow* aParent, wxString* aCo
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_via_style ) );
 
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );    
-
-    BindStoredValues();
+    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );  
 }
 
 
@@ -58,30 +56,11 @@ DRC_RE_VIA_STYLE_PANEL::~DRC_RE_VIA_STYLE_PANEL()
 
 bool DRC_RE_VIA_STYLE_PANEL::TransferDataToWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
     return true;
 }
 
 
 bool DRC_RE_VIA_STYLE_PANEL::TransferDataFromWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
     return false;
-}
-
-
-void DRC_RE_VIA_STYLE_PANEL::StoreCatpuredValues()
-{
-    //m_viaStyle = std::stod( m_textViaStyle->GetValue().ToStdString() );
-}
-
-
-void DRC_RE_VIA_STYLE_PANEL::BindStoredValues()
-{ 
-    if( m_constraintData )
-    {
-        //m_textViaStyle->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetViaStyle() ) );
-    }
 }
