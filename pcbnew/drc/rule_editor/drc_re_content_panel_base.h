@@ -29,10 +29,6 @@ class DrcRuleEditorContentPanelBase
 public:
     DrcRuleEditorContentPanelBase() = default;
     virtual ~DrcRuleEditorContentPanelBase() = default;
-
-    virtual void StoreCatpuredValues() = 0;
-
-    virtual void BindStoredValues() = 0;
 };
 
 #endif // DRC_RE_CLASSES_H_

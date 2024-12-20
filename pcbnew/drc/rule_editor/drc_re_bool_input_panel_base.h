@@ -30,7 +30,7 @@ class DRC_RE_BOOL_INPUT_PANEL_BASE : public wxPanel
 
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
-		wxCheckBox* m_chkInputValue;
+		wxCheckBox* m_boolConstraintCtrl;
 
 	public:
 
