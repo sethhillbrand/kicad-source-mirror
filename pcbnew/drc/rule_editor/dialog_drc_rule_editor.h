@@ -23,6 +23,7 @@
 
 #include <dialogs/rule_editor_dialog_base.h>
 #include "panel_drc_rule_editor.h"
+#include "drc_rule_editor_utils.h"
 
 
 class PCB_EDIT_FRAME;
@@ -34,7 +35,11 @@ class DIALOG_DRC_RULE_EDITOR : public RULE_EDITOR_DIALOG_BASE
 public:
     DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame );
 
-    ~DIALOG_DRC_RULE_EDITOR();
+    ~DIALOG_DRC_RULE_EDITOR();    
+
+    bool TransferDataToWindow() override;
+
+    bool TransferDataFromWindow() override;
   
     std::vector<RuleTreeNode> GetDefaultTreeItems() override;
 

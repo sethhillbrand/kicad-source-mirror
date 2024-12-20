@@ -66,7 +66,12 @@ const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> NumericConstraintBitMap
         { MINIMUM_ANGULAR_RING, BITMAPS::constraint_minimum_angular_ring },
         { MINIMUM_THERMAL_RELIEF_SPOKE_COUNT, BITMAPS::constraint_minimum_thermal_relief_spoke_count },
         { MAXIMUM_VIA_COUNT, BITMAPS::constraint_maximum_via_count },
-        { ABSOLUTE_LENGTH, BITMAPS::constraint_absolute_length }
+        { ABSOLUTE_LENGTH, BITMAPS::constraint_absolute_length },
+        { MATCHED_LENGTH_DIFF_PAIR, BITMAPS::constraint_matched_length_diff_pair },
+        { MATCHED_LENGTH_ALL_TRACES_IN_GROUP, BITMAPS::constraint_matched_length_all_traces_in_group },
+        { DAISY_CHAIN_STUB, BITMAPS::constraint_daisy_chain_stub },
+        { SMD_CORNER, BITMAPS::constraint_smd_corner },
+        { SMD_TO_PLANE_PLUS, BITMAPS::constraint_smd_to_plane_plus }
     };
 
 
@@ -84,14 +89,12 @@ DRC_RE_NUMERIC_INPUT_PANEL::DRC_RE_NUMERIC_INPUT_PANEL( wxWindow* aParent, const
     bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );   
 
     if( !aConstraintPanelParams.m_customLabelText.IsEmpty() )
-        m_lblNumericInput->SetLabelText( aConstraintPanelParams.m_customLabelText );
+        m_numericConstraintLabel->SetLabelText( aConstraintPanelParams.m_customLabelText );
     else
-        m_lblNumericInput->SetLabelText( aConstraintPanelParams.m_constraintTitle );
+        m_numericConstraintLabel->SetLabelText( aConstraintPanelParams.m_constraintTitle );
 
     if( aConstraintPanelParams.m_isCountInput )
-        m_staticText5->Hide();
-
-    BindStoredValues();
+        m_numericConstraintUnit->Hide();
 }
 
 
@@ -101,8 +104,11 @@ DRC_RE_NUMERIC_INPUT_PANEL::~DRC_RE_NUMERIC_INPUT_PANEL()
 
 
 bool DRC_RE_NUMERIC_INPUT_PANEL::TransferDataToWindow()
-{
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
+{ 
+    if( m_constraintData )
+    {
+        m_numericConstraintCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetNumericInputValue() ) );
+    }
 
     return true;
 }
@@ -110,22 +116,6 @@ bool DRC_RE_NUMERIC_INPUT_PANEL::TransferDataToWindow()
 
 bool DRC_RE_NUMERIC_INPUT_PANEL::TransferDataFromWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
-    return false;
-}
-
-
-void DRC_RE_NUMERIC_INPUT_PANEL::StoreCatpuredValues()
-{
-    m_numericInputValue = std::stod( m_textNumericInput->GetValue().ToStdString() );
-}
-
-
-void DRC_RE_NUMERIC_INPUT_PANEL::BindStoredValues()
-{ 
-    if( m_constraintData )
-    {
-        m_textNumericInput->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetNumericInputValue() ) );
-    }
+    m_numericInputValue = std::stod( m_numericConstraintCtrl->GetValue().ToStdString() );
+    return true;
 }

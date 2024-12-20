@@ -38,14 +38,10 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    void StoreCatpuredValues() override;
-
-    void BindStoredValues() override;
-
-    double GetBoolInputValue() { return m_boolInputValue; }
+    bool GetBoolInputValue() { return m_boolInputValue; }
 
 private:
-    double m_boolInputValue;
+    bool m_boolInputValue;
     std::shared_ptr<DrcReBoolInputConstraintData> m_constraintData;
 };
 

@@ -79,7 +79,7 @@ public:
     void SetInputIsCount( bool aInputIsCount ) { m_isCountInput = aInputIsCount; }
 
     wxString m_customLabelText;
-    bool m_isCountInput;
+    bool m_isCountInput = false;
     std::shared_ptr<DrcReNumericInputConstraintData> m_constraintData;
 };
 

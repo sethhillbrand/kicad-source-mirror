@@ -33,16 +33,16 @@ DRC_RE_NUMERIC_INPUT_PANEL_BASE::DRC_RE_NUMERIC_INPUT_PANEL_BASE( wxWindow* pare
 	fgSizer3->SetFlexibleDirection( wxBOTH );
 	fgSizer3->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
-	m_lblNumericInput = new wxStaticText( this, wxID_ANY, _("Basic Clearance:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_lblNumericInput->Wrap( -1 );
-	fgSizer3->Add( m_lblNumericInput, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	m_numericConstraintLabel = new wxStaticText( this, wxID_ANY, _("Value:"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_numericConstraintLabel->Wrap( -1 );
+	fgSizer3->Add( m_numericConstraintLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_textNumericInput = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
-	fgSizer3->Add( m_textNumericInput, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
+	m_numericConstraintCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
+	fgSizer3->Add( m_numericConstraintCtrl, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
 
-	m_staticText5 = new wxStaticText( this, wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText5->Wrap( -1 );
-	fgSizer3->Add( m_staticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	m_numericConstraintUnit = new wxStaticText( this, wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_numericConstraintUnit->Wrap( -1 );
+	fgSizer3->Add( m_numericConstraintUnit, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
 
 	bConstraintContentSizer->Add( fgSizer3, 0, wxEXPAND, 5 );

@@ -140,11 +140,6 @@ protected:
 
     bool TransferDataFromWindow() override;
 
-    wxTreeCtrl*  m_treeCtrl;
-    WX_INFOBAR*  m_infoBar;
-    wxPanel*     m_contentPanel;
-    wxSizer*     m_contentSizer;
-
 private:
     void onTreeContextMenu( wxContextMenuEvent& aEvent );
 
@@ -161,6 +156,12 @@ private:
     void onMoveDownRule( wxCommandEvent& aEvent );
 
     DECLARE_EVENT_TABLE();
+
+protected:
+    wxTreeCtrl* m_treeCtrl;
+    WX_INFOBAR* m_infoBar;
+    wxPanel*    m_contentPanel;
+    wxSizer*    m_contentSizer;
 
 private:
     wxString                  m_title;

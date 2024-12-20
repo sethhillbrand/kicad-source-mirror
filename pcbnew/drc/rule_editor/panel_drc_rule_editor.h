@@ -27,6 +27,7 @@
 #include <wx/combo.h>
 #include <wx/popupwin.h>
 #include "drc_rule_editor_enums.h"
+#include "drc_rule_editor_utils.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_base_constraint_data.h"
 #include <variant>
@@ -152,12 +153,6 @@ public:
     bool TransferDataToWindow() override;
 
     bool TransferDataFromWindow() override;
-
-    void StoreCatpuredValues() override;
-
-    void BindStoredValues() override;
-
-    void ProcessConstraintData();
 
     auto GetConstraintData() { return m_constraintData; }
 

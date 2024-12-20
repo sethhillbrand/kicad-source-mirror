@@ -33,7 +33,7 @@ DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE( wx
 	fgSizer3->SetFlexibleDirection( wxBOTH );
 	fgSizer3->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
-	m_staticText1 = new wxStaticText( this, wxID_ANY, _("Minimum Trace Length"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText1 = new wxStaticText( this, wxID_ANY, _("Minimum Segment Length"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText1->Wrap( -1 );
 	fgSizer3->Add( m_staticText1, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
@@ -44,7 +44,7 @@ DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE( wx
 	m_staticText2->Wrap( -1 );
 	fgSizer3->Add( m_staticText2, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_staticText3 = new wxStaticText( this, wxID_ANY, _("Maximum Trace Length"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText3 = new wxStaticText( this, wxID_ANY, _("Maximum Segment Length"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText3->Wrap( -1 );
 	fgSizer3->Add( m_staticText3, 0, wxALL, 5 );
 

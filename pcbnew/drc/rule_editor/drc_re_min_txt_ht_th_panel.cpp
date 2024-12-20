@@ -45,9 +45,7 @@ DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_minimum_text_height_and_thickness ) );
 
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );    
-
-    BindStoredValues();
+    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );   
 }
 
 
@@ -58,30 +56,11 @@ DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::~DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNES
 
 bool DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::TransferDataToWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
     return true;
 }
 
 
 bool DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::TransferDataFromWindow()
 {
-    SETTINGS_MANAGER& mgr = Pgm().GetSettingsManager();
-
     return false;
-}
-
-
-void DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::StoreCatpuredValues()
-{
-    //m_minimumTextHeightThickness = std::stod( m_textMinimumTextHeightThickness->GetValue().ToStdString() );
-}
-
-
-void DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::BindStoredValues()
-{ 
-    if( m_constraintData )
-    {
-        //m_textMinimumTextHeightThickness->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinimumTextHeightThickness() ) );
-    }
 }

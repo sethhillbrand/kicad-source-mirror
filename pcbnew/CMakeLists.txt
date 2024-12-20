@@ -292,6 +292,7 @@ set( PCBNEW_DRC_SRCS
     drc/drc_test_provider_sliver_checker.cpp
     drc/drc_test_provider_text_mirroring.cpp
 
+    drc/rule_editor/drc_rule_editor_utils.cpp
     drc/rule_editor/dialog_drc_rule_editor.cpp
     drc/rule_editor/panel_drc_rule_editor_base.cpp
     drc/rule_editor/panel_drc_rule_editor.cpp
@@ -305,6 +306,20 @@ set( PCBNEW_DRC_SRCS
     drc/rule_editor/drc_re_abs_length_two_panel.cpp
     drc/rule_editor/drc_re_min_txt_ht_th_panel_base.cpp
     drc/rule_editor/drc_re_min_txt_ht_th_panel.cpp
+    drc/rule_editor/drc_re_rtg_diff_pair_panel_base.cpp
+    drc/rule_editor/drc_re_rtg_diff_pair_panel.cpp
+    drc/rule_editor/drc_re_routing_width_panel_base.cpp
+    drc/rule_editor/drc_re_routing_width_panel.cpp
+    drc/rule_editor/drc_re_parallel_limit_panel_base.cpp
+    drc/rule_editor/drc_re_parallel_limit_panel.cpp
+    drc/rule_editor/drc_re_permitted_layers_panel_base.cpp
+    drc/rule_editor/drc_re_permitted_layers_panel.cpp
+    drc/rule_editor/drc_re_allowed_orientation_panel_base.cpp
+    drc/rule_editor/drc_re_allowed_orientation_panel.cpp
+    drc/rule_editor/drc_re_corner_style_panel_base.cpp
+    drc/rule_editor/drc_re_corner_style_panel.cpp
+    drc/rule_editor/drc_re_smd_entry_panel_base.cpp
+    drc/rule_editor/drc_re_smd_entry_panel.cpp
     )
 
 set( PCBNEW_NETLIST_SRCS
