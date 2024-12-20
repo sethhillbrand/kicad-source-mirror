@@ -31,9 +31,9 @@ class DRC_RE_NUMERIC_INPUT_PANEL_BASE : public wxPanel
 
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
-		wxStaticText* m_lblNumericInput;
-		wxTextCtrl* m_textNumericInput;
-		wxStaticText* m_staticText5;
+		wxStaticText* m_numericConstraintLabel;
+		wxTextCtrl* m_numericConstraintCtrl;
+		wxStaticText* m_numericConstraintUnit;
 
 	public:
 
