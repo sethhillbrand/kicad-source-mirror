@@ -17,33 +17,34 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H
-#define DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H
+#ifndef PANEL_DRC_GROUP_HEADER_H
+#define PANEL_DRC_GROUP_HEADER_H
 
-#include "drc_re_abs_length_two_panel_base.h"
-#include "drc_re_content_panel_base.h"
-#include "drc_re_abs_length_two_constraint_data.h"
+#include "panel_drc_rule_editor_base.h"
+#include <lset.h>
+#include <lseq.h>
+#include <wx/wx.h>
+#include <wx/combo.h>
+#include <wx/popupwin.h>
+#include "drc_rule_editor_enums.h"
+#include "drc_rule_editor_utils.h"
+#include "panel_drc_group_header_base.h"
 
 
-class DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL : public DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE, public DrcRuleEditorContentPanelBase
+class PANEL_DRC_GROUP_HEADER : public PANEL_DRC_GROUP_HEADER_BASE
 {
 public:
-    DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> aConstraintData );
+    PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard,
+                            DRC_RULE_EDITOR_ITEM_TYPE aItemType );
 
-    ~DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL() override;
+    ~PANEL_DRC_GROUP_HEADER() override;
 
     bool TransferDataToWindow() override;
 
     bool TransferDataFromWindow() override;
 
-    double GetMinAbsoluteLength() { return m_minAbsoluteLength; }
-
-    double GetMaxAbsoluteLength() { return m_maxAbsoluteLength; }
-
 private:
-    double m_minAbsoluteLength;
-    double m_maxAbsoluteLength;
-    std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> m_constraintData;
+    std::vector<int> m_validLayers;
 };
 
-#endif // DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H
+#endif // PANEL_DRC_GROUP_HEADER_H

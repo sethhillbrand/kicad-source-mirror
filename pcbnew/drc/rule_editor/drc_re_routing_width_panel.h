@@ -36,10 +36,16 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    double GetRoutingWidth() { return m_routingWidth; }
+    double GetMinRoutingWidth() { return m_minRoutingWidth; }
 
-private:
-    double m_routingWidth;
+    double GetPreferredRoutingWidth() { return m_preferredRoutingWidth; }
+
+    double GetMaxRoutingWidth() { return m_maxRoutingWidth; }
+
+private:   
+    double m_minRoutingWidth;
+    double m_preferredRoutingWidth;
+    double m_maxRoutingWidth;
     std::shared_ptr<DrcReRoutingWidthConstraintData> m_constraintData;
 };
 

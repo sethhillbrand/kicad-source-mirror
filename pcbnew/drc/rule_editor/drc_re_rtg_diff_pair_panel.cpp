@@ -39,8 +39,7 @@
 DRC_RE_ROUTING_DIFF_PAIR_PANEL::DRC_RE_ROUTING_DIFF_PAIR_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                 std::shared_ptr<DrcReRoutingDiffPairConstraintData> aConstraintData ) :
         DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_routingDiffPair( 0 )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_routing_diff_pair ) );
