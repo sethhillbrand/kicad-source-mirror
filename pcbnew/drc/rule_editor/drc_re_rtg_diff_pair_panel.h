@@ -34,12 +34,30 @@ public:
 
     bool TransferDataToWindow() override;
 
-    bool TransferDataFromWindow() override;
+    bool TransferDataFromWindow() override; 
 
-    double GetRoutingDiffPair() { return m_routingDiffPair; }
+    double GetMaxUncoupledLength() { return m_maxUncoupledLength; }
 
-private:
-    double m_routingDiffPair;
+    double GetMinWidth() { return m_minWidth; }
+
+    double GetPreferredWidth() { return m_preferredWidth; }
+
+    double GetMaxWidth() { return m_maxWidth; }
+
+    double GetMinGap() { return m_minGap; }
+
+    double GetPreferredGap() { return m_preferredGap; }
+
+    double GetMaxGap() { return m_maxGap; }
+
+private:    
+    double m_maxUncoupledLength;
+    double m_minWidth;
+    double m_preferredWidth;
+    double m_maxWidth;
+    double m_minGap;
+    double m_preferredGap;
+    double m_maxGap;
     std::shared_ptr<DrcReRoutingDiffPairConstraintData> m_constraintData;
 };
 

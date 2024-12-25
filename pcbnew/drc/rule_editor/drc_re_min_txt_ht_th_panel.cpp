@@ -39,8 +39,7 @@
 DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                 std::shared_ptr<DrcReMinimumTextHeightThicknessConstraintData> aConstraintData ) :
         DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_minimumTextHeightThickness( 0 )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_minimum_text_height_and_thickness ) );

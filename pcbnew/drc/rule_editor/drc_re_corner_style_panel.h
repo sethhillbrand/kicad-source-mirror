@@ -36,10 +36,16 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    double GetCornerStyle() { return m_cornerStyle; }
+    wxString GetCornerStyle() { return m_cornerStyle; }
+
+    double GetMinSetbackLength() { return m_minSetbackLength; }
+
+    double GetMaxSetbackLength() { return m_maxSetbackLength; }
 
 private:
-    double m_cornerStyle;
+    wxString m_cornerStyle;
+    double m_minSetbackLength;
+    double m_maxSetbackLength;
     std::shared_ptr<DrcReCornerStyleConstraintData> m_constraintData;
 };
 
