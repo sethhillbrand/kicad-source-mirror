@@ -29,12 +29,30 @@
 #include "drc_re_bool_input_constraint_data.h"
 
 
+const RuleTreeNode* FindNodeById(const std::vector<RuleTreeNode>& nodes, unsigned int targetId)
+{
+    // Base case: Use std::find_if to search in the current level
+    auto it = std::find_if(nodes.begin(), nodes.end(), [targetId](const RuleTreeNode& node) {
+        return node.node_id == targetId;
+    });
+
+    if (it != nodes.end())
+    {
+        return &(*it); // Return pointer to the found node
+    }
+
+    // Node not found
+    return nullptr;
+}
+
+
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
         RULE_EDITOR_DIALOG_BASE( aFrame, _( "Design Rule Builder" ),
-                                 aFrame->FromDIP( wxSize( 980, 600 ) ) ),
+                                 aFrame->FromDIP( wxSize( 980, 640 ) ) ),
         m_frame( aFrame ), 
-        m_parentPanel( nullptr ), 
-        m_MaxTreeItemId( 0 )
+        m_ruleEditorPanel( nullptr ), 
+        m_groupHeaderPanel( nullptr ), 
+        m_nodeId( 0 )
 {
     m_treeCtrl->DeleteAllItems();
 
@@ -71,11 +89,11 @@ bool DIALOG_DRC_RULE_EDITOR::TransferDataFromWindow()
 
 
 RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildTreeNode( const std::string& name, 
-                                                    const DRC_RULE_EDITOR_ITEM_TYPE& nodeType,    
+                                                    const DRC_RULE_EDITOR_ITEM_TYPE& nodeType,   
+                                                    const std::optional<int>& parentId, 
+                                                    const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& constraintType,
                                                     const std::vector<RuleTreeNode>& childNodes, 
-                                                    const std::optional<unsigned int>& id,
-                                                    const std::optional<unsigned int>& parentId,
-                                                    const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& constraintType )
+                                                    const std::optional<int>& id )
 {
     unsigned int newId;
 
@@ -87,11 +105,11 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildTreeNode( const std::string& name,
     {
         newId = 1;
 
-        if( m_MaxTreeItemId )
-            newId = m_MaxTreeItemId + 1;
+        if( m_nodeId )
+            newId = m_nodeId + 1;
     }
 
-    m_MaxTreeItemId = newId;
+    m_nodeId = newId;
 
     RuleEditorBaseData baseData;
     baseData.SetId( newId );
@@ -102,181 +120,223 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildTreeNode( const std::string& name,
     }
 
     return { 
-             .node_name = name, .node_type = nodeType, .node_type_map = constraintType, .child_nodes = childNodes, 
-             .node_data = std::make_shared<RuleEditorBaseData>( baseData ) 
+             .node_id = m_nodeId,.node_name = name, .node_type = nodeType, .node_type_map = constraintType, 
+             .child_nodes = childNodes, .node_data = std::make_shared<RuleEditorBaseData>( baseData ) 
            };
 }
 
 
 std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::GetDefaultTreeItems()
-{ 
-    std::vector<RuleTreeNode> result =
-    {
-        buildTreeNode( "Design Rules", DRC_RULE_EDITOR_ITEM_TYPE::ROOT,
-        {
-            buildTreeNode( "Electrical", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, createElectricalItems( m_MaxTreeItemId ) ),
-            buildTreeNode( "Manufacturability", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, createManufacturabilityItems( m_MaxTreeItemId ) ),
-            buildTreeNode( "Highspeed design", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, createHighspeedDesignItems( m_MaxTreeItemId ) ),
-            buildTreeNode( "Footprints", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, createFootprintsItems( m_MaxTreeItemId ) )
-        } )
-    };
+{
+    std::vector<RuleTreeNode> result;
+
+    int lastParentId;
+    int electricalItemId;
+    int manufacturabilityItemId;
+    int highSpeedDesignId;
+    int footprintItemId;
+
+    result.push_back( buildTreeNode( "Design Rules", DRC_RULE_EDITOR_ITEM_TYPE::ROOT ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Electrical", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+    electricalItemId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Manufacturability", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+    manufacturabilityItemId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Highspeed design", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+    highSpeedDesignId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Footprints", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+    footprintItemId = m_nodeId;
+
+    std::vector<RuleTreeNode> subItemNodes = createElectricalItems( electricalItemId );
+    result.insert( result.end(), subItemNodes.begin(), subItemNodes.end() );
+
+    subItemNodes = createManufacturabilityItems( manufacturabilityItemId );
+    result.insert( result.end(), subItemNodes.begin(), subItemNodes.end() );
+
+    subItemNodes = createHighspeedDesignItems( highSpeedDesignId );
+    result.insert( result.end(), subItemNodes.begin(), subItemNodes.end() );
+
+    subItemNodes = createFootprintsItems( footprintItemId );
+    result.insert( result.end(), subItemNodes.begin(), subItemNodes.end() );
     
     return result;
 }
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createElectricalItems( unsigned int& parentId )
+std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createElectricalItems( int& parentId )
 {
-    std::vector<RuleTreeNode> result =  
-    {
-        buildTreeNode( "Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "Basic clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId, BASIC_CLEARANCE ),
-            buildTreeNode( "Board outline clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  BOARD_OUTLINE_CLEARANCE ),
-            buildTreeNode( "Minimum clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_CLEARANCE ),
-            buildTreeNode( "Minimum item clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ITEM_CLEARANCE ),
-            buildTreeNode( "Net antenna", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  NET_ANTENNA ),
-            buildTreeNode( "Short circuit", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SHORT_CIRCUIT ),
-            buildTreeNode( "Creepage distance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  CREEPAGE_DISTANCE ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Connection Width",  DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "Minimum connection width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_CONNECTION_WIDTH ),
-            buildTreeNode( "Minimum track width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_TRACK_WIDTH ),
-            buildTreeNode( "Unrouted", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  UNROUTED ),
-        }, std::nullopt, parentId ),
-        buildTreeNode("Hole Clearance",  DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "Copper to hole clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  COPPER_TO_HOLE_CLEARANCE ),
-            buildTreeNode( "Hole to hole clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  HOLE_TO_HOLE_CLEARANCE ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Spoke Count",  DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Minimum thermal relief spoke count", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_THERMAL_RELIEF_SPOKE_COUNT ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Zone Connection",  DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "Allow fillets outside zone outline", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ALLOW_FILLET_OUTSIDE_ZONE_OUTLINE ),
-        }, std::nullopt, parentId ),
-    };
+    std::vector<RuleTreeNode> result;
+    int lastParentId;
+
+    result.push_back( buildTreeNode( "Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Basic clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, BASIC_CLEARANCE ) );
+    result.push_back( buildTreeNode( "Board outline clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, BOARD_OUTLINE_CLEARANCE ) );
+    result.push_back( buildTreeNode( "Minimum clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_CLEARANCE ) );
+    result.push_back( buildTreeNode( "Minimum item clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_ITEM_CLEARANCE ) );
+    result.push_back( buildTreeNode( "Net antenna", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, NET_ANTENNA ) );
+    result.push_back( buildTreeNode( "Short circuit", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SHORT_CIRCUIT ) );
+    result.push_back( buildTreeNode( "Creepage distance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, CREEPAGE_DISTANCE ) );
+
+    result.push_back( buildTreeNode( "Connection Width", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Minimum connection width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_CONNECTION_WIDTH ) );
+    result.push_back( buildTreeNode( "Minimum track width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_TRACK_WIDTH ) );
+    result.push_back( buildTreeNode( "Unrouted", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, UNROUTED ) );
+
+    result.push_back( buildTreeNode( "Hole Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Copper to hole clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, COPPER_TO_HOLE_CLEARANCE ) );
+    result.push_back( buildTreeNode( "Hole to hole clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, HOLE_TO_HOLE_CLEARANCE ) );
+
+    result.push_back( buildTreeNode( "Spoke Count", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Minimum thermal relief spoke count", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_THERMAL_RELIEF_SPOKE_COUNT ) );
+
+    result.push_back( buildTreeNode( "Zone Connection", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Allow fillets outside zone outline", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, ALLOW_FILLET_OUTSIDE_ZONE_OUTLINE ) );
 
     return result;
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createManufacturabilityItems( unsigned int& parentId )
+std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createManufacturabilityItems( int& parentId )
 {
-     std::vector<RuleTreeNode> result = 
-     {
-        buildTreeNode( "Annular Width", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Minimum annular width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ANNULAR_WIDTH ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Courtyard Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, {}, std::nullopt, parentId ),
-        buildTreeNode( "Edge Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Copper to edge clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  COPPER_TO_EDGE_CLEARANCE ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Physical Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, {}, std::nullopt, parentId ),
-        buildTreeNode( "Hole Size", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Minimum through hole", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_THROUGH_HOLE ),
-            //buildTreeNode( "Hole size", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  HOLE_SIZE ),
-            buildTreeNode( "Hole to hole distance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  HOLE_TO_HOLE_DISTANCE ),
-            buildTreeNode( "Minimum uvia hole", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_UVIA_HOLE ),
-            buildTreeNode( "Minimum uvia diameter", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_UVIA_DIAMETER ),
-            //buildTreeNode( "Minimum via diameter", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_VIA_DIAMETER ),
-            buildTreeNode( "Via style", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  VIA_STYLE ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Text Geometry", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Minimum text height and thickness",DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_TEXT_HEIGHT_AND_THICKNESS ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Silkscreen Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Silk to silk clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SILK_TO_SILK_CLEARANCE ),
-            buildTreeNode( "Silk to soldermask clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SILK_TO_SOLDERMASK_CLEARANCE ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Soldermask", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Minimum soldermask silver", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_SOLDERMASK_SILVER ),
-            buildTreeNode( "Soldermask expansion", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SOLDERMASK_EXPANSION ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Solderpaste", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Solderpaste expansion", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SOLDERPASTE_EXPANSION ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Deviation", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Maximum allowed deviation", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MAXIMUM_ALLOWED_DEVIATION ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Angles", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Minimum acute angle", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ACUTE_ANGLE ),
-            buildTreeNode( "Minimum annular ring", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MINIMUM_ANGULAR_RING ),
-        }, std::nullopt, parentId ),
-    };
+    std::vector<RuleTreeNode> result;
+    int lastParentId;
+
+    result.push_back( buildTreeNode( "Annular Width", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Minimum annular width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_ANNULAR_WIDTH ) );
+
+    result.push_back( buildTreeNode( "Courtyard Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Edge Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    result.push_back( buildTreeNode( "Copper to edge clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, COPPER_TO_EDGE_CLEARANCE ) );
+
+    result.push_back( buildTreeNode( "Physical Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Hole Size", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    result.push_back( buildTreeNode( "Minimum through hole", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_THROUGH_HOLE ) );
+    result.push_back( buildTreeNode( "Hole to hole distance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, HOLE_TO_HOLE_DISTANCE ) );
+    result.push_back( buildTreeNode( "Minimum uvia hole", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_UVIA_HOLE ) );
+    result.push_back( buildTreeNode( "Minimum uvia diameter", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_UVIA_DIAMETER ) );
+    result.push_back( buildTreeNode( "Via style", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, VIA_STYLE ) );
+
+    result.push_back( buildTreeNode( "Text Geometry", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Minimum text height and thickness", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_TEXT_HEIGHT_AND_THICKNESS ) );
+
+    result.push_back( buildTreeNode( "Silkscreen Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Silk to silk clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SILK_TO_SILK_CLEARANCE ) );
+    result.push_back( buildTreeNode( "Silk to soldermask clearance", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SILK_TO_SOLDERMASK_CLEARANCE ) );
+
+    result.push_back( buildTreeNode( "Soldermask", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Minimum soldermask silver", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_SOLDERMASK_SILVER ) );
+    result.push_back( buildTreeNode( "Soldermask expansion", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SOLDERMASK_EXPANSION ) );
+
+    result.push_back( buildTreeNode( "Solderpaste", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Solderpaste expansion", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SOLDERPASTE_EXPANSION ) );
+
+    result.push_back( buildTreeNode( "Deviation", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Maximum allowed deviation", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MAXIMUM_ALLOWED_DEVIATION ) );
+
+    result.push_back( buildTreeNode( "Angles", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Minimum acute angle", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_ACUTE_ANGLE ) );
+    result.push_back( buildTreeNode( "Minimum annular ring", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MINIMUM_ANGULAR_RING ) );
 
      return result;
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createHighspeedDesignItems( unsigned int& parentId )
+std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createHighspeedDesignItems( int& parentId )
 {
-    std::vector<RuleTreeNode> result = 
-    {
-        buildTreeNode( "Diff Pair (width, gap, uncoupled length)", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Routing diff pair", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ROUTING_DIFF_PAIR ),
-            buildTreeNode( "Routing width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ROUTING_WIDTH ),
-            buildTreeNode( "Maximum via count", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MAXIMUM_VIA_COUNT ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Skew", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ),
-        buildTreeNode( "Length Matching", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Matched length diff pair", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MATCHED_LENGTH_DIFF_PAIR ),
-            buildTreeNode( "Matched length all traces in group",DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  MATCHED_LENGTH_ALL_TRACES_IN_GROUP ),
-            buildTreeNode( "Absolute length", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ABSOLUTE_LENGTH ),
-            buildTreeNode( "Segment Length", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ABSOLUTE_LENGTH_2 ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Parallelism", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Parallel limit", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  PARALLEL_LIMIT ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Daisy Chain", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-        {
-            buildTreeNode( "Daisy chain stub", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  DAISY_CHAIN_STUB ),
-            buildTreeNode( "Daisy chain stub 2", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  DAISY_CHAIN_STUB_2 ),
-        }, std::nullopt, parentId ),
-    };
+    std::vector<RuleTreeNode> result;
+    int lastParentId;
+
+    result.push_back( buildTreeNode( "Diff Pair (width, gap, uncoupled length)", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Routing diff pair", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, ROUTING_DIFF_PAIR ) );
+    result.push_back( buildTreeNode( "Routing width", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, ROUTING_WIDTH ) );
+    result.push_back( buildTreeNode( "Maximum via count", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MAXIMUM_VIA_COUNT ) );
+
+    result.push_back( buildTreeNode( "Skew", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Length Matching", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Matched length diff pair", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MATCHED_LENGTH_DIFF_PAIR ) );
+    result.push_back( buildTreeNode( "Matched length all traces in group", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, MATCHED_LENGTH_ALL_TRACES_IN_GROUP ) );
+    result.push_back( buildTreeNode( "Absolute length", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, ABSOLUTE_LENGTH ) );
+    result.push_back( buildTreeNode( "Segment Length", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, ABSOLUTE_LENGTH_2 ) );
+
+    result.push_back( buildTreeNode( "Parallelism", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Parallel limit", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, PARALLEL_LIMIT ) );
+
+    result.push_back( buildTreeNode( "Daisy Chain", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Daisy chain stub", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, DAISY_CHAIN_STUB ) );
+    result.push_back( buildTreeNode( "Daisy chain stub 2", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, DAISY_CHAIN_STUB_2 ) );
 
     return result;
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createFootprintsItems( unsigned int& parentId )
+std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createFootprintsItems( int& parentId )
 {
-    std::vector<RuleTreeNode> result = 
-    {
-        buildTreeNode( "Allowed Layers", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "Permitted layers", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  PERMITTED_LAYERS ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Orientation", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "Allowed orientation", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  ALLOWED_ORIENTATION ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "Corner Style", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,            
-        {
-            buildTreeNode( "Corner style", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  CORNER_STYLE ),
-        }, std::nullopt, parentId ),
-        buildTreeNode( "SMD", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, 
-        {
-            buildTreeNode( "SMD corner", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SMD_CORNER ),
-            buildTreeNode( "SMD entry", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SMD_ENTRY ),
-            buildTreeNode( "SMD to plane plus", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  SMD_TO_PLANE_PLUS ),
-            buildTreeNode( "Vias under SMD", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, {}, std::nullopt, m_MaxTreeItemId,  VIAS_UNDER_SMD ),
-        }, std::nullopt, parentId ),
-    };
+    std::vector<RuleTreeNode> result;
+    int lastParentId;
+
+    result.push_back( buildTreeNode( "Allowed Layers", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Permitted layers", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, PERMITTED_LAYERS ) );
+
+    result.push_back( buildTreeNode( "Orientation", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Allowed orientation", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, ALLOWED_ORIENTATION ) );
+
+    result.push_back( buildTreeNode( "Corner Style", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "Corner style", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, CORNER_STYLE ) );
+
+    result.push_back( buildTreeNode( "SMD", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, parentId ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildTreeNode( "SMD corner", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SMD_CORNER ) );
+    result.push_back( buildTreeNode( "SMD entry", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SMD_ENTRY ) );
+    result.push_back( buildTreeNode( "SMD to plane plus", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, SMD_TO_PLANE_PLUS ) );
+    result.push_back( buildTreeNode( "Vias under SMD", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId, VIAS_UNDER_SMD ) );
 
     return result;
 }
@@ -285,8 +345,9 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::createFootprintsItems( unsigne
 void DIALOG_DRC_RULE_EDITOR::AddNewRule( RuleTreeItemData* aRuleTreeItemData )
 {
     wxTreeItemId treeItemId;
+    RuleTreeNode* nodeDetail = getNodeInfo( aRuleTreeItemData );
 
-    if( aRuleTreeItemData->GetTreeItem()->node_type == CONSTRAINT )
+    if( nodeDetail->node_type == CONSTRAINT )
     {
         treeItemId = aRuleTreeItemData->GetTreeItemId();
     }
@@ -295,35 +356,39 @@ void DIALOG_DRC_RULE_EDITOR::AddNewRule( RuleTreeItemData* aRuleTreeItemData )
         treeItemId = aRuleTreeItemData->GetParentTreeItemId();
     }    
 
-    AppendTreeItem( m_treeCtrl, buildNewTreeData( aRuleTreeItemData ), treeItemId );
+    AppendNewTreeItem( m_treeCtrl, buildNewTreeData( aRuleTreeItemData ), treeItemId );
 }
 
 
 void DIALOG_DRC_RULE_EDITOR::DuplicateRule( RuleTreeItemData* aRuleTreeItemData )
 {
     wxTreeItemId  treeItemId   = aRuleTreeItemData->GetParentTreeItemId();
-    RuleTreeNode* ruleTreeNode = aRuleTreeItemData->GetTreeItem();
+    RuleTreeNode* ruleTreeNode = getNodeInfo( aRuleTreeItemData );
     RuleTreeNode  newTreeData  = buildNewTreeData( aRuleTreeItemData );
     wxString      ruleName = newTreeData.node_name;
     newTreeData.node_data = ruleTreeNode->node_data;
     newTreeData.node_name = ruleName;
     newTreeData.node_data->SetRuleName( ruleName );
 
-    AppendTreeItem( m_treeCtrl, newTreeData, treeItemId );
+    AppendNewTreeItem( m_treeCtrl, newTreeData, treeItemId );
 }
 
  
-bool DIALOG_DRC_RULE_EDITOR::CanShowContextMenu( RuleTreeNode* aRuleTreeNode )
+bool DIALOG_DRC_RULE_EDITOR::CanShowContextMenu( RuleTreeItemData* aRuleTreeItemData )
 {
-    if( aRuleTreeNode->node_type != DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT && aRuleTreeNode->node_type != DRC_RULE_EDITOR_ITEM_TYPE::RULE )
+    RuleTreeNode* nodeDetail = getNodeInfo( aRuleTreeItemData );
+
+    if( nodeDetail->node_type != DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT && nodeDetail->node_type != DRC_RULE_EDITOR_ITEM_TYPE::RULE )
         return false;
     
     return true;
 }
 
-bool DIALOG_DRC_RULE_EDITOR::CheckAndAppendRuleOperations( RuleTreeNode* aRuleTreeNode )
+bool DIALOG_DRC_RULE_EDITOR::CheckAndAppendRuleOperations( RuleTreeItemData* aRuleTreeItemData )
 {
-    if( aRuleTreeNode->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE )
+    RuleTreeNode* nodeDetail = getNodeInfo( aRuleTreeItemData );
+
+    if( nodeDetail->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE )
         return true;
     
     return false;
@@ -332,40 +397,57 @@ bool DIALOG_DRC_RULE_EDITOR::CheckAndAppendRuleOperations( RuleTreeNode* aRuleTr
 
 void DIALOG_DRC_RULE_EDITOR::TreeItemSelectionChanged( RuleTreeItemData* aCurrentRuleTreeItemData )
 {
-    RuleTreeNode* itemData = aCurrentRuleTreeItemData->GetTreeItem(); 
+    RuleTreeNode* nodeDetail = getNodeInfo( aCurrentRuleTreeItemData );
 
-    if( itemData->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE )
+    if( nodeDetail->node_type == ROOT || nodeDetail->node_type == CATEGORY || nodeDetail->node_type == CONSTRAINT )
+    {
+        m_groupHeaderPanel = new PANEL_DRC_GROUP_HEADER( this, m_frame->GetBoard(), static_cast<DRC_RULE_EDITOR_ITEM_TYPE>( nodeDetail->node_type ) );
+        SetContentPanel( m_groupHeaderPanel );
+        m_ruleEditorPanel = nullptr;
+    }
+    else if( nodeDetail->node_type == RULE )
     {
         RuleTreeItemData* parentItemData = dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( aCurrentRuleTreeItemData->GetParentTreeItemId() ) );
-        wxString constraintName = parentItemData->GetNodeName();
+        RuleTreeNode* paretNodeDetail = getNodeInfo( parentItemData );
+        wxString      constraintName = paretNodeDetail->node_name;
 
         if( GetPreviouslySelectedTreeItemId() )
         {
             RuleTreeItemData* previousItemData = dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( GetPreviouslySelectedTreeItemId() ) );
-            UpdateRuleTypeTreeItemData( previousItemData );
+
+            if( previousItemData )
+            {
+                RuleTreeNode* previousNodeDetail = getNodeInfo( previousItemData );
+
+                if( previousNodeDetail->node_type == RULE )
+                    UpdateRuleTypeTreeItemData( previousItemData );
+            }
         }
 
-        m_parentPanel = new PANEL_DRC_RULE_EDITOR( this, m_frame->GetBoard(), static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( itemData->node_type_map.value_or(-1) ),
-                                                   &constraintName, dynamic_pointer_cast<DrcReBaseConstraintData>( itemData->node_data) );
+        m_ruleEditorPanel = new PANEL_DRC_RULE_EDITOR( this, m_frame->GetBoard(), static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( nodeDetail->node_type_map.value_or(-1) ),
+                                                   &constraintName, dynamic_pointer_cast<DrcReBaseConstraintData>( nodeDetail->node_data) );
 
-        SetContentPanel( m_parentPanel );
+        SetContentPanel( m_ruleEditorPanel );
 
-        m_parentPanel->TransferDataToWindow();
+        m_ruleEditorPanel->TransferDataToWindow();
+
+        m_groupHeaderPanel = nullptr;
     }
 }
 
 
 void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RuleTreeItemData* aRuleTreeItemData )
 {
-    RuleTreeNode* itemData = aRuleTreeItemData->GetTreeItem(); 
+    RuleTreeNode* nodeDetail = getNodeInfo( aRuleTreeItemData );
 
-    if( itemData->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE && m_parentPanel )
+    if( nodeDetail->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE && m_ruleEditorPanel )
     {            
-        m_parentPanel->TransferDataFromWindow();
+        m_ruleEditorPanel->TransferDataFromWindow();
 
-        aRuleTreeItemData->SyncNodeName();
+        //aRuleTreeItemData->SyncNodeName();
+        nodeDetail->node_name = nodeDetail->node_data->GetRuleName();
 
-        UpdateTreeItem( m_treeCtrl, *aRuleTreeItemData );            
+        UpdateTreeItemText( m_treeCtrl, aRuleTreeItemData->GetTreeItemId(), nodeDetail->node_name );            
     }
 }
 
@@ -411,23 +493,25 @@ bool NodeExists( const std::vector<RuleTreeNode>& aRuleTreeNodes, const wxString
 RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildNewTreeData( RuleTreeItemData* aRuleTreeItemData )
 {
     RuleTreeItemData* treeItemData;
-    RuleTreeNode* treeNode;
+    RuleTreeNode* nodeDetail = getNodeInfo( aRuleTreeItemData );
 
-    if( aRuleTreeItemData->GetTreeItem()->node_type == CONSTRAINT )
+    if( nodeDetail->node_type == CONSTRAINT )
     {
         treeItemData = aRuleTreeItemData;
-        treeNode = aRuleTreeItemData->GetTreeItem();
     }
     else
     {
         treeItemData = dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( aRuleTreeItemData->GetParentTreeItemId() ) );
-        treeNode = treeItemData->GetTreeItem();
+        nodeDetail = getNodeInfo( treeItemData );
     }    
 
+    m_nodeId++;
+
     RuleTreeNode newRuleNode;
-    newRuleNode.node_name = treeNode->node_name + " 1";
+    newRuleNode.node_id = m_nodeId;
+    newRuleNode.node_name = nodeDetail->node_name + " 1";
     newRuleNode.node_type = RULE;
-    newRuleNode.node_type_map = treeNode->node_type_map;
+    newRuleNode.node_type_map = nodeDetail->node_type_map;
     newRuleNode.child_nodes = {};  
 
     int loop = 2;
@@ -439,47 +523,57 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildNewTreeData( RuleTreeItemData* aRuleTr
 
         if( NodeExists( m_RuleTreeNodes, newRuleNode.node_name ) )
         {
-            newRuleNode.node_name = treeNode->node_name + wxString::Format( " %d", loop );
+            newRuleNode.node_name = nodeDetail->node_name + wxString::Format( " %d", loop );
             loop++;
             check = true;
         }
     } while( check );
 
-    m_MaxTreeItemId++;
-    unsigned int newId = m_MaxTreeItemId;
+   
 
     if( DrcRuleEditorUtils::IsNumericInputType( static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( newRuleNode.node_type_map.value_or(-1) ) ) )
     {
-        DrcReNumericInputConstraintData clearanceData( newId, treeNode->node_data->GetId(), 0, newRuleNode.node_name );
+        DrcReNumericInputConstraintData clearanceData( m_nodeId, nodeDetail->node_data->GetId(), 0, newRuleNode.node_name );
         newRuleNode.node_data = std::make_shared<DrcReNumericInputConstraintData>( clearanceData );
     }
     else if( DrcRuleEditorUtils::IsBoolInputType( static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( newRuleNode.node_type_map.value_or(-1) ) ) )
     {
-        DrcReBoolInputConstraintData clearanceData( newId, treeNode->node_data->GetId(), 0, newRuleNode.node_name );
+        DrcReBoolInputConstraintData clearanceData( m_nodeId, nodeDetail->node_data->GetId(), 0, newRuleNode.node_name );
         newRuleNode.node_data = std::make_shared<DrcReBoolInputConstraintData>( clearanceData );
     }
+    else
+    {
+    
+    }
 
-    addRuleNodeToAConstraint( m_RuleTreeNodes, newRuleNode, treeNode->node_data->GetId() );
+    newRuleNode.node_data->SetIsNew( true );
+
+    RuleTreeNode ruleTreeNode = buildTreeNode( newRuleNode.node_name.ToStdString(),
+                                              static_cast<DRC_RULE_EDITOR_ITEM_TYPE>( newRuleNode.node_type ), 
+                                              nodeDetail->node_id, static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( newRuleNode.node_type_map.value_or(0) ), 
+                                              {}, m_nodeId );
+    ruleTreeNode.node_data = newRuleNode.node_data;
+
+    m_RuleTreeNodes.push_back( ruleTreeNode );
 
     return newRuleNode;
 }
 
 
-void DIALOG_DRC_RULE_EDITOR::addRuleNodeToAConstraint( std::vector<RuleTreeNode>& nodes, const RuleTreeNode& newRuleNode, const unsigned int& parentId )
+RuleTreeNode* DIALOG_DRC_RULE_EDITOR::getNodeInfo( RuleTreeItemData* aRuleTreeItemData )
 {
-    for( auto& node : nodes )
-    {
-        // Check if the node's category matches the target category
-        if( node.node_data->GetId() == parentId )
-        {
-            node.child_nodes.push_back( newRuleNode ); // Add the new node as a child
-            return;                             // Exit once the node is added
-        }
+    unsigned int  targetId = aRuleTreeItemData->GetNodeId();
 
-        // Recurse into children
-        if( !node.child_nodes.empty() )
-        {
-            addRuleNodeToAConstraint( node.child_nodes, newRuleNode, parentId );
-        }
+    auto it = std::find_if( m_RuleTreeNodes.begin(), m_RuleTreeNodes.end(),
+                            [targetId]( const RuleTreeNode& node )
+                            {
+                                return node.node_id == targetId;
+                            } );
+
+    if( it != m_RuleTreeNodes.end() )
+    {
+        return &( *it ); // Return pointer to the found node
     }
+    else
+        return nullptr;
 }

@@ -39,8 +39,7 @@
 DRC_RE_CORNER_STYLE_PANEL::DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                 std::shared_ptr<DrcReCornerStyleConstraintData> aConstraintData ) :
         DRC_RE_CORNER_STYLE_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_cornerStyle( 0 )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_corner_style ) );

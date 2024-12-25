@@ -34,12 +34,16 @@ public:
 
     bool TransferDataToWindow() override;
 
-    bool TransferDataFromWindow() override;
+    bool TransferDataFromWindow() override;    
 
-    double GetMinimumTextHeightThickness() { return m_minimumTextHeightThickness; }
+    double GetMinTextHeight() { return m_minTextHeight; }
 
-private:
-    double m_minimumTextHeightThickness;
+    double GetMinTextThickness() { return m_minTextThickness; }
+
+private:    
+    double m_minTextHeight;
+    double m_minTextThickness;
+
     std::shared_ptr<DrcReMinimumTextHeightThicknessConstraintData> m_constraintData;
 };
 

@@ -39,8 +39,7 @@
 DRC_RE_ROUTING_WIDTH_PANEL::DRC_RE_ROUTING_WIDTH_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                 std::shared_ptr<DrcReRoutingWidthConstraintData> aConstraintData ) :
         DRC_RE_ROUTING_WIDTH_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_routingWidth( 0 )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_routing_width ) );

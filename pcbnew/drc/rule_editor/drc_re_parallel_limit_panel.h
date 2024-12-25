@@ -36,9 +36,12 @@ public:
 
     bool TransferDataFromWindow() override;
 
+    double GetParallelGap() { return m_parallelGap; }
+
     double GetParallelLimit() { return m_parallelLimit; }
 
-private:
+private:    
+    double m_parallelGap;
     double m_parallelLimit;
     std::shared_ptr<DrcReParallelLimitConstraintData> m_constraintData;
 };

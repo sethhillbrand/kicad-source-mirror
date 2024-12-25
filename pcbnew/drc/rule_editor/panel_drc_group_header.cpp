@@ -28,38 +28,35 @@
 #include <widgets/std_bitmap_button.h>
 #include <grid_tricks.h>
 #include <eda_text.h>
-#include "drc_re_permitted_layers_panel.h"
+#include <drc/rule_editor/panel_drc_group_header.h>
 #include <grid_layer_box_helpers.h>
 #include <bitmaps.h>
 #include <confirm.h>
 #include <kidialog.h>
-#include <wx/bitmap.h>
-#include <wx/statbmp.h>
-
-DRC_RE_PERMITTED_LAYERS_PANEL::DRC_RE_PERMITTED_LAYERS_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
-                                                        std::shared_ptr<DrcRePermittedLayersConstraintData> aConstraintData ) :
-        DRC_RE_PERMITTED_LAYERS_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData )
-{
-    wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_permitted_layers ) );
-
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );
-}
+#include <layer_ids.h>
+#include <layer_range.h>
+#include <board.h>
+#include <idf_parser.h>
 
 
-DRC_RE_PERMITTED_LAYERS_PANEL::~DRC_RE_PERMITTED_LAYERS_PANEL()
+PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_ITEM_TYPE aItemType ) :
+        PANEL_DRC_GROUP_HEADER_BASE( aParent )
 {
 }
 
 
-bool DRC_RE_PERMITTED_LAYERS_PANEL::TransferDataToWindow()
+PANEL_DRC_GROUP_HEADER::~PANEL_DRC_GROUP_HEADER()
+{
+}
+
+
+bool PANEL_DRC_GROUP_HEADER::TransferDataToWindow()
 {
     return true;
 }
 
 
-bool DRC_RE_PERMITTED_LAYERS_PANEL::TransferDataFromWindow()
+bool PANEL_DRC_GROUP_HEADER::TransferDataFromWindow()
 {
-    return false;
+    return true;
 }

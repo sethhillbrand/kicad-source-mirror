@@ -41,6 +41,23 @@
 
 #include <dialogs/rule_editor_dialog_base.h>
 
+static wxSearchCtrl* CreateTextFilterBox( wxWindow* aParent, const wxString& aDescriptiveText )
+{
+    wxSearchCtrl* search_widget = new wxSearchCtrl( aParent, wxID_ANY );
+
+    search_widget->ShowSearchButton( false );
+    search_widget->ShowCancelButton( true );
+
+    search_widget->SetDescriptiveText( aDescriptiveText );
+
+#ifdef __WXGTK__
+    // wxSearchCtrl vertical height is not calculated correctly on some GTK setups
+    // See https://gitlab.com/kicad/code/kicad/-/issues/9019
+    search_widget->SetMinSize( wxSize( -1, aParent->GetTextExtent( wxT( "qb" ) ).y + 10 ) );
+#endif
+
+    return search_widget;
+}
 
 BEGIN_EVENT_TABLE( RULE_EDITOR_DIALOG_BASE, DIALOG_SHIM )
     EVT_MENU(1, RULE_EDITOR_DIALOG_BASE::onNewRule)
@@ -56,67 +73,84 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
         m_title( aTitle ), 
         m_treeCtrl( nullptr ), 
         m_selectedTreeItemData( nullptr ),
-        m_contextMenuActiveTreeItemData( nullptr )
+        m_contextMenuActiveTreeItemData( nullptr ),
+        m_previouslySelectedTreeItemId( nullptr )
 {
-    // Create the main vertical sizer
+   
+   // Create the main vertical sizer
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
     SetSizer( mainSizer );
 
-    m_infoBar = new WX_INFOBAR( this );
-    mainSizer->Add( m_infoBar, 0, wxEXPAND, 0 );
+    // Create a horizontal sizer for the info bar
+    wxBoxSizer* infoBarSizer = new wxBoxSizer( wxHORIZONTAL );
 
-    // Create a horizontal sizer for the tree and dynamic panel
+    // Create the info bar and add it to the horizontal sizer
+    m_infoBar = new WX_INFOBAR( this );
+    infoBarSizer->Add( m_infoBar, 1, wxEXPAND, 0 );
+
+    // Add the info bar sizer to the main sizer
+    mainSizer->Add( infoBarSizer, 0, wxEXPAND, 0 );
+
+    // Create the horizontal content sizer
     m_contentSizer = new wxBoxSizer( wxHORIZONTAL );
 
+    // Create the tree control panel
     WX_PANEL* treeCtrlPanel = new WX_PANEL( this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                                             wxBORDER_NONE | wxTAB_TRAVERSAL );
     treeCtrlPanel->SetBorders( true, true, true, true );
     wxBoxSizer* treeCtrlSizer = new wxBoxSizer( wxVERTICAL );
     treeCtrlPanel->SetSizer( treeCtrlSizer );
-    treeCtrlPanel->SetMinSize( wxSize( 350, -1 ) );
 
     // Add a search text box above the tree control
-    wxTextCtrl* searchBox = new wxTextCtrl( treeCtrlPanel, wxID_ANY, wxEmptyString,
-                                            wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
-    treeCtrlSizer->Add( searchBox, 0, wxEXPAND | wxBOTTOM, 5 ); // Add search box to the sizer
+    m_filterSearch = CreateTextFilterBox( treeCtrlPanel, _( "Type filter text" ) );
+    treeCtrlSizer->Add( m_filterSearch, 0, wxEXPAND | wxBOTTOM,
+                        5 ); // Add search box with bottom margin
 
-    m_treeCtrl = new wxTreeCtrl( treeCtrlPanel, wxID_ANY );
+    // Create the tree control and set its font
+    m_treeCtrl = new wxTreeCtrl( treeCtrlPanel );
     m_treeCtrl->SetFont( KIUI::GetControlFont( this ) );
-    //m_treeCtrl->curr( true );
 
+    // Adjust the tree control's window style to remove the border
     long treeCtrlFlags = m_treeCtrl->GetWindowStyleFlag();
     treeCtrlFlags = ( treeCtrlFlags & ~wxBORDER_MASK ) | wxBORDER_NONE;
     m_treeCtrl->SetWindowStyleFlag( treeCtrlFlags );
 
-    treeCtrlSizer->Add( m_treeCtrl, 1, wxEXPAND | wxBOTTOM, 2 );
+    // Add the tree control to its sizer
+    treeCtrlSizer->Add( m_treeCtrl, 1, wxEXPAND | wxBOTTOM, 5 );
 
-    // Add the tree panel to the contentSizer
-    m_contentSizer->Add( treeCtrlPanel, 0, wxEXPAND | wxALL, 5 );
+    // Add the tree panel to the content sizer
+    m_contentSizer->Add( treeCtrlPanel, 3, wxEXPAND | wxALL, 5 );
 
-    // Placeholder for the dynamic panel
-    m_contentPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-    m_contentPanel->SetBackgroundColour( *wxLIGHT_GREY );     
-    // Adjust minimum size for the dynamic panel
-    m_contentSizer->Add( m_contentPanel, 1, wxEXPAND | wxLEFT, 5 ); // Dynamic panel on the right
+    // Create the dynamic content panel
+    m_contentPanel = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE );
+    m_contentPanel->SetBackgroundColour( *wxLIGHT_GREY );
 
-    // Add contentSizer to mainSizer
+    // Adjust minimum size for the dynamic panel (optional customization)
+    // m_contentPanel->SetMinSize(aParent->FromDIP(wxSize(-1, 300)));
+
+    // Add the dynamic panel to the content sizer
+    m_contentSizer->Add( m_contentPanel, 7, wxEXPAND | wxLEFT, 5 );
+
+    // Add the content sizer to the main sizer
     mainSizer->Add( m_contentSizer, 1, wxEXPAND, 0 );
 
-    m_buttonsSizer = new wxBoxSizer( wxHORIZONTAL );
+    /*m_buttonsSizer = new wxBoxSizer( wxHORIZONTAL );
 
     m_buttonsSizer->AddStretchSpacer();
 
     wxStdDialogButtonSizer* sdbSizer = new wxStdDialogButtonSizer();
-    wxButton*               sdbSizerOK = new wxButton( this, wxID_OK );
+    
+    wxButton* sdbSizerOK = new wxButton( this, wxID_OK );
+    sdbSizerOK->SetLabelText( "Save.." );
     sdbSizer->AddButton( sdbSizerOK );
-    wxButton* sdbSizerCancel = new wxButton( this, wxID_CANCEL );
+    wxButton* sdbSizerCancel = new wxButton( this, wxID_CLOSE );
     sdbSizer->AddButton( sdbSizerCancel );
     sdbSizer->Realize();
 
     m_buttonsSizer->Add( sdbSizer, 1, 0, 5 );
     mainSizer->Add( m_buttonsSizer, 0, wxALL | wxEXPAND, 5 );
 
-    SetupStandardButtons();
+    SetupStandardButtons();*/
 
     // We normally save the dialog size and position based on its class-name.  This class
     // substitutes the title so that each distinctly-titled dialog can have its own saved
@@ -124,8 +158,9 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     m_hash_key = aTitle;
 
      // Bind the context menu event
-    m_treeCtrl->Bind( wxEVT_CONTEXT_MENU, &RULE_EDITOR_DIALOG_BASE::onTreeContextMenu, this );
+    m_treeCtrl->Bind( wxEVT_TREE_ITEM_RIGHT_CLICK, &RULE_EDITOR_DIALOG_BASE::onTreeItemRightClick, this );
     m_treeCtrl->Bind( wxEVT_TREE_SEL_CHANGED, &RULE_EDITOR_DIALOG_BASE::onSelectionChanged, this );
+    m_filterSearch->Bind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::OnFilterSearch, this );
 }
 
 
@@ -137,6 +172,7 @@ void RULE_EDITOR_DIALOG_BASE::finishInitialization()
 
 RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
 {
+    m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::OnFilterSearch, this );
 }
 
 
@@ -185,37 +221,73 @@ void RULE_EDITOR_DIALOG_BASE::InitTreeItems( wxTreeCtrl* aTreeCtrl, const std::v
     if( aRuleTreeNodes.empty() )
         return;
 
+    m_defaultTreeItems = aRuleTreeNodes;
+
     // Add the root node (first element in the vector)
     wxTreeItemId rootId = aTreeCtrl->AddRoot( aRuleTreeNodes[0].node_name );
 
+     // Attach TreeItemData to the root tree item
+    RuleTreeItemData* itemData = new RuleTreeItemData( aRuleTreeNodes[0].node_id, nullptr, rootId );
+    aTreeCtrl->SetItemData( rootId, itemData );
+
+    std::vector<RuleTreeNode> childNodes;
+    getChildNodes( aRuleTreeNodes, aRuleTreeNodes[0].node_id, childNodes );
+
     // Add all children recursively
-    for( const auto& child : aRuleTreeNodes[0].child_nodes )
+    for( const auto& child : childNodes )
     {
-        PopulateTreeCtrl( aTreeCtrl, child, rootId );
+        PopulateTreeCtrl( aTreeCtrl, aRuleTreeNodes, child, rootId );
     }
 
     // Optionally expand the root node
     aTreeCtrl->Expand( rootId );
+
+    m_originalChildren.clear();
+    SaveTreeState( m_treeCtrl->GetRootItem(), m_defaultTreeItems[0].node_id );
+
+    aTreeCtrl->SelectItem( rootId );
 }
 
 
-void RULE_EDITOR_DIALOG_BASE::PopulateTreeCtrl( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode,
-                                                wxTreeItemId aParentTreeItemId )
+void RULE_EDITOR_DIALOG_BASE::getChildNodes( const std::vector<RuleTreeNode>& nodes, int parentId, std::vector<RuleTreeNode>& result )
 {
-    // Add the current node as a child to the parent
-    wxTreeItemId currentId = aTreeCtrl->AppendItem( aParentTreeItemId, aRuleTreeNode.node_name );
+    // Filter nodes that match the parentId
+    std::vector<RuleTreeNode> filteredNodes;
+    std::copy_if( nodes.begin(), nodes.end(), std::back_inserter( filteredNodes ),
+                  [&parentId]( const RuleTreeNode& node )
+                  {
+                      return node.node_data->GetParentId() == parentId;
+                  } );
 
-    // Allocate TreeData dynamically
-    RuleTreeNode* nodeData = new RuleTreeNode( aRuleTreeNode );
+    if( filteredNodes.size() > 0 )
+    {
+        // Add the filtered nodes to the result
+        result.insert( result.end(), filteredNodes.begin(), filteredNodes.end() );  
+    }
+}
 
-    // Attach TreeItemData to the tree item
-    RuleTreeItemData* itemData = new RuleTreeItemData( nodeData, aParentTreeItemId, currentId );
-    aTreeCtrl->SetItemData( currentId, itemData );
+
+// Example usage
+std::vector<RuleTreeNode> RULE_EDITOR_DIALOG_BASE::getAllChildrenByParentId( const std::vector<RuleTreeNode>& nodes, unsigned int parentId)
+{
+    std::vector<RuleTreeNode> result;
+    getChildNodes(nodes, parentId, result);
+    return result;
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::PopulateTreeCtrl( wxTreeCtrl* aTreeCtrl, const std::vector<RuleTreeNode>& aRuleTreeNodes, 
+                                                const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId )
+{
+    wxTreeItemId currentId = appendTreeItem( aTreeCtrl, aRuleTreeNode, aParentTreeItemId );
+
+    std::vector<RuleTreeNode> childNodes;
+    getChildNodes( aRuleTreeNodes, aRuleTreeNode.node_id, childNodes );
 
     // Recursively add children 
-    for( const auto& child : aRuleTreeNode.child_nodes )
+    for( const auto& child : childNodes )
     {
-        PopulateTreeCtrl( aTreeCtrl, child, currentId );
+        PopulateTreeCtrl( aTreeCtrl, aRuleTreeNodes, child, currentId );
     }
 
     // Optionally expand the current node
@@ -234,51 +306,78 @@ void RULE_EDITOR_DIALOG_BASE::SetContentPanel( wxPanel* aContentPanel )
 
     // Set the new panel
     m_contentPanel = aContentPanel;
-    m_contentSizer->Add( m_contentPanel, 1, wxEXPAND | wxALL, 5 );
+    m_contentSizer->Add( m_contentPanel, 7, wxEXPAND | wxLEFT, 5 );
 
-    // Adjust the sizer and the layout to ensure proper fit
-    m_contentSizer->Fit( this );          // Adjust the sizer to fit the containing dialog
-    m_contentSizer->SetSizeHints( this ); // Ensure minimum size hints are updated
+    //// Adjust the main sizer and layout
+    //m_contentSizer->Fit(this);          // Adjust the sizer to fit the containing dialog
+    //m_contentSizer->SetSizeHints(this); // Ensure minimum size hints are updated
 
-    // Update the layout
+    // Update the layout and refresh
     Layout();
-    Refresh(); // Refresh to ensure visual updates
+    Refresh();
 }
 
 
-void RULE_EDITOR_DIALOG_BASE::AppendTreeItem( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId)
+wxTreeItemId RULE_EDITOR_DIALOG_BASE::appendTreeItem( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId)
 {
     wxTreeItemId currentTreeItemId = aTreeCtrl->AppendItem( aParentTreeItemId, aRuleTreeNode.node_name );
 
-    // Allocate TreeData dynamically
-    RuleTreeNode* nodeData = new RuleTreeNode( aRuleTreeNode );
-
     // Attach TreeItemData to the tree item
-    RuleTreeItemData* itemData = new RuleTreeItemData( nodeData, aParentTreeItemId, currentTreeItemId );
+    RuleTreeItemData* itemData = new RuleTreeItemData( aRuleTreeNode.node_id, aParentTreeItemId, currentTreeItemId );
     aTreeCtrl->SetItemData( currentTreeItemId, itemData );
 
      // Optionally expand the root node
     aTreeCtrl->Expand( currentTreeItemId );
+
+    return currentTreeItemId;
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::AppendNewTreeItem( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId)
+{
+    wxTreeItemId currentTreeItemId = appendTreeItem( aTreeCtrl, aRuleTreeNode, aParentTreeItemId );
+
+    auto it = m_originalChildren.find( aRuleTreeNode.node_data->GetParentId() );
+
+    if( it != m_originalChildren.end() )
+    {        
+        std::vector<unsigned int>& existingChildren = std::get<1>(it->second);
+        existingChildren.push_back( aRuleTreeNode.node_id );
+
+        m_originalChildren[aRuleTreeNode.node_id] = { aRuleTreeNode.node_name, {}, currentTreeItemId  };
+    }    
+
+    //for( const auto& entry : m_originalChildren )
+    //{
+    //    const wxTreeItemId& treeItemId =  std::get<2>( entry.second ); // Get the wxTreeItemId from the tuple
+
+    //    // Check if this is the excluded item, if not, add it to the list
+    //    if( treeItemId != currentTreeItemId )
+    //    {
+    //        aTreeCtrl->DisableItem( treeItemId );
+    //    }
+    //}
+    //aTreeCtrl->Disable();
     aTreeCtrl->SelectItem( currentTreeItemId );
+
+    //m_filterSearch->Enable( false );
 }
 
 
-void RULE_EDITOR_DIALOG_BASE::UpdateTreeItem( wxTreeCtrl* aTreeCtrl, RuleTreeItemData aRuleTreeItemData )
+void RULE_EDITOR_DIALOG_BASE::UpdateTreeItemText( wxTreeCtrl* aTreeCtrl, wxTreeItemId aItemId, wxString aItemText )
 {
-    aTreeCtrl->SetItemText( aRuleTreeItemData.GetTreeItemId(), aRuleTreeItemData.GetTreeItem()->node_name );
+    aTreeCtrl->SetItemText( aItemId, aItemText );
 }
 
 
-void RULE_EDITOR_DIALOG_BASE::onTreeContextMenu( wxContextMenuEvent& aEvent )
+void RULE_EDITOR_DIALOG_BASE::onTreeItemRightClick( wxTreeEvent& aEvent )
 {
-    // Get the mouse position
-    wxPoint pos = m_treeCtrl->ScreenToClient( wxGetMousePosition() );
-
-    int          flags;
-    wxTreeItemId item = m_treeCtrl->HitTest( pos, flags );
+    wxTreeItemId item = aEvent.GetItem();
 
     if( !item.IsOk() )
         return; // No valid item 
+
+    m_treeCtrl->SelectItem( item );
 
      // Get the associated TreeData
     RuleTreeItemData* ruleTreeItemData= dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( item ) );
@@ -286,7 +385,7 @@ void RULE_EDITOR_DIALOG_BASE::onTreeContextMenu( wxContextMenuEvent& aEvent )
     if( !ruleTreeItemData )
         return;
 
-    if( !CanShowContextMenu( ruleTreeItemData->GetTreeItem() ) )
+    if( !CanShowContextMenu( ruleTreeItemData ) )
         return;
 
     if( m_selectedTreeItemData )
@@ -297,7 +396,7 @@ void RULE_EDITOR_DIALOG_BASE::onTreeContextMenu( wxContextMenuEvent& aEvent )
     wxMenu menu;
     menu.Append( 1, "New Rule" );
 
-    if( CheckAndAppendRuleOperations( ruleTreeItemData->GetTreeItem() ) )
+    if( CheckAndAppendRuleOperations( ruleTreeItemData ) )
     {
         menu.Append( 2, "Duplicate Rule" );
         menu.Append( 3, "Delete Rule" );
@@ -307,7 +406,7 @@ void RULE_EDITOR_DIALOG_BASE::onTreeContextMenu( wxContextMenuEvent& aEvent )
     }
 
     // Show the menu
-    PopupMenu( &menu, pos );
+    PopupMenu( &menu );
 }
 
 
@@ -357,4 +456,139 @@ void RULE_EDITOR_DIALOG_BASE::onSelectionChanged( wxTreeEvent& aEvent )
     m_selectedTreeItemData = ruleTreeItemData;
 
     TreeItemSelectionChanged( m_selectedTreeItemData );
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::OnFilterSearch( wxCommandEvent& aEvent )
+{
+    const auto searchStr = aEvent.GetString().Lower();
+
+     // Capture the selected item
+    wxTreeItemId selectedItem = m_treeCtrl->GetSelection();
+    unsigned int selectedNodeId = wxNOT_FOUND;
+
+    if( selectedItem.IsOk() )
+    {
+        RuleTreeItemData* itemData = dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( selectedItem ) );
+
+        if( itemData )
+        {
+            selectedNodeId = itemData->GetNodeId();
+        }
+    }
+
+    m_treeCtrl->DeleteAllItems();
+
+    RestoreTree( nullptr, m_defaultTreeItems[0].node_id );
+
+    wxTreeItemId root = m_treeCtrl->GetRootItem();
+
+    // Apply the filter
+    if ( root.IsOk() )
+    {
+        FilterTree( root, searchStr );
+    }
+}
+
+void RULE_EDITOR_DIALOG_BASE::SaveTreeState( const wxTreeItemId& item, const unsigned int& aNodeId )
+{
+    wxString          itemText = m_treeCtrl->GetItemText( item );
+    RuleTreeItemData* itemData = dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( item ) );
+    std::vector<unsigned int> children;
+
+    wxTreeItemIdValue cookie;
+    wxTreeItemId      child = m_treeCtrl->GetFirstChild( item, cookie );
+    int               index = 0;
+
+    while( child.IsOk() )
+    {
+        RuleTreeItemData* childItemData = dynamic_cast<RuleTreeItemData*>( m_treeCtrl->GetItemData( child ) );
+        unsigned int childId = childItemData->GetNodeId();
+
+        //std::string childId = itemId + "/" + std::to_string( index++ );
+        children.push_back( childId );
+
+        // Recursively save the state of the child
+        SaveTreeState( child, childId );
+
+        child = m_treeCtrl->GetNextChild( item, cookie );
+    }
+
+    // Store the current item in the map
+    m_originalChildren[aNodeId] = { itemText, children, item };
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::RestoreTree( const wxTreeItemId& parent, const unsigned int& aNodeId )
+{
+    auto it = m_originalChildren.find( aNodeId );
+    if (it == m_originalChildren.end())
+        return;
+
+    const auto& [itemText, children, treeItemId ] = it->second;
+
+    wxTreeItemId newItem;
+
+    if( parent )
+    {
+        // Add the restored item to the parent
+        newItem = m_treeCtrl->AppendItem( parent, itemText );
+        wxTreeItemId& treeItemId = std::get<2>( it->second );
+        treeItemId = newItem;
+    }
+    else
+    {
+        newItem = m_treeCtrl->AddRoot( itemText );
+        wxTreeItemId& treeItemId = std::get<2>( it->second );
+        treeItemId = newItem;
+    }
+
+    RuleTreeItemData* itemData = new RuleTreeItemData( aNodeId, parent, newItem );
+    m_treeCtrl->SetItemData( newItem, itemData );
+
+    // Recursively restore each child
+    for (const auto& childId : children)
+    {
+        RestoreTree(newItem, childId);
+    }
+
+    m_treeCtrl->Expand( newItem );
+
+   
+}
+
+
+bool RULE_EDITOR_DIALOG_BASE::FilterTree( const wxTreeItemId& item, const wxString& filter )
+{
+    bool matches = m_treeCtrl->GetItemText( item ).Lower().Contains( filter );
+
+    wxTreeItemIdValue cookie;
+    wxTreeItemId      child = m_treeCtrl->GetFirstChild( item, cookie );
+    bool              hasVisibleChildren = false;
+
+    // List to store items for deletion
+    std::vector<wxTreeItemId> itemsToDelete;
+
+    while( child.IsOk() )
+    {
+        if( FilterTree( child, filter ) )
+        {
+            hasVisibleChildren = true;
+        }
+        else
+        {
+            // Collect child for deletion
+            itemsToDelete.push_back( child );
+        }
+
+        child = m_treeCtrl->GetNextChild( item, cookie );
+    }
+
+    // Delete non-matching children after iteration
+    for( const auto& id : itemsToDelete )
+    {
+        m_treeCtrl->Delete( id );
+    }
+
+    return matches || hasVisibleChildren;
 }

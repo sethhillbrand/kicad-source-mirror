@@ -36,10 +36,23 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    bool GetAllowedOrientationAllowed() { return m_allowAllowedOrientation; }
+    bool GetIsZeroDegressAllowed() { return m_allowZeroDegreess; }
+
+    bool GetIsNintyDegressAllowed() { return m_allowNintyDegreess; }
+
+    bool GetIsOneEightyDegressAllowed() { return m_allowOneEightyDegreess; }
+
+    bool GetIsTwoSeventyDegressAllowed() { return m_allowTwoSeventyDegreess; }
+
+    bool GetIsAllDegressAllowed() { return m_allowAllDegreess; }
 
 private:
-    bool m_allowAllowedOrientation;
+    bool m_allowZeroDegreess;
+    bool m_allowNintyDegreess;
+    bool m_allowOneEightyDegreess;
+    bool m_allowTwoSeventyDegreess;
+    bool m_allowAllDegreess;
+
     std::shared_ptr<DrcReAllowedOrientationConstraintData> m_constraintData;
 };
 
