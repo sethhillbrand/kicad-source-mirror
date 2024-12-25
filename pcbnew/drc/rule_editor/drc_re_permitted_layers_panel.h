@@ -36,10 +36,13 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    bool GetPermittedLayersAllowed() { return m_allowPermittedLayers; }
+    bool GetTopLayerEnabled() { return m_topLayer; }
 
-private:
-    bool m_allowPermittedLayers;
+    bool GetBottomLayerEnabled() { return m_bottomLayer; }
+
+private:    
+    bool m_topLayer;
+    bool m_bottomLayer;
     std::shared_ptr<DrcRePermittedLayersConstraintData> m_constraintData;
 };
 

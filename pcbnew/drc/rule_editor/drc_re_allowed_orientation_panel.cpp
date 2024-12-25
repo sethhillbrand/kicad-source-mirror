@@ -39,8 +39,7 @@
 DRC_RE_ALLOWED_ORIENTATION_PANEL::DRC_RE_ALLOWED_ORIENTATION_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                         std::shared_ptr<DrcReAllowedOrientationConstraintData> aConstraintData ) :
         DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_allowAllowedOrientation( false )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_allowed_orientation ) );
@@ -56,8 +55,6 @@ DRC_RE_ALLOWED_ORIENTATION_PANEL::~DRC_RE_ALLOWED_ORIENTATION_PANEL()
 
 bool DRC_RE_ALLOWED_ORIENTATION_PANEL::TransferDataToWindow()
 {
-    m_allowAllowedOrientation = m_chkZeroDegrees->GetValue();
-
     return true;
 }
 

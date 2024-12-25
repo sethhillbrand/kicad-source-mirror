@@ -30,7 +30,7 @@ public:
     RuleEditorBaseData() = default;
 
     explicit RuleEditorBaseData( unsigned int aId, unsigned int aParentId,wxString aRuleName ) :
-            m_id( aId ), m_ParentId( aParentId ), m_ruleName( aRuleName )
+            m_id( aId ), m_ParentId( aParentId ), m_ruleName( aRuleName ), m_isNew( false )
     {
     }
 
@@ -48,11 +48,15 @@ public:
     wxString GetComment() { return m_comment; }
     void     SetComment( wxString aComment ) { m_comment = aComment; }
 
+    bool IsNew() { return m_isNew; }
+    void SetIsNew( bool aIsNew ) { m_isNew = aIsNew; }
+
 protected:
     unsigned int m_id;
     std::optional<unsigned int> m_ParentId;
     wxString m_ruleName;
     wxString m_comment;
+    bool     m_isNew;
 };
 
 

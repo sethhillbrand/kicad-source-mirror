@@ -39,8 +39,7 @@
 DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                 std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> aConstraintData ) :
         DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_absoluteLengthTwo( 0 )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_absolute_length_2 ) );

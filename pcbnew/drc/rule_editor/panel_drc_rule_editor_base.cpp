@@ -14,8 +14,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	wxBoxSizer* mainSizer;
 	mainSizer = new wxBoxSizer( wxHORIZONTAL );
 
-	wxBoxSizer* bSizer3;
-	bSizer3 = new wxBoxSizer( wxVERTICAL );
+	bContentSizer = new wxBoxSizer( wxVERTICAL );
 
 	wxBoxSizer* bBasicDetailSizer;
 	bBasicDetailSizer = new wxBoxSizer( wxVERTICAL );
@@ -46,7 +45,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	bBasicDetailSizer->Add( fgSizer2, 1, wxEXPAND|wxLEFT|wxTOP, 5 );
 
 
-	bSizer3->Add( bBasicDetailSizer, 0, 0, 20 );
+	bContentSizer->Add( bBasicDetailSizer, 0, 0, 20 );
 
 	m_constraintSizer = new wxBoxSizer( wxVERTICAL );
 
@@ -63,7 +62,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	m_constraintSizer->Add( m_constraintContentSizer, 0, wxEXPAND, 5 );
 
 
-	bSizer3->Add( m_constraintSizer, 0, wxEXPAND|wxTOP, 15 );
+	bContentSizer->Add( m_constraintSizer, 0, wxEXPAND|wxTOP, 15 );
 
 	wxBoxSizer* bConditionSizer;
 	bConditionSizer = new wxBoxSizer( wxVERTICAL );
@@ -106,7 +105,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	bConditionSizer->Add( bSizer17, 1, wxEXPAND, 5 );
 
 
-	bSizer3->Add( bConditionSizer, 0, wxEXPAND|wxTOP, 15 );
+	bContentSizer->Add( bConditionSizer, 0, wxEXPAND|wxTOP, 15 );
 
 	wxBoxSizer* bLayerSizer;
 	bLayerSizer = new wxBoxSizer( wxVERTICAL );
@@ -120,14 +119,18 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 
 	m_LayersComboBoxSizer = new wxBoxSizer( wxVERTICAL );
 
+	m_LayersComboBoxSizer->SetMinSize( wxSize( -1,70 ) );
 
 	bLayerSizer->Add( m_LayersComboBoxSizer, 1, wxEXPAND, 5 );
 
 
-	bSizer3->Add( bLayerSizer, 0, wxEXPAND|wxTOP, 15 );
+	bContentSizer->Add( bLayerSizer, 0, wxEXPAND|wxTOP, 15 );
+
+	m_staticline4 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
+	bContentSizer->Add( m_staticline4, 0, wxEXPAND | wxALL, 5 );
 
 
-	mainSizer->Add( bSizer3, 1, 0, 5 );
+	mainSizer->Add( bContentSizer, 1, 0, 5 );
 
 
 	this->SetSizer( mainSizer );

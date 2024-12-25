@@ -35,6 +35,7 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 	private:
 
 	protected:
+		wxBoxSizer* bContentSizer;
 		wxStaticText* m_nameLabel;
 		wxTextCtrl* m_nameCtrl;
 		wxStaticText* m_commentLabel;
@@ -52,6 +53,7 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 		wxStaticText* m_staticText711;
 		wxStaticLine* m_staticline111;
 		wxBoxSizer* m_LayersComboBoxSizer;
+		wxStaticLine* m_staticline4;
 
 	public:
 

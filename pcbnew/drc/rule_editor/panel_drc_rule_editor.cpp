@@ -85,8 +85,21 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
     }
 
     MultiChoiceComboBox* multiChoice = new MultiChoiceComboBox( this, items );
-    multiChoice->SetMinSize( wxSize( -1, 70 ) );
-    m_LayersComboBoxSizer->Add( multiChoice, 0, wxALL | wxEXPAND, 15 ); 
+    m_LayersComboBoxSizer->Add( multiChoice, 0, wxALL | wxEXPAND, 5 ); 
+
+     // Create another sizer for the buttons on the right
+    wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
+    wxButton* btnSaveOrUpdate = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save":"Update" );
+    wxButton* btnCancelOrDelete = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel":"Delete" );
+    wxButton* btnClose = new wxButton( this, wxID_ANY, "Close" );
+    buttonSizer->Add( btnSaveOrUpdate, 0, wxALL, 5 );
+    buttonSizer->Add( btnCancelOrDelete, 0, wxALL, 5 );
+    buttonSizer->Add( btnClose, 0, wxALL, 5 );
+
+    // Add the button sizer to the main sizer (to the right)
+    bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
+
+  
 }
 
 
