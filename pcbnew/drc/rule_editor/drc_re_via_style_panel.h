@@ -23,6 +23,7 @@
 #include "drc_re_via_style_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_via_style_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_VIA_STYLE_PANEL : public DRC_RE_VIA_STYLE_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -36,10 +37,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    double GetViaStyle() { return m_viaStyle; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-private:
-    double m_viaStyle;
+private:    
     std::shared_ptr<DrcReViaStyleConstraintData> m_constraintData;
 };
 

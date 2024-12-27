@@ -32,10 +32,19 @@ class DrcReParallelLimitConstraintData : public DrcReBaseConstraintData
 public:
     DrcReParallelLimitConstraintData() = default;
 
-    explicit DrcReParallelLimitConstraintData( unsigned int aId, unsigned int aParentId,
-                                               double aClearanceValue, wxString aRuleName) :
+    explicit DrcReParallelLimitConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_parallelLimit( 0 ),
+            m_parallelGap( 0 )
+    {
+    }
+
+    explicit DrcReParallelLimitConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
+                                               double aParallelLimit,
+                                               double aParallelGap ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_parallelLimit( aClearanceValue )
+            m_parallelLimit( aParallelLimit ),
+            m_parallelGap( aParallelGap )
     {
     }
 
@@ -44,7 +53,11 @@ public:
     double GetParallelLimit() { return m_parallelLimit; }
     void   SetParallelLimit( double aParallelLimit ) { m_parallelLimit = aParallelLimit; }
 
+    double GetParallelGap() { return m_parallelGap; }
+    void   SetParallelGap( double aParallelGap ) { m_parallelGap = aParallelGap; }
+
 private:
+    double m_parallelGap;
     double m_parallelLimit;
 };
 

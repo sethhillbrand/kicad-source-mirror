@@ -33,22 +33,22 @@ class DRC_RE_VIA_STYLE_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxStaticText* m_staticText1;
-		wxTextCtrl* m_textViaDiameterMinimum;
+		wxTextCtrl* m_minViaDiameterTextCtrl;
 		wxStaticText* m_staticText2;
 		wxStaticText* m_staticText3;
-		wxTextCtrl* m_textViaDiameterMaximum;
+		wxTextCtrl* m_maxViaDiameterTextCtrl;
 		wxStaticText* m_staticText4;
 		wxStaticText* m_staticText5;
-		wxTextCtrl* m_textViaDiameterPreferred;
+		wxTextCtrl* m_preferredViaDiameterTextCtrl;
 		wxStaticText* m_staticText6;
 		wxStaticText* m_staticText7;
-		wxTextCtrl* m_textViaHoleSizeMinimum;
+		wxTextCtrl* m_minViaHoleSizeTextCtrl;
 		wxStaticText* m_staticText8;
 		wxStaticText* m_staticText9;
-		wxTextCtrl* m_textViaHoleSizeMaximum;
+		wxTextCtrl* m_maxViaHoleSizeTextCtrl;
 		wxStaticText* m_staticText10;
 		wxStaticText* m_staticText11;
-		wxTextCtrl* m_textViaHoleSizePreferred;
+		wxTextCtrl* m_preferredViaHoleSizeTextCtrl;
 		wxStaticText* m_staticText12;
 
 	public:

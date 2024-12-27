@@ -21,38 +21,41 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
-#define DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
-
-#include "drc_re_base_constraint_data.h"
+#include "drc_re_validator_combo_ctrl.h"
 
 
-class DrcReNumericInputConstraintData : public DrcReBaseConstraintData
+VALIDATOR_COMBO_CTRL::VALIDATOR_COMBO_CTRL() : m_validationState( ValidationState::Valid )
 {
-public:
-    DrcReNumericInputConstraintData() = default;
+}
 
-    explicit DrcReNumericInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ),
-            m_numericInputValue( 0 )
+wxObject* VALIDATOR_COMBO_CTRL::Clone() const
+{
+    return new VALIDATOR_COMBO_CTRL();
+}
+
+bool VALIDATOR_COMBO_CTRL::Validate( wxWindow* parent )
+{
+    bool result = true;
+
+    wxComboBox* comboCtrl = wxDynamicCast( GetWindow(), wxComboBox );
+
+    if( !comboCtrl )
     {
+        m_validationState = ValidationState::InValidCtrl;
+        return false;
     }
 
-    explicit DrcReNumericInputConstraintData( unsigned int aId, unsigned int aParentId,
-                                              double aNumericInputValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_numericInputValue( aNumericInputValue )
+    if( comboCtrl->GetSelection() == wxNOT_FOUND )
     {
+        m_validationState = ValidationState::NothingSelected;
+        return false;
     }
 
-    virtual ~DrcReNumericInputConstraintData() = default;
+    m_validationState = ValidationState::Valid;
+    return true;
+}
 
-    double GetNumericInputValue() { return m_numericInputValue; }
-    void   SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
-
-private:
-    double m_numericInputValue;
-};
-
-
-#endif // DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
+VALIDATOR_COMBO_CTRL::ValidationState VALIDATOR_COMBO_CTRL::GetValidationState() const
+{
+    return m_validationState;
+}

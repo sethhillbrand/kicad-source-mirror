@@ -54,12 +54,35 @@ DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::~DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNES
 
 
 bool DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::TransferDataToWindow()
-{
+{ 
+    if( m_constraintData )
+    {
+        m_minTextHeightTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinTextHeight() ) );
+        m_minTextThicknessTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinTextThickness() ) );
+    }
+
     return true;
 }
 
 
 bool DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::TransferDataFromWindow()
 {
-    return false;
+    m_constraintData->SetMinTextHeight( std::stod( m_minTextHeightTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMinTextThickness( std::stod( m_minTextThicknessTextCtrl->GetValue().ToStdString() ) );
+
+    return true;
+}
+
+
+bool DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minTextHeightTextCtrl, "Minimum Text Height", false,
+                                                     aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minTextThicknessTextCtrl, "Minimum Text Thickness", false,
+                                                     aErrorCount, aValidationMessage ) )
+        return false;     
+
+    return true;
 }

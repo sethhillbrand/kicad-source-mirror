@@ -141,7 +141,6 @@ private:
     MultiChoicePopup* m_popup;
 };
 
-
 class PANEL_DRC_RULE_EDITOR : public PANEL_DRC_RULE_EDITOR_BASE, public DrcRuleEditorContentPanelBase
 {
 public:
@@ -156,20 +155,57 @@ public:
 
     auto GetConstraintData() { return m_constraintData; }
 
+    void SetSaveOrUpdateCallback( std::function<void( int aNodeId )> aCallbackSaveOrUpdate ) { m_callbackSaveOrUpdate = aCallbackSaveOrUpdate; }
+
+    void SetCancelOrDeleteCallback( std::function<void( int aNodeId )> aCallbackCancelOrDelete ) { m_callbackCancelOrDelete = aCallbackCancelOrDelete; }
+
+    void SetCloseCallback( std::function<void( int aNodeId )> aCallbackClose ) { m_callbackClose = aCallbackClose; }
+
+    void SetRuleNameValidationCallback( std::function<bool( int aNodeId, wxString aRuleName )> aCallbackRuleNameValidation ) { m_callbackRuleNameValidation = aCallbackRuleNameValidation; }
+
+    bool GetIsValidationSucceeded() { return m_validationSucceeded; }
+
+    std::string GetValidationMessage() { return m_validationMessage; }
+
+    void RefreshScreen();
+
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
+
 private:
     DrcRuleEditorContentPanelBase* getConstraintPanel( wxWindow* aParent, const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
+
+    void onSaveOrUpdateButtonClicked( wxCommandEvent& event );
+
+    void onCancelOrDeleteButtonClicked( wxCommandEvent& event );
+
+    void onCloseButtonClicked( wxCommandEvent& event );
 
 private:
     std::vector<int> m_validLayers;
     LSEQ             m_layerList; 
+    MultiChoiceComboBox* m_layerListCmbCtrl;
     BOARD*           m_board;
     wxComboCtrl*     m_comboCtrl;
     wxString*        m_constraintTitle;
     DRC_RULE_EDITOR_CONSTRAINT_NAME m_constraintType;
-    DrcRuleEditorContentPanelBase*  m_childPanel;
+    DrcRuleEditorContentPanelBase*  m_constraintPanel;
     std::shared_ptr<DrcReBaseConstraintData> m_constraintData;
     wxString* m_name;
     wxString* m_comment;
+    bool m_basicDetailValidated;
+    bool m_syntaxChecked;
+
+    bool m_isModified;
+    bool m_validationSucceeded;
+    std::string m_validationMessage;
+
+    wxButton* btnSave;
+    wxButton* btnCancel;
+
+    std::function<void( int aNodeId )> m_callbackSaveOrUpdate;
+    std::function<void( int aNodeId )> m_callbackCancelOrDelete;
+    std::function<void( int aNodeId )> m_callbackClose;
+    std::function<bool( int aNodeId, wxString aRuleName )> m_callbackRuleNameValidation;
 };
 
 #endif // PANEL_DRC_RULE_EDITOR_H

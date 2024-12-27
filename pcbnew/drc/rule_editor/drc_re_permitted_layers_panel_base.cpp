@@ -33,11 +33,11 @@ DRC_RE_PERMITTED_LAYERS_PANEL_BASE::DRC_RE_PERMITTED_LAYERS_PANEL_BASE( wxWindow
 	fgSizer3->SetFlexibleDirection( wxBOTH );
 	fgSizer3->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
-	m_chkTopLayer = new wxCheckBox( this, wxID_ANY, _("Top Layer"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkTopLayer, 0, wxALL, 5 );
+	m_topLayerChkCtrl = new wxCheckBox( this, wxID_ANY, _("Top Layer"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_topLayerChkCtrl, 0, wxALL, 5 );
 
-	m_chkBottomLayer = new wxCheckBox( this, wxID_ANY, _("Bottom Layer"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkBottomLayer, 0, wxALL, 5 );
+	m_bottomLayerChkCtrl = new wxCheckBox( this, wxID_ANY, _("Bottom Layer"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_bottomLayerChkCtrl, 0, wxALL, 5 );
 
 
 	bConstraintContentSizer->Add( fgSizer3, 0, wxEXPAND, 5 );

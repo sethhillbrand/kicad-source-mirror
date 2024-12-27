@@ -32,20 +32,33 @@ class DrcRePermittedLayersConstraintData : public DrcReBaseConstraintData
 public:
     DrcRePermittedLayersConstraintData() = default;
 
-    explicit DrcRePermittedLayersConstraintData( unsigned int aId, unsigned int aParentId,
-                                              bool aAllowPermittedLayers, wxString aRuleName ) :
+    explicit DrcRePermittedLayersConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_topLayer( false ),
+            m_bottomLayer( false )
+    {
+    }
+
+    explicit DrcRePermittedLayersConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
+                                                 bool aTopLayer,
+                                                 bool aBottomLayer ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_allowPermittedLayers( aAllowPermittedLayers )
+            m_topLayer( aTopLayer ),
+            m_bottomLayer( aBottomLayer )
     {
     }
 
     virtual ~DrcRePermittedLayersConstraintData() = default;
 
-    bool GetPermittedLayersAllowed() { return m_allowPermittedLayers; }
-    void SetPermittedLayersAllowed( double aAllowPermittedLayers ) { m_allowPermittedLayers = aAllowPermittedLayers; }
+    bool GetTopLayerEnabled() { return m_topLayer; }
+    void SetTopLayerEnabled( double aTopLayer ) { m_topLayer = aTopLayer; }
+
+    bool GetBottomLayerEnabled() { return m_bottomLayer; }
+    void SetBottomLayerEnabled( double aBottomLayer ) { m_bottomLayer = aBottomLayer; }
 
 private:
-    bool m_allowPermittedLayers;
+    bool m_topLayer;
+    bool m_bottomLayer;
 };
 
 

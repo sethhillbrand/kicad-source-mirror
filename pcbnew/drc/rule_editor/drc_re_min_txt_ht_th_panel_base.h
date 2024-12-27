@@ -32,10 +32,10 @@ class DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxStaticText* m_staticText1;
-		wxTextCtrl* m_textMinimumTextHeight;
+		wxTextCtrl* m_minTextHeightTextCtrl;
 		wxStaticText* m_staticText2;
 		wxStaticText* m_staticText3;
-		wxTextCtrl* m_textMinimumTextThickness;
+		wxTextCtrl* m_minTextThicknessTextCtrl;
 		wxStaticText* m_staticText4;
 
 	public:

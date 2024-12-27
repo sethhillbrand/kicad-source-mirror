@@ -32,6 +32,12 @@ class DrcReBoolInputConstraintData : public DrcReBaseConstraintData
 public:
     DrcReBoolInputConstraintData() = default;
 
+    explicit DrcReBoolInputConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_boolInputValue( false )
+    {
+    }
+
     explicit DrcReBoolInputConstraintData( unsigned int aId, unsigned int aParentId,
                                            bool aBoolInputValue, wxString aRuleName) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),

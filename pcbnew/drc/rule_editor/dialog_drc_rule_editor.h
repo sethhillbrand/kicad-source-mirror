@@ -74,6 +74,14 @@ private:
 
     RuleTreeNode*              getNodeInfo( RuleTreeItemData* aRuleTreeItemData );
 
+    void onSaveOrUpdateButtonClicked( int aNodeId );
+
+    void onCancelOrDeleteButtonClicked( int aNodeId );
+
+    void onCloseButtonClicked( int aNodeId );
+
+    bool validateRuleName( int aNodeId, wxString aRuleName );
+
 protected:
     PCB_EDIT_FRAME* m_frame;
 

@@ -28,8 +28,8 @@ DRC_RE_BOOL_INPUT_PANEL_BASE::DRC_RE_BOOL_INPUT_PANEL_BASE( wxWindow* parent, wx
 
 	bConstraintContentSizer->Add( 0, 0, 1, wxEXPAND, 5 );
 
-	m_boolConstraintCtrl = new wxCheckBox( this, wxID_ANY, _("Check Me!"), wxDefaultPosition, wxDefaultSize, 0 );
-	bConstraintContentSizer->Add( m_boolConstraintCtrl, 0, wxALL, 5 );
+	m_boolConstraintChkCtrl = new wxCheckBox( this, wxID_ANY, _("Check Me!"), wxDefaultPosition, wxDefaultSize, 0 );
+	bConstraintContentSizer->Add( m_boolConstraintChkCtrl, 0, wxALL, 5 );
 
 
 	bConstraintContentSizer->Add( 0, 0, 1, wxEXPAND, 5 );

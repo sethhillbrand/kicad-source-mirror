@@ -32,20 +32,55 @@ class DrcReAllowedOrientationConstraintData : public DrcReBaseConstraintData
 public:
     DrcReAllowedOrientationConstraintData() = default;
 
+    explicit DrcReAllowedOrientationConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_allowZeroDegreess( false ),
+            m_allowNintyDegreess( false ),
+            m_allowOneEightyDegreess( false ),
+            m_allowTwoSeventyDegreess( false ),
+            m_allowAllDegreess( false )
+    {
+    }
+
     explicit DrcReAllowedOrientationConstraintData( unsigned int aId, unsigned int aParentId,
-                                              bool aAllowAllowedOrientation, wxString aRuleName ) :
+                                                    bool aAllowZeroDegreess,
+                                                    bool aAllowNintyDegreess,
+                                                    bool aAllowOneEightyDegreess,
+                                                    bool aAllowTwoSeventyDegreess,
+                                                    bool aAllowAllDegreess,
+                                                    wxString aRuleName ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_allowAllowedOrientation( aAllowAllowedOrientation )
+            m_allowZeroDegreess( aAllowZeroDegreess ),
+            m_allowNintyDegreess( aAllowNintyDegreess ),
+            m_allowOneEightyDegreess( aAllowOneEightyDegreess ),
+            m_allowTwoSeventyDegreess( aAllowTwoSeventyDegreess ),
+            m_allowAllDegreess( aAllowAllDegreess )
     {
     }
 
     virtual ~DrcReAllowedOrientationConstraintData() = default;
 
-    bool GetAllowedOrientationAllowed() { return m_allowAllowedOrientation; }
-    void SetAllowedOrientationAllowed( double aAllowAllowedOrientation ) { m_allowAllowedOrientation = aAllowAllowedOrientation; }
+    bool GetIsZeroDegressAllowed() { return m_allowZeroDegreess; }
+    void SetIsZeroDegressAllowed( double aAllowZeroDegreess ) { m_allowZeroDegreess = aAllowZeroDegreess; }
+
+    bool GetIsNintyDegressAllowed() { return m_allowNintyDegreess; }
+    void SetIsNintyDegressAllowed( double aAllowNintyDegreess ) { m_allowNintyDegreess = aAllowNintyDegreess; }
+
+    bool GetIsOneEightyDegressAllowed() { return m_allowOneEightyDegreess; }
+    void SetIsOneEightyDegressAllowed( double aAllowOneEightyDegreess ) { m_allowOneEightyDegreess = aAllowOneEightyDegreess; }
+
+    bool GetIsTwoSeventyDegressAllowed() { return m_allowTwoSeventyDegreess; }
+    void SetIsTwoSeventyDegressAllowed( double aAllowTwoSeventyDegreess ) { m_allowTwoSeventyDegreess = aAllowTwoSeventyDegreess; }
+
+    bool GetIsAllDegressAllowed() { return m_allowAllDegreess; }
+    void SetIsAllDegressAllowed( double aAllowAllDegreess ) { m_allowAllDegreess = aAllowAllDegreess; }
 
 private:
-    bool m_allowAllowedOrientation;
+    bool m_allowZeroDegreess;
+    bool m_allowNintyDegreess;
+    bool m_allowOneEightyDegreess;
+    bool m_allowTwoSeventyDegreess;
+    bool m_allowAllDegreess;
 };
 
 

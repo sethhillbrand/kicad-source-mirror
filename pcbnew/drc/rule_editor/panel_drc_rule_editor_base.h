@@ -17,12 +17,12 @@
 #include <wx/colour.h>
 #include <wx/settings.h>
 #include <wx/textctrl.h>
+#include <wx/sizer.h>
+#include <wx/statline.h>
 #include <wx/button.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
 #include <wx/icon.h>
-#include <wx/sizer.h>
-#include <wx/statline.h>
 #include <wx/panel.h>
 
 ///////////////////////////////////////////////////////////////////////////
@@ -36,11 +36,11 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 
 	protected:
 		wxBoxSizer* bContentSizer;
+		wxBoxSizer* bBasicDetailSizer;
 		wxStaticText* m_nameLabel;
 		wxTextCtrl* m_nameCtrl;
 		wxStaticText* m_commentLabel;
 		wxTextCtrl* m_commentCtrl;
-		wxButton* m_validateBtn;
 		wxBoxSizer* m_constraintSizer;
 		wxStaticText* m_constraintHeaderTitle;
 		wxStaticLine* m_staticline3;
@@ -48,8 +48,8 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 		wxStaticText* m_staticText71;
 		wxStaticLine* m_staticline11;
 		wxTextCtrl* m_textConditionCtrl;
-		wxButton* m_button9;
-		wxButton* m_button10;
+		wxButton* m_showMatchesBtnCtrl;
+		wxButton* m_checkSyntaxBtnCtrl;
 		wxStaticText* m_staticText711;
 		wxStaticLine* m_staticline111;
 		wxBoxSizer* m_LayersComboBoxSizer;

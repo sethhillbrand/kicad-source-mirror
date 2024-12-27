@@ -32,10 +32,10 @@ class DRC_RE_PARALLEL_LIMIT_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxStaticText* m_staticText1;
-		wxTextCtrl* m_textParallelGap;
+		wxTextCtrl* m_parallelGapTextCtrl;
 		wxStaticText* m_staticText2;
 		wxStaticText* m_staticText3;
-		wxTextCtrl* m_textParallelLimit;
+		wxTextCtrl* m_parallelLimitTextCtrl;
 		wxStaticText* m_staticText4;
 
 	public:

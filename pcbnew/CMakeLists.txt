@@ -320,6 +320,13 @@ set( PCBNEW_DRC_SRCS
     drc/rule_editor/drc_re_corner_style_panel.cpp
     drc/rule_editor/drc_re_smd_entry_panel_base.cpp
     drc/rule_editor/drc_re_smd_entry_panel.cpp
+    drc/rule_editor/panel_drc_group_header_base.cpp
+    drc/rule_editor/panel_drc_group_header.cpp
+    drc/rule_editor/drc_re_validator_checkbox_list.cpp
+    drc/rule_editor/drc_re_validator_combo_ctrl.cpp
+    drc/rule_editor/drc_re_validator_min_max_ctrl.cpp
+    drc/rule_editor/drc_re_validator_min_preferred_max_ctrl.cpp
+    drc/rule_editor/drc_re_validator_numeric_ctrl.cpp
     )
 
 set( PCBNEW_NETLIST_SRCS

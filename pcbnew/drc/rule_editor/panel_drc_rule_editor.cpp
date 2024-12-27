@@ -28,6 +28,15 @@
 #include <widgets/std_bitmap_button.h>
 #include <grid_tricks.h>
 #include <eda_text.h>
+#include <grid_layer_box_helpers.h>
+#include <bitmaps.h>
+#include <confirm.h>
+#include <kidialog.h>
+#include <layer_ids.h>
+#include <layer_range.h>
+#include <board.h>
+#include <idf_parser.h>
+
 #include <drc/rule_editor/panel_drc_rule_editor.h>
 #include <drc/rule_editor/drc_re_numeric_input_panel.h>
 #include <drc/rule_editor/drc_re_bool_input_panel.h>
@@ -41,14 +50,6 @@
 #include <drc/rule_editor/drc_re_allowed_orientation_panel.h>
 #include <drc/rule_editor/drc_re_corner_style_panel.h>
 #include <drc/rule_editor/drc_re_smd_entry_panel.h>
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <layer_ids.h>
-#include <layer_range.h>
-#include <board.h>
-#include <idf_parser.h>
 #include "drc_re_numeric_input_constraint_data.h"
 #include "drc_re_bool_input_constraint_data.h"
 #include "drc_re_via_style_constraint_data.h"
@@ -63,17 +64,18 @@
 #include "drc_re_smd_entry_constraint_data.h"
 
 
-
 PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType, 
                                               wxString* aConstraintTitle, std::shared_ptr<DrcReBaseConstraintData> aConstraintData ) :
         PANEL_DRC_RULE_EDITOR_BASE( aParent ),
         m_board( aBoard ), 
         m_constraintTitle( aConstraintTitle ),
         m_constraintData( aConstraintData ), 
-        m_constraintType( aConstraintType )
+        m_constraintType( aConstraintType ),
+        m_validationSucceeded( false ),
+        m_isModified( false )
 {
-    m_childPanel = getConstraintPanel( this, aConstraintType );
-    m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_childPanel ), 0, wxEXPAND | wxTOP, 5 );      
+    m_constraintPanel = getConstraintPanel( this, aConstraintType );
+    m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP, 5 );      
     m_layerList = m_board->GetEnabledLayers().UIOrder();
     m_constraintHeaderTitle->SetLabelText( *aConstraintTitle + " Constraint" );
 
@@ -84,22 +86,25 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
         items.Add( m_board->GetLayerName( layer ) );
     }
 
-    MultiChoiceComboBox* multiChoice = new MultiChoiceComboBox( this, items );
-    m_LayersComboBoxSizer->Add( multiChoice, 0, wxALL | wxEXPAND, 5 ); 
+    m_layerListCmbCtrl = new MultiChoiceComboBox( this, items );
+    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 ); 
 
      // Create another sizer for the buttons on the right
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
-    wxButton* btnSaveOrUpdate = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save":"Update" );
-    wxButton* btnCancelOrDelete = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel":"Delete" );
+    btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
+    btnCancel = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
     wxButton* btnClose = new wxButton( this, wxID_ANY, "Close" );
-    buttonSizer->Add( btnSaveOrUpdate, 0, wxALL, 5 );
-    buttonSizer->Add( btnCancelOrDelete, 0, wxALL, 5 );
+    buttonSizer->Add( btnSave, 0, wxALL, 5 );
+    buttonSizer->Add( btnCancel, 0, wxALL, 5 );
     buttonSizer->Add( btnClose, 0, wxALL, 5 );
 
     // Add the button sizer to the main sizer (to the right)
-    bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
+    bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );  
 
-  
+    // Bind the button's event to an event handler
+    btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveOrUpdateButtonClicked, this );
+    btnCancel->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCancelOrDeleteButtonClicked, this );
+    btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
 }
 
 
@@ -116,18 +121,18 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataToWindow()
         m_commentCtrl->SetValue( m_constraintData->GetComment() );
     }
 
-    return dynamic_cast<wxPanel*>( m_childPanel )->TransferDataToWindow();
+    return dynamic_cast<wxPanel*>( m_constraintPanel )->TransferDataToWindow();
 }
 
 
 bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
 {
-    dynamic_cast<wxPanel*>( m_childPanel )->TransferDataFromWindow();
+    dynamic_cast<wxPanel*>( m_constraintPanel )->TransferDataFromWindow();
 
     m_constraintData->SetRuleName( m_nameCtrl->GetValue() );
     m_constraintData->SetComment( m_commentCtrl->GetValue() );
 
-    if( DrcRuleEditorUtils::IsNumericInputType( m_constraintType ) )
+    /*if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( m_constraintType ) )
     {
         auto derivedPtr = dynamic_pointer_cast<DrcReNumericInputConstraintData>( m_constraintData );
 
@@ -136,7 +141,7 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
             derivedPtr->SetNumericInputValue( dynamic_cast<DRC_RE_NUMERIC_INPUT_PANEL*>(m_childPanel)->GetNumericInputValue() );
         }
     }
-    else if( DrcRuleEditorUtils::IsBoolInputType( m_constraintType ) )
+    else if( DRC_RULE_EDITOR_UTILS::IsBoolInputType( m_constraintType ) )
     {
         auto derivedPtr = dynamic_pointer_cast<DrcReBoolInputConstraintData>( m_constraintData );
 
@@ -144,7 +149,7 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
         {
             derivedPtr->SetBoolInputValue( dynamic_cast<DRC_RE_BOOL_INPUT_PANEL*>(m_childPanel)->GetBoolInputValue() );
         }
-    }
+    }*/
 
     return true;
 }
@@ -176,7 +181,7 @@ DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWind
     case SMD_ENTRY:    
         return new DRC_RE_SMD_ENTRY_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReSmdEntryConstraintData>( m_constraintData) );
     default:
-        if( DrcRuleEditorUtils::IsNumericInputType( aConstraintType ) )
+        if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( aConstraintType ) )
         {
             wxString customLabel;
 
@@ -197,7 +202,7 @@ DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWind
 
             return new DRC_RE_NUMERIC_INPUT_PANEL( aParent, numericInputParams );
         }
-        else if( DrcRuleEditorUtils::IsBoolInputType( aConstraintType ) )
+        else if( DRC_RULE_EDITOR_UTILS::IsBoolInputType( aConstraintType ) )
         {
              wxString customLabel;
 
@@ -218,4 +223,64 @@ DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWind
             return nullptr;
         };
     }
+}
+
+bool PANEL_DRC_RULE_EDITOR::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    if( !m_callbackRuleNameValidation( m_constraintData->GetId(), m_nameCtrl->GetValue() ) )
+    {
+        m_validationSucceeded = false;
+        (*aErrorCount)++;
+        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Rule Name should be unique !!");
+    }
+
+    if( m_layerListCmbCtrl->GetSelectedItems() == wxEmptyString )
+    {
+        m_validationSucceeded = false;
+        (*aErrorCount)++;
+        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Layers selection should not be empty !!");
+    }    
+
+    return m_validationSucceeded;
+}
+
+void PANEL_DRC_RULE_EDITOR::onSaveOrUpdateButtonClicked( wxCommandEvent& event )
+{
+    m_validationSucceeded = true;
+    int errorCount = 0;
+    m_validationMessage = "";
+
+    ValidateInputs( &errorCount, &m_validationMessage );
+
+    if( !m_constraintPanel->ValidateInputs( &errorCount, &m_validationMessage ) )
+    {
+        m_validationSucceeded = false;
+    }
+
+    if( m_callbackSaveOrUpdate )
+    {
+        m_callbackSaveOrUpdate( m_constraintData->GetId() ); // Invoke the callback
+    }
+}
+
+void PANEL_DRC_RULE_EDITOR::onCancelOrDeleteButtonClicked( wxCommandEvent& event )
+{
+    if( m_callbackCancelOrDelete )
+    {
+        m_callbackCancelOrDelete( m_constraintData->GetId() ); // Invoke the callback
+    }
+}
+
+void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& event )
+{
+    if( m_callbackClose )
+    {
+        m_callbackClose( m_constraintData->GetId() ); // Invoke the callback
+    }
+}
+
+void PANEL_DRC_RULE_EDITOR::RefreshScreen()
+{
+    btnSave->SetLabelText( "Update" );
+    btnCancel->SetLabelText( "Delete" );
 }

@@ -32,21 +32,40 @@ class DrcReCornerStyleConstraintData : public DrcReBaseConstraintData
 public:
     DrcReCornerStyleConstraintData() = default;
 
-    explicit DrcReCornerStyleConstraintData( unsigned int aId, unsigned int aParentId,
-                                                double aClearanceValue, wxString aRuleName) :
+    explicit DrcReCornerStyleConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_cornerStyle( wxEmptyString ),
+            m_minSetbackLength( 0 ),
+            m_maxSetbackLength( 0 )
+    {
+    }
+
+    explicit DrcReCornerStyleConstraintData( unsigned int aId, unsigned int aParentId, wxString& aRuleName,
+                                             wxString& aCornerStyle, 
+                                             double& aMinSetbackLength, 
+                                             double& aMaxSetbackLength ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_cornerStyle( aClearanceValue )
+            m_cornerStyle( aCornerStyle ),
+            m_minSetbackLength( aMinSetbackLength ),
+            m_maxSetbackLength( aMaxSetbackLength )
     {
     }
 
     virtual ~DrcReCornerStyleConstraintData() = default;
 
-    double GetCornerStyle() { return m_cornerStyle; }
-    void   SetCornerStyle( double aCornerStyle ) { m_cornerStyle = aCornerStyle; }
+    wxString GetCornerStyle() { return m_cornerStyle; }
+    void     SetCornerStyle( wxString aCornerStyle ) { m_cornerStyle = aCornerStyle; }
+
+    double GetMinSetbackLength() { return m_minSetbackLength; }
+    void   SetMinSetbackLength( double aMinSetbackLength ) { m_minSetbackLength = aMinSetbackLength; }
+
+    double GetMaxSetbackLength() { return m_maxSetbackLength; }
+    void   SetMaxSetbackLength( double aMaxSetbackLength ) { m_maxSetbackLength = aMaxSetbackLength; }
 
 private:
-    double m_cornerStyle;
+    wxString m_cornerStyle;
+    double   m_minSetbackLength;
+    double   m_maxSetbackLength;
 };
-
 
 #endif // DRC_RE_CORNER_STYLE_CONSTRAINT_DATA_H_

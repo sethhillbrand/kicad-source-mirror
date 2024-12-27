@@ -32,21 +32,33 @@ class DrcReMinimumTextHeightThicknessConstraintData : public DrcReBaseConstraint
 public:
     DrcReMinimumTextHeightThicknessConstraintData() = default;
 
-    explicit DrcReMinimumTextHeightThicknessConstraintData( unsigned int aId, unsigned int aParentId,
-                                                double aClearanceValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_minimumTextHeightThickness( aClearanceValue )
+    explicit DrcReMinimumTextHeightThicknessConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_minTextHeight( 0 ),
+            m_minTextThickness( 0 )
     {
     }
 
-    virtual ~DrcReMinimumTextHeightThicknessConstraintData() = default;
+    explicit DrcReMinimumTextHeightThicknessConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
+                                                            double aMinTextHeight,
+                                                            double aMinTextThickness ) :
+            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
+            m_minTextHeight( aMinTextHeight ),
+            m_minTextThickness( aMinTextThickness )
+    {
+    }
 
-    double GetMinimumTextHeightThickness() { return m_minimumTextHeightThickness; }
-    void   SetMinimumTextHeightThickness( double aMinimumTextHeightThickness ) { m_minimumTextHeightThickness = aMinimumTextHeightThickness; }
+    virtual ~DrcReMinimumTextHeightThicknessConstraintData() = default;      
+
+    double GetMinTextHeight() { return m_minTextHeight; }
+    void   SetMinTextHeight( double aMinTextHeight ) { m_minTextHeight = aMinTextHeight; }
+
+    double GetMinTextThickness() { return m_minTextThickness; }
+    void   SetMinTextThickness( double aMinTextThickness ) { m_minTextThickness = aMinTextThickness; }
 
 private:
-    double m_minimumTextHeightThickness;
+    double m_minTextHeight;
+    double m_minTextThickness;
 };
-
 
 #endif // DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA_H_

@@ -23,6 +23,7 @@
 #include "drc_re_parallel_limit_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_parallel_limit_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_PARALLEL_LIMIT_PANEL : public DRC_RE_PARALLEL_LIMIT_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -36,13 +37,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    double GetParallelGap() { return m_parallelGap; }
-
-    double GetParallelLimit() { return m_parallelLimit; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
 private:    
-    double m_parallelGap;
-    double m_parallelLimit;
     std::shared_ptr<DrcReParallelLimitConstraintData> m_constraintData;
 };
 
