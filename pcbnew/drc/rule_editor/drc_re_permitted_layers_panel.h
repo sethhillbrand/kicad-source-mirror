@@ -23,6 +23,7 @@
 #include "drc_re_permitted_layers_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_permitted_layers_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_PERMITTED_LAYERS_PANEL : public DRC_RE_PERMITTED_LAYERS_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -36,13 +37,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    bool GetTopLayerEnabled() { return m_topLayer; }
-
-    bool GetBottomLayerEnabled() { return m_bottomLayer; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
 private:    
-    bool m_topLayer;
-    bool m_bottomLayer;
     std::shared_ptr<DrcRePermittedLayersConstraintData> m_constraintData;
 };
 

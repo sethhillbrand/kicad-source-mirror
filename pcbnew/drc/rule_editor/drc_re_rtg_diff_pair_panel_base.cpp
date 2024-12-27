@@ -34,8 +34,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText13->Wrap( -1 );
 	fgSizer31->Add( m_staticText13, 0, wxALL, 5 );
 
-	m_textCtrl7 = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer31->Add( m_textCtrl7, 0, wxALL, 5 );
+	m_maxUncoupledLengthTextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer31->Add( m_maxUncoupledLengthTextCtrl, 0, wxALL, 5 );
 
 	m_staticText14 = new wxStaticText( this, wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText14->Wrap( -1 );
@@ -56,8 +56,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText1->Wrap( -1 );
 	fgSizer3->Add( m_staticText1, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_textViaDiameterMinimum = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
-	fgSizer3->Add( m_textViaDiameterMinimum, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
+	m_minWidthTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
+	fgSizer3->Add( m_minWidthTextCtrl, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
 
 	m_staticText2 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText2->Wrap( -1 );
@@ -67,8 +67,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText3->Wrap( -1 );
 	fgSizer3->Add( m_staticText3, 0, wxALL, 5 );
 
-	m_textViaDiameterMaximum = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_textViaDiameterMaximum, 0, wxALL, 5 );
+	m_maxWidthTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_maxWidthTextCtrl, 0, wxALL, 5 );
 
 	m_staticText4 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText4->Wrap( -1 );
@@ -78,8 +78,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText5->Wrap( -1 );
 	fgSizer3->Add( m_staticText5, 0, wxALL, 5 );
 
-	m_textViaDiameterPreferred = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_textViaDiameterPreferred, 0, wxALL, 5 );
+	m_preferredWidthTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_preferredWidthTextCtrl, 0, wxALL, 5 );
 
 	m_staticText6 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText6->Wrap( -1 );
@@ -103,8 +103,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText7->Wrap( -1 );
 	fgSizer2->Add( m_staticText7, 0, wxALL, 5 );
 
-	m_textViaHoleSizeMinimum = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_textViaHoleSizeMinimum, 0, wxALL, 5 );
+	m_minGapTextCtrl = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_minGapTextCtrl, 0, wxALL, 5 );
 
 	m_staticText8 = new wxStaticText( sbSizer2->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText8->Wrap( -1 );
@@ -114,8 +114,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText9->Wrap( -1 );
 	fgSizer2->Add( m_staticText9, 0, wxALL, 5 );
 
-	m_textViaHoleSizeMaximum = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_textViaHoleSizeMaximum, 0, wxALL, 5 );
+	m_maxGapTextCtrl = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_maxGapTextCtrl, 0, wxALL, 5 );
 
 	m_staticText10 = new wxStaticText( sbSizer2->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText10->Wrap( -1 );
@@ -125,8 +125,8 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE::DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE( wxWind
 	m_staticText11->Wrap( -1 );
 	fgSizer2->Add( m_staticText11, 0, wxALL, 5 );
 
-	m_textViaHoleSizePreferred = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_textViaHoleSizePreferred, 0, wxALL, 5 );
+	m_preferredGapTextCtrl = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_preferredGapTextCtrl, 0, wxALL, 5 );
 
 	m_staticText12 = new wxStaticText( sbSizer2->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText12->Wrap( -1 );

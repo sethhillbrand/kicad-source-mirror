@@ -39,8 +39,7 @@
 DRC_RE_SMD_ENTRY_PANEL::DRC_RE_SMD_ENTRY_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                         std::shared_ptr<DrcReSmdEntryConstraintData> aConstraintData ) :
         DRC_RE_SMD_ENTRY_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_allowSmdEntry( false )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_smd_entry ) );
@@ -56,11 +55,34 @@ DRC_RE_SMD_ENTRY_PANEL::~DRC_RE_SMD_ENTRY_PANEL()
 
 bool DRC_RE_SMD_ENTRY_PANEL::TransferDataToWindow()
 {
+    if( m_constraintData )
+    {
+        m_sideAngleChkCtrl->SetValue( m_constraintData->GetIsSideAngleEnabled() );
+        m_cornerAngleChkCtrl->SetValue( m_constraintData->GetIsCornerAngleEnabled() );
+        m_anyAngleChkCtrl->SetValue( m_constraintData->GetIsAnyAngleEnabled() );
+    }   
+
     return true;
 }
 
 
 bool DRC_RE_SMD_ENTRY_PANEL::TransferDataFromWindow()
 {
+    m_constraintData->SetIsSideAngleEnabled( m_sideAngleChkCtrl->GetValue() );
+    m_constraintData->SetIsCornerAngleEnabled( m_cornerAngleChkCtrl->GetValue() );
+    m_constraintData->SetIsAnyAngleEnabled( m_anyAngleChkCtrl->GetValue() );
+
     return false;
+}
+
+
+bool DRC_RE_SMD_ENTRY_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    // Assuming you have a group of checkboxes like:
+    std::vector<wxCheckBox*> checkboxes = { m_sideAngleChkCtrl, m_cornerAngleChkCtrl,
+                                            m_anyAngleChkCtrl };
+
+    return DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( checkboxes, "SMD Entry Angles",
+                                                         aErrorCount, aValidationMessage ); 
+    return true;
 }

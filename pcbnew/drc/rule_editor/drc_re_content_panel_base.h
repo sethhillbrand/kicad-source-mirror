@@ -29,6 +29,8 @@ class DrcRuleEditorContentPanelBase
 public:
     DrcRuleEditorContentPanelBase() = default;
     virtual ~DrcRuleEditorContentPanelBase() = default;
+
+    virtual bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) = 0;
 };
 
 #endif // DRC_RE_CLASSES_H_

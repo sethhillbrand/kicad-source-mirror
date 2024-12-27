@@ -134,24 +134,6 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     // Add the content sizer to the main sizer
     mainSizer->Add( m_contentSizer, 1, wxEXPAND, 0 );
 
-    /*m_buttonsSizer = new wxBoxSizer( wxHORIZONTAL );
-
-    m_buttonsSizer->AddStretchSpacer();
-
-    wxStdDialogButtonSizer* sdbSizer = new wxStdDialogButtonSizer();
-    
-    wxButton* sdbSizerOK = new wxButton( this, wxID_OK );
-    sdbSizerOK->SetLabelText( "Save.." );
-    sdbSizer->AddButton( sdbSizerOK );
-    wxButton* sdbSizerCancel = new wxButton( this, wxID_CLOSE );
-    sdbSizer->AddButton( sdbSizerCancel );
-    sdbSizer->Realize();
-
-    m_buttonsSizer->Add( sdbSizer, 1, 0, 5 );
-    mainSizer->Add( m_buttonsSizer, 0, wxALL | wxEXPAND, 5 );
-
-    SetupStandardButtons();*/
-
     // We normally save the dialog size and position based on its class-name.  This class
     // substitutes the title so that each distinctly-titled dialog can have its own saved
     // size and position.
@@ -172,6 +154,8 @@ void RULE_EDITOR_DIALOG_BASE::finishInitialization()
 
 RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
 {
+    m_treeCtrl->Unbind( wxEVT_TREE_ITEM_RIGHT_CLICK, &RULE_EDITOR_DIALOG_BASE::onTreeItemRightClick, this );
+    m_treeCtrl->Unbind( wxEVT_TREE_SEL_CHANGED, &RULE_EDITOR_DIALOG_BASE::onSelectionChanged, this );
     m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::OnFilterSearch, this );
 }
 
@@ -360,7 +344,7 @@ void RULE_EDITOR_DIALOG_BASE::AppendNewTreeItem( wxTreeCtrl* aTreeCtrl, const Ru
     //aTreeCtrl->Disable();
     aTreeCtrl->SelectItem( currentTreeItemId );
 
-    //m_filterSearch->Enable( false );
+    SetControlsEnabled( false );
 }
 
 
@@ -388,8 +372,8 @@ void RULE_EDITOR_DIALOG_BASE::onTreeItemRightClick( wxTreeEvent& aEvent )
     if( !CanShowContextMenu( ruleTreeItemData ) )
         return;
 
-    if( m_selectedTreeItemData )
-        UpdateRuleTypeTreeItemData( m_selectedTreeItemData );
+    /*if( m_selectedTreeItemData )
+        UpdateRuleTypeTreeItemData( m_selectedTreeItemData );*/
 
     m_contextMenuActiveTreeItemData = ruleTreeItemData;
 
@@ -591,4 +575,10 @@ bool RULE_EDITOR_DIALOG_BASE::FilterTree( const wxTreeItemId& item, const wxStri
     }
 
     return matches || hasVisibleChildren;
+}
+
+void RULE_EDITOR_DIALOG_BASE::SetControlsEnabled( bool aEnable )
+{
+    m_treeCtrl->Enable( aEnable );
+    m_filterSearch->Enable( aEnable );
 }

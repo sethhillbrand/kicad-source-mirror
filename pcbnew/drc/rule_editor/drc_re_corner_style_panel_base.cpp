@@ -30,6 +30,7 @@ DRC_RE_CORNER_STYLE_PANEL_BASE::DRC_RE_CORNER_STYLE_PANEL_BASE( wxWindow* parent
 
 	wxFlexGridSizer* fgSizer31;
 	fgSizer31 = new wxFlexGridSizer( 1, 2, 0, 0 );
+	fgSizer31->AddGrowableCol( 1 );
 	fgSizer31->SetFlexibleDirection( wxBOTH );
 	fgSizer31->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
@@ -37,8 +38,8 @@ DRC_RE_CORNER_STYLE_PANEL_BASE::DRC_RE_CORNER_STYLE_PANEL_BASE( wxWindow* parent
 	m_staticText13->Wrap( -1 );
 	fgSizer31->Add( m_staticText13, 0, wxALL, 5 );
 
-	m_comboBox1 = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, 0 );
-	fgSizer31->Add( m_comboBox1, 0, wxALL, 5 );
+	m_cornerStyleCmbCtrl = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY );
+	fgSizer31->Add( m_cornerStyleCmbCtrl, 0, wxALL|wxEXPAND, 5 );
 
 
 	bConstraintContentSizer->Add( fgSizer31, 0, wxEXPAND, 5 );
@@ -55,8 +56,8 @@ DRC_RE_CORNER_STYLE_PANEL_BASE::DRC_RE_CORNER_STYLE_PANEL_BASE( wxWindow* parent
 	m_staticText1->Wrap( -1 );
 	fgSizer3->Add( m_staticText1, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_textViaDiameterMinimum = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
-	fgSizer3->Add( m_textViaDiameterMinimum, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
+	m_minSetbackTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
+	fgSizer3->Add( m_minSetbackTextCtrl, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
 
 	m_staticText2 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText2->Wrap( -1 );
@@ -66,8 +67,8 @@ DRC_RE_CORNER_STYLE_PANEL_BASE::DRC_RE_CORNER_STYLE_PANEL_BASE( wxWindow* parent
 	m_staticText3->Wrap( -1 );
 	fgSizer3->Add( m_staticText3, 0, wxALL, 5 );
 
-	m_textViaDiameterMaximum = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_textViaDiameterMaximum, 0, wxALL, 5 );
+	m_maxSetbackTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_maxSetbackTextCtrl, 0, wxALL, 5 );
 
 	m_staticText4 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText4->Wrap( -1 );

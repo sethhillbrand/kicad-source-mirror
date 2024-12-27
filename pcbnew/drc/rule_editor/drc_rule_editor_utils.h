@@ -24,13 +24,41 @@
 #ifndef DRC_RULE_EDITOR_UTILS_H_
 #define DRC_RULE_EDITOR_UTILS_H_
 
+#include <string>
 #include "drc_rule_editor_enums.h"
+#include <wx/wx.h>
+#include <wx/object.h>
 
-class DrcRuleEditorUtils
+class DRC_RULE_EDITOR_UTILS
 {
-public:
-    static bool IsBoolInputType( const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
-    static bool IsNumericInputType( const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
+public:   
+    static bool        IsBoolInputType( const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
+
+    static bool        IsNumericInputType( const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
+
+    static std::string FormatErrorMessage( const int& aErrorCount, const std::string aErrorMessage );
+
+    static bool ValidateNumericCtrl( wxTextCtrl* textCtrl, std::string label, bool canBeZero,
+                                     int* aErrorCount, std::string* aValidationMessage);
+
+    static bool ValidateIntegerCtrl( wxTextCtrl* textCtrl, std::string label, bool canBeZero,
+                                     int* aErrorCount, std::string* aValidationMessage );
+
+    static bool ValidateComboCtrl( wxComboBox* aComboBox, std::string label, int* aErrorCount,
+                                     std::string* aValidationMessage );
+
+    static bool ValidateMinMaxCtrl( wxTextCtrl* minTextCtrl, wxTextCtrl* maxTextCtrl,
+                                    std::string minLabel, std::string maxLabel, int* aErrorCount,
+                                    std::string* aValidationMessage );
+
+    static bool ValidateMinPreferredMaxCtrl( wxTextCtrl* minTextCtrl, wxTextCtrl* preferredTextCtrl,
+                                             wxTextCtrl* maxTextCtrl, std::string minLabel, 
+                                             std::string preferredLabel, std::string maxLabel,
+                                             int* aErrorCount, std::string* aValidationMessage );
+
+    static bool ValidateCheckBoxCtrls( const std::vector<wxCheckBox*>& checkboxes,
+                                    std::string label, int* aErrorCount,
+                                    std::string* aValidationMessage );
 };
 
 #endif // DRC_RULE_EDITOR_UTILS_H_

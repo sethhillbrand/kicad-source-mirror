@@ -21,38 +21,43 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
-#define DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
+#ifndef DRC_RULE_EDITOR_VALIDATOR_NUMERIC_CTRL_H_
+#define DRC_RULE_EDITOR_VALIDATOR_NUMERIC_CTRL_H_
 
-#include "drc_re_base_constraint_data.h"
+#include <string>
+#include "drc_rule_editor_enums.h"
+#include <wx/wx.h>
+#include <wx/object.h>
 
 
-class DrcReNumericInputConstraintData : public DrcReBaseConstraintData
+class VALIDATOR_NUMERIC_CTRL : public wxValidator
 {
 public:
-    DrcReNumericInputConstraintData() = default;
-
-    explicit DrcReNumericInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ),
-            m_numericInputValue( 0 )
+    enum class ValidationState
     {
-    }
+        InValidCtrl,
+        Valid,
+        Empty,
+        NotNumeric,
+        NotInteger,
+        NotGreaterThanZero
+    };
 
-    explicit DrcReNumericInputConstraintData( unsigned int aId, unsigned int aParentId,
-                                              double aNumericInputValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_numericInputValue( aNumericInputValue )
-    {
-    }
+    VALIDATOR_NUMERIC_CTRL( bool aCanBeZero = false, bool aIntegerOnly = false );
 
-    virtual ~DrcReNumericInputConstraintData() = default;
+    // Clone method for validator
+    virtual wxObject* Clone() const override;
 
-    double GetNumericInputValue() { return m_numericInputValue; }
-    void   SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
+    // Validation logic
+    virtual bool Validate( wxWindow* parent ) override;
+
+    // Accessor for validation state
+    ValidationState GetValidationState() const;
 
 private:
-    double m_numericInputValue;
+    ValidationState m_validationState; // Store the result of validation
+    bool            m_isIntegerOnly;
+    bool            m_canBeZero;
 };
 
-
-#endif // DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
+#endif // DRC_RULE_EDITOR_VALIDATOR_NUMERIC_CTRL_H_

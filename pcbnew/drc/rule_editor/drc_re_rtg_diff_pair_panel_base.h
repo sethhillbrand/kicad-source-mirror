@@ -33,25 +33,25 @@ class DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxStaticText* m_staticText13;
-		wxTextCtrl* m_textCtrl7;
+		wxTextCtrl* m_maxUncoupledLengthTextCtrl;
 		wxStaticText* m_staticText14;
 		wxStaticText* m_staticText1;
-		wxTextCtrl* m_textViaDiameterMinimum;
+		wxTextCtrl* m_minWidthTextCtrl;
 		wxStaticText* m_staticText2;
 		wxStaticText* m_staticText3;
-		wxTextCtrl* m_textViaDiameterMaximum;
+		wxTextCtrl* m_maxWidthTextCtrl;
 		wxStaticText* m_staticText4;
 		wxStaticText* m_staticText5;
-		wxTextCtrl* m_textViaDiameterPreferred;
+		wxTextCtrl* m_preferredWidthTextCtrl;
 		wxStaticText* m_staticText6;
 		wxStaticText* m_staticText7;
-		wxTextCtrl* m_textViaHoleSizeMinimum;
+		wxTextCtrl* m_minGapTextCtrl;
 		wxStaticText* m_staticText8;
 		wxStaticText* m_staticText9;
-		wxTextCtrl* m_textViaHoleSizeMaximum;
+		wxTextCtrl* m_maxGapTextCtrl;
 		wxStaticText* m_staticText10;
 		wxStaticText* m_staticText11;
-		wxTextCtrl* m_textViaHoleSizePreferred;
+		wxTextCtrl* m_preferredGapTextCtrl;
 		wxStaticText* m_staticText12;
 
 	public:

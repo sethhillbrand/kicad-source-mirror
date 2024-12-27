@@ -54,12 +54,80 @@ DRC_RE_ROUTING_DIFF_PAIR_PANEL::~DRC_RE_ROUTING_DIFF_PAIR_PANEL()
 
 
 bool DRC_RE_ROUTING_DIFF_PAIR_PANEL::TransferDataToWindow()
-{
+{ 
+    if( m_constraintData )
+    {
+        m_maxUncoupledLengthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxUncoupledLength() ) );
+
+        m_minWidthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinWidth() ) );
+        m_maxWidthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxWidth() ) );
+        m_preferredWidthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredWidth() ) );
+
+        m_minGapTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinGap() ) );
+        m_maxGapTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxGap() ) );
+        m_preferredGapTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredGap() ) );
+    }
+
     return true;
 }
 
 
 bool DRC_RE_ROUTING_DIFF_PAIR_PANEL::TransferDataFromWindow()
 {
-    return false;
+    m_constraintData->SetMaxUncoupledLength( std::stod( m_maxUncoupledLengthTextCtrl->GetValue().ToStdString() ) );
+
+    m_constraintData->SetMinWidth( std::stod( m_minWidthTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxWidth( std::stod( m_maxWidthTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetPreferredWidth( std::stod( m_preferredWidthTextCtrl->GetValue().ToStdString() ) );
+
+    m_constraintData->SetMinGap( std::stod( m_minGapTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxGap( std::stod( m_maxGapTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetPreferredGap( std::stod( m_preferredGapTextCtrl->GetValue().ToStdString() ) );
+
+    return true;
+}
+
+
+bool DRC_RE_ROUTING_DIFF_PAIR_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{    
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxUncoupledLengthTextCtrl, "Maximum Uncoupled Length", false,
+                                                    aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minWidthTextCtrl, "Minimum Width", false,
+                                                     aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxWidthTextCtrl, "Preferred Width",
+                                                     false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredWidthTextCtrl, "Maximum Width",
+                                                     false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minGapTextCtrl, "Minimum Gap", false,
+                                                     aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxGapTextCtrl, "Preferred Gap", false,
+                                                     aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredGapTextCtrl, "Maximum Gap",
+                                                     false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minWidthTextCtrl, m_preferredWidthTextCtrl,
+                m_maxWidthTextCtrl, "Minimum Width", "Preferred Width", "Maximum Width",
+                aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minGapTextCtrl, m_preferredGapTextCtrl,
+                m_maxGapTextCtrl, "Minimum Gap", "Preferred Gap", "Maximum Gap",
+                aErrorCount, aValidationMessage ) )
+        return false;
+
+    return true;
 }

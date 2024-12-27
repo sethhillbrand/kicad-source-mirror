@@ -54,12 +54,45 @@ DRC_RE_ROUTING_WIDTH_PANEL::~DRC_RE_ROUTING_WIDTH_PANEL()
 
 
 bool DRC_RE_ROUTING_WIDTH_PANEL::TransferDataToWindow()
-{
+{ 
+    if( m_constraintData )
+    {
+        m_minRoutingWidthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinRoutingWidth() ) );
+        m_preferredRoutingWidthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredRoutingWidth() ) );
+        m_maxRoutingWidthTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxRoutingWidth() ) );
+    }
+
     return true;
 }
 
 
 bool DRC_RE_ROUTING_WIDTH_PANEL::TransferDataFromWindow()
 {
-    return false;
+    m_constraintData->SetMinRoutingWidth( std::stod( m_minRoutingWidthTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetPreferredRoutingWidth( std::stod( m_preferredRoutingWidthTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxRoutingWidth( std::stod( m_maxRoutingWidthTextCtrl->GetValue().ToStdString() ) );
+    return true;
+}
+
+
+bool DRC_RE_ROUTING_WIDTH_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minRoutingWidthTextCtrl, "Minimum Routing Width", false,
+                                                     aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredRoutingWidthTextCtrl, "Preferred Routing Width",
+                                                     false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxRoutingWidthTextCtrl, "Maximum Routing Width",
+                                                     false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minRoutingWidthTextCtrl, m_preferredRoutingWidthTextCtrl,
+                m_maxRoutingWidthTextCtrl, "Minimum Routing Width", "Preferred Routing Width", "Maximum Routing Width",
+                aErrorCount, aValidationMessage ) )
+        return false;
+
+    return true;
 }

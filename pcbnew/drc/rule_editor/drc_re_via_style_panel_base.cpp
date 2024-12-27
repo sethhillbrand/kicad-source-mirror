@@ -37,8 +37,8 @@ DRC_RE_VIA_STYLE_PANEL_BASE::DRC_RE_VIA_STYLE_PANEL_BASE( wxWindow* parent, wxWi
 	m_staticText1->Wrap( -1 );
 	fgSizer3->Add( m_staticText1, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_textViaDiameterMinimum = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
-	fgSizer3->Add( m_textViaDiameterMinimum, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
+	m_minViaDiameterTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
+	fgSizer3->Add( m_minViaDiameterTextCtrl, 0, wxALL|wxEXPAND|wxRIGHT, 5 );
 
 	m_staticText2 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText2->Wrap( -1 );
@@ -48,8 +48,8 @@ DRC_RE_VIA_STYLE_PANEL_BASE::DRC_RE_VIA_STYLE_PANEL_BASE( wxWindow* parent, wxWi
 	m_staticText3->Wrap( -1 );
 	fgSizer3->Add( m_staticText3, 0, wxALL, 5 );
 
-	m_textViaDiameterMaximum = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_textViaDiameterMaximum, 0, wxALL, 5 );
+	m_maxViaDiameterTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_maxViaDiameterTextCtrl, 0, wxALL, 5 );
 
 	m_staticText4 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText4->Wrap( -1 );
@@ -59,8 +59,8 @@ DRC_RE_VIA_STYLE_PANEL_BASE::DRC_RE_VIA_STYLE_PANEL_BASE( wxWindow* parent, wxWi
 	m_staticText5->Wrap( -1 );
 	fgSizer3->Add( m_staticText5, 0, wxALL, 5 );
 
-	m_textViaDiameterPreferred = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_textViaDiameterPreferred, 0, wxALL, 5 );
+	m_preferredViaDiameterTextCtrl = new wxTextCtrl( sbSizer1->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_preferredViaDiameterTextCtrl, 0, wxALL, 5 );
 
 	m_staticText6 = new wxStaticText( sbSizer1->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText6->Wrap( -1 );
@@ -84,8 +84,8 @@ DRC_RE_VIA_STYLE_PANEL_BASE::DRC_RE_VIA_STYLE_PANEL_BASE( wxWindow* parent, wxWi
 	m_staticText7->Wrap( -1 );
 	fgSizer2->Add( m_staticText7, 0, wxALL, 5 );
 
-	m_textViaHoleSizeMinimum = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_textViaHoleSizeMinimum, 0, wxALL, 5 );
+	m_minViaHoleSizeTextCtrl = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_minViaHoleSizeTextCtrl, 0, wxALL, 5 );
 
 	m_staticText8 = new wxStaticText( sbSizer2->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText8->Wrap( -1 );
@@ -95,8 +95,8 @@ DRC_RE_VIA_STYLE_PANEL_BASE::DRC_RE_VIA_STYLE_PANEL_BASE( wxWindow* parent, wxWi
 	m_staticText9->Wrap( -1 );
 	fgSizer2->Add( m_staticText9, 0, wxALL, 5 );
 
-	m_textViaHoleSizeMaximum = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_textViaHoleSizeMaximum, 0, wxALL, 5 );
+	m_maxViaHoleSizeTextCtrl = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_maxViaHoleSizeTextCtrl, 0, wxALL, 5 );
 
 	m_staticText10 = new wxStaticText( sbSizer2->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText10->Wrap( -1 );
@@ -106,8 +106,8 @@ DRC_RE_VIA_STYLE_PANEL_BASE::DRC_RE_VIA_STYLE_PANEL_BASE( wxWindow* parent, wxWi
 	m_staticText11->Wrap( -1 );
 	fgSizer2->Add( m_staticText11, 0, wxALL, 5 );
 
-	m_textViaHoleSizePreferred = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_textViaHoleSizePreferred, 0, wxALL, 5 );
+	m_preferredViaHoleSizeTextCtrl = new wxTextCtrl( sbSizer2->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_preferredViaHoleSizeTextCtrl, 0, wxALL, 5 );
 
 	m_staticText12 = new wxStaticText( sbSizer2->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText12->Wrap( -1 );

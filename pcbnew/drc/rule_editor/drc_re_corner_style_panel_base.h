@@ -34,12 +34,12 @@ class DRC_RE_CORNER_STYLE_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxStaticText* m_staticText13;
-		wxComboBox* m_comboBox1;
+		wxComboBox* m_cornerStyleCmbCtrl;
 		wxStaticText* m_staticText1;
-		wxTextCtrl* m_textViaDiameterMinimum;
+		wxTextCtrl* m_minSetbackTextCtrl;
 		wxStaticText* m_staticText2;
 		wxStaticText* m_staticText3;
-		wxTextCtrl* m_textViaDiameterMaximum;
+		wxTextCtrl* m_maxSetbackTextCtrl;
 		wxStaticText* m_staticText4;
 
 	public:

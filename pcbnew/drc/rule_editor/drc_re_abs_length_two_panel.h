@@ -36,6 +36,8 @@ public:
 
     bool TransferDataFromWindow() override;
 
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
+
     double GetMinAbsoluteLength() { return m_minAbsoluteLength; }
 
     double GetMaxAbsoluteLength() { return m_maxAbsoluteLength; }

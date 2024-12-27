@@ -38,10 +38,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    bool GetBoolInputValue() { return m_boolInputValue; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
 private:
-    bool m_boolInputValue;
     std::shared_ptr<DrcReBoolInputConstraintData> m_constraintData;
 };
 

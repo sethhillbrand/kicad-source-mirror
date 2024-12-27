@@ -16,36 +16,34 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 
 	bContentSizer = new wxBoxSizer( wxVERTICAL );
 
-	wxBoxSizer* bBasicDetailSizer;
 	bBasicDetailSizer = new wxBoxSizer( wxVERTICAL );
 
 	wxFlexGridSizer* fgSizer2;
-	fgSizer2 = new wxFlexGridSizer( 1, 5, 5, 0 );
+	fgSizer2 = new wxFlexGridSizer( 1, 4, 5, 0 );
+	fgSizer2->AddGrowableCol( 1 );
+	fgSizer2->AddGrowableCol( 3 );
 	fgSizer2->SetFlexibleDirection( wxBOTH );
 	fgSizer2->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
 	m_nameLabel = new wxStaticText( this, wxID_ANY, _("Name"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_nameLabel->Wrap( -1 );
-	fgSizer2->Add( m_nameLabel, 0, wxALL, 5 );
+	fgSizer2->Add( m_nameLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_nameCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 300,-1 ), 0 );
-	fgSizer2->Add( m_nameCtrl, 0, wxALL, 5 );
+	m_nameCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
+	fgSizer2->Add( m_nameCtrl, 0, wxALL|wxEXPAND, 5 );
 
 	m_commentLabel = new wxStaticText( this, wxID_ANY, _("Comment"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_commentLabel->Wrap( -1 );
-	fgSizer2->Add( m_commentLabel, 0, wxALL, 5 );
+	fgSizer2->Add( m_commentLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-	m_commentCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 300,-1 ), 0 );
-	fgSizer2->Add( m_commentCtrl, 0, wxALL, 5 );
-
-	m_validateBtn = new wxButton( this, wxID_ANY, _("Validate"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer2->Add( m_validateBtn, 0, wxALL, 5 );
+	m_commentCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,-1 ), 0 );
+	fgSizer2->Add( m_commentCtrl, 0, wxALL|wxEXPAND, 5 );
 
 
-	bBasicDetailSizer->Add( fgSizer2, 1, wxEXPAND|wxLEFT|wxTOP, 5 );
+	bBasicDetailSizer->Add( fgSizer2, 0, wxEXPAND|wxLEFT|wxTOP, 5 );
 
 
-	bContentSizer->Add( bBasicDetailSizer, 0, 0, 20 );
+	bContentSizer->Add( bBasicDetailSizer, 0, wxEXPAND, 20 );
 
 	m_constraintSizer = new wxBoxSizer( wxVERTICAL );
 
@@ -83,8 +81,8 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	wxBoxSizer* bSizer18;
 	bSizer18 = new wxBoxSizer( wxVERTICAL );
 
-	m_button9 = new wxButton( this, wxID_ANY, _("Show Matches"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizer18->Add( m_button9, 0, wxALL, 5 );
+	m_showMatchesBtnCtrl = new wxButton( this, wxID_ANY, _("Show Matches"), wxDefaultPosition, wxDefaultSize, 0 );
+	bSizer18->Add( m_showMatchesBtnCtrl, 0, wxALL, 5 );
 
 
 	bSizer17->Add( bSizer18, 1, wxEXPAND, 5 );
@@ -95,8 +93,8 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 
 	bSizer19->Add( 0, 0, 1, wxEXPAND, 5 );
 
-	m_button10 = new wxButton( this, wxID_ANY, _("Check Syntax"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizer19->Add( m_button10, 0, wxALIGN_RIGHT|wxALL, 5 );
+	m_checkSyntaxBtnCtrl = new wxButton( this, wxID_ANY, _("Check Syntax"), wxDefaultPosition, wxDefaultSize, 0 );
+	bSizer19->Add( m_checkSyntaxBtnCtrl, 0, wxALIGN_RIGHT|wxALL, 5 );
 
 
 	bSizer17->Add( bSizer19, 1, wxEXPAND, 5 );
@@ -130,7 +128,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	bContentSizer->Add( m_staticline4, 0, wxEXPAND | wxALL, 5 );
 
 
-	mainSizer->Add( bContentSizer, 1, 0, 5 );
+	mainSizer->Add( bContentSizer, 1, wxEXPAND, 5 );
 
 
 	this->SetSizer( mainSizer );

@@ -32,20 +32,40 @@ class DrcReRoutingWidthConstraintData : public DrcReBaseConstraintData
 public:
     DrcReRoutingWidthConstraintData() = default;
 
-    explicit DrcReRoutingWidthConstraintData( unsigned int aId, unsigned int aParentId,
-                                                double aClearanceValue, wxString aRuleName) :
+    explicit DrcReRoutingWidthConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_minRoutingWidth( 0 ),
+            m_preferredRoutingWidth( 0 ),
+            m_maxRoutingWidth( 0 )
+    {
+    }
+
+    explicit DrcReRoutingWidthConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
+                                              double aMinRoutingWidth,
+                                              double aPreferredRoutingWidth, 
+                                              double aMaxRoutingWidth ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_routingWidth( aClearanceValue )
+            m_minRoutingWidth( aMinRoutingWidth ),
+            m_preferredRoutingWidth( aPreferredRoutingWidth ),
+            m_maxRoutingWidth( aMaxRoutingWidth )
     {
     }
 
     virtual ~DrcReRoutingWidthConstraintData() = default;
 
-    double GetRoutingWidth() { return m_routingWidth; }
-    void   SetRoutingWidth( double aRoutingWidth ) { m_routingWidth = aRoutingWidth; }
+    double GetMinRoutingWidth() { return m_minRoutingWidth; }
+    void   SetMinRoutingWidth( double aMinRoutingWidth ) { m_minRoutingWidth = aMinRoutingWidth; }
+
+    double GetPreferredRoutingWidth() { return m_preferredRoutingWidth; }
+    void   SetPreferredRoutingWidth( double aPreferredRoutingWidth ) { m_preferredRoutingWidth = aPreferredRoutingWidth; }
+
+    double GetMaxRoutingWidth() { return m_maxRoutingWidth; }
+    void   SetMaxRoutingWidth( double aMaxRoutingWidth ) { m_maxRoutingWidth = aMaxRoutingWidth; }
 
 private:
-    double m_routingWidth;
+    double m_minRoutingWidth;
+    double m_preferredRoutingWidth;
+    double m_maxRoutingWidth;
 };
 
 

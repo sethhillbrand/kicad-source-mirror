@@ -21,38 +21,39 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
-#define DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
-
-#include "drc_re_base_constraint_data.h"
+#include "drc_re_validator_checkbox_list.h"
 
 
-class DrcReNumericInputConstraintData : public DrcReBaseConstraintData
+VALIDATE_CHECKBOX_LIST::VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& checkboxes ) :
+        m_checkboxes( checkboxes ), m_validationState( ValidationState::Valid )
 {
-public:
-    DrcReNumericInputConstraintData() = default;
+}
 
-    explicit DrcReNumericInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ),
-            m_numericInputValue( 0 )
+
+wxObject* VALIDATE_CHECKBOX_LIST::Clone() const
+{
+    return new VALIDATE_CHECKBOX_LIST( m_checkboxes ); // Return a clone of the validator
+}
+
+
+bool VALIDATE_CHECKBOX_LIST::Validate( wxWindow* parent )
+{
+    // Check if at least one checkbox is selected
+    for( wxCheckBox* checkbox : m_checkboxes )
     {
+        if( checkbox->GetValue() )
+        {
+            m_validationState = ValidationState::Valid; // At least one checkbox is selected
+            return true;
+        }
     }
 
-    explicit DrcReNumericInputConstraintData( unsigned int aId, unsigned int aParentId,
-                                              double aNumericInputValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_numericInputValue( aNumericInputValue )
-    {
-    }
-
-    virtual ~DrcReNumericInputConstraintData() = default;
-
-    double GetNumericInputValue() { return m_numericInputValue; }
-    void   SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
-
-private:
-    double m_numericInputValue;
-};
+    m_validationState = ValidationState::NotSelected; // No checkbox is selected
+    return false;
+}
 
 
-#endif // DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
+VALIDATE_CHECKBOX_LIST::ValidationState VALIDATE_CHECKBOX_LIST::GetValidationState() const
+{
+    return m_validationState;
+}

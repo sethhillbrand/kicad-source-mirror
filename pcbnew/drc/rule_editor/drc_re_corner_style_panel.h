@@ -23,12 +23,13 @@
 #include "drc_re_corner_style_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_corner_style_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_CORNER_STYLE_PANEL : public DRC_RE_CORNER_STYLE_PANEL_BASE, public DrcRuleEditorContentPanelBase
 {
 public:
-    DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReCornerStyleConstraintData> aConstraintData );
+    DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle, std::shared_ptr<DrcReCornerStyleConstraintData> aConstraintData );
 
     ~DRC_RE_CORNER_STYLE_PANEL() override;
 
@@ -36,16 +37,14 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    wxString GetCornerStyle() { return m_cornerStyle; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-    double GetMinSetbackLength() { return m_minSetbackLength; }
+ private:
+    void onCornerStyleSelection( wxCommandEvent& event );
 
-    double GetMaxSetbackLength() { return m_maxSetbackLength; }
+    void enableSetbackControls( bool aEnable );
 
 private:
-    wxString m_cornerStyle;
-    double m_minSetbackLength;
-    double m_maxSetbackLength;
     std::shared_ptr<DrcReCornerStyleConstraintData> m_constraintData;
 };
 

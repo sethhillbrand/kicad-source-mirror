@@ -55,11 +55,29 @@ DRC_RE_PERMITTED_LAYERS_PANEL::~DRC_RE_PERMITTED_LAYERS_PANEL()
 
 bool DRC_RE_PERMITTED_LAYERS_PANEL::TransferDataToWindow()
 {
+    if( m_constraintData )
+    {
+        m_topLayerChkCtrl->SetValue( m_constraintData->GetTopLayerEnabled() );
+        m_bottomLayerChkCtrl->SetValue( m_constraintData->GetBottomLayerEnabled() );
+    }   
+
     return true;
 }
 
 
 bool DRC_RE_PERMITTED_LAYERS_PANEL::TransferDataFromWindow()
 {
+    m_constraintData->SetTopLayerEnabled( m_topLayerChkCtrl->GetValue() );
+    m_constraintData->SetBottomLayerEnabled( m_bottomLayerChkCtrl->GetValue() );
     return false;
+}
+
+
+bool DRC_RE_PERMITTED_LAYERS_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    // Assuming you have a group of checkboxes like:
+    std::vector<wxCheckBox*> checkboxes = { m_topLayerChkCtrl, m_bottomLayerChkCtrl };
+
+    return DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( checkboxes, "Permitted Layers",
+                                                         aErrorCount, aValidationMessage );
 }

@@ -63,3 +63,9 @@ bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::TransferDataFromWindow()
 {
     return false;
 }
+
+
+bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    return true;
+}

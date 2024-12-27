@@ -32,13 +32,13 @@ class DRC_RE_ROUTING_WIDTH_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxStaticText* m_staticText13;
-		wxTextCtrl* m_textCtrl7;
+		wxTextCtrl* m_minRoutingWidthTextCtrl;
 		wxStaticText* m_staticText14;
 		wxStaticText* m_staticText15;
-		wxTextCtrl* m_textCtrl8;
+		wxTextCtrl* m_preferredRoutingWidthTextCtrl;
 		wxStaticText* m_staticText16;
 		wxStaticText* m_staticText17;
-		wxTextCtrl* m_textCtrl9;
+		wxTextCtrl* m_maxRoutingWidthTextCtrl;
 		wxStaticText* m_staticText18;
 
 	public:

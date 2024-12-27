@@ -32,20 +32,40 @@ class DrcReSmdEntryConstraintData : public DrcReBaseConstraintData
 public:
     DrcReSmdEntryConstraintData() = default;
 
-    explicit DrcReSmdEntryConstraintData( unsigned int aId, unsigned int aParentId,
-                                              bool aAllowSmdEntry, wxString aRuleName ) :
+    explicit DrcReSmdEntryConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_sideAngle( false ),
+            m_cornerAngle( false ),
+            m_anyAngle( false )
+    {
+    }
+
+    explicit DrcReSmdEntryConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
+                                          bool aSideAngle, 
+                                          bool aCornerAngle, 
+                                          bool aAnyAngle ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_allowSmdEntry( aAllowSmdEntry )
+            m_sideAngle( aSideAngle ),
+            m_cornerAngle( aCornerAngle ), 
+            m_anyAngle( aAnyAngle )
     {
     }
 
     virtual ~DrcReSmdEntryConstraintData() = default;
 
-    bool GetSmdEntryAllowed() { return m_allowSmdEntry; }
-    void SetSmdEntryAllowed( double aAllowSmdEntry ) { m_allowSmdEntry = aAllowSmdEntry; }
+    bool GetIsSideAngleEnabled() { return m_sideAngle; }
+    void SetIsSideAngleEnabled( double aSideAngle ) { m_sideAngle = aSideAngle; }
+
+    bool GetIsCornerAngleEnabled() { return m_cornerAngle; }
+    void SetIsCornerAngleEnabled( double aCornerAngle ) { m_cornerAngle = aCornerAngle; }
+
+    bool GetIsAnyAngleEnabled() { return m_anyAngle; }
+    void SetIsAnyAngleEnabled( double aAnyAngle ) { m_anyAngle = aAnyAngle; }
 
 private:
-    bool m_allowSmdEntry;
+    bool m_sideAngle;
+    bool m_cornerAngle;
+    bool m_anyAngle;
 };
 
 

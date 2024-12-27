@@ -21,38 +21,40 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
-#define DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
+#ifndef DRC_RULE_EDITOR_VALIDATOR_CHECKBOX_LIST_H_
+#define DRC_RULE_EDITOR_VALIDATOR_CHECKBOX_LIST_H_
 
-#include "drc_re_base_constraint_data.h"
+#include <string>
+#include "drc_rule_editor_enums.h"
+#include <wx/wx.h>
+#include <wx/object.h>
 
 
-class DrcReNumericInputConstraintData : public DrcReBaseConstraintData
+class VALIDATE_CHECKBOX_LIST : public wxValidator
 {
 public:
-    DrcReNumericInputConstraintData() = default;
-
-    explicit DrcReNumericInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ),
-            m_numericInputValue( 0 )
+    // Enumeration for validation states
+    enum class ValidationState
     {
-    }
+        Valid,      // At least one checkbox is selected
+        NotSelected // No checkboxes are selected
+    };
 
-    explicit DrcReNumericInputConstraintData( unsigned int aId, unsigned int aParentId,
-                                              double aNumericInputValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_numericInputValue( aNumericInputValue )
-    {
-    }
+    // Constructor takes a vector of checkboxes
+    VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& checkboxes );
 
-    virtual ~DrcReNumericInputConstraintData() = default;
+    // Clone method for validator
+    virtual wxObject* Clone() const override;
 
-    double GetNumericInputValue() { return m_numericInputValue; }
-    void   SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
+    // Validation logic
+    virtual bool Validate( wxWindow* parent ) override;
+
+    // Get the validation state
+    ValidationState GetValidationState() const;
 
 private:
-    double m_numericInputValue;
+    ValidationState          m_validationState; // Store the result of validation
+    std::vector<wxCheckBox*> m_checkboxes;      // Vector to hold the checkboxes in the group
 };
 
-
-#endif // DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_
+#endif // DRC_RULE_EDITOR_VALIDATOR_CHECKBOX_LIST_H_

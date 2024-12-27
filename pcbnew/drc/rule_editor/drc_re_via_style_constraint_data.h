@@ -32,20 +32,61 @@ class DrcReViaStyleConstraintData : public DrcReBaseConstraintData
 public:
     DrcReViaStyleConstraintData() = default;
 
-    explicit DrcReViaStyleConstraintData( unsigned int aId, unsigned int aParentId,
-                                                double aClearanceValue, wxString aRuleName) :
+    explicit DrcReViaStyleConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData ), 
+            m_minViaDiameter( 0 ), 
+            m_maxViaDiameter( 0 ),
+            m_preferredViaDiameter( 0 ),
+            m_minViaHoleSize( 0 ),
+            m_maxViaHoleSize( 0 ), 
+            m_preferredViaHoleSize( 0 )
+    {
+    }
+
+    explicit DrcReViaStyleConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
+                                          double aMinViaDiameter,
+                                          double aMaxViaDiameter, 
+                                          double aPreferredViaDiameter, 
+                                          double aMinViaHoleSize, 
+                                          double aMaxViaHoleSize, 
+                                          double aPreferredViaHoleSize ) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_viaStyle( aClearanceValue )
+            m_minViaDiameter( aMinViaDiameter ), 
+            m_maxViaDiameter( aMaxViaDiameter ),
+            m_preferredViaDiameter( aPreferredViaDiameter ),
+            m_minViaHoleSize( aMinViaHoleSize ),
+            m_maxViaHoleSize( aMaxViaHoleSize ), 
+            m_preferredViaHoleSize( aPreferredViaHoleSize )
     {
     }
 
     virtual ~DrcReViaStyleConstraintData() = default;
 
-    double GetViaStyle() { return m_viaStyle; }
-    void   SetViaStyle( double aViaStyle ) { m_viaStyle = aViaStyle; }
+    double GetMinViaDiameter() { return m_minViaDiameter; }
+    void   SetMinViaDiameter( double aMinViaDiameter ) { m_minViaDiameter = aMinViaDiameter; }
+
+    double GetMaxViaDiameter() { return m_maxViaDiameter; }
+    void   SetMaxViaDiameter( double aMaxViaDiameter ) { m_maxViaDiameter = aMaxViaDiameter; }
+
+    double GetPreferredViaDiameter() { return m_preferredViaDiameter; }
+    void   SetPreferredViaDiameter( double aPreferredViaDiameter ) { m_preferredViaDiameter = aPreferredViaDiameter; }
+
+    double GetMinViaHoleSize() { return m_minViaHoleSize; }
+    void   SetMinViaHoleSize( double aMinViaHoleSize ) { m_minViaHoleSize = aMinViaHoleSize; }
+
+    double GetMaxViaHoleSize() { return m_maxViaHoleSize; }
+    void   SetMaxViaHoleSize( double aMaxViaHoleSize ) { m_maxViaHoleSize = aMaxViaHoleSize; }
+
+    double GetPreferredViaHoleSize() { return m_preferredViaHoleSize; }
+    void   SetPreferredViaHoleSize( double aPreferredViaHoleSize ) { m_preferredViaHoleSize = aPreferredViaHoleSize; }
 
 private:
-    double m_viaStyle;
+    double m_minViaDiameter;
+    double m_preferredViaDiameter;
+    double m_maxViaDiameter;
+    double m_minViaHoleSize;
+    double m_preferredViaHoleSize;
+    double m_maxViaHoleSize;
 };
 
 

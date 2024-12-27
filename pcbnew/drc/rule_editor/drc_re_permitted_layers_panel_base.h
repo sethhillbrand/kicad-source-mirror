@@ -30,8 +30,8 @@ class DRC_RE_PERMITTED_LAYERS_PANEL_BASE : public wxPanel
 
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
-		wxCheckBox* m_chkTopLayer;
-		wxCheckBox* m_chkBottomLayer;
+		wxCheckBox* m_topLayerChkCtrl;
+		wxCheckBox* m_bottomLayerChkCtrl;
 
 	public:
 

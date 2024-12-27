@@ -77,8 +77,8 @@ const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> NumericConstraintBitMap
 
 DRC_RE_NUMERIC_INPUT_PANEL::DRC_RE_NUMERIC_INPUT_PANEL( wxWindow* aParent, const DrcReNumericInputConstraintPanelParams& aConstraintPanelParams ) :
         DRC_RE_NUMERIC_INPUT_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintPanelParams.m_constraintData ), 
-        m_numericInputValue( 0 )
+        m_constraintData( aConstraintPanelParams.m_constraintData ),
+        m_isCountInput( aConstraintPanelParams.m_isCountInput )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
 
@@ -116,6 +116,23 @@ bool DRC_RE_NUMERIC_INPUT_PANEL::TransferDataToWindow()
 
 bool DRC_RE_NUMERIC_INPUT_PANEL::TransferDataFromWindow()
 {
-    m_numericInputValue = std::stod( m_numericConstraintCtrl->GetValue().ToStdString() );
+    m_constraintData->SetNumericInputValue( std::stod( m_numericConstraintCtrl->GetValue().ToStdString() ) );
     return true;
+}
+
+
+bool DRC_RE_NUMERIC_INPUT_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    if( m_isCountInput )
+    {
+        return DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl(
+                m_numericConstraintCtrl, m_numericConstraintLabel->GetLabelText().ToStdString(),
+                false, aErrorCount, aValidationMessage );    
+    }
+    else
+    {
+        return DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl(
+                m_numericConstraintCtrl, m_numericConstraintLabel->GetLabelText().ToStdString(),
+                false, aErrorCount, aValidationMessage );    
+    }
 }
