@@ -37,8 +37,8 @@ DRC_RE_ROUTING_WIDTH_PANEL_BASE::DRC_RE_ROUTING_WIDTH_PANEL_BASE( wxWindow* pare
 	m_staticText13->Wrap( -1 );
 	fgSizer31->Add( m_staticText13, 0, wxALL, 5 );
 
-	m_textCtrl7 = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer31->Add( m_textCtrl7, 0, wxALL, 5 );
+	m_minRoutingWidthTextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer31->Add( m_minRoutingWidthTextCtrl, 0, wxALL, 5 );
 
 	m_staticText14 = new wxStaticText( this, wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText14->Wrap( -1 );
@@ -48,8 +48,8 @@ DRC_RE_ROUTING_WIDTH_PANEL_BASE::DRC_RE_ROUTING_WIDTH_PANEL_BASE( wxWindow* pare
 	m_staticText15->Wrap( -1 );
 	fgSizer31->Add( m_staticText15, 0, wxALL, 5 );
 
-	m_textCtrl8 = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer31->Add( m_textCtrl8, 0, wxALL, 5 );
+	m_preferredRoutingWidthTextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer31->Add( m_preferredRoutingWidthTextCtrl, 0, wxALL, 5 );
 
 	m_staticText16 = new wxStaticText( this, wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText16->Wrap( -1 );
@@ -59,8 +59,8 @@ DRC_RE_ROUTING_WIDTH_PANEL_BASE::DRC_RE_ROUTING_WIDTH_PANEL_BASE( wxWindow* pare
 	m_staticText17->Wrap( -1 );
 	fgSizer31->Add( m_staticText17, 0, wxALL, 5 );
 
-	m_textCtrl9 = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer31->Add( m_textCtrl9, 0, wxALL, 5 );
+	m_maxRoutingWidthTextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer31->Add( m_maxRoutingWidthTextCtrl, 0, wxALL, 5 );
 
 	m_staticText18 = new wxStaticText( this, wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText18->Wrap( -1 );

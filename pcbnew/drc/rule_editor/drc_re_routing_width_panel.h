@@ -23,6 +23,7 @@
 #include "drc_re_routing_width_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_routing_width_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_ROUTING_WIDTH_PANEL : public DRC_RE_ROUTING_WIDTH_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -36,16 +37,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    double GetMinRoutingWidth() { return m_minRoutingWidth; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-    double GetPreferredRoutingWidth() { return m_preferredRoutingWidth; }
-
-    double GetMaxRoutingWidth() { return m_maxRoutingWidth; }
-
-private:   
-    double m_minRoutingWidth;
-    double m_preferredRoutingWidth;
-    double m_maxRoutingWidth;
+private:  
     std::shared_ptr<DrcReRoutingWidthConstraintData> m_constraintData;
 };
 

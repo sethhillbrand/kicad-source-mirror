@@ -45,21 +45,94 @@ DRC_RE_CORNER_STYLE_PANEL::DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxStrin
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_corner_style ) );
 
     bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 ); 
+
+    std::vector<std::string> items = { "90 Degrees", "45 Degrees", "Rounded" };
+
+    for( const auto& item : items )
+    {
+        m_cornerStyleCmbCtrl->Append( item );
+    }
+
+    enableSetbackControls( false );
+
+    // Bind the selection event
+    m_cornerStyleCmbCtrl->Bind( wxEVT_COMBOBOX, &DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection, this );
 }
 
 
 DRC_RE_CORNER_STYLE_PANEL::~DRC_RE_CORNER_STYLE_PANEL()
 {
+    m_cornerStyleCmbCtrl->Unbind( wxEVT_COMBOBOX, &DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection, this );
 }
 
 
 bool DRC_RE_CORNER_STYLE_PANEL::TransferDataToWindow()
-{
+{ 
+    if( m_constraintData )
+    {
+        m_cornerStyleCmbCtrl->SetValue( m_constraintData->GetCornerStyle() );
+        m_minSetbackTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinSetbackLength() ) );
+        m_maxSetbackTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxSetbackLength() ) );
+    }
+
     return true;
 }
 
 
 bool DRC_RE_CORNER_STYLE_PANEL::TransferDataFromWindow()
 {
-    return false;
+    m_constraintData->SetCornerStyle( m_cornerStyleCmbCtrl->GetValue() );
+    m_constraintData->SetMinSetbackLength( std::stod( m_minSetbackTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxSetbackLength( std::stod( m_maxSetbackTextCtrl->GetValue().ToStdString() ) );
+
+    return true;
+}
+
+
+void DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection( wxCommandEvent& event )
+{
+    // Get the selected item's text
+    wxString selectedText = event.GetString();
+
+    enableSetbackControls( true );
+
+    if (selectedText == wxEmptyString || selectedText == "90 Degrees")
+    {
+        enableSetbackControls( false );
+    }
+}
+
+
+void DRC_RE_CORNER_STYLE_PANEL::enableSetbackControls( bool aEnable )
+{
+    m_minSetbackTextCtrl->Enable( aEnable );
+    m_maxSetbackTextCtrl->Enable( aEnable );
+}
+
+
+bool DRC_RE_CORNER_STYLE_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    if( DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( m_cornerStyleCmbCtrl, "corner style",
+                                                   aErrorCount, aValidationMessage ) )
+    {
+        if( m_cornerStyleCmbCtrl->GetStringSelection() != "90 Degrees" )
+        {     
+            if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minSetbackTextCtrl, "Minimum Setback", false,
+                                                             aErrorCount, aValidationMessage ) )
+                return false;
+
+            if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxSetbackTextCtrl, "Maximum Setback", false,
+                                                             aErrorCount, aValidationMessage ) )
+                return false;        
+
+            if( !DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl( m_minSetbackTextCtrl, m_maxSetbackTextCtrl,
+                                                            "Minimum Setback", "Maximum Setback", 
+                                                            aErrorCount, aValidationMessage ) )
+                 return false;
+        }
+    }
+    else
+        return false;
+
+    return true;
 }

@@ -23,6 +23,7 @@
 #include "drc_re_rtg_diff_pair_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_rtg_diff_pair_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_ROUTING_DIFF_PAIR_PANEL : public DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -34,30 +35,11 @@ public:
 
     bool TransferDataToWindow() override;
 
-    bool TransferDataFromWindow() override; 
+    bool TransferDataFromWindow() override;
 
-    double GetMaxUncoupledLength() { return m_maxUncoupledLength; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-    double GetMinWidth() { return m_minWidth; }
-
-    double GetPreferredWidth() { return m_preferredWidth; }
-
-    double GetMaxWidth() { return m_maxWidth; }
-
-    double GetMinGap() { return m_minGap; }
-
-    double GetPreferredGap() { return m_preferredGap; }
-
-    double GetMaxGap() { return m_maxGap; }
-
-private:    
-    double m_maxUncoupledLength;
-    double m_minWidth;
-    double m_preferredWidth;
-    double m_maxWidth;
-    double m_minGap;
-    double m_preferredGap;
-    double m_maxGap;
+private:
     std::shared_ptr<DrcReRoutingDiffPairConstraintData> m_constraintData;
 };
 

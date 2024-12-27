@@ -29,8 +29,11 @@ class RuleEditorBaseData
 public:
     RuleEditorBaseData() = default;
 
-    explicit RuleEditorBaseData( unsigned int aId, unsigned int aParentId,wxString aRuleName ) :
-            m_id( aId ), m_ParentId( aParentId ), m_ruleName( aRuleName ), m_isNew( false )
+    explicit RuleEditorBaseData( unsigned int aId, unsigned int aParentId, wxString aRuleName ) :
+            m_id( aId ), 
+            m_ParentId( aParentId ), 
+            m_ruleName( aRuleName ), 
+            m_isNew( false )
     {
     }
 
