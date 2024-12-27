@@ -39,8 +39,7 @@
 DRC_RE_PARALLEL_LIMIT_PANEL::DRC_RE_PARALLEL_LIMIT_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
                                                           std::shared_ptr<DrcReParallelLimitConstraintData> aConstraintData ) :
         DRC_RE_PARALLEL_LIMIT_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData ), 
-        m_parallelLimit( 0 )
+        m_constraintData( aConstraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
     constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_parallel_limit ) );
@@ -55,12 +54,34 @@ DRC_RE_PARALLEL_LIMIT_PANEL::~DRC_RE_PARALLEL_LIMIT_PANEL()
 
 
 bool DRC_RE_PARALLEL_LIMIT_PANEL::TransferDataToWindow()
-{
+{ 
+    if( m_constraintData )
+    {
+        m_parallelGapTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetParallelGap() ) );
+        m_parallelLimitTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetParallelLimit() ) );
+    }
+
     return true;
 }
 
 
 bool DRC_RE_PARALLEL_LIMIT_PANEL::TransferDataFromWindow()
 {
-    return false;
+    m_constraintData->SetParallelGap( std::stod( m_parallelGapTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetParallelLimit( std::stod( m_parallelLimitTextCtrl->GetValue().ToStdString() ) );
+    return true;
+}
+
+
+bool DRC_RE_PARALLEL_LIMIT_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_parallelGapTextCtrl, "Parallel Gap",
+                                                     false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_parallelLimitTextCtrl, "Parallel Limit", 
+                                                    false, aErrorCount, aValidationMessage ) )
+        return false;
+
+    return true;
 }

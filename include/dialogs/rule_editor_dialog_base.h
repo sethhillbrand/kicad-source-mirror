@@ -155,6 +155,8 @@ public:
 
     void SetSelectedItem( wxTreeItemId aTreeItemId );
 
+    void SetControlsEnabled( bool aEnable );
+
 protected:
 
     void finishInitialization();

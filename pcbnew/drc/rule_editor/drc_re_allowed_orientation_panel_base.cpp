@@ -33,20 +33,20 @@ DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE::DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE( wx
 	fgSizer3->SetFlexibleDirection( wxBOTH );
 	fgSizer3->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
-	m_chkZeroDegrees = new wxCheckBox( this, wxID_ANY, _("0 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkZeroDegrees, 0, wxALL, 5 );
+	m_zeroDegreesChkCtrl = new wxCheckBox( this, wxID_ANY, _("0 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_zeroDegreesChkCtrl, 0, wxALL, 5 );
 
-	m_chkNintyDegrees = new wxCheckBox( this, wxID_ANY, _("90 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkNintyDegrees, 0, wxALL, 5 );
+	m_nintyDegreesChkCtrl = new wxCheckBox( this, wxID_ANY, _("90 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_nintyDegreesChkCtrl, 0, wxALL, 5 );
 
-	m_chkOneEightyDegrees = new wxCheckBox( this, wxID_ANY, _("180 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkOneEightyDegrees, 0, wxALL, 5 );
+	m_oneEightyDegreesChkCtrl = new wxCheckBox( this, wxID_ANY, _("180 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_oneEightyDegreesChkCtrl, 0, wxALL, 5 );
 
-	m_chkTwoSeventyDegrees = new wxCheckBox( this, wxID_ANY, _("270 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkTwoSeventyDegrees, 0, wxALL, 5 );
+	m_twoSeventyDegreesChkCtrl = new wxCheckBox( this, wxID_ANY, _("270 Degrees"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_twoSeventyDegreesChkCtrl, 0, wxALL, 5 );
 
-	m_chkAllOrientations = new wxCheckBox( this, wxID_ANY, _("All Orientations"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkAllOrientations, 0, wxALL, 5 );
+	m_allOrientationsChkCtrl = new wxCheckBox( this, wxID_ANY, _("All Orientations"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_allOrientationsChkCtrl, 0, wxALL, 5 );
 
 
 	bConstraintContentSizer->Add( fgSizer3, 0, wxEXPAND, 5 );

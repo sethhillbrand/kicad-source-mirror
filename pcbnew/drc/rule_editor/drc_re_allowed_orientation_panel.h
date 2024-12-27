@@ -23,6 +23,7 @@
 #include "drc_re_allowed_orientation_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_allowed_orientation_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_ALLOWED_ORIENTATION_PANEL : public DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -36,23 +37,13 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    bool GetIsZeroDegressAllowed() { return m_allowZeroDegreess; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-    bool GetIsNintyDegressAllowed() { return m_allowNintyDegreess; }
+    void OnCheckboxClicked( wxCommandEvent& event );
 
-    bool GetIsOneEightyDegressAllowed() { return m_allowOneEightyDegreess; }
-
-    bool GetIsTwoSeventyDegressAllowed() { return m_allowTwoSeventyDegreess; }
-
-    bool GetIsAllDegressAllowed() { return m_allowAllDegreess; }
+    void OnAllOrientationCheckboxClicked( wxCommandEvent& event );
 
 private:
-    bool m_allowZeroDegreess;
-    bool m_allowNintyDegreess;
-    bool m_allowOneEightyDegreess;
-    bool m_allowTwoSeventyDegreess;
-    bool m_allowAllDegreess;
-
     std::shared_ptr<DrcReAllowedOrientationConstraintData> m_constraintData;
 };
 

@@ -29,18 +29,18 @@ DRC_RE_SMD_ENTRY_PANEL_BASE::DRC_RE_SMD_ENTRY_PANEL_BASE( wxWindow* parent, wxWi
 	bConstraintContentSizer->Add( 0, 0, 1, wxEXPAND, 5 );
 
 	wxFlexGridSizer* fgSizer3;
-	fgSizer3 = new wxFlexGridSizer( 2, 1, 0, 0 );
+	fgSizer3 = new wxFlexGridSizer( 3, 1, 0, 0 );
 	fgSizer3->SetFlexibleDirection( wxBOTH );
 	fgSizer3->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
-	m_chkSide = new wxCheckBox( this, wxID_ANY, _("Side"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkSide, 0, wxALL, 5 );
+	m_sideAngleChkCtrl = new wxCheckBox( this, wxID_ANY, _("Side"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_sideAngleChkCtrl, 0, wxALL, 5 );
 
-	m_chkCorner = new wxCheckBox( this, wxID_ANY, _("Corner"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkCorner, 0, wxALL, 5 );
+	m_cornerAngleChkCtrl = new wxCheckBox( this, wxID_ANY, _("Corner"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_cornerAngleChkCtrl, 0, wxALL, 5 );
 
-	m_chkAnyAngle = new wxCheckBox( this, wxID_ANY, _("Any Angle"), wxDefaultPosition, wxDefaultSize, 0 );
-	fgSizer3->Add( m_chkAnyAngle, 0, wxALL, 5 );
+	m_anyAngleChkCtrl = new wxCheckBox( this, wxID_ANY, _("Any Angle"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer3->Add( m_anyAngleChkCtrl, 0, wxALL, 5 );
 
 
 	bConstraintContentSizer->Add( fgSizer3, 0, wxEXPAND, 5 );

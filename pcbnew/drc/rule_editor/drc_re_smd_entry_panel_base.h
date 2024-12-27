@@ -30,9 +30,9 @@ class DRC_RE_SMD_ENTRY_PANEL_BASE : public wxPanel
 
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
-		wxCheckBox* m_chkSide;
-		wxCheckBox* m_chkCorner;
-		wxCheckBox* m_chkAnyAngle;
+		wxCheckBox* m_sideAngleChkCtrl;
+		wxCheckBox* m_cornerAngleChkCtrl;
+		wxCheckBox* m_anyAngleChkCtrl;
 
 	public:
 

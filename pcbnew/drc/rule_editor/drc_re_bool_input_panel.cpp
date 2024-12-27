@@ -48,8 +48,7 @@ const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> BoolConstraintBitMapPai
 
 DRC_RE_BOOL_INPUT_PANEL::DRC_RE_BOOL_INPUT_PANEL( wxWindow* aParent, const DrcReBoolInputConstraintPanelParams& aConstraintPanelParams ) :
         DRC_RE_BOOL_INPUT_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintPanelParams.m_constraintData ), 
-        m_boolInputValue( false )
+        m_constraintData( aConstraintPanelParams.m_constraintData )
 {
     wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
 
@@ -60,9 +59,9 @@ DRC_RE_BOOL_INPUT_PANEL::DRC_RE_BOOL_INPUT_PANEL( wxWindow* aParent, const DrcRe
     bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );   
 
     if( !aConstraintPanelParams.m_customLabelText.IsEmpty() )
-        m_boolConstraintCtrl->SetLabelText( aConstraintPanelParams.m_customLabelText );
+        m_boolConstraintChkCtrl->SetLabelText( aConstraintPanelParams.m_customLabelText );
     else
-        m_boolConstraintCtrl->SetLabelText( aConstraintPanelParams.m_constraintTitle );
+        m_boolConstraintChkCtrl->SetLabelText( aConstraintPanelParams.m_constraintTitle );
 }
 
 
@@ -75,7 +74,7 @@ bool DRC_RE_BOOL_INPUT_PANEL::TransferDataToWindow()
 {
     if( m_constraintData )
     {
-        m_boolConstraintCtrl->SetValue( m_constraintData->GetBoolInputValue() );
+        m_boolConstraintChkCtrl->SetValue( m_constraintData->GetBoolInputValue() );
     }   
 
     return true;
@@ -84,6 +83,12 @@ bool DRC_RE_BOOL_INPUT_PANEL::TransferDataToWindow()
 
 bool DRC_RE_BOOL_INPUT_PANEL::TransferDataFromWindow()
 {
-    m_boolInputValue = m_boolConstraintCtrl->GetValue();
+    m_constraintData->SetBoolInputValue( m_boolConstraintChkCtrl->GetValue() );
     return false;
+}
+
+
+bool DRC_RE_BOOL_INPUT_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+{
+    return true;
 }

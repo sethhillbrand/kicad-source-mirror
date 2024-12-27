@@ -23,6 +23,7 @@
 #include "drc_re_smd_entry_panel_base.h"
 #include "drc_re_content_panel_base.h"
 #include "drc_re_smd_entry_constraint_data.h"
+#include "drc_rule_editor_utils.h"
 
 
 class DRC_RE_SMD_ENTRY_PANEL : public DRC_RE_SMD_ENTRY_PANEL_BASE, public DrcRuleEditorContentPanelBase
@@ -36,10 +37,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
-    bool GetSmdEntryAllowed() { return m_allowSmdEntry; }
+    bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-private:
-    bool m_allowSmdEntry;
+private:    
     std::shared_ptr<DrcReSmdEntryConstraintData> m_constraintData;
 };
 
