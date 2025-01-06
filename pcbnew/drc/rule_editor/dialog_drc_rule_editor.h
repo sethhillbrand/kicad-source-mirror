@@ -50,9 +50,8 @@ public:
 
     void UpdateRuleTypeTreeItemData( RuleTreeItemData* aCurrentRuleTreeItemData ) override;   
 
-    bool CanShowContextMenu( RuleTreeItemData* aRuleTreeItemData ) override;
-
-    bool CheckAndAppendRuleOperations( RuleTreeItemData* aRuleTreeItemData ) override;    
+    bool VerifyTreeContextMenuOptionToEnable( RuleTreeItemData* aRuleTreeItemData,
+                                              RULE_EDITOR_TREE_CONTEXT_OPT aOption ) override;
 
 private:
     std::vector<RuleTreeNode> createElectricalItems( int& parentId );
@@ -82,11 +81,13 @@ private:
 
     bool validateRuleName( int aNodeId, wxString aRuleName );
 
+    bool deleteTreeNodeData( int aNodeId );
+
 protected:
     PCB_EDIT_FRAME* m_frame;
 
 private:
-    std::vector<RuleTreeNode> m_RuleTreeNodes;
+    std::vector<RuleTreeNode> m_RuleTreeNodeDatas;
     PANEL_DRC_RULE_EDITOR*    m_ruleEditorPanel;
     PANEL_DRC_GROUP_HEADER*   m_groupHeaderPanel;
     unsigned int              m_nodeId;
