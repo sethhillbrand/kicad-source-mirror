@@ -26,6 +26,8 @@
 #include "drc_rule_editor_enums.h"
 #include "drc_re_constraint_panel_params.h"
 #include "drc_rule_editor_utils.h"
+#include "bitmaps.h"
+#include "bitmap_store.h"
 
 
 class DRC_RE_NUMERIC_INPUT_PANEL : public DRC_RE_NUMERIC_INPUT_PANEL_BASE, public DrcRuleEditorContentPanelBase
