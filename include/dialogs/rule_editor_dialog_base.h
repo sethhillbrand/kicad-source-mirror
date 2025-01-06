@@ -30,8 +30,19 @@
 
 #include <drc/rule_editor/drc_re_base_constraint_data.h>
 #include <dialogs/rule_editor_base_data.h>
+#include <dialogs/rule_tree_ctrl.h>
 
 class WX_INFOBAR;
+
+enum RULE_EDITOR_TREE_CONTEXT_OPT
+{
+    ADD_RULE = 0,
+    DUPLICATE_RULE,
+    DELETE_RULE,
+    MOVE_UP,
+    MOVE_DOWN,
+};
+
 
 struct RuleTreeNode
 {
@@ -67,43 +78,6 @@ private:
     wxTreeItemId  m_TreeItemId;
 };
 
-//class RuleTreeItemData : public wxTreeItemData
-//{
-//public:
-//    explicit RuleTreeItemData( RuleTreeNode* aNodeData, wxTreeItemId aParentTreeItemId,
-//                               wxTreeItemId aTreeItemId ) :
-//            m_TreeItem( aNodeData ),
-//            m_ParentTreeItemId( aParentTreeItemId ), 
-//            m_TreeItemId( aTreeItemId )
-//    {
-//    }
-//
-//    explicit RuleTreeItemData( RuleTreeNode* aNodeData ) :
-//            m_TreeItem( aNodeData ),
-//            m_ParentTreeItemId( nullptr ), 
-//            m_TreeItemId( nullptr )
-//    {
-//    }
-//
-//    RuleTreeNode* GetTreeItem() const { return m_TreeItem; }
-//
-//    wxTreeItemId  GetParentTreeItemId() const { return m_ParentTreeItemId; }
-//
-//    wxTreeItemId  GetTreeItemId() const { return m_TreeItemId; }
-//
-//    wxString GetNodeName() { return this->GetTreeItem()->node_name; }
-//
-//    void SyncNodeName() 
-//    {  
-//        GetTreeItem()->node_name = this->GetTreeItem()->node_data->GetRuleName();
-//    }
-//
-//private:
-//    RuleTreeNode* m_TreeItem;             
-//    wxTreeItemId  m_ParentTreeItemId; 
-//    wxTreeItemId  m_TreeItemId; 
-//};
-
 
 class RULE_EDITOR_DIALOG_BASE : public DIALOG_SHIM
 {
@@ -114,7 +88,7 @@ public:
 
     ~RULE_EDITOR_DIALOG_BASE() override;
 
-    wxTreeCtrl* GetTreeCtrl() { return m_treeCtrl; }
+    RuleTreeCtrl* GetTreeCtrl() { return m_treeCtrl; }
 
     void SetModified() { m_modified = true; }
 
@@ -122,16 +96,16 @@ public:
 
     virtual std::vector<RuleTreeNode> GetDefaultTreeItems() = 0;
 
-    void InitTreeItems( wxTreeCtrl* aTreeCtrl, const std::vector<RuleTreeNode>& aRuleTreeNodes );
+    void InitTreeItems( RuleTreeCtrl* aTreeCtrl, const std::vector<RuleTreeNode>& aRuleTreeNodes );
 
-    void PopulateTreeCtrl( wxTreeCtrl* aTreeCtrl, const std::vector<RuleTreeNode>& aRuleTreeNodes,
+    void PopulateTreeCtrl( RuleTreeCtrl* aTreeCtrl, const std::vector<RuleTreeNode>& aRuleTreeNodes,
                            const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId );
 
     wxPanel* GetContentPanel() { return m_contentPanel; }
 
     void SetContentPanel( wxPanel* aContentPanel );  
 
-    void AppendNewTreeItem( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId );   
+    void AppendNewTreeItem( RuleTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId );   
 
     virtual void AddNewRule( RuleTreeItemData* aRuleTreeItemData ) = 0;
 
@@ -147,15 +121,16 @@ public:
 
     wxTreeItemId GetPreviouslySelectedTreeItemId() { return m_previouslySelectedTreeItemId; }
 
-    void UpdateTreeItemText( wxTreeCtrl* aTreeCtrl, wxTreeItemId aItemId, wxString aItemText );
+    void UpdateTreeItemText( RuleTreeCtrl* aTreeCtrl, wxTreeItemId aItemId, wxString aItemText );
 
-    virtual bool CanShowContextMenu( RuleTreeItemData* aRuleTreeItemData ) = 0;
-
-    virtual bool CheckAndAppendRuleOperations( RuleTreeItemData* aRuleTreeItemData ) = 0;
+    virtual bool VerifyTreeContextMenuOptionToEnable( RuleTreeItemData* aRuleTreeItemData,
+                                                      RULE_EDITOR_TREE_CONTEXT_OPT aOption  ) = 0;
 
     void SetSelectedItem( wxTreeItemId aTreeItemId );
 
     void SetControlsEnabled( bool aEnable );
+
+    void DeleteTreeItem( wxTreeItemId aItemId, const unsigned int& aNodeId );
 
 protected:
 
@@ -185,29 +160,49 @@ private:
      *
      * @param aEvent is the search event, used to get the search query.
      */
-    void OnFilterSearch( wxCommandEvent& aEvent );
+    void onFilterSearch( wxCommandEvent& aEvent );
 
-    void SaveTreeState( const wxTreeItemId& item, const unsigned int& aNodeId=0 );
+    void saveTreeState( const wxTreeItemId& item, const unsigned int& aNodeId=0 );
 
-    bool FilterTree( const wxTreeItemId& item, const wxString& filter );
+    bool filterTree( const wxTreeItemId& item, const wxString& filter );
 
-    void RestoreTree( const wxTreeItemId& parent, const unsigned int& aNodeId );    
+    void restoreTree( const wxTreeItemId& parent, const unsigned int& aNodeId );    
 
-    wxTreeItemId appendTreeItem( wxTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId );  
+    wxTreeItemId appendTreeItem( RuleTreeCtrl* aTreeCtrl, const RuleTreeNode& aRuleTreeNode, wxTreeItemId aParentTreeItemId );  
 
     std::vector<RuleTreeNode> getAllChildrenByParentId( const std::vector<RuleTreeNode>& nodes, unsigned int parentId);
 
     void getChildNodes( const std::vector<RuleTreeNode>& nodes, int parentId, std::vector<RuleTreeNode>& result );
 
+    void onTreeItemLeftDown( wxMouseEvent& event );
+
+    void onTreeItemMouseMotion( wxMouseEvent& event );
+
+    void onTreeItemLeftUp( wxMouseEvent& event );
+
+    void moveChildrenOnTreeItemDrag( wxTreeCtrl* tree, wxTreeItemId srcItem,
+                                     wxTreeItemId destItem );
+
+    void updateTreeItemMoveOptionState();
+
+    void updateTreeActionButtonsState( RuleTreeItemData* ruleTreeItemData );
+    
+
     DECLARE_EVENT_TABLE();
 
 protected:
-    wxTreeCtrl* m_treeCtrl;
+    RuleTreeCtrl* m_treeCtrl;
     WX_INFOBAR* m_infoBar;
     wxPanel*    m_contentPanel;
     wxSizer*      m_contentSizer;
     wxSearchCtrl* m_filterSearch;
     wxTextCtrl*   m_filterText;
+    wxBitmapButton* m_addRuleButton;
+    wxBitmapButton* m_copyRuleButton;
+    wxBitmapButton* m_moveTreeItemUpButton;
+    wxBitmapButton* m_moveTreeItemDownButton;
+    wxBitmapButton* m_deleteRuleButton;
+
 
 private:
     wxString                  m_title;
@@ -217,6 +212,15 @@ private:
     RuleTreeItemData*         m_selectedTreeItemData;
     wxTreeItemId              m_previouslySelectedTreeItemId;
     std::unordered_map<unsigned int, std::tuple<wxString, std::vector<unsigned int>, wxTreeItemId>> m_originalChildren;
+    wxTreeItemId m_draggedItem;
+    wxPoint      m_startPos;
+    wxDragImage* m_dragImage = nullptr;
+    bool         m_isDragging = false; // Track drag state
+    bool         m_enableMoveUp = false;
+    bool         m_enableMoveDown = false;
+    bool         m_enableAddRule = false;
+    bool         m_enableDuplicateRule = false;
+    bool         m_enableDeleteRule = false;
 };
 
 #endif //RULE_EDITOR_DIALOG_BASE_H

@@ -24,6 +24,7 @@
 #ifndef DRC_RULE_EDITOR_ENUMS_H_
 #define DRC_RULE_EDITOR_ENUMS_H_
 
+
 enum DRC_RULE_EDITOR_ITEM_TYPE
 {
     ROOT = 0,
