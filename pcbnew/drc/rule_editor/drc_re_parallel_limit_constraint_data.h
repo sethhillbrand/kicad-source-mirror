@@ -33,9 +33,7 @@ public:
     DrcReParallelLimitConstraintData() = default;
 
     explicit DrcReParallelLimitConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_parallelLimit( 0 ),
-            m_parallelGap( 0 )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -56,9 +54,21 @@ public:
     double GetParallelGap() { return m_parallelGap; }
     void   SetParallelGap( double aParallelGap ) { m_parallelGap = aParallelGap; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReParallelLimitConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_parallelGap = viaSource.m_parallelGap;
+        m_parallelLimit = viaSource.m_parallelLimit;
+    }
+
 private:
-    double m_parallelGap;
-    double m_parallelLimit;
+    double m_parallelGap{ 0 };
+    double m_parallelLimit{ 0 };
 };
 
 

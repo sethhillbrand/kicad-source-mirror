@@ -32,6 +32,11 @@ class DrcReAbsoluteLengthTwoConstraintData : public DrcReBaseConstraintData
 public:
     DrcReAbsoluteLengthTwoConstraintData() = default;
 
+    explicit DrcReAbsoluteLengthTwoConstraintData( const DrcReBaseConstraintData& baseData ) :
+            DrcReBaseConstraintData( baseData )
+    {
+    }
+
     explicit DrcReAbsoluteLengthTwoConstraintData( unsigned int aId, unsigned int aParentId,
                                                 double aClearanceValue, wxString aRuleName) :
             DrcReBaseConstraintData( aId, aParentId, aRuleName ),
@@ -44,8 +49,19 @@ public:
     double GetAbsoluteLengthTwo() { return m_absoluteLengthTwo; }
     void   SetAbsoluteLengthTwo( double aAbsoluteLengthTwo ) { m_absoluteLengthTwo = aAbsoluteLengthTwo; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReAbsoluteLengthTwoConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_absoluteLengthTwo = viaSource.m_absoluteLengthTwo;
+    }
+
 private:
-    double m_absoluteLengthTwo;
+    double m_absoluteLengthTwo{ 0 };
 };
 
 

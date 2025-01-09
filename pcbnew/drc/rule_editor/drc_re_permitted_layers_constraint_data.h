@@ -33,9 +33,7 @@ public:
     DrcRePermittedLayersConstraintData() = default;
 
     explicit DrcRePermittedLayersConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_topLayer( false ),
-            m_bottomLayer( false )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -56,9 +54,21 @@ public:
     bool GetBottomLayerEnabled() { return m_bottomLayer; }
     void SetBottomLayerEnabled( double aBottomLayer ) { m_bottomLayer = aBottomLayer; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcRePermittedLayersConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_topLayer = viaSource.m_topLayer;
+        m_bottomLayer = viaSource.m_bottomLayer;
+    }
+
 private:
-    bool m_topLayer;
-    bool m_bottomLayer;
+    bool m_topLayer{ false };
+    bool m_bottomLayer{ false };
 };
 
 

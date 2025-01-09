@@ -33,8 +33,7 @@ public:
     DrcReNumericInputConstraintData() = default;
 
     explicit DrcReNumericInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ),
-            m_numericInputValue( 0 )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -50,8 +49,19 @@ public:
     double GetNumericInputValue() { return m_numericInputValue; }
     void   SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReNumericInputConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_numericInputValue = viaSource.m_numericInputValue;
+    }
+
 private:
-    double m_numericInputValue;
+    double m_numericInputValue{ 0 };
 };
 
 
