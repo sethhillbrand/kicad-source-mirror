@@ -33,10 +33,7 @@ public:
     DrcReSmdEntryConstraintData() = default;
 
     explicit DrcReSmdEntryConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_sideAngle( false ),
-            m_cornerAngle( false ),
-            m_anyAngle( false )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -62,10 +59,23 @@ public:
     bool GetIsAnyAngleEnabled() { return m_anyAngle; }
     void SetIsAnyAngleEnabled( double aAnyAngle ) { m_anyAngle = aAnyAngle; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReSmdEntryConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_sideAngle = viaSource.m_sideAngle;
+        m_cornerAngle = viaSource.m_cornerAngle;
+        m_anyAngle = viaSource.m_anyAngle;
+    }
+
 private:
-    bool m_sideAngle;
-    bool m_cornerAngle;
-    bool m_anyAngle;
+    bool m_sideAngle{ false };
+    bool m_cornerAngle{ false };
+    bool m_anyAngle{ false };
 };
 
 

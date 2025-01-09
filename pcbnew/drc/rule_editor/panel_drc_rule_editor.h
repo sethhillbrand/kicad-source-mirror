@@ -32,114 +32,8 @@
 #include "drc_re_base_constraint_data.h"
 #include <variant>
 #include <dialogs/rule_editor_base_data.h>
+#include "drc_re_layers_selection_combo.h"
 
-
-// Custom Popup for MultiChoiceComboBox
-class MultiChoicePopup : public wxComboPopup
-{
-public:
-    MultiChoicePopup() = default;
-
-    // Initialize the popup control
-    void Init() override { m_checkListBox = nullptr; }
-
-    // Create the popup control
-    bool Create( wxWindow* aParent ) override
-    {
-        m_checkListBox = new wxCheckListBox( aParent, wxID_ANY );
-        return true;
-    }
-
-    // Return the control
-    wxWindow* GetControl() override { return m_checkListBox; }
-
-    // Update the combo box's value when the popup is dismissed
-    void SetStringValue( const wxString& value ) override { m_selectedItemsString = value; }
-
-    // Return the combo box's current value
-    wxString GetStringValue() const override { return m_selectedItemsString; }
-
-    // Populate the check list box
-    void Populate( const wxArrayString& items )
-    {
-        m_checkListBox->Clear();
-        m_checkListBox->Append( items );
-    }
-
-    // Get selected items as a comma-separated string
-    wxString GetSelectedItems()
-    {
-        wxArrayInt checkedItems;
-        wxString   selectedItems;
-
-        m_checkListBox->GetCheckedItems( checkedItems );
-
-        for( size_t i = 0; i < checkedItems.GetCount(); ++i )
-        {
-            if( !selectedItems.IsEmpty() )
-                selectedItems += ", ";
-            selectedItems += m_checkListBox->GetString( checkedItems[i] );
-        }
-
-        m_selectedItemsString = selectedItems;
-        return selectedItems;
-    }
-
-private:
-    wxCheckListBox* m_checkListBox;
-    wxString        m_selectedItemsString;
-};
-
-
-// MultiChoiceComboBox Control
-class MultiChoiceComboBox : public wxComboCtrl
-{
-public:
-    MultiChoiceComboBox( wxWindow* parent, const wxArrayString& items ) :
-            wxComboCtrl( parent, wxID_ANY )
-    {
-        // Create and assign the custom popup
-        m_popup = new MultiChoicePopup();
-        SetPopupControl( m_popup );
-
-        // Populate the popup with items
-        m_popup->Populate( items );
-
-         // Bind to update the value when the popup is dismissed
-        Bind( wxEVT_COMBOBOX_CLOSEUP, &MultiChoiceComboBox::OnPopupClose, this );
-
-        // Disable manual typing
-        Bind( wxEVT_KEY_DOWN, &MultiChoiceComboBox::OnKeyDown, this );
-        Bind( wxEVT_LEFT_DOWN, &MultiChoiceComboBox::OnMouseClick, this );
-    }
-
-    wxString GetSelectedItems() { return m_popup->GetSelectedItems(); }
-
-private:
-    void OnPopupClose( wxCommandEvent& )
-    {
-        // Update the combo box value with selected items
-        SetValue( m_popup->GetSelectedItems() );
-    }
-
-    void OnKeyDown( wxKeyEvent& event )
-    {
-        // Ignore key events to prevent typing
-        event.Skip( false );
-    }
-
-    void OnMouseClick( wxMouseEvent& event )
-    {
-        // Open the dropdown on mouse click
-        if( !IsPopupShown() )
-        {
-            ShowPopup();
-        }
-        event.Skip( false );
-    }
-
-    MultiChoicePopup* m_popup;
-};
 
 class PANEL_DRC_RULE_EDITOR : public PANEL_DRC_RULE_EDITOR_BASE, public DrcRuleEditorContentPanelBase
 {
@@ -155,13 +49,16 @@ public:
 
     auto GetConstraintData() { return m_constraintData; }
 
-    void SetSaveOrUpdateCallback( std::function<void( int aNodeId )> aCallbackSaveOrUpdate ) { m_callbackSaveOrUpdate = aCallbackSaveOrUpdate; }
+    void SetSaveCallback( std::function<void( int aNodeId )> aCallbackSave ) { m_callbackSave = aCallbackSave; }
 
-    void SetCancelOrDeleteCallback( std::function<void( int aNodeId )> aCallbackCancelOrDelete ) { m_callbackCancelOrDelete = aCallbackCancelOrDelete; }
+    void SetRemoveCallback( std::function<void( int aNodeId )> aCallbackRemove ) { m_callbackRemove = aCallbackRemove; }
 
     void SetCloseCallback( std::function<void( int aNodeId )> aCallbackClose ) { m_callbackClose = aCallbackClose; }
 
-    void SetRuleNameValidationCallback( std::function<bool( int aNodeId, wxString aRuleName )> aCallbackRuleNameValidation ) { m_callbackRuleNameValidation = aCallbackRuleNameValidation; }
+    void SetRuleNameValidationCallback( std::function<bool( int aNodeId, wxString aRuleName )> aCallbackRuleNameValidation ) 
+    { 
+        m_callbackRuleNameValidation = aCallbackRuleNameValidation; 
+    }
 
     bool GetIsValidationSucceeded() { return m_validationSucceeded; }
 
@@ -174,36 +71,38 @@ public:
 private:
     DrcRuleEditorContentPanelBase* getConstraintPanel( wxWindow* aParent, const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
 
-    void onSaveOrUpdateButtonClicked( wxCommandEvent& event );
+    void onSaveButtonClicked( wxCommandEvent& aEvent );
 
-    void onCancelOrDeleteButtonClicked( wxCommandEvent& event );
+    void onRemoveButtonClicked( wxCommandEvent& aEvent );
 
-    void onCloseButtonClicked( wxCommandEvent& event );
+    void onCloseButtonClicked( wxCommandEvent& aEvent );
+
+protected:
+    wxButton* btnSave;
+    wxButton* btnRemove;
+    wxButton* btnClose;
+    wxComboCtrl* m_comboCtrl;
 
 private:
     std::vector<int> m_validLayers;
     LSEQ             m_layerList; 
-    MultiChoiceComboBox* m_layerListCmbCtrl;
-    BOARD*           m_board;
-    wxComboCtrl*     m_comboCtrl;
+    BOARD*           m_board;    
     wxString*        m_constraintTitle;
+    wxString*        m_name;
+    wxString*        m_comment;
+    bool             m_basicDetailValidated;
+    bool             m_syntaxChecked;
+    bool             m_isModified;
+    bool             m_validationSucceeded;
+    std::string      m_validationMessage;
+
+    DRC_RE_LAYER_SELECTION_COMBO*   m_layerListCmbCtrl;
     DRC_RULE_EDITOR_CONSTRAINT_NAME m_constraintType;
     DrcRuleEditorContentPanelBase*  m_constraintPanel;
-    std::shared_ptr<DrcReBaseConstraintData> m_constraintData;
-    wxString* m_name;
-    wxString* m_comment;
-    bool m_basicDetailValidated;
-    bool m_syntaxChecked;
+    std::shared_ptr<DrcReBaseConstraintData> m_constraintData;   
 
-    bool m_isModified;
-    bool m_validationSucceeded;
-    std::string m_validationMessage;
-
-    wxButton* btnSave;
-    wxButton* btnCancel;
-
-    std::function<void( int aNodeId )> m_callbackSaveOrUpdate;
-    std::function<void( int aNodeId )> m_callbackCancelOrDelete;
+    std::function<void( int aNodeId )> m_callbackSave;
+    std::function<void( int aNodeId )> m_callbackRemove;
     std::function<void( int aNodeId )> m_callbackClose;
     std::function<bool( int aNodeId, wxString aRuleName )> m_callbackRuleNameValidation;
 };

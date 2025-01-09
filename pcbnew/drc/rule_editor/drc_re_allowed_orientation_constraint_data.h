@@ -33,12 +33,7 @@ public:
     DrcReAllowedOrientationConstraintData() = default;
 
     explicit DrcReAllowedOrientationConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_allowZeroDegreess( false ),
-            m_allowNintyDegreess( false ),
-            m_allowOneEightyDegreess( false ),
-            m_allowTwoSeventyDegreess( false ),
-            m_allowAllDegreess( false )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -75,12 +70,27 @@ public:
     bool GetIsAllDegressAllowed() { return m_allowAllDegreess; }
     void SetIsAllDegressAllowed( double aAllowAllDegreess ) { m_allowAllDegreess = aAllowAllDegreess; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReAllowedOrientationConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_allowZeroDegreess = viaSource.m_allowZeroDegreess;
+        m_allowNintyDegreess = viaSource.m_allowNintyDegreess;
+        m_allowOneEightyDegreess = viaSource.m_allowOneEightyDegreess;
+        m_allowTwoSeventyDegreess = viaSource.m_allowTwoSeventyDegreess;
+        m_allowAllDegreess = viaSource.m_allowAllDegreess;
+    }
+
 private:
-    bool m_allowZeroDegreess;
-    bool m_allowNintyDegreess;
-    bool m_allowOneEightyDegreess;
-    bool m_allowTwoSeventyDegreess;
-    bool m_allowAllDegreess;
+    bool m_allowZeroDegreess{ false };
+    bool m_allowNintyDegreess{ false };
+    bool m_allowOneEightyDegreess{ false };
+    bool m_allowTwoSeventyDegreess{ false };
+    bool m_allowAllDegreess{ false };
 };
 
 
