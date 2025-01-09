@@ -33,14 +33,7 @@ public:
     DrcReRoutingDiffPairConstraintData() = default;
 
     explicit DrcReRoutingDiffPairConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_maxUncoupledLength( 0 ),
-            m_minWidth( 0 ),
-            m_preferredWidth( 0 ),
-            m_maxWidth( 0 ),
-            m_minGap( 0 ),
-            m_preferredGap( 0 ),
-            m_maxGap( 0 )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -86,14 +79,31 @@ public:
     double GetMaxGap() { return m_maxGap; }
     void   SetMaxGap( double aMaxGap ) { m_maxGap = aMaxGap; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReRoutingDiffPairConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_maxUncoupledLength = viaSource.m_maxUncoupledLength;
+        m_minWidth = viaSource.m_minWidth;
+        m_preferredWidth = viaSource.m_preferredWidth;
+        m_maxWidth = viaSource.m_maxWidth;
+        m_minGap = viaSource.m_minGap;
+        m_preferredGap = viaSource.m_preferredGap;
+        m_maxGap = viaSource.m_maxGap;
+    }
+
 private:
-    double m_maxUncoupledLength;
-    double m_minWidth;
-    double m_preferredWidth;
-    double m_maxWidth;
-    double m_minGap;
-    double m_preferredGap;
-    double m_maxGap;
+    double m_maxUncoupledLength{ 0 };
+    double m_minWidth{ 0 };
+    double m_preferredWidth{ 0 };
+    double m_maxWidth{ 0 };
+    double m_minGap{ 0 };
+    double m_preferredGap{ 0 };
+    double m_maxGap{ 0 };
 };
 
 #endif // DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA_H_

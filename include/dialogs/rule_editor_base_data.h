@@ -24,7 +24,19 @@
 #ifndef DRC_RE_BASE_DATA_H_
 #define DRC_RE_BASE_DATA_H_
 
-class RuleEditorBaseData
+#include <lset.h>
+#include <lseq.h>
+
+class ICopyable
+{
+public:
+    virtual ~ICopyable() = default;
+
+    // Polymorphic copy method
+    virtual void CopyFrom( const ICopyable& source ) = 0;
+};
+
+class RuleEditorBaseData : public ICopyable
 {
 public:
     RuleEditorBaseData() = default;
@@ -53,6 +65,12 @@ public:
 
     bool IsNew() { return m_isNew; }
     void SetIsNew( bool aIsNew ) { m_isNew = aIsNew; }
+
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& baseSource = dynamic_cast<const RuleEditorBaseData&>( source );
+        m_comment = baseSource.m_comment;
+    }
 
 protected:
     unsigned int m_id;

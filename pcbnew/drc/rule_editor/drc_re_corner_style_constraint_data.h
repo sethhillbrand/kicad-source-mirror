@@ -33,10 +33,7 @@ public:
     DrcReCornerStyleConstraintData() = default;
 
     explicit DrcReCornerStyleConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_cornerStyle( wxEmptyString ),
-            m_minSetbackLength( 0 ),
-            m_maxSetbackLength( 0 )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -62,10 +59,22 @@ public:
     double GetMaxSetbackLength() { return m_maxSetbackLength; }
     void   SetMaxSetbackLength( double aMaxSetbackLength ) { m_maxSetbackLength = aMaxSetbackLength; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReCornerStyleConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_minSetbackLength = viaSource.m_minSetbackLength;
+        m_maxSetbackLength = viaSource.m_maxSetbackLength;
+    }
+
 private:
-    wxString m_cornerStyle;
-    double   m_minSetbackLength;
-    double   m_maxSetbackLength;
+    wxString m_cornerStyle{ wxEmptyString };
+    double   m_minSetbackLength{ 0 };
+    double   m_maxSetbackLength{ 0 };
 };
 
 #endif // DRC_RE_CORNER_STYLE_CONSTRAINT_DATA_H_
