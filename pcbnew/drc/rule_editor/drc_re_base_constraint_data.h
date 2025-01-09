@@ -40,11 +40,22 @@ public:
 
     virtual ~DrcReBaseConstraintData() = default;
 
-    std::vector<wxString> GetLayers() { return m_layers; }
-    void                  SetLayers( std::vector<wxString> aLayers ) { m_layers = aLayers; }
+    std::vector<PCB_LAYER_ID> GetLayers() { return m_layers; }
+    void                      SetLayers( std::vector<PCB_LAYER_ID> aLayers ) { m_layers = aLayers; }
+
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& baseSource = dynamic_cast<const DrcReBaseConstraintData&>( source );
+
+        // Call base class method
+        RuleEditorBaseData::CopyFrom( baseSource );
+
+        // Copy layer-specific data
+        m_layers = baseSource.m_layers;
+    }
 
 private:
-    std::vector<wxString> m_layers;
+    std::vector<PCB_LAYER_ID> m_layers;
 };
 
 

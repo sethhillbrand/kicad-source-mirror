@@ -33,10 +33,7 @@ public:
     DrcReRoutingWidthConstraintData() = default;
 
     explicit DrcReRoutingWidthConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_minRoutingWidth( 0 ),
-            m_preferredRoutingWidth( 0 ),
-            m_maxRoutingWidth( 0 )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -62,10 +59,23 @@ public:
     double GetMaxRoutingWidth() { return m_maxRoutingWidth; }
     void   SetMaxRoutingWidth( double aMaxRoutingWidth ) { m_maxRoutingWidth = aMaxRoutingWidth; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReRoutingWidthConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_minRoutingWidth = viaSource.m_minRoutingWidth;
+        m_preferredRoutingWidth = viaSource.m_preferredRoutingWidth;
+        m_maxRoutingWidth = viaSource.m_maxRoutingWidth;
+    }
+
 private:
-    double m_minRoutingWidth;
-    double m_preferredRoutingWidth;
-    double m_maxRoutingWidth;
+    double m_minRoutingWidth{ 0 };
+    double m_preferredRoutingWidth{ 0 };
+    double m_maxRoutingWidth{ 0 };
 };
 
 

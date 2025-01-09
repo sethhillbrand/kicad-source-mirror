@@ -33,8 +33,7 @@ public:
     DrcReBoolInputConstraintData() = default;
 
     explicit DrcReBoolInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData ), 
-            m_boolInputValue( false )
+            DrcReBaseConstraintData( baseData )
     {
     }
 
@@ -50,8 +49,19 @@ public:
     bool GetBoolInputValue() { return m_boolInputValue; }
     void SetBoolInputValue( bool aBoolInputValue ) { m_boolInputValue = aBoolInputValue; }
 
+    void CopyFrom( const ICopyable& source ) override
+    {
+        const auto& viaSource = dynamic_cast<const DrcReBoolInputConstraintData&>( source );
+
+        // Call base class method
+        DrcReBaseConstraintData::CopyFrom( viaSource );
+
+        // Copy via-specific data
+        m_boolInputValue = viaSource.m_boolInputValue;
+    }
+
 private:
-    double m_boolInputValue;
+    double m_boolInputValue{ false };
 };
 
 
