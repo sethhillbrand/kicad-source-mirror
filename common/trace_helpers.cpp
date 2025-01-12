@@ -59,6 +59,7 @@ const wxChar* const traceUiProfile = wxT( "KICAD_UI_PROFILE" );
 const wxChar* const traceGit = wxT( "KICAD_GIT" );
 const wxChar* const traceEagleIo = wxT( "KICAD_EAGLE_IO" );
 const wxChar* const traceDesignBlocks = wxT( "KICAD_DESIGN_BLOCK" );
+const wxChar* const traceLibraries = wxT( "KICAD_LIBRARIES" );
 
 
 wxString dump( const wxArrayString& aArray )

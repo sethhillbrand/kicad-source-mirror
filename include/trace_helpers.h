@@ -248,6 +248,12 @@ extern KICOMMON_API const wxChar* const traceEagleIo;
  */
 extern KICOMMON_API const wxChar* const traceDesignBlocks;
 
+/*
+ * Flag to enable library table and library manager tracing.
+ * use "KICAD_LIBRARIES" to enable.
+ */
+extern KICOMMON_API const wxChar* const traceLibraries;
+
 ///@}
 
 /**
