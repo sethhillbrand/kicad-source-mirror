@@ -58,7 +58,7 @@ const RuleTreeNode* FindNodeById(const std::vector<RuleTreeNode>& nodes, unsigne
 
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
         RULE_EDITOR_DIALOG_BASE( aFrame, _( "Design Rule Builder" ),
-                                 aFrame->FromDIP( wxSize( 980, 640 ) ) ),
+                                 aFrame->FromDIP( wxSize( 980, 680 ) ) ),
         m_frame( aFrame ), 
         m_ruleEditorPanel( nullptr ), 
         m_groupHeaderPanel( nullptr ), 

@@ -10,6 +10,8 @@
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/intl.h>
+class WX_HTML_REPORT_BOX;
+
 #include <wx/string.h>
 #include <wx/stattext.h>
 #include <wx/gdicmn.h>
@@ -19,10 +21,14 @@
 #include <wx/textctrl.h>
 #include <wx/sizer.h>
 #include <wx/statline.h>
-#include <wx/button.h>
+#include <wx/hyperlink.h>
+#include <wx/stc/stc.h>
+#include <wx/bmpbuttn.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
 #include <wx/icon.h>
+#include <wx/button.h>
+#include <wx/html/htmlwin.h>
 #include <wx/panel.h>
 
 ///////////////////////////////////////////////////////////////////////////
@@ -45,15 +51,23 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 		wxStaticText* m_constraintHeaderTitle;
 		wxStaticLine* m_staticline3;
 		wxBoxSizer* m_constraintContentSizer;
-		wxStaticText* m_staticText71;
-		wxStaticLine* m_staticline11;
-		wxTextCtrl* m_textConditionCtrl;
-		wxButton* m_showMatchesBtnCtrl;
-		wxButton* m_checkSyntaxBtnCtrl;
+		wxStaticText* m_conditionHeaderTitle;
+		wxHyperlinkCtrl* m_syntaxHelp;
+		wxStaticLine* m_staticline8;
+		wxStyledTextCtrl* m_textConditionCtrl;
+		wxBitmapButton* m_checkSyntaxBtnCtrl;
+		WX_HTML_REPORT_BOX* m_syntaxErrorReport;
 		wxStaticText* m_staticText711;
 		wxStaticLine* m_staticline111;
 		wxBoxSizer* m_LayersComboBoxSizer;
 		wxStaticLine* m_staticline4;
+
+		// Virtual event handlers, override them in your derived class
+		virtual void onSyntaxHelp( wxHyperlinkEvent& event ) { event.Skip(); }
+		virtual void onContextMenu( wxMouseEvent& event ) { event.Skip(); }
+		virtual void onCheckSyntax( wxCommandEvent& event ) { event.Skip(); }
+		virtual void onErrorLinkClicked( wxHtmlLinkEvent& event ) { event.Skip(); }
+
 
 	public:
 
