@@ -36,6 +36,11 @@
 #include <layer_range.h>
 #include <board.h>
 #include <idf_parser.h>
+#include <scintilla_tricks.h>
+#include <dialogs/html_message_box.h>
+#include <tools/drc_tool.h>
+#include <widgets/wx_html_report_box.h>
+#include <drc/drc_rule_parser.h>
 
 #include <drc/rule_editor/panel_drc_rule_editor.h>
 #include <drc/rule_editor/drc_re_numeric_input_panel.h>
@@ -62,6 +67,8 @@
 #include "drc_re_allowed_orientation_constraint_data.h"
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
+#include <widgets/paged_dialog.h>
+#include <pcbexpr_evaluator.h>
 
 
 PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType, 
@@ -72,7 +79,9 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
         m_constraintData( aConstraintData ), 
         m_constraintType( aConstraintType ),
         m_validationSucceeded( false ),
-        m_isModified( false )
+        m_isModified( false ),
+        m_scintillaTricks( nullptr ), 
+        m_helpWindow( nullptr )
 {
     m_constraintPanel = getConstraintPanel( this, aConstraintType );
     m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP, 5 );      
@@ -107,6 +116,39 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
     btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
     btnRemove->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
     btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+
+    m_checkSyntaxBtnCtrl->SetBitmap( KiBitmapBundle( BITMAPS::drc ) );
+
+    m_scintillaTricks = new SCINTILLA_TRICKS(
+            m_textConditionCtrl, wxT( "()" ), false,
+            // onAcceptFn
+            [this]( wxKeyEvent& aEvent )
+            {
+                wxPostEvent( PAGED_DIALOG::GetDialog( this ),
+                             wxCommandEvent( wxEVT_COMMAND_BUTTON_CLICKED, wxID_OK ) );
+            },
+            // onCharFn
+            [this]( wxStyledTextEvent& aEvent )
+            {
+                onScintillaCharAdded( aEvent );
+            } );
+
+    m_textConditionCtrl->AutoCompSetSeparator( '|' );
+
+    m_netClassRegex.Compile( "^NetClass\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_netNameRegex.Compile( "^NetName\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_typeRegex.Compile( "^Type\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_viaTypeRegex.Compile( "^Via_Type\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_padTypeRegex.Compile( "^Pad_Type\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_pinTypeRegex.Compile( "^Pin_Type\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_fabPropRegex.Compile( "^Fabrication_Property\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_shapeRegex.Compile( "^Shape\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_padShapeRegex.Compile( "^Pad_Shape\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_padConnectionsRegex.Compile( "^Pad_Connections\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_zoneConnStyleRegex.Compile( "^Zone_Connection_Style\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_lineStyleRegex.Compile( "^Line_Style\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_hJustRegex.Compile( "^Horizontal_Justification\\s*[!=]=\\s*$", wxRE_ADVANCED );
+    m_vJustRegex.Compile( "^Vertical_Justification\\s*[!=]=\\s*$", wxRE_ADVANCED );
 }
 
 
@@ -271,4 +313,502 @@ void PANEL_DRC_RULE_EDITOR::RefreshScreen()
 {
     btnSave->SetLabelText( "Update" );
     btnRemove->SetLabelText( "Delete" );
+}
+
+
+void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
+{
+    if( aEvent.GetModifiers() == wxMOD_CONTROL && aEvent.GetKey() == ' ' )
+    {
+        // This is just a short-cut for do-auto-complete
+    }
+
+    m_textConditionCtrl->SearchAnchor();
+
+    wxString rules = m_textConditionCtrl->GetText();
+    int      currentPos = m_textConditionCtrl->GetCurrentPos();
+    int      startPos = 0;
+
+    for( int line = m_textConditionCtrl->LineFromPosition( currentPos ); line > 0; line-- )
+    {
+        int      lineStart = m_textConditionCtrl->PositionFromLine( line );
+        wxString beginning = m_textConditionCtrl->GetTextRange( lineStart, lineStart + 10 );
+
+        if( beginning.StartsWith( wxT( "(condition " ) ) )
+        {
+            startPos = lineStart;
+            break;
+        }
+    }
+
+    enum
+    {
+        NONE,
+        STRING,
+        SEXPR_OPEN,
+        SEXPR_TOKEN,
+        SEXPR_STRING,
+        STRUCT_REF
+    };
+
+    std::stack<wxString> sexprs;
+    wxString             partial;
+    wxString             last;
+    wxString             constraintType;
+    int                  context = NONE;
+    int                  expr_context = NONE;
+
+    for( int i = startPos; i < currentPos; ++i )
+    {
+        wxChar c = m_textConditionCtrl->GetCharAt( i );
+
+        if( c == '\\' )
+        {
+            i++; // skip escaped char
+        }
+        else if( context == STRING )
+        {
+            if( c == '"' )
+            {
+                context = NONE;
+            }
+            else
+            {
+                if( expr_context == STRING )
+                {
+                    if( c == '\'' )
+                        expr_context = NONE;
+                    else
+                        partial += c;
+                }
+                else if( c == '\'' )
+                {
+                    last = partial;
+                    partial = wxEmptyString;
+                    expr_context = STRING;
+                }
+                else if( c == '.' )
+                {
+                    partial = wxEmptyString;
+                    expr_context = STRUCT_REF;
+                }
+                else
+                {
+                    partial += c;
+                }
+            }
+        }
+        else if( c == '"' )
+        {
+            last = partial;
+            partial = wxEmptyString;
+            context = STRING;
+        }
+        else if( c == '(' )
+        {
+            if( context == SEXPR_OPEN && !partial.IsEmpty() )
+            {
+                m_textConditionCtrl->AutoCompCancel();
+                sexprs.push( partial );
+            }
+
+            partial = wxEmptyString;
+            context = SEXPR_OPEN;
+        }
+        else if( c == ')' )
+        {
+            context = NONE;
+        }
+        else if( c == ' ' )
+        {
+            if( context == SEXPR_OPEN && !partial.IsEmpty() )
+            {
+                m_textConditionCtrl->AutoCompCancel();
+                sexprs.push( partial );
+
+                if( partial == wxT( "condition" ) )
+                {
+                    context = SEXPR_STRING;
+                }
+                else
+                {
+                    context = NONE;
+                }
+
+                partial = wxEmptyString;
+                continue;
+            }
+
+            context = NONE;
+        }
+        else
+        {
+            partial += c;
+        }
+    }
+
+    wxString tokens;
+
+    if( context == SEXPR_OPEN )
+    {
+        if( sexprs.empty() )
+        {
+            tokens = wxT( "condition" );
+        }
+    }
+    else if( context == SEXPR_TOKEN )
+    {
+        if( sexprs.empty() )
+        {
+            /* badly formed grammar */
+        }
+    }
+    else if( context == SEXPR_STRING && !sexprs.empty() && sexprs.top() == wxT( "condition" ) )
+    {
+        m_textConditionCtrl->AddText( wxT( "\"" ) );
+    }
+    else if( context == STRING && !sexprs.empty() && sexprs.top() == wxT( "condition" ) )
+    {
+        if( expr_context == STRUCT_REF )
+        {
+            PROPERTY_MANAGER&  propMgr = PROPERTY_MANAGER::Instance();
+            std::set<wxString> propNames;
+
+            for( const PROPERTY_MANAGER::CLASS_INFO& cls : propMgr.GetAllClasses() )
+            {
+                const PROPERTY_LIST& props = propMgr.GetProperties( cls.type );
+
+                for( PROPERTY_BASE* prop : props )
+                {
+                    // TODO: It would be nice to replace IsHiddenFromRulesEditor with a nickname
+                    // system, so that two different properies don't need to be created.  This is
+                    // a bigger change than I want to make right now, though.
+                    if( prop->IsHiddenFromRulesEditor() )
+                        continue;
+
+                    wxString ref( prop->Name() );
+                    ref.Replace( wxT( " " ), wxT( "_" ) );
+                    propNames.insert( ref );
+                }
+            }
+
+            for( const wxString& propName : propNames )
+                tokens += wxT( "|" ) + propName;
+
+            PCBEXPR_BUILTIN_FUNCTIONS& functions = PCBEXPR_BUILTIN_FUNCTIONS::Instance();
+
+            for( const wxString& funcSig : functions.GetSignatures() )
+            {
+                if( !funcSig.Contains( "DEPRECATED" ) )
+                    tokens += wxT( "|" ) + funcSig;
+            }
+        }
+        else if( expr_context == STRING )
+        {
+            if( m_netClassRegex.Matches( last ) )
+            {
+                BOARD_DESIGN_SETTINGS&         bds = m_board->GetDesignSettings();
+                std::shared_ptr<NET_SETTINGS>& netSettings = bds.m_NetSettings;
+
+                for( const auto& [name, netclass] : netSettings->GetNetclasses() )
+                    tokens += wxT( "|" ) + name;
+            }
+            else if( m_netNameRegex.Matches( last ) )
+            {
+                for( const wxString& netnameCandidate : m_board->GetNetClassAssignmentCandidates() )
+                    tokens += wxT( "|" ) + netnameCandidate;
+            }
+            else if( m_typeRegex.Matches( last ) )
+            {
+                tokens = wxT( "Bitmap|"
+                              "Dimension|"
+                              "Footprint|"
+                              "Graphic|"
+                              "Group|"
+                              "Leader|"
+                              "Pad|"
+                              "Target|"
+                              "Text|"
+                              "Text Box|"
+                              "Track|"
+                              "Via|"
+                              "Zone" );
+            }
+            else if( m_viaTypeRegex.Matches( last ) )
+            {
+                tokens = wxT( "Through|"
+                              "Blind/buried|"
+                              "Micro" );
+            }
+            else if( m_padTypeRegex.Matches( last ) )
+            {
+                tokens = wxT( "Through-hole|"
+                              "SMD|"
+                              "Edge connector|"
+                              "NPTH, mechanical" );
+            }
+            else if( m_pinTypeRegex.Matches( last ) )
+            {
+                tokens = wxT( "Input|"
+                              "Output|"
+                              "Bidirectional|"
+                              "Tri-state|"
+                              "Passive|"
+                              "Free|"
+                              "Unspecified|"
+                              "Power input|"
+                              "Power output|"
+                              "Open collector|"
+                              "Open emitter|"
+                              "Unconnected" );
+            }
+            else if( m_fabPropRegex.Matches( last ) )
+            {
+                tokens = wxT( "None|"
+                              "BGA pad|"
+                              "Fiducial, global to board|"
+                              "Fiducial, local to footprint|"
+                              "Test point pad|"
+                              "Heatsink pad|"
+                              "Castellated pad" );
+            }
+            else if( m_shapeRegex.Matches( last ) )
+            {
+                tokens = wxT( "Segment|"
+                              "Rectangle|"
+                              "Arc|"
+                              "Circle|"
+                              "Polygon|"
+                              "Bezier" );
+            }
+            else if( m_padShapeRegex.Matches( last ) )
+            {
+                tokens = wxT( "Circle|"
+                              "Rectangle|"
+                              "Oval|"
+                              "Trapezoid|"
+                              "Rounded rectangle|"
+                              "Chamfered rectangle|"
+                              "Custom" );
+            }
+            else if( m_padConnectionsRegex.Matches( last ) )
+            {
+                tokens = wxT( "Inherited|"
+                              "None|"
+                              "Solid|"
+                              "Thermal reliefs|"
+                              "Thermal reliefs for PTH" );
+            }
+            else if( m_zoneConnStyleRegex.Matches( last ) )
+            {
+                tokens = wxT( "Inherited|"
+                              "None|"
+                              "Solid|"
+                              "Thermal reliefs" );
+            }
+            else if( m_lineStyleRegex.Matches( last ) )
+            {
+                tokens = wxT( "Default|"
+                              "Solid|"
+                              "Dashed|"
+                              "Dotted|"
+                              "Dash-Dot|"
+                              "Dash-Dot-Dot" );
+            }
+            else if( m_hJustRegex.Matches( last ) )
+            {
+                tokens = wxT( "Left|"
+                              "Center|"
+                              "Right" );
+            }
+            else if( m_vJustRegex.Matches( last ) )
+            {
+                tokens = wxT( "Top|"
+                              "Center|"
+                              "Bottom" );
+            }
+        }
+    }
+
+    if( !tokens.IsEmpty() )
+        m_scintillaTricks->DoAutocomplete( partial, wxSplit( tokens, '|' ) );
+}
+
+
+void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
+{
+    if( m_helpWindow )
+    {
+        m_helpWindow->ShowModeless();
+        return;
+    }
+    std::vector<wxString> msg;
+    msg.clear();
+
+    wxString t =
+#include "dialogs/panel_setup_condition_help_1clauses.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_3items.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_5examples.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_6notes.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_7properties.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_8expression_functions.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_9more_examples.h"
+            ;
+    msg.emplace_back( t );
+
+        t =
+#include "dialogs/panel_setup_rules_help_10documentation.h"
+            ;
+    msg.emplace_back( t );
+        
+
+    wxString msg_txt = wxEmptyString;
+
+    for( wxString i : msg )
+        msg_txt << wxGetTranslation( i );
+
+#ifdef __WXMAC__
+    msg_txt.Replace( wxT( "Ctrl+" ), wxT( "Cmd+" ) );
+#endif
+    const wxString& msGg_txt = msg_txt;
+
+    m_helpWindow = new HTML_MESSAGE_BOX( nullptr, _( "Syntax Help" ) );
+    m_helpWindow->SetDialogSizeInDU( 420, 320 );
+
+    wxString html_txt = wxEmptyString;
+    ConvertMarkdown2Html( msGg_txt, html_txt );
+
+    html_txt.Replace( wxS( "<td" ), wxS( "<td valign=top" ) );
+    m_helpWindow->AddHTML_Text( html_txt );
+
+    m_helpWindow->ShowModeless();
+}
+
+
+void PANEL_DRC_RULE_EDITOR::onCheckSyntax(wxCommandEvent& event)
+{
+    m_syntaxErrorReport->Clear();    
+
+    try
+    {
+        std::vector<std::shared_ptr<DRC_RULE>> dummyRules;
+
+        DRC_RULES_PARSER conditionParser( m_textConditionCtrl->GetText(), _( "DRC rule condition" ) );
+
+        if( conditionParser.VerifyParseCondition( m_syntaxErrorReport ) )
+        {
+            wxString ruleTemplate = L"(version 1)\n(rule default\n   %s\n)";
+            wxString formattedRule =
+                    wxString::Format( ruleTemplate, m_textConditionCtrl->GetText() );
+            DRC_RULES_PARSER ruleParser( formattedRule, _( "DRC rule" ) );
+            ruleParser.Parse( dummyRules, m_syntaxErrorReport );
+        }
+    }
+    catch( PARSE_ERROR& pe )
+    {
+        wxString msg =
+                wxString::Format( wxT( "%s <a href='%d:%d'>%s</a>%s" ), _( "ERROR:" ),
+                                  pe.lineNumber, pe.byteIndex, pe.ParseProblem(), wxEmptyString );
+
+        m_syntaxErrorReport->Report( msg, RPT_SEVERITY_ERROR );
+    }
+
+    m_syntaxErrorReport->Flush();
+}
+
+
+void PANEL_DRC_RULE_EDITOR::onErrorLinkClicked( wxHtmlLinkEvent& event )
+{
+    wxString      link = event.GetLinkInfo().GetHref();
+    wxArrayString parts;
+    long          line = 0, offset = 0;
+
+    wxStringSplit( link, parts, ':' );
+
+    if( parts.size() > 1 )
+    {
+        parts[0].ToLong( &line );
+        parts[1].ToLong( &offset );
+    }
+
+    int pos = m_textConditionCtrl->PositionFromLine( line - 1 ) + ( offset - 1 );
+
+    m_textConditionCtrl->GotoPos( pos );
+
+    m_textConditionCtrl->SetFocus();
+}
+
+
+void PANEL_DRC_RULE_EDITOR::onContextMenu( wxMouseEvent& event )
+{
+    wxMenu menu;
+
+    menu.Append( wxID_UNDO, _( "Undo" ) );
+    menu.Append( wxID_REDO, _( "Redo" ) );
+
+    menu.AppendSeparator();
+
+    menu.Append( 1, _( "Cut" ) );  // Don't use wxID_CUT, wxID_COPY, etc.  On Mac (at least),
+    menu.Append( 2, _( "Copy" ) ); // wxWidgets never delivers them to us.
+    menu.Append( 3, _( "Paste" ) );
+    menu.Append( 4, _( "Delete" ) );
+
+    menu.AppendSeparator();
+
+    menu.Append( 5, _( "Select All" ) );
+
+    menu.AppendSeparator();
+
+    menu.Append( wxID_ZOOM_IN, _( "Zoom In" ) );
+    menu.Append( wxID_ZOOM_OUT, _( "Zoom Out" ) );
+
+
+    switch( GetPopupMenuSelectionFromUser( menu ) )
+    {
+    case wxID_UNDO: m_textConditionCtrl->Undo(); break;
+    case wxID_REDO: m_textConditionCtrl->Redo(); break;
+
+    case 1: m_textConditionCtrl->Cut(); break;
+    case 2: m_textConditionCtrl->Copy(); break;
+    case 3: m_textConditionCtrl->Paste(); break;
+    case 4:
+    {
+        long from, to;
+        m_textConditionCtrl->GetSelection( &from, &to );
+
+        if( to > from )
+            m_textConditionCtrl->DeleteRange( from, to );
+
+        break;
+    }
+
+    case 5: m_textConditionCtrl->SelectAll(); break;
+
+    case wxID_ZOOM_IN: m_textConditionCtrl->ZoomIn(); break;
+    case wxID_ZOOM_OUT: m_textConditionCtrl->ZoomOut(); break;
+    }
 }

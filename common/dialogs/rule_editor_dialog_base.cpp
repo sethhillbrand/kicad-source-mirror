@@ -106,7 +106,7 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                         5 ); // Add search box with bottom margin
 
     // Create the tree control and set its font
-    m_ruleTreeCtrl = new RuleTreeCtrl( treeCtrlPanel );
+    m_ruleTreeCtrl = new wxTreeCtrl( treeCtrlPanel );
     m_ruleTreeCtrl->SetFont( KIUI::GetControlFont( this ) );
 
     // Adjust the tree control's window style to remove the border
