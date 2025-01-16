@@ -35,6 +35,9 @@
 #include "drc_re_layers_selection_combo.h"
 
 
+class SCINTILLA_TRICKS;
+class HTML_MESSAGE_BOX;
+
 class PANEL_DRC_RULE_EDITOR : public PANEL_DRC_RULE_EDITOR_BASE, public DrcRuleEditorContentPanelBase
 {
 public:
@@ -77,11 +80,22 @@ private:
 
     void onCloseButtonClicked( wxCommandEvent& aEvent );
 
+    void onScintillaCharAdded( wxStyledTextEvent& aEvent );
+
+    void onSyntaxHelp( wxHyperlinkEvent& aEvent ) override;
+
+    void onCheckSyntax( wxCommandEvent& event ) override;
+
+    void onErrorLinkClicked( wxHtmlLinkEvent& event ) override;
+
+    void onContextMenu( wxMouseEvent& event ) override;
+
 protected:
     wxButton* btnSave;
     wxButton* btnRemove;
     wxButton* btnClose;
     wxComboCtrl* m_comboCtrl;
+    SCINTILLA_TRICKS* m_scintillaTricks;
 
 private:
     std::vector<int> m_validLayers;
@@ -105,6 +119,23 @@ private:
     std::function<void( int aNodeId )> m_callbackRemove;
     std::function<void( int aNodeId )> m_callbackClose;
     std::function<bool( int aNodeId, wxString aRuleName )> m_callbackRuleNameValidation;
+
+    wxRegEx           m_netClassRegex;
+    wxRegEx           m_netNameRegex;
+    wxRegEx           m_typeRegex;
+    wxRegEx           m_viaTypeRegex;
+    wxRegEx           m_padTypeRegex;
+    wxRegEx           m_pinTypeRegex;
+    wxRegEx           m_fabPropRegex;
+    wxRegEx           m_shapeRegex;
+    wxRegEx           m_padShapeRegex;
+    wxRegEx           m_padConnectionsRegex;
+    wxRegEx           m_zoneConnStyleRegex;
+    wxRegEx           m_lineStyleRegex;
+    wxRegEx           m_hJustRegex;
+    wxRegEx           m_vJustRegex;
+
+    HTML_MESSAGE_BOX* m_helpWindow;
 };
 
 #endif // PANEL_DRC_RULE_EDITOR_H

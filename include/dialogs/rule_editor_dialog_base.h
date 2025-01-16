@@ -29,7 +29,6 @@
 #include <unordered_map>
 
 #include <dialogs/rule_editor_base_data.h>
-#include <dialogs/rule_tree_ctrl.h>
 
 class WX_INFOBAR;
 
@@ -100,7 +99,7 @@ public:
         ID_MOVEDOWN
     };
 
-    RuleTreeCtrl* GetRuleTreeCtrl() { return m_ruleTreeCtrl; }
+    wxTreeCtrl* GetRuleTreeCtrl() { return m_ruleTreeCtrl; }
 
     void SetModified() { m_modified = true; }
 
@@ -195,7 +194,7 @@ private:
     void updateRuleTreeActionButtonsState( RuleTreeItemData* aRuleTreeItemData );
 
 protected:
-    RuleTreeCtrl*   m_ruleTreeCtrl;
+    wxTreeCtrl*   m_ruleTreeCtrl;
     WX_INFOBAR*     m_infoBar;
     wxPanel*        m_contentPanel;
     wxSizer*        m_contentSizer;
