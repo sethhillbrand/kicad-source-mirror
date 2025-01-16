@@ -5,6 +5,8 @@
 // PLEASE DO *NOT* EDIT THIS FILE!
 ///////////////////////////////////////////////////////////////////////////
 
+#include "widgets/wx_html_report_box.h"
+
 #include "panel_drc_rule_editor_base.h"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -65,45 +67,82 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	wxBoxSizer* bConditionSizer;
 	bConditionSizer = new wxBoxSizer( wxVERTICAL );
 
-	m_staticText71 = new wxStaticText( this, wxID_ANY, _("Conditions"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText71->Wrap( -1 );
-	bConditionSizer->Add( m_staticText71, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 5 );
+	wxBoxSizer* bSizer13;
+	bSizer13 = new wxBoxSizer( wxHORIZONTAL );
 
-	m_staticline11 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-	bConditionSizer->Add( m_staticline11, 0, wxEXPAND | wxALL, 5 );
-
-	m_textConditionCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1,80 ), 0 );
-	bConditionSizer->Add( m_textConditionCtrl, 0, wxALL|wxEXPAND, 5 );
-
-	wxBoxSizer* bSizer17;
-	bSizer17 = new wxBoxSizer( wxHORIZONTAL );
-
-	wxBoxSizer* bSizer18;
-	bSizer18 = new wxBoxSizer( wxVERTICAL );
-
-	m_showMatchesBtnCtrl = new wxButton( this, wxID_ANY, _("Show Matches"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizer18->Add( m_showMatchesBtnCtrl, 0, wxALL, 5 );
+	m_conditionHeaderTitle = new wxStaticText( this, wxID_ANY, _("Conditions"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_conditionHeaderTitle->Wrap( -1 );
+	bSizer13->Add( m_conditionHeaderTitle, 0, wxALL, 5 );
 
 
-	bSizer17->Add( bSizer18, 1, wxEXPAND, 5 );
+	bSizer13->Add( 0, 0, 1, wxEXPAND, 5 );
 
-	wxBoxSizer* bSizer19;
-	bSizer19 = new wxBoxSizer( wxVERTICAL );
-
-
-	bSizer19->Add( 0, 0, 1, wxEXPAND, 5 );
-
-	m_checkSyntaxBtnCtrl = new wxButton( this, wxID_ANY, _("Check Syntax"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizer19->Add( m_checkSyntaxBtnCtrl, 0, wxALIGN_RIGHT|wxALL, 5 );
+	m_syntaxHelp = new wxHyperlinkCtrl( this, wxID_ANY, _("Syntax help"), wxT("http://www.wxformbuilder.org"), wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE );
+	bSizer13->Add( m_syntaxHelp, 0, wxALL, 5 );
 
 
-	bSizer17->Add( bSizer19, 1, wxEXPAND, 5 );
+	bConditionSizer->Add( bSizer13, 0, wxEXPAND, 5 );
+
+	m_staticline8 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
+	bConditionSizer->Add( m_staticline8, 0, wxEXPAND | wxALL, 5 );
+
+	wxBoxSizer* bSizer15;
+	bSizer15 = new wxBoxSizer( wxVERTICAL );
+
+	m_textConditionCtrl = new wxStyledTextCtrl( this, wxID_ANY, wxDefaultPosition, wxSize( -1,-1 ), 0, wxEmptyString );
+	m_textConditionCtrl->SetUseTabs( true );
+	m_textConditionCtrl->SetTabWidth( 4 );
+	m_textConditionCtrl->SetIndent( 4 );
+	m_textConditionCtrl->SetTabIndents( true );
+	m_textConditionCtrl->SetBackSpaceUnIndents( true );
+	m_textConditionCtrl->SetViewEOL( false );
+	m_textConditionCtrl->SetViewWhiteSpace( false );
+	m_textConditionCtrl->SetMarginWidth( 2, 0 );
+	m_textConditionCtrl->SetIndentationGuides( true );
+	m_textConditionCtrl->SetReadOnly( false );
+	m_textConditionCtrl->SetMarginWidth( 1, 0 );
+	m_textConditionCtrl->SetMarginType( 0, wxSTC_MARGIN_NUMBER );
+	m_textConditionCtrl->SetMarginWidth( 0, m_textConditionCtrl->TextWidth( wxSTC_STYLE_LINENUMBER, wxT("_99999") ) );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDER, wxSTC_MARK_BOXPLUS );
+	m_textConditionCtrl->MarkerSetBackground( wxSTC_MARKNUM_FOLDER, wxColour( wxT("BLACK") ) );
+	m_textConditionCtrl->MarkerSetForeground( wxSTC_MARKNUM_FOLDER, wxColour( wxT("WHITE") ) );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDEROPEN, wxSTC_MARK_BOXMINUS );
+	m_textConditionCtrl->MarkerSetBackground( wxSTC_MARKNUM_FOLDEROPEN, wxColour( wxT("BLACK") ) );
+	m_textConditionCtrl->MarkerSetForeground( wxSTC_MARKNUM_FOLDEROPEN, wxColour( wxT("WHITE") ) );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDERSUB, wxSTC_MARK_EMPTY );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDEREND, wxSTC_MARK_BOXPLUS );
+	m_textConditionCtrl->MarkerSetBackground( wxSTC_MARKNUM_FOLDEREND, wxColour( wxT("BLACK") ) );
+	m_textConditionCtrl->MarkerSetForeground( wxSTC_MARKNUM_FOLDEREND, wxColour( wxT("WHITE") ) );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDEROPENMID, wxSTC_MARK_BOXMINUS );
+	m_textConditionCtrl->MarkerSetBackground( wxSTC_MARKNUM_FOLDEROPENMID, wxColour( wxT("BLACK") ) );
+	m_textConditionCtrl->MarkerSetForeground( wxSTC_MARKNUM_FOLDEROPENMID, wxColour( wxT("WHITE") ) );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDERMIDTAIL, wxSTC_MARK_EMPTY );
+	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDERTAIL, wxSTC_MARK_EMPTY );
+	m_textConditionCtrl->SetSelBackground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHT ) );
+	m_textConditionCtrl->SetSelForeground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHTTEXT ) );
+	bSizer15->Add( m_textConditionCtrl, 0, wxBOTTOM|wxEXPAND|wxRIGHT, 5 );
+
+	wxBoxSizer* bSizer16;
+	bSizer16 = new wxBoxSizer( wxHORIZONTAL );
+
+	m_checkSyntaxBtnCtrl = new wxBitmapButton( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|0 );
+	m_checkSyntaxBtnCtrl->SetToolTip( _("Check rule syntax") );
+
+	bSizer16->Add( m_checkSyntaxBtnCtrl, 0, wxALL, 5 );
+
+	m_syntaxErrorReport = new WX_HTML_REPORT_BOX( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO );
+	m_syntaxErrorReport->SetMinSize( wxSize( -1,50 ) );
+
+	bSizer16->Add( m_syntaxErrorReport, 1, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 5 );
 
 
-	bConditionSizer->Add( bSizer17, 1, wxEXPAND, 5 );
+	bSizer15->Add( bSizer16, 1, wxEXPAND, 5 );
 
 
-	bContentSizer->Add( bConditionSizer, 0, wxEXPAND|wxTOP, 15 );
+	bConditionSizer->Add( bSizer15, 1, wxEXPAND|wxTOP, 5 );
+
+
+	bContentSizer->Add( bConditionSizer, 0, wxEXPAND, 15 );
 
 	wxBoxSizer* bLayerSizer;
 	bLayerSizer = new wxBoxSizer( wxVERTICAL );
@@ -134,8 +173,20 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	this->SetSizer( mainSizer );
 	this->Layout();
 	mainSizer->Fit( this );
+
+	// Connect Events
+	m_syntaxHelp->Connect( wxEVT_COMMAND_HYPERLINK, wxHyperlinkEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onSyntaxHelp ), NULL, this );
+	m_textConditionCtrl->Connect( wxEVT_RIGHT_DOWN, wxMouseEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onContextMenu ), NULL, this );
+	m_checkSyntaxBtnCtrl->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onCheckSyntax ), NULL, this );
+	m_syntaxErrorReport->Connect( wxEVT_COMMAND_HTML_LINK_CLICKED, wxHtmlLinkEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onErrorLinkClicked ), NULL, this );
 }
 
 PANEL_DRC_RULE_EDITOR_BASE::~PANEL_DRC_RULE_EDITOR_BASE()
 {
+	// Disconnect Events
+	m_syntaxHelp->Disconnect( wxEVT_COMMAND_HYPERLINK, wxHyperlinkEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onSyntaxHelp ), NULL, this );
+	m_textConditionCtrl->Disconnect( wxEVT_RIGHT_DOWN, wxMouseEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onContextMenu ), NULL, this );
+	m_checkSyntaxBtnCtrl->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onCheckSyntax ), NULL, this );
+	m_syntaxErrorReport->Disconnect( wxEVT_COMMAND_HTML_LINK_CLICKED, wxHtmlLinkEventHandler( PANEL_DRC_RULE_EDITOR_BASE::onErrorLinkClicked ), NULL, this );
+
 }

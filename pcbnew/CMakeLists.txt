@@ -678,6 +678,7 @@ endfunction()
 
 # Locate all .md files in the specified directory
 file(GLOB markdownFiles ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/panel_setup_rules_help_*.md)
+file(GLOB markdownFiles ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/panel_setup_condition_help_*.md)
 
 # Create a custom target to generate all .h files
 add_custom_target(generate_headers ALL)
