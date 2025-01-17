@@ -27,49 +27,47 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReSmdEntryConstraintData : public DrcReBaseConstraintData
+class DRC_RE_SMD_ENTRY_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReSmdEntryConstraintData() = default;
+    DRC_RE_SMD_ENTRY_CONSTRAINT_DATA() = default;
 
-    explicit DrcReSmdEntryConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_SMD_ENTRY_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReSmdEntryConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                          bool aSideAngle, 
-                                          bool aCornerAngle, 
-                                          bool aAnyAngle ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_sideAngle( aSideAngle ),
-            m_cornerAngle( aCornerAngle ), 
-            m_anyAngle( aAnyAngle )
+    explicit DRC_RE_SMD_ENTRY_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
+                                               bool aSideAngle, bool aCornerAngle,
+                                               bool aAnyAngle ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ), m_sideAngle( aSideAngle ),
+            m_cornerAngle( aCornerAngle ), m_anyAngle( aAnyAngle )
     {
     }
 
-    virtual ~DrcReSmdEntryConstraintData() = default;
+    virtual ~DRC_RE_SMD_ENTRY_CONSTRAINT_DATA() = default;
 
     bool GetIsSideAngleEnabled() { return m_sideAngle; }
+
     void SetIsSideAngleEnabled( double aSideAngle ) { m_sideAngle = aSideAngle; }
 
     bool GetIsCornerAngleEnabled() { return m_cornerAngle; }
+
     void SetIsCornerAngleEnabled( double aCornerAngle ) { m_cornerAngle = aCornerAngle; }
 
     bool GetIsAnyAngleEnabled() { return m_anyAngle; }
+
     void SetIsAnyAngleEnabled( double aAnyAngle ) { m_anyAngle = aAnyAngle; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReSmdEntryConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_SMD_ENTRY_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_sideAngle = viaSource.m_sideAngle;
-        m_cornerAngle = viaSource.m_cornerAngle;
-        m_anyAngle = viaSource.m_anyAngle;
+        m_sideAngle = source.m_sideAngle;
+        m_cornerAngle = source.m_cornerAngle;
+        m_anyAngle = source.m_anyAngle;
     }
 
 private:
@@ -77,6 +75,5 @@ private:
     bool m_cornerAngle{ false };
     bool m_anyAngle{ false };
 };
-
 
 #endif // DRC_RE_SMD_ENTRY_CONSTRAINT_DATA_H_

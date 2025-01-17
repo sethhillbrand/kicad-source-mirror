@@ -24,16 +24,18 @@
 #ifndef DRC_RULE_EDITOR_VALIDATOR_NUMERIC_CTRL_H_
 #define DRC_RULE_EDITOR_VALIDATOR_NUMERIC_CTRL_H_
 
-#include <string>
-#include "drc_rule_editor_enums.h"
 #include <wx/wx.h>
 #include <wx/object.h>
+
+#include <string>
+
+#include "drc_rule_editor_enums.h"
 
 
 class VALIDATOR_NUMERIC_CTRL : public wxValidator
 {
 public:
-    enum class ValidationState
+    enum class VALIDATION_STATE
     {
         InValidCtrl,
         Valid,
@@ -45,19 +47,16 @@ public:
 
     VALIDATOR_NUMERIC_CTRL( bool aCanBeZero = false, bool aIntegerOnly = false );
 
-    // Clone method for validator
     virtual wxObject* Clone() const override;
 
-    // Validation logic
-    virtual bool Validate( wxWindow* parent ) override;
+    virtual bool Validate( wxWindow* aParent ) override;
 
-    // Accessor for validation state
-    ValidationState GetValidationState() const;
+    VALIDATION_STATE GetValidationState() const;
 
 private:
-    ValidationState m_validationState; // Store the result of validation
-    bool            m_isIntegerOnly;
-    bool            m_canBeZero;
+    bool m_isIntegerOnly;
+    bool m_canBeZero;
+    VALIDATION_STATE m_validationState; 
 };
 
 #endif // DRC_RULE_EDITOR_VALIDATOR_NUMERIC_CTRL_H_

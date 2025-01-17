@@ -24,44 +24,42 @@
 #ifndef DRC_RULE_EDITOR_VALIDATOR_MIN_PREFERRED_MAX_CTRL_H_
 #define DRC_RULE_EDITOR_VALIDATOR_MIN_PREFERRED_MAX_CTRL_H_
 
-#include <string>
-#include "drc_rule_editor_enums.h"
 #include <wx/wx.h>
 #include <wx/object.h>
+
+#include <string>
+
+#include "drc_rule_editor_enums.h"
 
 
 class VALIDATE_MIN_PREFERRED_MAX_CTRL : public wxValidator
 {
 public:
-    enum class ValidationState
+    enum class VALIDATION_STATE
     {
-        Valid,                   // Both min and max are valid
-        MinGreaterThanMax,       // Minimum value is greater than maximum value
-        MinGreaterThanPreferred, // Minimum value is greater than maximum value
-        PreferredGreaterThanMax, // Minimum value is greater than maximum value
+        Valid,
+        MinGreaterThanMax,
+        MinGreaterThanPreferred,
+        PreferredGreaterThanMax
     };
 
-    // Constructor
-    VALIDATE_MIN_PREFERRED_MAX_CTRL( wxTextCtrl* minCtrl, wxTextCtrl* preferredCtrl,
-                                     wxTextCtrl* maxCtrl );
+    VALIDATE_MIN_PREFERRED_MAX_CTRL( wxTextCtrl* aMinCtrl, wxTextCtrl* aPreferredCtrl,
+                                     wxTextCtrl* aMaxCtrl );
 
-    // Clone method for validator
     virtual wxObject* Clone() const override;
 
-    // Validation logic
-    virtual bool Validate( wxWindow* parent ) override;
+    virtual bool Validate( wxWindow* aParent ) override;
 
-    // Accessor for validation state
-    ValidationState GetValidationState() const;
+    VALIDATION_STATE GetValidationState() const;
 
 private:
-    wxTextCtrl*     m_minCtrl;           // Name of the min control
-    wxTextCtrl*     m_preferredCtrl;     // Name of the preferred control
-    wxTextCtrl*     m_maxCtrl;           // Name of the max control
-    std::string     m_minCtrlName;       // Name of the min control
-    std::string     m_preferredCtrlName; // Name of the min control
-    std::string     m_maxCtrlName;       // Name of the max control
-    ValidationState m_validationState;   // Store the result of validation
+    wxTextCtrl*      m_minCtrl;
+    wxTextCtrl*      m_preferredCtrl;
+    wxTextCtrl*      m_maxCtrl;
+    std::string      m_minCtrlName;
+    std::string      m_preferredCtrlName;
+    std::string      m_maxCtrlName;
+    VALIDATION_STATE m_validationState;
 };
 
 #endif // DRC_RULE_EDITOR_VALIDATOR_MIN_PREFERRED_MAX_CTRL_H_

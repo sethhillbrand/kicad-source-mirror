@@ -27,62 +27,78 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReAllowedOrientationConstraintData : public DrcReBaseConstraintData
+class DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReAllowedOrientationConstraintData() = default;
+    DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA() = default;
 
-    explicit DrcReAllowedOrientationConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA(
+            const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReAllowedOrientationConstraintData( unsigned int aId, unsigned int aParentId,
-                                                    bool aAllowZeroDegreess,
-                                                    bool aAllowNintyDegreess,
-                                                    bool aAllowOneEightyDegreess,
-                                                    bool aAllowTwoSeventyDegreess,
-                                                    bool aAllowAllDegreess,
-                                                    wxString aRuleName ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_allowZeroDegreess( aAllowZeroDegreess ),
-            m_allowNintyDegreess( aAllowNintyDegreess ),
+    explicit DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA(
+            int aId, int aParentId, bool aAllowZeroDegreess, bool aAllowNintyDegreess,
+            bool aAllowOneEightyDegreess, bool aAllowTwoSeventyDegreess, bool aAllowAllDegreess,
+            wxString aRuleName ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
+            m_allowZeroDegreess( aAllowZeroDegreess ), m_allowNintyDegreess( aAllowNintyDegreess ),
             m_allowOneEightyDegreess( aAllowOneEightyDegreess ),
             m_allowTwoSeventyDegreess( aAllowTwoSeventyDegreess ),
             m_allowAllDegreess( aAllowAllDegreess )
     {
     }
 
-    virtual ~DrcReAllowedOrientationConstraintData() = default;
+    virtual ~DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA() = default;
 
     bool GetIsZeroDegressAllowed() { return m_allowZeroDegreess; }
-    void SetIsZeroDegressAllowed( double aAllowZeroDegreess ) { m_allowZeroDegreess = aAllowZeroDegreess; }
+
+    void SetIsZeroDegressAllowed( double aAllowZeroDegreess )
+    {
+        m_allowZeroDegreess = aAllowZeroDegreess;
+    }
 
     bool GetIsNintyDegressAllowed() { return m_allowNintyDegreess; }
-    void SetIsNintyDegressAllowed( double aAllowNintyDegreess ) { m_allowNintyDegreess = aAllowNintyDegreess; }
+
+    void SetIsNintyDegressAllowed( double aAllowNintyDegreess )
+    {
+        m_allowNintyDegreess = aAllowNintyDegreess;
+    }
 
     bool GetIsOneEightyDegressAllowed() { return m_allowOneEightyDegreess; }
-    void SetIsOneEightyDegressAllowed( double aAllowOneEightyDegreess ) { m_allowOneEightyDegreess = aAllowOneEightyDegreess; }
+
+    void SetIsOneEightyDegressAllowed( double aAllowOneEightyDegreess )
+    {
+        m_allowOneEightyDegreess = aAllowOneEightyDegreess;
+    }
 
     bool GetIsTwoSeventyDegressAllowed() { return m_allowTwoSeventyDegreess; }
-    void SetIsTwoSeventyDegressAllowed( double aAllowTwoSeventyDegreess ) { m_allowTwoSeventyDegreess = aAllowTwoSeventyDegreess; }
+
+    void SetIsTwoSeventyDegressAllowed( double aAllowTwoSeventyDegreess )
+    {
+        m_allowTwoSeventyDegreess = aAllowTwoSeventyDegreess;
+    }
 
     bool GetIsAllDegressAllowed() { return m_allowAllDegreess; }
-    void SetIsAllDegressAllowed( double aAllowAllDegreess ) { m_allowAllDegreess = aAllowAllDegreess; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetIsAllDegressAllowed( double aAllowAllDegreess )
     {
-        const auto& viaSource = dynamic_cast<const DrcReAllowedOrientationConstraintData&>( source );
+        m_allowAllDegreess = aAllowAllDegreess;
+    }
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+    void CopyFrom( const ICopyable& aSource ) override
+    {
+        const auto& source =
+                dynamic_cast<const DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA&>( aSource );
 
-        // Copy via-specific data
-        m_allowZeroDegreess = viaSource.m_allowZeroDegreess;
-        m_allowNintyDegreess = viaSource.m_allowNintyDegreess;
-        m_allowOneEightyDegreess = viaSource.m_allowOneEightyDegreess;
-        m_allowTwoSeventyDegreess = viaSource.m_allowTwoSeventyDegreess;
-        m_allowAllDegreess = viaSource.m_allowAllDegreess;
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
+
+        m_allowZeroDegreess = source.m_allowZeroDegreess;
+        m_allowNintyDegreess = source.m_allowNintyDegreess;
+        m_allowOneEightyDegreess = source.m_allowOneEightyDegreess;
+        m_allowTwoSeventyDegreess = source.m_allowTwoSeventyDegreess;
+        m_allowAllDegreess = source.m_allowAllDegreess;
     }
 
 private:
@@ -92,6 +108,5 @@ private:
     bool m_allowTwoSeventyDegreess{ false };
     bool m_allowAllDegreess{ false };
 };
-
 
 #endif // DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA_H_

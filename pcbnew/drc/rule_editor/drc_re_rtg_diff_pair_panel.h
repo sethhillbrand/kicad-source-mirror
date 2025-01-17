@@ -26,10 +26,12 @@
 #include "drc_rule_editor_utils.h"
 
 
-class DRC_RE_ROUTING_DIFF_PAIR_PANEL : public DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE, public DrcRuleEditorContentPanelBase
+class DRC_RE_ROUTING_DIFF_PAIR_PANEL : public DRC_RE_ROUTING_DIFF_PAIR_PANEL_BASE,
+                                       public DRC_RULE_EDITOR_CONTENT_PANEL_BASE
 {
 public:
-    DRC_RE_ROUTING_DIFF_PAIR_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReRoutingDiffPairConstraintData> aConstraintData );
+    DRC_RE_ROUTING_DIFF_PAIR_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
+            std::shared_ptr<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA> aConstraintData );
 
     ~DRC_RE_ROUTING_DIFF_PAIR_PANEL() override;
 
@@ -40,7 +42,7 @@ public:
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
 private:
-    std::shared_ptr<DrcReRoutingDiffPairConstraintData> m_constraintData;
+    std::shared_ptr<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA> m_constraintData;
 };
 
 #endif // DRC_RE_ROUTING_DIFF_PAIR_PANEL_H

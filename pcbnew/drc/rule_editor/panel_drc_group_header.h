@@ -20,12 +20,14 @@
 #ifndef PANEL_DRC_GROUP_HEADER_H
 #define PANEL_DRC_GROUP_HEADER_H
 
-#include "panel_drc_rule_editor_base.h"
-#include <lset.h>
-#include <lseq.h>
 #include <wx/wx.h>
 #include <wx/combo.h>
 #include <wx/popupwin.h>
+
+#include <lset.h>
+#include <lseq.h>
+
+#include "panel_drc_rule_editor_base.h"
 #include "drc_rule_editor_enums.h"
 #include "drc_rule_editor_utils.h"
 #include "panel_drc_group_header_base.h"
@@ -34,8 +36,7 @@
 class PANEL_DRC_GROUP_HEADER : public PANEL_DRC_GROUP_HEADER_BASE
 {
 public:
-    PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard,
-                            DRC_RULE_EDITOR_ITEM_TYPE aItemType );
+    PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_ITEM_TYPE aItemType );
 
     ~PANEL_DRC_GROUP_HEADER() override;
 

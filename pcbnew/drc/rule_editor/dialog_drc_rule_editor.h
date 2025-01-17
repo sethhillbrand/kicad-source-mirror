@@ -34,46 +34,46 @@ class DIALOG_DRC_RULE_EDITOR : public RULE_EDITOR_DIALOG_BASE
 public:
     DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame );
 
-    ~DIALOG_DRC_RULE_EDITOR();    
+    ~DIALOG_DRC_RULE_EDITOR();
 
     bool TransferDataToWindow() override;
 
     bool TransferDataFromWindow() override;
-  
-    std::vector<RuleTreeNode> GetDefaultRuleTreeItems() override;
 
-    void AddNewRule( RuleTreeItemData* aRuleTreeItemData ) override;
+    std::vector<RULE_TREE_NODE> GetDefaultRuleTreeItems() override;
 
-    void DuplicateRule( RuleTreeItemData* aRuleTreeItemData ) override;
+    void AddNewRule( RULE_TREE_ITEM_DATA* aRuleTreeItemData ) override;
 
-    void RuleTreeItemSelectionChanged( RuleTreeItemData* aCurrentRuleTreeItemData ) override;
+    void DuplicateRule( RULE_TREE_ITEM_DATA* aRuleTreeItemData ) override;
 
-    void UpdateRuleTypeTreeItemData( RuleTreeItemData* aCurrentRuleTreeItemData ) override;   
+    void RuleTreeItemSelectionChanged( RULE_TREE_ITEM_DATA* aCurrentRuleTreeItemData ) override;
 
-    bool VerifyRuleTreeContextMenuOptionToEnable( RuleTreeItemData* aRuleTreeItemData,
+    void UpdateRuleTypeTreeItemData( RULE_TREE_ITEM_DATA* aCurrentRuleTreeItemData ) override;
+
+    bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA* aRuleTreeItemData,
                                                   RULE_EDITOR_TREE_CONTEXT_OPT aOption ) override;
 
     void RemoveRule( int aNodeId ) override;
 
 private:
-    std::vector<RuleTreeNode> buildElectricalRuleTreeNodes( int& aParentId );
+    std::vector<RULE_TREE_NODE> buildElectricalRuleTreeNodes( int& aParentId );
 
-    std::vector<RuleTreeNode> buildManufacturabilityRuleTreeNodes( int& aParentId );
+    std::vector<RULE_TREE_NODE> buildManufacturabilityRuleTreeNodes( int& aParentId );
 
-    std::vector<RuleTreeNode> buildHighspeedDesignRuleTreeNodes( int& aParentId );
+    std::vector<RULE_TREE_NODE> buildHighspeedDesignRuleTreeNodes( int& aParentId );
 
-    std::vector<RuleTreeNode> buildFootprintsRuleTreeNodes( int& aParentId );
+    std::vector<RULE_TREE_NODE> buildFootprintsRuleTreeNodes( int& aParentId );
 
-    RuleTreeNode              buildRuleTreeNode( RuleTreeItemData* aRuleTreeItemData );
+    RULE_TREE_NODE buildRuleTreeNode( RULE_TREE_ITEM_DATA* aRuleTreeItemData );
 
-    RuleTreeNode              buildRuleTreeNodeData(const std::string& aName, 
-                                            const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,    
-                                            const std::optional<int>& aParentId = std::nullopt,        
-                                            const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType = std::nullopt,
-                                            const std::vector<RuleTreeNode>& aChildNodes = {}, 
-                                            const std::optional<int>& aId = std::nullopt );
+    RULE_TREE_NODE buildRuleTreeNodeData( const std::string& aName, 
+            const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,
+            const std::optional<int>&  aParentId = std::nullopt,
+            const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType = std::nullopt,
+            const std::vector<RULE_TREE_NODE>& aChildNodes = {},
+            const std::optional<int>&  aId = std::nullopt );
 
-    RuleTreeNode*             getRuleTreeNodeInfo( const int& aNodeId );
+    RULE_TREE_NODE* getRuleTreeNodeInfo( const int& aNodeId );
 
     void saveRule( int aNodeId );
 
@@ -87,10 +87,10 @@ protected:
     PCB_EDIT_FRAME* m_frame;
 
 private:
-    int m_nodeId;
-    std::vector<RuleTreeNode> m_RuleTreeNodeDatas;
-    PANEL_DRC_RULE_EDITOR*    m_ruleEditorPanel;
-    PANEL_DRC_GROUP_HEADER*   m_groupHeaderPanel;
+    int                         m_nodeId;
+    std::vector<RULE_TREE_NODE> m_ruleTreeNodeDatas;
+    PANEL_DRC_RULE_EDITOR*      m_ruleEditorPanel;
+    PANEL_DRC_GROUP_HEADER*     m_groupHeaderPanel;
 };
 
 #endif //DIALOG_DRC_RULE_EDITOR_H
