@@ -27,10 +27,12 @@
 #include "drc_re_constraint_panel_params.h"
 
 
-class DRC_RE_BOOL_INPUT_PANEL : public DRC_RE_BOOL_INPUT_PANEL_BASE, public DrcRuleEditorContentPanelBase
+class DRC_RE_BOOL_INPUT_PANEL : public DRC_RE_BOOL_INPUT_PANEL_BASE,
+                                public DRC_RULE_EDITOR_CONTENT_PANEL_BASE
 {
 public:
-    DRC_RE_BOOL_INPUT_PANEL( wxWindow* aParent, const DrcReBoolInputConstraintPanelParams& aConstraintPanelParams );
+    DRC_RE_BOOL_INPUT_PANEL( wxWindow* aParent,
+            const DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS& aConstraintPanelParams );
 
     ~DRC_RE_BOOL_INPUT_PANEL() override;
 
@@ -41,7 +43,7 @@ public:
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
 private:
-    std::shared_ptr<DrcReBoolInputConstraintData> m_constraintData;
+    std::shared_ptr<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA> m_constraintData;
 };
 
 #endif // DRC_RE_BOOL_INPUT_PANEL_H

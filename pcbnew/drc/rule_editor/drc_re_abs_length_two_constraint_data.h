@@ -27,42 +27,46 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReAbsoluteLengthTwoConstraintData : public DrcReBaseConstraintData
+class DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReAbsoluteLengthTwoConstraintData() = default;
+    DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA() = default;
 
-    explicit DrcReAbsoluteLengthTwoConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA(
+            const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReAbsoluteLengthTwoConstraintData( unsigned int aId, unsigned int aParentId,
-                                                double aClearanceValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
+    explicit DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA( int aId, int aParentId,
+                                                         double   aClearanceValue,
+                                                         wxString aRuleName ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
             m_absoluteLengthTwo( aClearanceValue )
     {
     }
 
-    virtual ~DrcReAbsoluteLengthTwoConstraintData() = default;
+    virtual ~DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA() = default;
 
     double GetAbsoluteLengthTwo() { return m_absoluteLengthTwo; }
-    void   SetAbsoluteLengthTwo( double aAbsoluteLengthTwo ) { m_absoluteLengthTwo = aAbsoluteLengthTwo; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetAbsoluteLengthTwo( double aAbsoluteLengthTwo )
     {
-        const auto& viaSource = dynamic_cast<const DrcReAbsoluteLengthTwoConstraintData&>( source );
+        m_absoluteLengthTwo = aAbsoluteLengthTwo;
+    }
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+    void CopyFrom( const ICopyable& aSource ) override
+    {
+        const auto& source =
+                dynamic_cast<const DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA&>( aSource );
 
-        // Copy via-specific data
-        m_absoluteLengthTwo = viaSource.m_absoluteLengthTwo;
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
+
+        m_absoluteLengthTwo = source.m_absoluteLengthTwo;
     }
 
 private:
     double m_absoluteLengthTwo{ 0 };
 };
-
 
 #endif // DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA_H_

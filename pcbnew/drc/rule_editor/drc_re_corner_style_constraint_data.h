@@ -27,48 +27,46 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReCornerStyleConstraintData : public DrcReBaseConstraintData
+class DRC_RE_CORNER_STYLE_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReCornerStyleConstraintData() = default;
+    DRC_RE_CORNER_STYLE_CONSTRAINT_DATA() = default;
 
-    explicit DrcReCornerStyleConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_CORNER_STYLE_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReCornerStyleConstraintData( unsigned int aId, unsigned int aParentId, wxString& aRuleName,
-                                             wxString& aCornerStyle, 
-                                             double& aMinSetbackLength, 
-                                             double& aMaxSetbackLength ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_cornerStyle( aCornerStyle ),
-            m_minSetbackLength( aMinSetbackLength ),
-            m_maxSetbackLength( aMaxSetbackLength )
+    explicit DRC_RE_CORNER_STYLE_CONSTRAINT_DATA( int aId, int aParentId, wxString& aRuleName,
+                                                  wxString& aCornerStyle, double& aMinSetbackLength,
+                                                  double& aMaxSetbackLength ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ), m_cornerStyle( aCornerStyle ),
+            m_minSetbackLength( aMinSetbackLength ), m_maxSetbackLength( aMaxSetbackLength )
     {
     }
 
-    virtual ~DrcReCornerStyleConstraintData() = default;
+    virtual ~DRC_RE_CORNER_STYLE_CONSTRAINT_DATA() = default;
 
     wxString GetCornerStyle() { return m_cornerStyle; }
-    void     SetCornerStyle( wxString aCornerStyle ) { m_cornerStyle = aCornerStyle; }
+
+    void SetCornerStyle( wxString aCornerStyle ) { m_cornerStyle = aCornerStyle; }
 
     double GetMinSetbackLength() { return m_minSetbackLength; }
-    void   SetMinSetbackLength( double aMinSetbackLength ) { m_minSetbackLength = aMinSetbackLength; }
+
+    void SetMinSetbackLength( double aMinSetbackLength ) { m_minSetbackLength = aMinSetbackLength; }
 
     double GetMaxSetbackLength() { return m_maxSetbackLength; }
-    void   SetMaxSetbackLength( double aMaxSetbackLength ) { m_maxSetbackLength = aMaxSetbackLength; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetMaxSetbackLength( double aMaxSetbackLength ) { m_maxSetbackLength = aMaxSetbackLength; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReCornerStyleConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_CORNER_STYLE_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_minSetbackLength = viaSource.m_minSetbackLength;
-        m_maxSetbackLength = viaSource.m_maxSetbackLength;
+        m_minSetbackLength = source.m_minSetbackLength;
+        m_maxSetbackLength = source.m_maxSetbackLength;
     }
 
 private:

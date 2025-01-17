@@ -29,98 +29,95 @@
 #include "drc_re_validator_combo_ctrl.h"
 
 
-bool DRC_RULE_EDITOR_UTILS::IsBoolInputType(const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType)
+bool DRC_RULE_EDITOR_UTILS::IsBoolInputType( const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType )
 {
-    switch (aConstraintType)
+    switch( aConstraintType )
     {
-        case SHORT_CIRCUIT:
-        case UNROUTED:
-        case ALLOW_FILLET_OUTSIDE_ZONE_OUTLINE:
-        case VIAS_UNDER_SMD:
-            return true;
-        default:
-            return false;
-    }
-}
-
-bool DRC_RULE_EDITOR_UTILS::IsNumericInputType(const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType)
-{
-    switch (aConstraintType)
-    {
-        case NET_ANTENNA:
-        case BASIC_CLEARANCE:
-        case BOARD_OUTLINE_CLEARANCE:
-        case MINIMUM_CLEARANCE:
-        case MINIMUM_ITEM_CLEARANCE:
-        case CREEPAGE_DISTANCE:
-        case MINIMUM_CONNECTION_WIDTH:
-        case MINIMUM_TRACK_WIDTH:
-        case COPPER_TO_HOLE_CLEARANCE:
-        case HOLE_TO_HOLE_CLEARANCE:
-        case MINIMUM_ANNULAR_WIDTH:
-        case COPPER_TO_EDGE_CLEARANCE:
-        case MINIMUM_THROUGH_HOLE:
-        case HOLE_SIZE:
-        case HOLE_TO_HOLE_DISTANCE:
-        case MINIMUM_UVIA_HOLE:
-        case MINIMUM_UVIA_DIAMETER:
-        case MINIMUM_VIA_DIAMETER:
-        case SILK_TO_SILK_CLEARANCE:
-        case SILK_TO_SOLDERMASK_CLEARANCE:
-        case MINIMUM_SOLDERMASK_SILVER:
-        case SOLDERMASK_EXPANSION:
-        case SOLDERPASTE_EXPANSION:
-        case MAXIMUM_ALLOWED_DEVIATION:
-        case MINIMUM_ACUTE_ANGLE:
-        case MINIMUM_ANGULAR_RING:
-        case MINIMUM_THERMAL_RELIEF_SPOKE_COUNT:
-        case MAXIMUM_VIA_COUNT:
-        case MATCHED_LENGTH_DIFF_PAIR:
-        case MATCHED_LENGTH_ALL_TRACES_IN_GROUP:
-        case ABSOLUTE_LENGTH:
-        case DAISY_CHAIN_STUB:
-        case SMD_CORNER:
-        case SMD_TO_PLANE_PLUS:
-            return true;
-        default:
-            return false;
+    case SHORT_CIRCUIT:
+    case UNROUTED:
+    case ALLOW_FILLET_OUTSIDE_ZONE_OUTLINE:
+    case VIAS_UNDER_SMD: return true;
+    default: return false;
     }
 }
 
 
-bool DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl( wxTextCtrl* textCtrl, std::string label, bool canBeZero,
-                                                 int* aErrorCount, std::string* aValidationMessage )
+bool DRC_RULE_EDITOR_UTILS::IsNumericInputType( const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType )
 {
-    // Set the custom validator
-    auto* validator = new VALIDATOR_NUMERIC_CTRL( canBeZero, true );
-    textCtrl->SetValidator( *validator );
+    switch( aConstraintType )
+    {
+    case NET_ANTENNA:
+    case BASIC_CLEARANCE:
+    case BOARD_OUTLINE_CLEARANCE:
+    case MINIMUM_CLEARANCE:
+    case MINIMUM_ITEM_CLEARANCE:
+    case CREEPAGE_DISTANCE:
+    case MINIMUM_CONNECTION_WIDTH:
+    case MINIMUM_TRACK_WIDTH:
+    case COPPER_TO_HOLE_CLEARANCE:
+    case HOLE_TO_HOLE_CLEARANCE:
+    case MINIMUM_ANNULAR_WIDTH:
+    case COPPER_TO_EDGE_CLEARANCE:
+    case MINIMUM_THROUGH_HOLE:
+    case HOLE_SIZE:
+    case HOLE_TO_HOLE_DISTANCE:
+    case MINIMUM_UVIA_HOLE:
+    case MINIMUM_UVIA_DIAMETER:
+    case MINIMUM_VIA_DIAMETER:
+    case SILK_TO_SILK_CLEARANCE:
+    case SILK_TO_SOLDERMASK_CLEARANCE:
+    case MINIMUM_SOLDERMASK_SILVER:
+    case SOLDERMASK_EXPANSION:
+    case SOLDERPASTE_EXPANSION:
+    case MAXIMUM_ALLOWED_DEVIATION:
+    case MINIMUM_ACUTE_ANGLE:
+    case MINIMUM_ANGULAR_RING:
+    case MINIMUM_THERMAL_RELIEF_SPOKE_COUNT:
+    case MAXIMUM_VIA_COUNT:
+    case MATCHED_LENGTH_DIFF_PAIR:
+    case MATCHED_LENGTH_ALL_TRACES_IN_GROUP:
+    case ABSOLUTE_LENGTH:
+    case DAISY_CHAIN_STUB:
+    case SMD_CORNER:
+    case SMD_TO_PLANE_PLUS: return true;
+    default: return false;
+    }
+}
 
-    if( !textCtrl->Validate() )
+
+bool DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( wxTextCtrl* aTextCtrl, std::string aLabel,
+                                                 bool aCanBeZero, int* aErrorCount,
+                                                 std::string* aValidationMessage )
+{
+    auto* validator = new VALIDATOR_NUMERIC_CTRL( aCanBeZero );
+    aTextCtrl->SetValidator( *validator );
+
+    if( !aTextCtrl->Validate() )
     {
         VALIDATOR_NUMERIC_CTRL* v =
-                static_cast<VALIDATOR_NUMERIC_CTRL*>( textCtrl->GetValidator() );
+                static_cast<VALIDATOR_NUMERIC_CTRL*>( aTextCtrl->GetValidator() );
 
         switch( v->GetValidationState() )
         {
-        case VALIDATOR_NUMERIC_CTRL::ValidationState::Empty:
+        case VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE::Empty:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, label + " should not be empty !!" );
+                    *aErrorCount, aLabel + " should not be empty !!" );
             return false;
         }
-        case VALIDATOR_NUMERIC_CTRL::ValidationState::NotInteger:
+        case VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE::NotNumeric:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, "The value of " + label + " should be valid integer value !!" );
+                    *aErrorCount, "The value of " + aLabel + " should be valid numeric value !!" );
             return false;
         }
-        case VALIDATOR_NUMERIC_CTRL::ValidationState::NotGreaterThanZero:
+        case VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE::NotGreaterThanZero:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, "The value of " + label + " must be greater than 0 !!" );
+                    *aErrorCount, "The value of " + aLabel + " must be greater than 0 !!" );
             return false;
         }
         default: break;
@@ -131,39 +128,39 @@ bool DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl( wxTextCtrl* textCtrl, std::stri
 }
 
 
-bool DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( wxTextCtrl* textCtrl, std::string label, bool canBeZero,
-                                                 int* aErrorCount, std::string* aValidationMessage )
+bool DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl( wxTextCtrl* aTextCtrl, std::string aLabel,
+                                                 bool aCanBeZero, int* aErrorCount,
+                                                 std::string* aValidationMessage )
 {
-    // Set the custom validator
-    auto* validator = new VALIDATOR_NUMERIC_CTRL( canBeZero );
-    textCtrl->SetValidator( *validator );
+    auto* validator = new VALIDATOR_NUMERIC_CTRL( aCanBeZero, true );
+    aTextCtrl->SetValidator( *validator );
 
-    if( !textCtrl->Validate() )
+    if( !aTextCtrl->Validate() )
     {
         VALIDATOR_NUMERIC_CTRL* v =
-                static_cast<VALIDATOR_NUMERIC_CTRL*>( textCtrl->GetValidator() );
+                static_cast<VALIDATOR_NUMERIC_CTRL*>( aTextCtrl->GetValidator() );
 
         switch( v->GetValidationState() )
         {
-        case VALIDATOR_NUMERIC_CTRL::ValidationState::Empty:
+        case VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE::Empty:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, label + " should not be empty !!" );
+                    *aErrorCount, aLabel + " should not be empty !!" );
             return false;
         }
-        case VALIDATOR_NUMERIC_CTRL::ValidationState::NotNumeric:
+        case VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE::NotInteger:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, "The value of " + label + " should be valid numeric value !!" );
+                    *aErrorCount, "The value of " + aLabel + " should be valid integer value !!" );
             return false;
         }
-        case VALIDATOR_NUMERIC_CTRL::ValidationState::NotGreaterThanZero:
+        case VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE::NotGreaterThanZero:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, "The value of " + label + " must be greater than 0 !!" );
+                    *aErrorCount, "The value of " + aLabel + " must be greater than 0 !!" );
             return false;
         }
         default: break;
@@ -174,8 +171,8 @@ bool DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( wxTextCtrl* textCtrl, std::stri
 }
 
 
-bool DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( wxComboBox* aComboBox, std::string label,
-                                               int* aErrorCount, std::string* aValidationMessage)
+bool DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( wxComboBox* aComboBox, std::string aLabel,
+                                               int* aErrorCount, std::string* aValidationMessage )
 {
     // Set the custom validator
     auto* cmbCtrlValidator = new VALIDATOR_COMBO_CTRL();
@@ -187,11 +184,11 @@ bool DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( wxComboBox* aComboBox, std::strin
 
         switch( v->GetValidationState() )
         {
-        case VALIDATOR_COMBO_CTRL::ValidationState::NothingSelected:
+        case VALIDATOR_COMBO_CTRL::VALIDATION_STATE::NothingSelected:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, "Please choose " + label );
+                    *aErrorCount, "Please choose " + aLabel );
             return false;
         }
         default: break;
@@ -201,112 +198,117 @@ bool DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( wxComboBox* aComboBox, std::strin
     return true;
 }
 
-bool DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl( wxTextCtrl* minTextCtrl, wxTextCtrl* maxTextCtrl,
-                                                std::string minLabel, std::string maxLabel,
+
+bool DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl( wxTextCtrl* aMinTextCtrl, wxTextCtrl* aMaxTextCtrl,
+                                                std::string aMinLabel, std::string aMaxLabel,
                                                 int* aErrorCount, std::string* aValidationMessage )
 {
-    minTextCtrl->SetName( "min" );
-    maxTextCtrl->SetName( "max" );
+    aMinTextCtrl->SetName( "min" );
+    aMinTextCtrl->SetName( "max" );
 
-    minTextCtrl->SetValidator( VALIDATE_MIN_MAX_CTRL( minTextCtrl, maxTextCtrl ) );
+    aMinTextCtrl->SetValidator( VALIDATE_MIN_MAX_CTRL( aMinTextCtrl, aMaxTextCtrl ) );
 
-    if( !minTextCtrl->Validate() )
+    if( !aMinTextCtrl->Validate() )
     {
-        VALIDATE_MIN_MAX_CTRL* v = static_cast<VALIDATE_MIN_MAX_CTRL*>( minTextCtrl->GetValidator() );
+        VALIDATE_MIN_MAX_CTRL* v =
+                static_cast<VALIDATE_MIN_MAX_CTRL*>( aMinTextCtrl->GetValidator() );
 
         switch( v->GetValidationState() )
         {
-        case VALIDATE_MIN_MAX_CTRL::ValidationState::MinGreaterThanMax:
+        case VALIDATE_MIN_MAX_CTRL::VALIDATION_STATE::MinGreaterThanMax:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                    *aErrorCount, minLabel + " value cannot be greater than "+ maxLabel +" value" );
+                    *aErrorCount,
+                    aMinLabel + " value cannot be greater than " + aMaxLabel + " value" );
             return false;
         }
         default: break;
         }
     }
 
-    minTextCtrl->SetName( "text" );
-    maxTextCtrl->SetName( "text" );
+    aMinTextCtrl->SetName( "text" );
+    aMaxTextCtrl->SetName( "text" );
 
     return true;
 }
 
-bool DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( wxTextCtrl* minTextCtrl, wxTextCtrl* preferredTextCtrl,
-                                  wxTextCtrl* maxTextCtrl, std::string minLabel, 
-                                  std::string preferredLabel, std::string maxLabel,
-                                  int* aErrorCount, std::string* aValidationMessage )
+
+bool DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( wxTextCtrl* aMinTextCtrl, 
+        wxTextCtrl* aPreferredTextCtrl, wxTextCtrl* aMaxTextCtrl, std::string aMinLabel, 
+        std::string aPreferredLabel, std::string aMaxLabel, int* aErrorCount,
+        std::string* aValidationMessage )
 {
-    minTextCtrl->SetName( "min" );
-    preferredTextCtrl->SetName( "preferred" );
-    maxTextCtrl->SetName( "max" );
+    aMinTextCtrl->SetName( "min" );
+    aPreferredTextCtrl->SetName( "preferred" );
+    aMaxTextCtrl->SetName( "max" );
 
-    minTextCtrl->SetValidator( VALIDATE_MIN_PREFERRED_MAX_CTRL( minTextCtrl, preferredTextCtrl, maxTextCtrl ) );
+    aMinTextCtrl->SetValidator(
+            VALIDATE_MIN_PREFERRED_MAX_CTRL( aMinTextCtrl, aPreferredTextCtrl, aMaxTextCtrl ) );
 
-    if( !minTextCtrl->Validate() )
+    if( !aMinTextCtrl->Validate() )
     {
         VALIDATE_MIN_PREFERRED_MAX_CTRL* v =
-                static_cast<VALIDATE_MIN_PREFERRED_MAX_CTRL*>( minTextCtrl->GetValidator() );
+                static_cast<VALIDATE_MIN_PREFERRED_MAX_CTRL*>( aMinTextCtrl->GetValidator() );
 
         switch( v->GetValidationState() )
         {
-        case VALIDATE_MIN_PREFERRED_MAX_CTRL::ValidationState::MinGreaterThanPreferred:
+        case VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATION_STATE::MinGreaterThanPreferred:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
                     *aErrorCount,
-                    minLabel + " value cannot be greater than " + preferredLabel + " value" );
+                    aMinLabel + " value cannot be greater than " + aPreferredLabel + " value" );
             return false;
         }
-        case VALIDATE_MIN_PREFERRED_MAX_CTRL::ValidationState::PreferredGreaterThanMax:
+        case VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATION_STATE::PreferredGreaterThanMax:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
                     *aErrorCount,
-                    preferredLabel + " value cannot be greater than " + maxLabel + " value" );
+                    aPreferredLabel + " value cannot be greater than " + aMaxLabel + " value" );
             return false;
         }
-        case VALIDATE_MIN_PREFERRED_MAX_CTRL::ValidationState::MinGreaterThanMax:
+        case VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATION_STATE::MinGreaterThanMax:
         {
             ( *aErrorCount )++;
             *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
                     *aErrorCount,
-                    minLabel + " value cannot be greater than " + maxLabel + " value" );
+                    aMinLabel + " value cannot be greater than " + aMaxLabel + " value" );
             return false;
         }
         default: break;
         }
     }
 
-    minTextCtrl->SetName( "text" );
-    preferredTextCtrl->SetName( "text" );
-    maxTextCtrl->SetName( "text" );
+    aMinTextCtrl->SetName( "text" );
+    aPreferredTextCtrl->SetName( "text" );
+    aMaxTextCtrl->SetName( "text" );
 
     return true;
 }
 
-bool DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( const std::vector<wxCheckBox*>& checkboxes, std::string label,
-                                                   int* aErrorCount, std::string* aValidationMessage )
+
+bool DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( const std::vector<wxCheckBox*>& aCheckboxes,
+                                                   std::string aLabel, int* aErrorCount,
+                                                   std::string* aValidationMessage )
 {
-    // Create the validator
-    auto* validator = new VALIDATE_CHECKBOX_LIST( checkboxes );
+    auto* validator = new VALIDATE_CHECKBOX_LIST( aCheckboxes );
 
-    // Set the validator to a control (e.g., a wxTextCtrl)
-    checkboxes[0]->SetValidator( *validator );
+    aCheckboxes[0]->SetValidator( *validator );
 
-    if( !checkboxes[0]->Validate() )
+    if( !aCheckboxes[0]->Validate() )
     {
         VALIDATE_CHECKBOX_LIST* v =
-                static_cast<VALIDATE_CHECKBOX_LIST*>( checkboxes[0]->GetValidator() );
+                static_cast<VALIDATE_CHECKBOX_LIST*>( aCheckboxes[0]->GetValidator() );
 
         switch( v->GetValidationState() )
         {
-        case VALIDATE_CHECKBOX_LIST::ValidationState::NotSelected:
+        case VALIDATE_CHECKBOX_LIST::VALIDATION_STATE::NotSelected:
         {
             ( *aErrorCount )++;
-            *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, 
-                "Please select at least one option from " + label + " list" );
+            *aValidationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
+                    *aErrorCount, "Please select at least one option from " + aLabel + " list" );
             return false;
         }
         default: break;
@@ -317,7 +319,8 @@ bool DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( const std::vector<wxCheckBox*
 }
 
 
-std::string DRC_RULE_EDITOR_UTILS::FormatErrorMessage( const int& aErrorCount, const std::string aErrorMessage )
+std::string DRC_RULE_EDITOR_UTILS::FormatErrorMessage( const int& aErrorCount,
+                                                       const std::string aErrorMessage )
 {
     return std::to_string( aErrorCount ) + ". " + aErrorMessage + "\n";
 }
