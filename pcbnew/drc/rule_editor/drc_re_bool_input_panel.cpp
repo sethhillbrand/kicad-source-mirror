@@ -21,20 +21,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <pgm_base.h>
-#include <settings/settings_manager.h>
-#include <footprint_editor_settings.h>
-#include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
-#include <grid_tricks.h>
-#include <eda_text.h>
 #include "drc_re_bool_input_panel.h"
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <wx/bitmap.h>
-#include <wx/statbmp.h>
 
 
 const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> BoolConstraintBitMapPairs = 
@@ -46,17 +33,14 @@ const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> BoolConstraintBitMapPai
 };
 
 
-DRC_RE_BOOL_INPUT_PANEL::DRC_RE_BOOL_INPUT_PANEL( wxWindow* aParent, const DrcReBoolInputConstraintPanelParams& aConstraintPanelParams ) :
+DRC_RE_BOOL_INPUT_PANEL::DRC_RE_BOOL_INPUT_PANEL( wxWindow* aParent,
+        const DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS& aConstraintPanelParams ) :
         DRC_RE_BOOL_INPUT_PANEL_BASE( aParent ),
         m_constraintData( aConstraintPanelParams.m_constraintData )
 {
-    wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-
     auto it = BoolConstraintBitMapPairs.find( aConstraintPanelParams.m_constraintType );
 
-    constraintBitmap->SetBitmap( KiBitmapBundle( it->second ) );
-
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );   
+    bConstraintImageSizer->Add( GetConstraintImage( this, it->second ), 0, wxALL | wxEXPAND, 10 );
 
     if( !aConstraintPanelParams.m_customLabelText.IsEmpty() )
         m_boolConstraintChkCtrl->SetLabelText( aConstraintPanelParams.m_customLabelText );
@@ -75,7 +59,7 @@ bool DRC_RE_BOOL_INPUT_PANEL::TransferDataToWindow()
     if( m_constraintData )
     {
         m_boolConstraintChkCtrl->SetValue( m_constraintData->GetBoolInputValue() );
-    }   
+    }
 
     return true;
 }

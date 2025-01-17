@@ -27,43 +27,46 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReMinimumTextHeightThicknessConstraintData : public DrcReBaseConstraintData
+class DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReMinimumTextHeightThicknessConstraintData() = default;
+    DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA() = default;
 
-    explicit DrcReMinimumTextHeightThicknessConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA(
+            const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReMinimumTextHeightThicknessConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                                            double aMinTextHeight,
-                                                            double aMinTextThickness ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_minTextHeight( aMinTextHeight ),
-            m_minTextThickness( aMinTextThickness )
+    explicit DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA( int aId, int aParentId,
+                                                                   wxString aRuleName,
+                                                                   double   aMinTextHeight,
+                                                                   double   aMinTextThickness ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
+            m_minTextHeight( aMinTextHeight ), m_minTextThickness( aMinTextThickness )
     {
     }
 
-    virtual ~DrcReMinimumTextHeightThicknessConstraintData() = default;      
+    virtual ~DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA() = default;
 
     double GetMinTextHeight() { return m_minTextHeight; }
-    void   SetMinTextHeight( double aMinTextHeight ) { m_minTextHeight = aMinTextHeight; }
+
+    void SetMinTextHeight( double aMinTextHeight ) { m_minTextHeight = aMinTextHeight; }
 
     double GetMinTextThickness() { return m_minTextThickness; }
-    void   SetMinTextThickness( double aMinTextThickness ) { m_minTextThickness = aMinTextThickness; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetMinTextThickness( double aMinTextThickness ) { m_minTextThickness = aMinTextThickness; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReMinimumTextHeightThicknessConstraintData&>( source );
+        const auto& source =
+                dynamic_cast<const DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA&>(
+                        aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_minTextHeight = viaSource.m_minTextHeight;
-        m_minTextThickness = viaSource.m_minTextThickness;
+        m_minTextHeight = source.m_minTextHeight;
+        m_minTextThickness = source.m_minTextThickness;
     }
 
 private:

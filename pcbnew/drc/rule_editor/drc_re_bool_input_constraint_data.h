@@ -27,42 +27,40 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReBoolInputConstraintData : public DrcReBaseConstraintData
+class DRC_RE_BOOL_INPUT_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReBoolInputConstraintData() = default;
+    DRC_RE_BOOL_INPUT_CONSTRAINT_DATA() = default;
 
-    explicit DrcReBoolInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_BOOL_INPUT_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReBoolInputConstraintData( unsigned int aId, unsigned int aParentId,
-                                           bool aBoolInputValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
+    explicit DRC_RE_BOOL_INPUT_CONSTRAINT_DATA( int aId, int aParentId, bool aBoolInputValue,
+                                                wxString aRuleName ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
             m_boolInputValue( aBoolInputValue )
     {
     }
 
-    virtual ~DrcReBoolInputConstraintData() = default;
+    virtual ~DRC_RE_BOOL_INPUT_CONSTRAINT_DATA() = default;
 
     bool GetBoolInputValue() { return m_boolInputValue; }
+
     void SetBoolInputValue( bool aBoolInputValue ) { m_boolInputValue = aBoolInputValue; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReBoolInputConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_BOOL_INPUT_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_boolInputValue = viaSource.m_boolInputValue;
+        m_boolInputValue = source.m_boolInputValue;
     }
 
 private:
     double m_boolInputValue{ false };
 };
-
 
 #endif // DRC_RE_BOOL_INPUT_CONSTRAINT_DATA_H_

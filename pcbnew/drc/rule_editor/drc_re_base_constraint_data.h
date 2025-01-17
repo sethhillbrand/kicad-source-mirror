@@ -24,39 +24,36 @@
 #ifndef DRC_RE_BASE_CONSTRAINT_DATA_H_
 #define DRC_RE_BASE_CONSTRAINT_DATA_H_
 
-#include <dialogs/rule_editor_base_data.h>
+#include <dialogs/rule_editor_data_base.h>
 
 
-class DrcReBaseConstraintData : public RuleEditorBaseData
+class DRC_RE_BASE_CONSTRAINT_DATA : public RULE_EDITOR_DATA_BASE
 {
 public:
-    DrcReBaseConstraintData() = default;
+    DRC_RE_BASE_CONSTRAINT_DATA() = default;
 
-    explicit DrcReBaseConstraintData( unsigned int aId, unsigned int aParentId,
-                                      wxString aRuleName ) :
-            RuleEditorBaseData( aId, aParentId, aRuleName )
+    explicit DRC_RE_BASE_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName ) :
+            RULE_EDITOR_DATA_BASE( aId, aParentId, aRuleName )
     {
     }
 
-    virtual ~DrcReBaseConstraintData() = default;
+    virtual ~DRC_RE_BASE_CONSTRAINT_DATA() = default;
 
     std::vector<PCB_LAYER_ID> GetLayers() { return m_layers; }
-    void                      SetLayers( std::vector<PCB_LAYER_ID> aLayers ) { m_layers = aLayers; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetLayers( std::vector<PCB_LAYER_ID> aLayers ) { m_layers = aLayers; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& baseSource = dynamic_cast<const DrcReBaseConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_BASE_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        RuleEditorBaseData::CopyFrom( baseSource );
+        RULE_EDITOR_DATA_BASE::CopyFrom( source );
 
-        // Copy layer-specific data
-        m_layers = baseSource.m_layers;
+        m_layers = source.m_layers;
     }
 
 private:
     std::vector<PCB_LAYER_ID> m_layers;
 };
-
 
 #endif // DRC_RE_BASE_CONSTRAINT_DATA_H_

@@ -21,30 +21,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <pgm_base.h>
-#include <settings/settings_manager.h>
-#include <footprint_editor_settings.h>
-#include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
-#include <grid_tricks.h>
-#include <eda_text.h>
 #include "drc_re_corner_style_panel.h"
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <wx/bitmap.h>
-#include <wx/statbmp.h>
 
-DRC_RE_CORNER_STYLE_PANEL::DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
-                                                std::shared_ptr<DrcReCornerStyleConstraintData> aConstraintData ) :
-        DRC_RE_CORNER_STYLE_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData )
+
+DRC_RE_CORNER_STYLE_PANEL::DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
+        std::shared_ptr<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA> aConstraintData ) :
+        DRC_RE_CORNER_STYLE_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
 {
-    wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_corner_style ) );
-
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 ); 
+    bConstraintImageSizer->Add( GetConstraintImage( this, BITMAPS::constraint_corner_style ), 0,
+                                wxALL | wxEXPAND, 10 );
 
     std::vector<std::string> items = { "90 Degrees", "45 Degrees", "Rounded" };
 
@@ -55,24 +40,27 @@ DRC_RE_CORNER_STYLE_PANEL::DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxStrin
 
     enableSetbackControls( false );
 
-    // Bind the selection event
-    m_cornerStyleCmbCtrl->Bind( wxEVT_COMBOBOX, &DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection, this );
+    m_cornerStyleCmbCtrl->Bind( wxEVT_COMBOBOX, &DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection,
+                                this );
 }
 
 
 DRC_RE_CORNER_STYLE_PANEL::~DRC_RE_CORNER_STYLE_PANEL()
 {
-    m_cornerStyleCmbCtrl->Unbind( wxEVT_COMBOBOX, &DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection, this );
+    m_cornerStyleCmbCtrl->Unbind( wxEVT_COMBOBOX,
+                                  &DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection, this );
 }
 
 
 bool DRC_RE_CORNER_STYLE_PANEL::TransferDataToWindow()
-{ 
+{
     if( m_constraintData )
     {
         m_cornerStyleCmbCtrl->SetValue( m_constraintData->GetCornerStyle() );
-        m_minSetbackTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinSetbackLength() ) );
-        m_maxSetbackTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxSetbackLength() ) );
+        m_minSetbackTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetMinSetbackLength() ) );
+        m_maxSetbackTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetMaxSetbackLength() ) );
     }
 
     return true;
@@ -82,21 +70,22 @@ bool DRC_RE_CORNER_STYLE_PANEL::TransferDataToWindow()
 bool DRC_RE_CORNER_STYLE_PANEL::TransferDataFromWindow()
 {
     m_constraintData->SetCornerStyle( m_cornerStyleCmbCtrl->GetValue() );
-    m_constraintData->SetMinSetbackLength( std::stod( m_minSetbackTextCtrl->GetValue().ToStdString() ) );
-    m_constraintData->SetMaxSetbackLength( std::stod( m_maxSetbackTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMinSetbackLength(
+            std::stod( m_minSetbackTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxSetbackLength(
+            std::stod( m_maxSetbackTextCtrl->GetValue().ToStdString() ) );
 
     return true;
 }
 
 
-void DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection( wxCommandEvent& event )
+void DRC_RE_CORNER_STYLE_PANEL::onCornerStyleSelection( wxCommandEvent& aEvent )
 {
-    // Get the selected item's text
-    wxString selectedText = event.GetString();
+    wxString selectedText = aEvent.GetString();
 
     enableSetbackControls( true );
 
-    if (selectedText == wxEmptyString || selectedText == "90 Degrees")
+    if( selectedText == wxEmptyString || selectedText == "90 Degrees" )
     {
         enableSetbackControls( false );
     }
@@ -112,23 +101,25 @@ void DRC_RE_CORNER_STYLE_PANEL::enableSetbackControls( bool aEnable )
 
 bool DRC_RE_CORNER_STYLE_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
 {
-    if( DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( m_cornerStyleCmbCtrl, "corner style",
-                                                   aErrorCount, aValidationMessage ) )
+    if( DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( m_cornerStyleCmbCtrl, "corner style", aErrorCount,
+                                                  aValidationMessage ) )
     {
         if( m_cornerStyleCmbCtrl->GetStringSelection() != "90 Degrees" )
-        {     
-            if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minSetbackTextCtrl, "Minimum Setback", false,
-                                                             aErrorCount, aValidationMessage ) )
+        {
+            if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minSetbackTextCtrl,
+                                                             "Minimum Setback", false, aErrorCount,
+                                                             aValidationMessage ) )
                 return false;
 
-            if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxSetbackTextCtrl, "Maximum Setback", false,
-                                                             aErrorCount, aValidationMessage ) )
-                return false;        
+            if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxSetbackTextCtrl,
+                                                             "Maximum Setback", false, aErrorCount,
+                                                             aValidationMessage ) )
+                return false;
 
-            if( !DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl( m_minSetbackTextCtrl, m_maxSetbackTextCtrl,
-                                                            "Minimum Setback", "Maximum Setback", 
-                                                            aErrorCount, aValidationMessage ) )
-                 return false;
+            if( !DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl(
+                        m_minSetbackTextCtrl, m_maxSetbackTextCtrl, "Minimum Setback",
+                        "Maximum Setback", aErrorCount, aValidationMessage ) )
+                return false;
         }
     }
     else

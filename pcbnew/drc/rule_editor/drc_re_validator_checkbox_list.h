@@ -24,37 +24,34 @@
 #ifndef DRC_RULE_EDITOR_VALIDATOR_CHECKBOX_LIST_H_
 #define DRC_RULE_EDITOR_VALIDATOR_CHECKBOX_LIST_H_
 
-#include <string>
-#include "drc_rule_editor_enums.h"
 #include <wx/wx.h>
 #include <wx/object.h>
+
+#include <string>
+
+#include "drc_rule_editor_enums.h"
 
 
 class VALIDATE_CHECKBOX_LIST : public wxValidator
 {
 public:
-    // Enumeration for validation states
-    enum class ValidationState
+    enum class VALIDATION_STATE
     {
-        Valid,      // At least one checkbox is selected
-        NotSelected // No checkboxes are selected
+        Valid,
+        NotSelected
     };
 
-    // Constructor takes a vector of checkboxes
-    VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& checkboxes );
+    VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& aCheckboxes );
 
-    // Clone method for validator
     virtual wxObject* Clone() const override;
 
-    // Validation logic
-    virtual bool Validate( wxWindow* parent ) override;
+    virtual bool Validate( wxWindow* aParent ) override;
 
-    // Get the validation state
-    ValidationState GetValidationState() const;
+    VALIDATION_STATE GetValidationState() const;
 
 private:
-    ValidationState          m_validationState; // Store the result of validation
-    std::vector<wxCheckBox*> m_checkboxes;      // Vector to hold the checkboxes in the group
+    VALIDATION_STATE m_validationState;
+    std::vector<wxCheckBox*> m_checkboxes;
 };
 
 #endif // DRC_RULE_EDITOR_VALIDATOR_CHECKBOX_LIST_H_

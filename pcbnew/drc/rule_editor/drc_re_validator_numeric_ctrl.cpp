@@ -25,7 +25,7 @@
 
 
 VALIDATOR_NUMERIC_CTRL::VALIDATOR_NUMERIC_CTRL( bool aCanBeZero, bool aIntegerOnly ) :
-        m_validationState( ValidationState::Valid ), m_canBeZero( aCanBeZero ),
+        m_validationState( VALIDATION_STATE::Valid ), m_canBeZero( aCanBeZero ),
         m_isIntegerOnly( aIntegerOnly )
 {
 }
@@ -37,7 +37,7 @@ wxObject* VALIDATOR_NUMERIC_CTRL::Clone() const
 }
 
 
-bool VALIDATOR_NUMERIC_CTRL::Validate( wxWindow* parent )
+bool VALIDATOR_NUMERIC_CTRL::Validate( wxWindow* aParent )
 {
     bool result = true;
 
@@ -45,7 +45,7 @@ bool VALIDATOR_NUMERIC_CTRL::Validate( wxWindow* parent )
 
     if( !textCtrl )
     {
-        m_validationState = ValidationState::InValidCtrl;
+        m_validationState = VALIDATION_STATE::InValidCtrl;
         return false;
     }
 
@@ -54,7 +54,7 @@ bool VALIDATOR_NUMERIC_CTRL::Validate( wxWindow* parent )
     // Check if the field is empty
     if( value.IsEmpty() )
     {
-        m_validationState = ValidationState::Empty;
+        m_validationState = VALIDATION_STATE::Empty;
         return false;
     }
 
@@ -64,32 +64,32 @@ bool VALIDATOR_NUMERIC_CTRL::Validate( wxWindow* parent )
 
     if( m_isIntegerOnly && !value.ToLong( &intVal ) )
     {
-        m_validationState = ValidationState::NotInteger;
+        m_validationState = VALIDATION_STATE::NotInteger;
         return false;
     }
     else if( !m_isIntegerOnly && !value.ToDouble( &floatVal ) )
     {
-        m_validationState = ValidationState::NotNumeric;
+        m_validationState = VALIDATION_STATE::NotNumeric;
         return false;
     }
 
     if( m_isIntegerOnly && !m_canBeZero && value.ToLong( &intVal ) && intVal <= 0 )
     {
-        m_validationState = ValidationState::NotGreaterThanZero;
+        m_validationState = VALIDATION_STATE::NotGreaterThanZero;
         return false;
     }
     else if( !m_isIntegerOnly && !m_canBeZero && value.ToDouble( &floatVal ) && floatVal <= 0.0 )
     {
-        m_validationState = ValidationState::NotGreaterThanZero;
+        m_validationState = VALIDATION_STATE::NotGreaterThanZero;
         return false;
     }
 
-    m_validationState = ValidationState::Valid;
+    m_validationState = VALIDATION_STATE::Valid;
     return true;
 }
 
 
-VALIDATOR_NUMERIC_CTRL::ValidationState VALIDATOR_NUMERIC_CTRL::GetValidationState() const
+VALIDATOR_NUMERIC_CTRL::VALIDATION_STATE VALIDATOR_NUMERIC_CTRL::GetValidationState() const
 {
     return m_validationState;
 }

@@ -21,30 +21,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <pgm_base.h>
-#include <settings/settings_manager.h>
-#include <footprint_editor_settings.h>
-#include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
-#include <grid_tricks.h>
-#include <eda_text.h>
 #include "drc_re_abs_length_two_panel.h"
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <wx/bitmap.h>
-#include <wx/statbmp.h>
 
-DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
-                                                std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> aConstraintData ) :
-        DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData )
+
+DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, 
+        wxString* aConstraintTitle,
+        std::shared_ptr<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA> aConstraintData ) :
+        DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
 {
-    wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_absolute_length_2 ) );
-
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );   
+    bConstraintImageSizer->Add( GetConstraintImage( this, BITMAPS::constraint_absolute_length_2 ),
+                                0, wxALL | wxEXPAND, 10 );
 }
 
 
@@ -65,7 +51,8 @@ bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::TransferDataFromWindow()
 }
 
 
-bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
+bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::ValidateInputs( int* aErrorCount,
+                                                       std::string* aValidationMessage )
 {
     return true;
 }

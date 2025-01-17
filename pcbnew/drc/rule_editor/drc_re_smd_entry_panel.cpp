@@ -21,30 +21,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <pgm_base.h>
-#include <settings/settings_manager.h>
-#include <footprint_editor_settings.h>
-#include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
-#include <grid_tricks.h>
-#include <eda_text.h>
 #include "drc_re_smd_entry_panel.h"
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <wx/bitmap.h>
-#include <wx/statbmp.h>
 
-DRC_RE_SMD_ENTRY_PANEL::DRC_RE_SMD_ENTRY_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
-                                                        std::shared_ptr<DrcReSmdEntryConstraintData> aConstraintData ) :
-        DRC_RE_SMD_ENTRY_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData )
+
+DRC_RE_SMD_ENTRY_PANEL::DRC_RE_SMD_ENTRY_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
+        std::shared_ptr<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA> aConstraintData ) :
+        DRC_RE_SMD_ENTRY_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
 {
-    wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_smd_entry ) );
-
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );  
+    bConstraintImageSizer->Add( GetConstraintImage( this, BITMAPS::constraint_smd_entry ),
+                                0, wxALL | wxEXPAND, 10 );
 }
 
 
@@ -60,7 +45,7 @@ bool DRC_RE_SMD_ENTRY_PANEL::TransferDataToWindow()
         m_sideAngleChkCtrl->SetValue( m_constraintData->GetIsSideAngleEnabled() );
         m_cornerAngleChkCtrl->SetValue( m_constraintData->GetIsCornerAngleEnabled() );
         m_anyAngleChkCtrl->SetValue( m_constraintData->GetIsAnyAngleEnabled() );
-    }   
+    }
 
     return true;
 }
@@ -78,11 +63,9 @@ bool DRC_RE_SMD_ENTRY_PANEL::TransferDataFromWindow()
 
 bool DRC_RE_SMD_ENTRY_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
 {
-    // Assuming you have a group of checkboxes like:
     std::vector<wxCheckBox*> checkboxes = { m_sideAngleChkCtrl, m_cornerAngleChkCtrl,
                                             m_anyAngleChkCtrl };
 
     return DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( checkboxes, "SMD Entry Angles",
-                                                         aErrorCount, aValidationMessage ); 
-    return true;
+                                                         aErrorCount, aValidationMessage );
 }

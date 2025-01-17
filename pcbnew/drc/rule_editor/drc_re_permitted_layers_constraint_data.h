@@ -27,49 +27,48 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcRePermittedLayersConstraintData : public DrcReBaseConstraintData
+class DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcRePermittedLayersConstraintData() = default;
+    DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA() = default;
 
-    explicit DrcRePermittedLayersConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA(
+            const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcRePermittedLayersConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                                 bool aTopLayer,
-                                                 bool aBottomLayer ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_topLayer( aTopLayer ),
+    explicit DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
+                                                      bool aTopLayer, bool aBottomLayer ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ), m_topLayer( aTopLayer ),
             m_bottomLayer( aBottomLayer )
     {
     }
 
-    virtual ~DrcRePermittedLayersConstraintData() = default;
+    virtual ~DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA() = default;
 
     bool GetTopLayerEnabled() { return m_topLayer; }
+
     void SetTopLayerEnabled( double aTopLayer ) { m_topLayer = aTopLayer; }
 
     bool GetBottomLayerEnabled() { return m_bottomLayer; }
+
     void SetBottomLayerEnabled( double aBottomLayer ) { m_bottomLayer = aBottomLayer; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcRePermittedLayersConstraintData&>( source );
+        const auto& source =
+                dynamic_cast<const DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_topLayer = viaSource.m_topLayer;
-        m_bottomLayer = viaSource.m_bottomLayer;
+        m_topLayer = source.m_topLayer;
+        m_bottomLayer = source.m_bottomLayer;
     }
 
 private:
     bool m_topLayer{ false };
     bool m_bottomLayer{ false };
 };
-
 
 #endif // DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA_H_

@@ -27,42 +27,40 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReNumericInputConstraintData : public DrcReBaseConstraintData
+class DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReNumericInputConstraintData() = default;
+    DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA() = default;
 
-    explicit DrcReNumericInputConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReNumericInputConstraintData( unsigned int aId, unsigned int aParentId,
-                                              double aNumericInputValue, wxString aRuleName) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
+    explicit DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA( int aId, int aParentId,
+                                                   double aNumericInputValue, wxString aRuleName ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
             m_numericInputValue( aNumericInputValue )
     {
     }
 
-    virtual ~DrcReNumericInputConstraintData() = default;
+    virtual ~DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA() = default;
 
     double GetNumericInputValue() { return m_numericInputValue; }
-    void   SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetNumericInputValue( double aNumericInput ) { m_numericInputValue = aNumericInput; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReNumericInputConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_numericInputValue = viaSource.m_numericInputValue;
+        m_numericInputValue = source.m_numericInputValue;
     }
 
 private:
     double m_numericInputValue{ 0 };
 };
-
 
 #endif // DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA_H_

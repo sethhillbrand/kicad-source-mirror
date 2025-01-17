@@ -21,14 +21,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include <widgets/std_bitmap_button.h>
+
 #include <pgm_base.h>
 #include <settings/settings_manager.h>
 #include <footprint_editor_settings.h>
 #include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
 #include <grid_tricks.h>
 #include <eda_text.h>
-#include <drc/rule_editor/panel_drc_group_header.h>
 #include <grid_layer_box_helpers.h>
 #include <bitmaps.h>
 #include <confirm.h>
@@ -38,8 +38,12 @@
 #include <board.h>
 #include <idf_parser.h>
 
+#include <drc/rule_editor/panel_drc_group_header.h>
 
-PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_ITEM_TYPE aItemType ) :
+
+
+PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard,
+                                                DRC_RULE_EDITOR_ITEM_TYPE aItemType ) :
         PANEL_DRC_GROUP_HEADER_BASE( aParent )
 {
 }

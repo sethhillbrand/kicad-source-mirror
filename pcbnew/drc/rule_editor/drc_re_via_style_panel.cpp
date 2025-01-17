@@ -21,30 +21,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <pgm_base.h>
-#include <settings/settings_manager.h>
-#include <footprint_editor_settings.h>
-#include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
-#include <grid_tricks.h>
-#include <eda_text.h>
 #include "drc_re_via_style_panel.h"
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <wx/bitmap.h>
-#include <wx/statbmp.h>
 
-DRC_RE_VIA_STYLE_PANEL::DRC_RE_VIA_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle, 
-                                                std::shared_ptr<DrcReViaStyleConstraintData> aConstraintData ) :
-        DRC_RE_VIA_STYLE_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintData )
+
+DRC_RE_VIA_STYLE_PANEL::DRC_RE_VIA_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
+        std::shared_ptr<DRC_RE_VIA_STYLE_CONSTRAINT_DATA> aConstraintData ) :
+        DRC_RE_VIA_STYLE_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
 {
-    wxStaticBitmap* constraintBitmap = new wxStaticBitmap( this,  wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-    constraintBitmap->SetBitmap( KiBitmapBundle( BITMAPS::constraint_via_style ) );
-
-    bConstraintImageSizer->Add( constraintBitmap, 0, wxALL | wxEXPAND, 10 );  
+    bConstraintImageSizer->Add( GetConstraintImage( this, BITMAPS::constraint_via_style ), 0,
+                                wxALL | wxEXPAND, 10 );
 }
 
 
@@ -54,16 +39,22 @@ DRC_RE_VIA_STYLE_PANEL::~DRC_RE_VIA_STYLE_PANEL()
 
 
 bool DRC_RE_VIA_STYLE_PANEL::TransferDataToWindow()
-{ 
+{
     if( m_constraintData )
     {
-        m_minViaDiameterTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinViaDiameter() ) );
-        m_maxViaDiameterTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxViaDiameter() ) );
-        m_preferredViaDiameterTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredViaDiameter() ) );
+        m_minViaDiameterTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetMinViaDiameter() ) );
+        m_maxViaDiameterTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetMaxViaDiameter() ) );
+        m_preferredViaDiameterTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredViaDiameter() ) );
 
-        m_minViaHoleSizeTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMinViaHoleSize() ) );
-        m_maxViaHoleSizeTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetMaxViaHoleSize() ) );
-        m_preferredViaHoleSizeTextCtrl->SetValue( wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredViaHoleSize() ) );
+        m_minViaHoleSizeTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetMinViaHoleSize() ) );
+        m_maxViaHoleSizeTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetMaxViaHoleSize() ) );
+        m_preferredViaHoleSizeTextCtrl->SetValue(
+                wxString::Format( _( "%.2f" ), m_constraintData->GetPreferredViaHoleSize() ) );
     }
 
     return true;
@@ -72,13 +63,19 @@ bool DRC_RE_VIA_STYLE_PANEL::TransferDataToWindow()
 
 bool DRC_RE_VIA_STYLE_PANEL::TransferDataFromWindow()
 {
-    m_constraintData->SetMinViaDiameter( std::stod( m_minViaDiameterTextCtrl->GetValue().ToStdString() ) );
-    m_constraintData->SetMaxViaDiameter( std::stod( m_maxViaDiameterTextCtrl->GetValue().ToStdString() ) );
-    m_constraintData->SetPreferredViaDiameter( std::stod( m_preferredViaDiameterTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMinViaDiameter(
+            std::stod( m_minViaDiameterTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxViaDiameter(
+            std::stod( m_maxViaDiameterTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetPreferredViaDiameter(
+            std::stod( m_preferredViaDiameterTextCtrl->GetValue().ToStdString() ) );
 
-    m_constraintData->SetMinViaHoleSize( std::stod( m_minViaHoleSizeTextCtrl->GetValue().ToStdString() ) );
-    m_constraintData->SetMaxViaHoleSize( std::stod( m_maxViaHoleSizeTextCtrl->GetValue().ToStdString() ) );
-    m_constraintData->SetPreferredViaHoleSize( std::stod( m_preferredViaHoleSizeTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMinViaHoleSize(
+            std::stod( m_minViaHoleSizeTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetMaxViaHoleSize(
+            std::stod( m_maxViaHoleSizeTextCtrl->GetValue().ToStdString() ) );
+    m_constraintData->SetPreferredViaHoleSize(
+            std::stod( m_preferredViaHoleSizeTextCtrl->GetValue().ToStdString() ) );
 
     return true;
 }
@@ -86,37 +83,45 @@ bool DRC_RE_VIA_STYLE_PANEL::TransferDataFromWindow()
 
 bool DRC_RE_VIA_STYLE_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
 {
-    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minViaDiameterTextCtrl, "Minimum Via Diameter", false,
-                                                     aErrorCount, aValidationMessage ) )
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minViaDiameterTextCtrl,
+                                                     "Minimum Via Diameter", false, aErrorCount,
+                                                     aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxViaDiameterTextCtrl, "Preferred Via Diameter", false,
-                                                     aErrorCount, aValidationMessage ) )
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxViaDiameterTextCtrl,
+                                                     "Preferred Via Diameter", false, aErrorCount,
+                                                     aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredViaDiameterTextCtrl, "Maximum Via Diameter",
-                                                     false, aErrorCount, aValidationMessage ) )
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredViaDiameterTextCtrl,
+                                                     "Maximum Via Diameter", false, aErrorCount,
+                                                     aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minViaHoleSizeTextCtrl, "Minimum Via Hole Size", false,
-                                                     aErrorCount, aValidationMessage ) )
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_minViaHoleSizeTextCtrl,
+                                                     "Minimum Via Hole Size", false, aErrorCount,
+                                                     aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxViaHoleSizeTextCtrl, "Preferred Via Hole Size", false,
-                                                     aErrorCount, aValidationMessage ) )
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_maxViaHoleSizeTextCtrl,
+                                                     "Preferred Via Hole Size", false, aErrorCount,
+                                                     aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredViaHoleSizeTextCtrl, "Maximum Via Hole Size", false,
-                                                     aErrorCount, aValidationMessage ) )
+    if( !DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( m_preferredViaHoleSizeTextCtrl,
+                                                     "Maximum Via Hole Size", false, aErrorCount,
+                                                     aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minViaDiameterTextCtrl, m_preferredViaDiameterTextCtrl,
-                m_maxViaDiameterTextCtrl, "Minimum Via Diameter", "Preferred Via Diameter", "Maximum Via Diameter",
+    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minViaDiameterTextCtrl, 
+                m_preferredViaDiameterTextCtrl, m_maxViaDiameterTextCtrl,
+                "Minimum Via Diameter", "Preferred Via Diameter", "Maximum Via Diameter",
                 aErrorCount, aValidationMessage ) )
         return false;
 
-    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minViaHoleSizeTextCtrl, m_preferredViaHoleSizeTextCtrl, 
-                m_maxViaHoleSizeTextCtrl, "Minimum Via Hole Size", "Preferred Via Hole Size", "Maximum Via Hole Size",
+    if( !DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( m_minViaHoleSizeTextCtrl, 
+                m_preferredViaHoleSizeTextCtrl, m_maxViaHoleSizeTextCtrl,
+                "Minimum Via Hole Size", "Preferred Via Hole Size", "Maximum Via Hole Size",
                 aErrorCount, aValidationMessage ) )
         return false;
 

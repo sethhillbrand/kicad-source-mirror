@@ -27,67 +27,72 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReViaStyleConstraintData : public DrcReBaseConstraintData
+class DRC_RE_VIA_STYLE_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReViaStyleConstraintData() = default;
+    DRC_RE_VIA_STYLE_CONSTRAINT_DATA() = default;
 
-    explicit DrcReViaStyleConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_VIA_STYLE_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReViaStyleConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                          double aMinViaDiameter,
-                                          double aMaxViaDiameter, 
-                                          double aPreferredViaDiameter, 
-                                          double aMinViaHoleSize, 
-                                          double aMaxViaHoleSize, 
-                                          double aPreferredViaHoleSize ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_minViaDiameter( aMinViaDiameter ), 
-            m_maxViaDiameter( aMaxViaDiameter ),
-            m_preferredViaDiameter( aPreferredViaDiameter ),
-            m_minViaHoleSize( aMinViaHoleSize ),
-            m_maxViaHoleSize( aMaxViaHoleSize ), 
-            m_preferredViaHoleSize( aPreferredViaHoleSize )
+    explicit DRC_RE_VIA_STYLE_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
+                                               double aMinViaDiameter, double aMaxViaDiameter,
+                                               double aPreferredViaDiameter, double aMinViaHoleSize,
+                                               double aMaxViaHoleSize,
+                                               double aPreferredViaHoleSize ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
+            m_minViaDiameter( aMinViaDiameter ), m_maxViaDiameter( aMaxViaDiameter ),
+            m_preferredViaDiameter( aPreferredViaDiameter ), m_minViaHoleSize( aMinViaHoleSize ),
+            m_maxViaHoleSize( aMaxViaHoleSize ), m_preferredViaHoleSize( aPreferredViaHoleSize )
     {
     }
 
-    virtual ~DrcReViaStyleConstraintData() = default;
+    virtual ~DRC_RE_VIA_STYLE_CONSTRAINT_DATA() = default;
 
     double GetMinViaDiameter() { return m_minViaDiameter; }
-    void   SetMinViaDiameter( double aMinViaDiameter ) { m_minViaDiameter = aMinViaDiameter; }
+
+    void SetMinViaDiameter( double aMinViaDiameter ) { m_minViaDiameter = aMinViaDiameter; }
 
     double GetMaxViaDiameter() { return m_maxViaDiameter; }
-    void   SetMaxViaDiameter( double aMaxViaDiameter ) { m_maxViaDiameter = aMaxViaDiameter; }
+
+    void SetMaxViaDiameter( double aMaxViaDiameter ) { m_maxViaDiameter = aMaxViaDiameter; }
 
     double GetPreferredViaDiameter() { return m_preferredViaDiameter; }
-    void   SetPreferredViaDiameter( double aPreferredViaDiameter ) { m_preferredViaDiameter = aPreferredViaDiameter; }
+
+    void SetPreferredViaDiameter( double aPreferredViaDiameter )
+    {
+        m_preferredViaDiameter = aPreferredViaDiameter;
+    }
 
     double GetMinViaHoleSize() { return m_minViaHoleSize; }
-    void   SetMinViaHoleSize( double aMinViaHoleSize ) { m_minViaHoleSize = aMinViaHoleSize; }
+
+    void SetMinViaHoleSize( double aMinViaHoleSize ) { m_minViaHoleSize = aMinViaHoleSize; }
 
     double GetMaxViaHoleSize() { return m_maxViaHoleSize; }
-    void   SetMaxViaHoleSize( double aMaxViaHoleSize ) { m_maxViaHoleSize = aMaxViaHoleSize; }
+
+    void SetMaxViaHoleSize( double aMaxViaHoleSize ) { m_maxViaHoleSize = aMaxViaHoleSize; }
 
     double GetPreferredViaHoleSize() { return m_preferredViaHoleSize; }
-    void   SetPreferredViaHoleSize( double aPreferredViaHoleSize ) { m_preferredViaHoleSize = aPreferredViaHoleSize; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetPreferredViaHoleSize( double aPreferredViaHoleSize )
     {
-        const auto& viaSource = dynamic_cast<const DrcReViaStyleConstraintData&>( source );
+        m_preferredViaHoleSize = aPreferredViaHoleSize;
+    }
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+    void CopyFrom( const ICopyable& aSource ) override
+    {
+        const auto& source = dynamic_cast<const DRC_RE_VIA_STYLE_CONSTRAINT_DATA&>( aSource );
 
-        // Copy via-specific data
-        m_minViaDiameter = viaSource.m_minViaDiameter;
-        m_maxViaDiameter = viaSource.m_maxViaDiameter;
-        m_preferredViaDiameter = viaSource.m_preferredViaDiameter;
-        m_minViaHoleSize = viaSource.m_minViaHoleSize;
-        m_maxViaHoleSize = viaSource.m_maxViaHoleSize;
-        m_preferredViaHoleSize = viaSource.m_preferredViaHoleSize;
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
+
+        m_minViaDiameter = source.m_minViaDiameter;
+        m_maxViaDiameter = source.m_maxViaDiameter;
+        m_preferredViaDiameter = source.m_preferredViaDiameter;
+        m_minViaHoleSize = source.m_minViaHoleSize;
+        m_maxViaHoleSize = source.m_maxViaHoleSize;
+        m_preferredViaHoleSize = source.m_preferredViaHoleSize;
     }
 
 private:
@@ -98,6 +103,5 @@ private:
     double m_preferredViaHoleSize{ 0 };
     double m_maxViaHoleSize{ 0 };
 };
-
 
 #endif // DRC_RE_VIA_STYLE_CONSTRAINT_DATA_H_

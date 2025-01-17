@@ -24,36 +24,35 @@
 #include "drc_re_validator_checkbox_list.h"
 
 
-VALIDATE_CHECKBOX_LIST::VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& checkboxes ) :
-        m_checkboxes( checkboxes ), m_validationState( ValidationState::Valid )
+VALIDATE_CHECKBOX_LIST::VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& aCheckboxes ) :
+        m_checkboxes( aCheckboxes ), m_validationState( VALIDATION_STATE::Valid )
 {
 }
 
 
 wxObject* VALIDATE_CHECKBOX_LIST::Clone() const
 {
-    return new VALIDATE_CHECKBOX_LIST( m_checkboxes ); // Return a clone of the validator
+    return new VALIDATE_CHECKBOX_LIST( m_checkboxes );
 }
 
 
-bool VALIDATE_CHECKBOX_LIST::Validate( wxWindow* parent )
+bool VALIDATE_CHECKBOX_LIST::Validate( wxWindow* aParent )
 {
-    // Check if at least one checkbox is selected
     for( wxCheckBox* checkbox : m_checkboxes )
     {
         if( checkbox->GetValue() )
         {
-            m_validationState = ValidationState::Valid; // At least one checkbox is selected
+            m_validationState = VALIDATION_STATE::Valid; 
             return true;
         }
     }
 
-    m_validationState = ValidationState::NotSelected; // No checkbox is selected
+    m_validationState = VALIDATION_STATE::NotSelected;
     return false;
 }
 
 
-VALIDATE_CHECKBOX_LIST::ValidationState VALIDATE_CHECKBOX_LIST::GetValidationState() const
+VALIDATE_CHECKBOX_LIST::VALIDATION_STATE VALIDATE_CHECKBOX_LIST::GetValidationState() const
 {
     return m_validationState;
 }
