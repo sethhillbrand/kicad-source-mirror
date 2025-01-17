@@ -27,49 +27,46 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReParallelLimitConstraintData : public DrcReBaseConstraintData
+class DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReParallelLimitConstraintData() = default;
+    DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA() = default;
 
-    explicit DrcReParallelLimitConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReParallelLimitConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                               double aParallelLimit,
-                                               double aParallelGap ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_parallelLimit( aParallelLimit ),
-            m_parallelGap( aParallelGap )
+    explicit DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
+                                                    double aParallelLimit, double aParallelGap ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
+            m_parallelLimit( aParallelLimit ), m_parallelGap( aParallelGap )
     {
     }
 
-    virtual ~DrcReParallelLimitConstraintData() = default;
+    virtual ~DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA() = default;
 
     double GetParallelLimit() { return m_parallelLimit; }
-    void   SetParallelLimit( double aParallelLimit ) { m_parallelLimit = aParallelLimit; }
+
+    void SetParallelLimit( double aParallelLimit ) { m_parallelLimit = aParallelLimit; }
 
     double GetParallelGap() { return m_parallelGap; }
-    void   SetParallelGap( double aParallelGap ) { m_parallelGap = aParallelGap; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetParallelGap( double aParallelGap ) { m_parallelGap = aParallelGap; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReParallelLimitConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_parallelGap = viaSource.m_parallelGap;
-        m_parallelLimit = viaSource.m_parallelLimit;
+        m_parallelGap = source.m_parallelGap;
+        m_parallelLimit = source.m_parallelLimit;
     }
 
 private:
     double m_parallelGap{ 0 };
     double m_parallelLimit{ 0 };
 };
-
 
 #endif // DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA_H_

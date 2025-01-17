@@ -24,16 +24,18 @@
 #include "drc_re_validator_combo_ctrl.h"
 
 
-VALIDATOR_COMBO_CTRL::VALIDATOR_COMBO_CTRL() : m_validationState( ValidationState::Valid )
+VALIDATOR_COMBO_CTRL::VALIDATOR_COMBO_CTRL() : m_validationState( VALIDATION_STATE::Valid )
 {
 }
+
 
 wxObject* VALIDATOR_COMBO_CTRL::Clone() const
 {
     return new VALIDATOR_COMBO_CTRL();
 }
 
-bool VALIDATOR_COMBO_CTRL::Validate( wxWindow* parent )
+
+bool VALIDATOR_COMBO_CTRL::Validate( wxWindow* aParent )
 {
     bool result = true;
 
@@ -41,21 +43,22 @@ bool VALIDATOR_COMBO_CTRL::Validate( wxWindow* parent )
 
     if( !comboCtrl )
     {
-        m_validationState = ValidationState::InValidCtrl;
+        m_validationState = VALIDATION_STATE::InValidCtrl;
         return false;
     }
 
     if( comboCtrl->GetSelection() == wxNOT_FOUND )
     {
-        m_validationState = ValidationState::NothingSelected;
+        m_validationState = VALIDATION_STATE::NothingSelected;
         return false;
     }
 
-    m_validationState = ValidationState::Valid;
+    m_validationState = VALIDATION_STATE::Valid;
     return true;
 }
 
-VALIDATOR_COMBO_CTRL::ValidationState VALIDATOR_COMBO_CTRL::GetValidationState() const
+
+VALIDATOR_COMBO_CTRL::VALIDATION_STATE VALIDATOR_COMBO_CTRL::GetValidationState() const
 {
     return m_validationState;
 }

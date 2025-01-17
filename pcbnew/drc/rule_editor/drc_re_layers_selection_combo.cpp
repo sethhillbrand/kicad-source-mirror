@@ -25,29 +25,33 @@
 #include "drc_re_layers_selection_combo.h"
 
 
-DRC_RE_LAYER_SELECTION_COMBO::DRC_RE_LAYER_SELECTION_COMBO( wxWindow* parent, const std::vector<PCB_LAYER_ID>& layerIDs,
-        const std::function<wxString( PCB_LAYER_ID )>& nameGetter ) :
-        wxComboCtrl( parent, wxID_ANY )
+DRC_RE_LAYER_SELECTION_COMBO::DRC_RE_LAYER_SELECTION_COMBO( wxWindow* aParent, 
+        const std::vector<PCB_LAYER_ID>& aLayerIDs,
+        const std::function<wxString( PCB_LAYER_ID )>& aNameGetter ) :
+        wxComboCtrl( aParent, wxID_ANY )
 {
-    // Create and assign the custom popup
     m_popup = new DRC_RE_LAYER_SELECTION_CHOICE_POPUP();
     SetPopupControl( m_popup );
 
-    m_layerIDs = layerIDs;
-    m_nameGetter = nameGetter;
+    m_layerIDs = aLayerIDs;
+    m_nameGetter = aNameGetter;
 
-    // Populate the popup with the layer IDs and resolve their names using the nameGetter function
-    m_popup->PopulateWithLayerIDs( m_layerIDs, m_nameGetter );   
+    m_popup->PopulateWithLayerIDs( m_layerIDs, m_nameGetter );
 
-    // Bind to update the value when the popup is dismissed
-    Bind( wxEVT_COMBOBOX_CLOSEUP, &DRC_RE_LAYER_SELECTION_COMBO::OnPopupClose, this );
-
-    // Disable manual typing
-    Bind( wxEVT_KEY_DOWN, &DRC_RE_LAYER_SELECTION_COMBO::OnKeyDown, this );
-    Bind( wxEVT_LEFT_DOWN, &DRC_RE_LAYER_SELECTION_COMBO::OnMouseClick, this );
+    Bind( wxEVT_COMBOBOX_CLOSEUP, &DRC_RE_LAYER_SELECTION_COMBO::onPopupClose, this );
+    Bind( wxEVT_KEY_DOWN, &DRC_RE_LAYER_SELECTION_COMBO::onKeyDown, this );
+    Bind( wxEVT_LEFT_DOWN, &DRC_RE_LAYER_SELECTION_COMBO::onMouseClick, this );
 }
 
-    // Get selected items as a comma-separated string
+
+DRC_RE_LAYER_SELECTION_COMBO::~DRC_RE_LAYER_SELECTION_COMBO()
+{
+    Unbind( wxEVT_COMBOBOX_CLOSEUP, &DRC_RE_LAYER_SELECTION_COMBO::onPopupClose, this );
+    Unbind( wxEVT_KEY_DOWN, &DRC_RE_LAYER_SELECTION_COMBO::onKeyDown, this );
+    Unbind( wxEVT_LEFT_DOWN, &DRC_RE_LAYER_SELECTION_COMBO::onMouseClick, this );
+}
+
+
 wxString DRC_RE_LAYER_SELECTION_COMBO::GetSelectedItemsString()
 {
     return m_popup->GetSelectedItemsString();
@@ -60,36 +64,33 @@ std::vector<PCB_LAYER_ID> DRC_RE_LAYER_SELECTION_COMBO::GetSelectedLayers()
 }
 
 
-void DRC_RE_LAYER_SELECTION_COMBO::SetItemsSelected( const std::vector<PCB_LAYER_ID>& aSelectedLayers )
+void DRC_RE_LAYER_SELECTION_COMBO::SetItemsSelected(
+        const std::vector<PCB_LAYER_ID>& aSelectedLayers )
 {
-    // Set initial selections by indices
     m_popup->SetSelections( aSelectedLayers, m_nameGetter );
 
     SetValue( m_popup->GetSelectedItemsString() );
 }
 
 
-void DRC_RE_LAYER_SELECTION_COMBO::OnPopupClose( wxCommandEvent& )
+void DRC_RE_LAYER_SELECTION_COMBO::onPopupClose( wxCommandEvent& aEvent )
 {
-    // Update the combo box value with selected items
     SetValue( m_popup->GetSelectedItemsString() );
 }
 
 
-void DRC_RE_LAYER_SELECTION_COMBO::OnKeyDown( wxKeyEvent& event )
+void DRC_RE_LAYER_SELECTION_COMBO::onKeyDown( wxKeyEvent& aEvent )
 {
-    // Ignore key events to prevent typing
-    event.Skip( false );
+    aEvent.Skip( false );
 }
 
 
-void DRC_RE_LAYER_SELECTION_COMBO::OnMouseClick( wxMouseEvent& event )
+void DRC_RE_LAYER_SELECTION_COMBO::onMouseClick( wxMouseEvent& aEvent )
 {
-    // Open the dropdown on mouse click
     if( !IsPopupShown() )
     {
         ShowPopup();
     }
 
-    event.Skip( false );
+    aEvent.Skip( false );
 }

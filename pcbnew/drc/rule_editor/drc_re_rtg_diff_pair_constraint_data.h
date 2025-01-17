@@ -27,73 +27,76 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReRoutingDiffPairConstraintData : public DrcReBaseConstraintData
+class DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReRoutingDiffPairConstraintData() = default;
+    DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA() = default;
 
-    explicit DrcReRoutingDiffPairConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA(
+            const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReRoutingDiffPairConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                                 double aMaxUncoupledLength,
-                                                 double aMinWidth,
-                                                 double aPreferredWidth,
-                                                 double aMaxWidth,
-                                                 double aMinGap,
-                                                 double aPreferredGap,
-                                                 double aMaxGap ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
-            m_maxUncoupledLength( aMaxUncoupledLength ),
-            m_minWidth( aMinWidth ),
-            m_preferredWidth( aPreferredWidth ),
-            m_maxWidth( aMaxWidth ),
-            m_minGap( aMinGap ),
-            m_preferredGap( aPreferredGap ),
-            m_maxGap( aMaxGap )
+    explicit DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
+                                                       double aMaxUncoupledLength, double aMinWidth,
+                                                       double aPreferredWidth, double aMaxWidth,
+                                                       double aMinGap, double aPreferredGap,
+                                                       double aMaxGap ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
+            m_maxUncoupledLength( aMaxUncoupledLength ), m_minWidth( aMinWidth ),
+            m_preferredWidth( aPreferredWidth ), m_maxWidth( aMaxWidth ), m_minGap( aMinGap ),
+            m_preferredGap( aPreferredGap ), m_maxGap( aMaxGap )
     {
     }
 
-    virtual ~DrcReRoutingDiffPairConstraintData() = default;
+    virtual ~DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA() = default;
 
     double GetMaxUncoupledLength() { return m_maxUncoupledLength; }
-    void   SetMaxUncoupledLength( double aMaxUncoupledLength ) { m_maxUncoupledLength = aMaxUncoupledLength; }
+
+    void SetMaxUncoupledLength( double aMaxUncoupledLength )
+    {
+        m_maxUncoupledLength = aMaxUncoupledLength;
+    }
 
     double GetMinWidth() { return m_minWidth; }
-    void   SetMinWidth( double aMinWidth ) { m_minWidth = aMinWidth; }
+
+    void SetMinWidth( double aMinWidth ) { m_minWidth = aMinWidth; }
 
     double GetPreferredWidth() { return m_preferredWidth; }
-    void   SetPreferredWidth( double aPreferredWidth ) { m_preferredWidth = aPreferredWidth; }
+
+    void SetPreferredWidth( double aPreferredWidth ) { m_preferredWidth = aPreferredWidth; }
 
     double GetMaxWidth() { return m_maxWidth; }
-    void   SetMaxWidth( double aMaxWidth ) { m_maxWidth = aMaxWidth; }
+
+    void SetMaxWidth( double aMaxWidth ) { m_maxWidth = aMaxWidth; }
 
     double GetMinGap() { return m_minGap; }
-    void   SetMinGap( double aMinGap ) { m_minGap = aMinGap; }
+
+    void SetMinGap( double aMinGap ) { m_minGap = aMinGap; }
 
     double GetPreferredGap() { return m_preferredGap; }
-    void   SetPreferredGap( double aPreferredGap ) { m_preferredGap = aPreferredGap; }
+
+    void SetPreferredGap( double aPreferredGap ) { m_preferredGap = aPreferredGap; }
 
     double GetMaxGap() { return m_maxGap; }
-    void   SetMaxGap( double aMaxGap ) { m_maxGap = aMaxGap; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetMaxGap( double aMaxGap ) { m_maxGap = aMaxGap; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReRoutingDiffPairConstraintData&>( source );
+        const auto& source =
+                dynamic_cast<const DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_maxUncoupledLength = viaSource.m_maxUncoupledLength;
-        m_minWidth = viaSource.m_minWidth;
-        m_preferredWidth = viaSource.m_preferredWidth;
-        m_maxWidth = viaSource.m_maxWidth;
-        m_minGap = viaSource.m_minGap;
-        m_preferredGap = viaSource.m_preferredGap;
-        m_maxGap = viaSource.m_maxGap;
+        m_maxUncoupledLength = source.m_maxUncoupledLength;
+        m_minWidth = source.m_minWidth;
+        m_preferredWidth = source.m_preferredWidth;
+        m_maxWidth = source.m_maxWidth;
+        m_minGap = source.m_minGap;
+        m_preferredGap = source.m_preferredGap;
+        m_maxGap = source.m_maxGap;
     }
 
 private:

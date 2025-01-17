@@ -21,11 +21,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include <widgets/std_bitmap_button.h>
+#include <widgets/wx_html_report_box.h>
+#include <widgets/paged_dialog.h>
+
 #include <pgm_base.h>
 #include <settings/settings_manager.h>
 #include <footprint_editor_settings.h>
 #include <template_fieldnames.h>
-#include <widgets/std_bitmap_button.h>
 #include <grid_tricks.h>
 #include <eda_text.h>
 #include <grid_layer_box_helpers.h>
@@ -39,9 +42,9 @@
 #include <scintilla_tricks.h>
 #include <dialogs/html_message_box.h>
 #include <tools/drc_tool.h>
-#include <widgets/wx_html_report_box.h>
-#include <drc/drc_rule_parser.h>
+#include <pcbexpr_evaluator.h>
 
+#include <drc/drc_rule_parser.h>
 #include <drc/rule_editor/panel_drc_rule_editor.h>
 #include <drc/rule_editor/drc_re_numeric_input_panel.h>
 #include <drc/rule_editor/drc_re_bool_input_panel.h>
@@ -67,24 +70,22 @@
 #include "drc_re_allowed_orientation_constraint_data.h"
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
-#include <widgets/paged_dialog.h>
-#include <pcbexpr_evaluator.h>
 
 
-PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType, 
-                                              wxString* aConstraintTitle, std::shared_ptr<DrcReBaseConstraintData> aConstraintData ) :
-        PANEL_DRC_RULE_EDITOR_BASE( aParent ),
-        m_board( aBoard ), 
-        m_constraintTitle( aConstraintTitle ),
-        m_constraintData( aConstraintData ), 
-        m_constraintType( aConstraintType ),
-        m_validationSucceeded( false ),
-        m_isModified( false ),
-        m_scintillaTricks( nullptr ), 
-        m_helpWindow( nullptr )
+PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
+        wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType,
+        wxString* aConstraintTitle, std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData ) :
+        PANEL_DRC_RULE_EDITOR_BASE( aParent ), m_comboCtrl( nullptr ), m_board( aBoard ),
+        m_constraintTitle( aConstraintTitle ), m_name( nullptr ), m_comment( nullptr ),
+        m_constraintData( aConstraintData ), m_constraintType( aConstraintType ),
+        m_basicDetailValidated( false ), m_validationSucceeded( false ), m_syntaxChecked( false ),
+        m_isModified( false ), m_helpWindow( nullptr ), m_callBackSave( nullptr ),
+        m_callBackRemove( nullptr ), m_callBackClose( nullptr ),
+        m_callBackRuleNameValidation( nullptr )
 {
     m_constraintPanel = getConstraintPanel( this, aConstraintType );
-    m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP, 5 );      
+    m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP,
+                                   5 );
     m_layerList = m_board->GetEnabledLayers().UIOrder();
     m_constraintHeaderTitle->SetLabelText( *aConstraintTitle + " Constraint" );
 
@@ -98,9 +99,9 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
     wxArrayInt initiallySelectedIndices = { 0, 2 }; // Indices of pre-selected layers
     m_layerListCmbCtrl = new DRC_RE_LAYER_SELECTION_COMBO( this, layerIDs, layerNameGetter );
 
-    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 ); 
+    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 );
 
-     // Create another sizer for the buttons on the right
+    // Create another sizer for the buttons on the right
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
     btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
     btnRemove = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
@@ -110,7 +111,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
     buttonSizer->Add( btnClose, 0, wxALL, 5 );
 
     // Add the button sizer to the main sizer (to the right)
-    bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );  
+    bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
 
     // Bind the button's event to an event handler
     btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
@@ -154,6 +155,54 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard, 
 
 PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
 {
+    if( m_scintillaTricks )
+    {
+        delete m_scintillaTricks;
+        m_scintillaTricks = nullptr;
+    }
+
+    if( m_board )
+    {
+        delete m_board;
+        m_board = nullptr;
+    }
+
+    if( m_constraintTitle )
+    {
+        delete m_constraintTitle;
+        m_constraintTitle = nullptr;
+    }
+
+    if( m_name )
+    {
+        delete m_name;
+        m_name = nullptr;
+    }
+
+    if( m_comment )
+    {
+        delete m_comment;
+        m_comment = nullptr;
+    }
+
+    if( m_layerListCmbCtrl )
+    {
+        delete m_layerListCmbCtrl;
+        m_layerListCmbCtrl = nullptr;
+    }
+
+    if( m_constraintPanel )
+    {
+        delete m_constraintPanel;
+        m_constraintPanel = nullptr;
+    }
+
+    if( m_helpWindow )
+    {
+        delete m_helpWindow;
+        m_helpWindow = nullptr;
+    }
+
     btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
     btnRemove->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
     btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
@@ -185,31 +234,42 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
 }
 
 
-DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWindow* aParent,
-                                                                          const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType )
+DRC_RULE_EDITOR_CONTENT_PANEL_BASE* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWindow* aParent,
+                                           const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType )
 {
     switch( aConstraintType )
-    { 
-    case VIA_STYLE:    
-        return new DRC_RE_VIA_STYLE_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReViaStyleConstraintData>( m_constraintData) );
-    case ABSOLUTE_LENGTH_2:    
-        return new DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReAbsoluteLengthTwoConstraintData>( m_constraintData) );
-    case MINIMUM_TEXT_HEIGHT_AND_THICKNESS:    
-        return new DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReMinimumTextHeightThicknessConstraintData>( m_constraintData) );
-    case ROUTING_DIFF_PAIR:    
-        return new DRC_RE_ROUTING_DIFF_PAIR_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReRoutingDiffPairConstraintData>( m_constraintData) );
-    case ROUTING_WIDTH:    
-        return new DRC_RE_ROUTING_WIDTH_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReRoutingWidthConstraintData>( m_constraintData) );
-    case PARALLEL_LIMIT:    
-        return new DRC_RE_PARALLEL_LIMIT_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReParallelLimitConstraintData>( m_constraintData) );
-    case PERMITTED_LAYERS:    
-        return new DRC_RE_PERMITTED_LAYERS_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcRePermittedLayersConstraintData>( m_constraintData) );
-    case ALLOWED_ORIENTATION:    
-        return new DRC_RE_ALLOWED_ORIENTATION_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReAllowedOrientationConstraintData>( m_constraintData) );
-    case CORNER_STYLE:    
-        return new DRC_RE_CORNER_STYLE_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReCornerStyleConstraintData>( m_constraintData) );
-    case SMD_ENTRY:    
-        return new DRC_RE_SMD_ENTRY_PANEL( aParent, m_constraintTitle, dynamic_pointer_cast<DrcReSmdEntryConstraintData>( m_constraintData) );
+    {
+    case VIA_STYLE:
+        return new DRC_RE_VIA_STYLE_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_VIA_STYLE_CONSTRAINT_DATA>( m_constraintData ) );
+    case ABSOLUTE_LENGTH_2:
+        return new DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA>( m_constraintData ) );
+    case MINIMUM_TEXT_HEIGHT_AND_THICKNESS:
+        return new DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA>(
+                        m_constraintData ) );
+    case ROUTING_DIFF_PAIR:
+        return new DRC_RE_ROUTING_DIFF_PAIR_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>( m_constraintData ) );
+    case ROUTING_WIDTH:
+        return new DRC_RE_ROUTING_WIDTH_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA>( m_constraintData ) );
+    case PARALLEL_LIMIT:
+        return new DRC_RE_PARALLEL_LIMIT_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA>( m_constraintData ) );
+    case PERMITTED_LAYERS:
+        return new DRC_RE_PERMITTED_LAYERS_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA>( m_constraintData ) );
+    case ALLOWED_ORIENTATION:
+        return new DRC_RE_ALLOWED_ORIENTATION_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA>( m_constraintData ) );
+    case CORNER_STYLE:
+        return new DRC_RE_CORNER_STYLE_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA>( m_constraintData ) );
+    case SMD_ENTRY:
+        return new DRC_RE_SMD_ENTRY_PANEL( aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( m_constraintData ) );
     default:
         if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( aConstraintType ) )
         {
@@ -224,17 +284,20 @@ DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWind
             case SMD_TO_PLANE_PLUS: customLabel = "Maximum Permissible Distance"; break;
             default: customLabel = *m_constraintTitle;
             }
-            
-            DrcReNumericInputConstraintPanelParams numericInputParams( *m_constraintTitle, dynamic_pointer_cast<DrcReNumericInputConstraintData>( m_constraintData ), aConstraintType, customLabel );
-        
-            if( aConstraintType == MINIMUM_THERMAL_RELIEF_SPOKE_COUNT || aConstraintType == MAXIMUM_VIA_COUNT )
+
+            DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS numericInputParams( *m_constraintTitle,
+                    dynamic_pointer_cast<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>( m_constraintData ),
+                    aConstraintType, customLabel );
+
+            if( aConstraintType == MINIMUM_THERMAL_RELIEF_SPOKE_COUNT
+                || aConstraintType == MAXIMUM_VIA_COUNT )
                 numericInputParams.SetInputIsCount( true );
 
             return new DRC_RE_NUMERIC_INPUT_PANEL( aParent, numericInputParams );
         }
         else if( DRC_RULE_EDITOR_UTILS::IsBoolInputType( aConstraintType ) )
         {
-             wxString customLabel;
+            wxString customLabel;
 
             switch( aConstraintType )
             {
@@ -243,9 +306,12 @@ DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWind
             case VIAS_UNDER_SMD: customLabel = "Allow Vias under SMD Pads"; break;
             default: customLabel = *m_constraintTitle;
             }
-            
-            DrcReBoolInputConstraintPanelParams boolInputParams( *m_constraintTitle, dynamic_pointer_cast<DrcReBoolInputConstraintData>( m_constraintData ), aConstraintType, customLabel );
-        
+
+            DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS boolInputParams(
+                    *m_constraintTitle,
+                    dynamic_pointer_cast<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>( m_constraintData ),
+                    aConstraintType, customLabel );
+
             return new DRC_RE_BOOL_INPUT_PANEL( aParent, boolInputParams );
         }
         else
@@ -255,24 +321,28 @@ DrcRuleEditorContentPanelBase* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWind
     }
 }
 
+
 bool PANEL_DRC_RULE_EDITOR::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
 {
-    if( !m_callbackRuleNameValidation( m_constraintData->GetId(), m_nameCtrl->GetValue() ) )
+    if( !m_callBackRuleNameValidation( m_constraintData->GetId(), m_nameCtrl->GetValue() ) )
     {
         m_validationSucceeded = false;
-        (*aErrorCount)++;
-        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Rule Name should be unique !!");
+        ( *aErrorCount )++;
+        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
+                *aErrorCount, "Rule Name should be unique !!" );
     }
 
     if( m_layerListCmbCtrl->GetSelectedItemsString() == wxEmptyString )
     {
         m_validationSucceeded = false;
-        (*aErrorCount)++;
-        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Layers selection should not be empty !!");
-    }    
+        ( *aErrorCount )++;
+        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
+                *aErrorCount, "Layers selection should not be empty !!" );
+    }
 
     return m_validationSucceeded;
 }
+
 
 void PANEL_DRC_RULE_EDITOR::onSaveButtonClicked( wxCommandEvent& aEvent )
 {
@@ -287,27 +357,30 @@ void PANEL_DRC_RULE_EDITOR::onSaveButtonClicked( wxCommandEvent& aEvent )
         m_validationSucceeded = false;
     }
 
-    if( m_callbackSave )
+    if( m_callBackSave )
     {
-        m_callbackSave( m_constraintData->GetId() ); // Invoke the callback
+        m_callBackSave( m_constraintData->GetId() ); // Invoke the callback
     }
 }
+
 
 void PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked( wxCommandEvent& aEvent )
 {
-    if( m_callbackRemove )
+    if( m_callBackRemove )
     {
-        m_callbackRemove( m_constraintData->GetId() ); // Invoke the callback
+        m_callBackRemove( m_constraintData->GetId() ); // Invoke the callback
     }
 }
 
+
 void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& aEvent )
 {
-    if( m_callbackClose )
+    if( m_callBackClose )
     {
-        m_callbackClose( m_constraintData->GetId() ); // Invoke the callback
+        m_callBackClose( m_constraintData->GetId() ); // Invoke the callback
     }
 }
+
 
 void PANEL_DRC_RULE_EDITOR::RefreshScreen()
 {
@@ -642,6 +715,7 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
         m_helpWindow->ShowModeless();
         return;
     }
+
     std::vector<wxString> msg;
     msg.clear();
 
@@ -650,41 +724,41 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_3items.h"
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_5examples.h"
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_6notes.h"
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_7properties.h"
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_8expression_functions.h"
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_9more_examples.h"
             ;
     msg.emplace_back( t );
 
-        t =
+    t =
 #include "dialogs/panel_setup_rules_help_10documentation.h"
             ;
     msg.emplace_back( t );
-        
+
 
     wxString msg_txt = wxEmptyString;
 
@@ -709,15 +783,16 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
 }
 
 
-void PANEL_DRC_RULE_EDITOR::onCheckSyntax(wxCommandEvent& event)
+void PANEL_DRC_RULE_EDITOR::onCheckSyntax( wxCommandEvent& event )
 {
-    m_syntaxErrorReport->Clear();    
+    m_syntaxErrorReport->Clear();
 
     try
     {
         std::vector<std::shared_ptr<DRC_RULE>> dummyRules;
 
-        DRC_RULES_PARSER conditionParser( m_textConditionCtrl->GetText(), _( "DRC rule condition" ) );
+        DRC_RULES_PARSER conditionParser( m_textConditionCtrl->GetText(),
+                                          _( "DRC rule condition" ) );
 
         if( conditionParser.VerifyParseCondition( m_syntaxErrorReport ) )
         {

@@ -26,10 +26,12 @@
 #include "drc_rule_editor_utils.h"
 
 
-class DRC_RE_ALLOWED_ORIENTATION_PANEL : public DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE, public DrcRuleEditorContentPanelBase
+class DRC_RE_ALLOWED_ORIENTATION_PANEL : public DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE,
+                                         public DRC_RULE_EDITOR_CONTENT_PANEL_BASE
 {
 public:
-    DRC_RE_ALLOWED_ORIENTATION_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReAllowedOrientationConstraintData> aConstraintData );
+    DRC_RE_ALLOWED_ORIENTATION_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
+            std::shared_ptr<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA> aConstraintData );
 
     ~DRC_RE_ALLOWED_ORIENTATION_PANEL() override;
 
@@ -39,12 +41,13 @@ public:
 
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-    void OnCheckboxClicked( wxCommandEvent& event );
+private:
+    void onCheckboxClicked( wxCommandEvent& aEvent );
 
-    void OnAllOrientationCheckboxClicked( wxCommandEvent& event );
+    void onAllOrientationCheckboxClicked( wxCommandEvent& aEvent );
 
 private:
-    std::shared_ptr<DrcReAllowedOrientationConstraintData> m_constraintData;
+    std::shared_ptr<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA> m_constraintData;
 };
 
 #endif // DRC_RE_ALLOWED_ORIENTATION_PANEL_H

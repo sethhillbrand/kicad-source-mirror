@@ -23,35 +23,33 @@
 #include <wx/wx.h>
 #include <wx/combo.h>
 #include <wx/checklst.h>
+
 #include "drc_re_layers_selection_choice_popup.h"
 
 
 class DRC_RE_LAYER_SELECTION_COMBO : public wxComboCtrl
 {
 public:
-    DRC_RE_LAYER_SELECTION_COMBO( wxWindow* parent, const std::vector<PCB_LAYER_ID>& layerIDs,
-                                  const std::function<wxString( PCB_LAYER_ID )>& nameGetter );
+    DRC_RE_LAYER_SELECTION_COMBO( wxWindow* aParent, const std::vector<PCB_LAYER_ID>& aLayerIDs,
+                                  const std::function<wxString( PCB_LAYER_ID )>& aNameGetter );
 
+    ~DRC_RE_LAYER_SELECTION_COMBO();
 
-    // Get selected items as a comma-separated string
     wxString GetSelectedItemsString();
 
-    // Get selected items as a comma-separated string
     std::vector<PCB_LAYER_ID> GetSelectedLayers();
 
-    // Set items as selected
     void SetItemsSelected( const std::vector<PCB_LAYER_ID>& aSelectedLayers );
 
 private:
-    void OnPopupClose( wxCommandEvent& event );
+    void onPopupClose( wxCommandEvent& aEvent );
 
-    void OnKeyDown( wxKeyEvent& event );
+    void onKeyDown( wxKeyEvent& aEvent );
 
-    void OnMouseClick( wxMouseEvent& event );
-
-    DRC_RE_LAYER_SELECTION_CHOICE_POPUP* m_popup;
+    void onMouseClick( wxMouseEvent& aEvent );
 
 private:
+    DRC_RE_LAYER_SELECTION_CHOICE_POPUP*    m_popup;
     std::vector<PCB_LAYER_ID>               m_layerIDs;   // Stores the layer IDs
     std::function<wxString( PCB_LAYER_ID )> m_nameGetter; // Function to get layer names
 };

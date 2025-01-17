@@ -39,19 +39,20 @@
 #include "drc_re_smd_entry_constraint_data.h"
 
 
-const RuleTreeNode* FindNodeById(const std::vector<RuleTreeNode>& nodes, unsigned int targetId)
+const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes,
+                                    int aTargetId )
 {
-    // Base case: Use std::find_if to search in the current level
-    auto it = std::find_if(nodes.begin(), nodes.end(), [targetId](const RuleTreeNode& node) {
-        return node.node_id == targetId;
-    });
+    auto it = std::find_if( aNodes.begin(), aNodes.end(),
+                            [aTargetId]( const RULE_TREE_NODE& node )
+                            {
+                                return node.m_nodeId == aTargetId;
+                            } );
 
-    if (it != nodes.end())
+    if( it != aNodes.end() )
     {
-        return &(*it); // Return pointer to the found node
+        return &( *it );
     }
 
-    // Node not found
     return nullptr;
 }
 
@@ -59,16 +60,14 @@ const RuleTreeNode* FindNodeById(const std::vector<RuleTreeNode>& nodes, unsigne
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
         RULE_EDITOR_DIALOG_BASE( aFrame, _( "Design Rule Builder" ),
                                  aFrame->FromDIP( wxSize( 980, 680 ) ) ),
-        m_frame( aFrame ), 
-        m_ruleEditorPanel( nullptr ), 
-        m_groupHeaderPanel( nullptr ), 
+        m_frame( aFrame ), m_ruleEditorPanel( nullptr ), m_groupHeaderPanel( nullptr ),
         m_nodeId( 0 )
 {
     m_ruleTreeCtrl->DeleteAllItems();
 
-    m_RuleTreeNodeDatas = GetDefaultRuleTreeItems();
+    m_ruleTreeNodeDatas = GetDefaultRuleTreeItems();
 
-    InitRuleTreeItems( m_RuleTreeNodeDatas );
+    InitRuleTreeItems( m_ruleTreeNodeDatas );
 
     finishDialogSettings();
 
@@ -77,7 +76,7 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
         m_infoBar->ShowMessage( _( "Project is missing or read-only. Settings will not be "
                                    "editable." ),
                                 wxICON_WARNING );
-    }  
+    }
 }
 
 
@@ -98,9 +97,9 @@ bool DIALOG_DRC_RULE_EDITOR::TransferDataFromWindow()
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
+std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
 {
-    std::vector<RuleTreeNode> result;
+    std::vector<RULE_TREE_NODE> result;
 
     int lastParentId;
     int electricalItemId;
@@ -127,7 +126,7 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
                                              lastParentId ) );
     footprintItemId = m_nodeId;
 
-    std::vector<RuleTreeNode> subItemNodes = buildElectricalRuleTreeNodes( electricalItemId );
+    std::vector<RULE_TREE_NODE> subItemNodes = buildElectricalRuleTreeNodes( electricalItemId );
     result.insert( result.end(), subItemNodes.begin(), subItemNodes.end() );
 
     subItemNodes = buildManufacturabilityRuleTreeNodes( manufacturabilityItemId );
@@ -143,12 +142,12 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
 }
 
 
-void DIALOG_DRC_RULE_EDITOR::AddNewRule( RuleTreeItemData* aRuleTreeItemData )
+void DIALOG_DRC_RULE_EDITOR::AddNewRule( RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
-    wxTreeItemId  treeItemId;
-    RuleTreeNode* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
+    wxTreeItemId    treeItemId;
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
 
-    if( nodeDetail->node_type == CONSTRAINT )
+    if( nodeDetail->m_nodeType == CONSTRAINT )
     {
         treeItemId = aRuleTreeItemData->GetTreeItemId();
     }
@@ -161,18 +160,17 @@ void DIALOG_DRC_RULE_EDITOR::AddNewRule( RuleTreeItemData* aRuleTreeItemData )
 }
 
 
-void DIALOG_DRC_RULE_EDITOR::DuplicateRule( RuleTreeItemData* aRuleTreeItemData )
+void DIALOG_DRC_RULE_EDITOR::DuplicateRule( RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
-    RuleTreeNode* sourceTreeNode = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
-    RuleTreeNode  targetTreeNode = buildRuleTreeNode( aRuleTreeItemData );
+    RULE_TREE_NODE* sourceTreeNode = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
+    RULE_TREE_NODE  targetTreeNode = buildRuleTreeNode( aRuleTreeItemData );
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( targetTreeNode.m_nodeId );
 
-    RuleTreeNode* nodeDetail = getRuleTreeNodeInfo( targetTreeNode.node_id );
-
-    auto sourceDataPtr = dynamic_pointer_cast<RuleEditorBaseData>( sourceTreeNode->node_data );
+    auto sourceDataPtr = dynamic_pointer_cast<RULE_EDITOR_DATA_BASE>( sourceTreeNode->m_nodeData );
 
     if( sourceDataPtr )
     {
-        targetTreeNode.node_data->CopyFrom( *sourceDataPtr );
+        targetTreeNode.m_nodeData->CopyFrom( *sourceDataPtr );
     }
 
     wxTreeItemId treeItemId = aRuleTreeItemData->GetParentTreeItemId();
@@ -181,32 +179,30 @@ void DIALOG_DRC_RULE_EDITOR::DuplicateRule( RuleTreeItemData* aRuleTreeItemData 
 
 
 void DIALOG_DRC_RULE_EDITOR::RuleTreeItemSelectionChanged(
-        RuleTreeItemData* aCurrentRuleTreeItemData )
+        RULE_TREE_ITEM_DATA* aCurrentRuleTreeItemData )
 {
-    RuleTreeNode* nodeDetail = getRuleTreeNodeInfo( aCurrentRuleTreeItemData->GetNodeId() );
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aCurrentRuleTreeItemData->GetNodeId() );
 
-    if( nodeDetail->node_type == ROOT || nodeDetail->node_type == CATEGORY
-        || nodeDetail->node_type == CONSTRAINT )
+    if( nodeDetail->m_nodeType == ROOT || nodeDetail->m_nodeType == CATEGORY
+        || nodeDetail->m_nodeType == CONSTRAINT )
     {
         m_groupHeaderPanel = new PANEL_DRC_GROUP_HEADER(
                 this, m_frame->GetBoard(),
-                static_cast<DRC_RULE_EDITOR_ITEM_TYPE>( nodeDetail->node_type ) );
+                static_cast<DRC_RULE_EDITOR_ITEM_TYPE>( nodeDetail->m_nodeType ) );
         SetContentPanel( m_groupHeaderPanel );
         m_ruleEditorPanel = nullptr;
     }
-    else if( nodeDetail->node_type == RULE )
+    else if( nodeDetail->m_nodeType == RULE )
     {
-        RuleTreeItemData* parentItemData = dynamic_cast<RuleTreeItemData*>(
+        RULE_TREE_ITEM_DATA* parentItemData = dynamic_cast<RULE_TREE_ITEM_DATA*>(
                 m_ruleTreeCtrl->GetItemData( aCurrentRuleTreeItemData->GetParentTreeItemId() ) );
-        RuleTreeNode* paretNodeDetail = getRuleTreeNodeInfo( parentItemData->GetNodeId() );
-        wxString      constraintName = paretNodeDetail->node_name;
+        RULE_TREE_NODE* paretNodeDetail = getRuleTreeNodeInfo( parentItemData->GetNodeId() );
+        wxString constraintName = paretNodeDetail->m_nodeName;
 
-        m_ruleEditorPanel = new PANEL_DRC_RULE_EDITOR(
-                this, m_frame->GetBoard(),
+        m_ruleEditorPanel = new PANEL_DRC_RULE_EDITOR( this, m_frame->GetBoard(),
                 static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>(
-                        nodeDetail->node_type_map.value_or( -1 ) ),
-                &constraintName,
-                dynamic_pointer_cast<DrcReBaseConstraintData>( nodeDetail->node_data ) );
+                        nodeDetail->m_nodeTypeMap.value_or( -1 ) ), &constraintName,
+                dynamic_pointer_cast<DRC_RE_BASE_CONSTRAINT_DATA>( nodeDetail->m_nodeData ) );
 
         SetContentPanel( m_ruleEditorPanel );
 
@@ -241,17 +237,17 @@ void DIALOG_DRC_RULE_EDITOR::RuleTreeItemSelectionChanged(
 }
 
 
-void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RuleTreeItemData* aRuleTreeItemData )
+void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
-    RuleTreeNode* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
 
-    if( nodeDetail->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE && m_ruleEditorPanel )
+    if( nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE && m_ruleEditorPanel )
     {
         m_ruleEditorPanel->TransferDataFromWindow();
 
-        nodeDetail->node_name = nodeDetail->node_data->GetRuleName();
-        nodeDetail->node_data->SetIsNew( false );
-        UpdateRuleTreeItemText( aRuleTreeItemData->GetTreeItemId(), nodeDetail->node_name );
+        nodeDetail->m_nodeName = nodeDetail->m_nodeData->GetRuleName();
+        nodeDetail->m_nodeData->SetIsNew( false );
+        UpdateRuleTreeItemText( aRuleTreeItemData->GetTreeItemId(), nodeDetail->m_nodeName );
 
         m_ruleEditorPanel->RefreshScreen();
     }
@@ -259,18 +255,18 @@ void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RuleTreeItemData* aRule
 
 
 bool DIALOG_DRC_RULE_EDITOR::VerifyRuleTreeContextMenuOptionToEnable(
-        RuleTreeItemData* aRuleTreeItemData, RULE_EDITOR_TREE_CONTEXT_OPT aOption )
+        RULE_TREE_ITEM_DATA* aRuleTreeItemData, RULE_EDITOR_TREE_CONTEXT_OPT aOption )
 {
-    RuleTreeNode* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
 
     switch( aOption )
     {
     case RULE_EDITOR_TREE_CONTEXT_OPT::ADD_RULE:
-        return nodeDetail->node_type == DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT
-               || nodeDetail->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
+        return nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT
+               || nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
     case RULE_EDITOR_TREE_CONTEXT_OPT::DUPLICATE_RULE:
     case RULE_EDITOR_TREE_CONTEXT_OPT::DELETE_RULE:
-        return nodeDetail->node_type == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
+        return nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
     default: return true;
     }
 }
@@ -278,11 +274,11 @@ bool DIALOG_DRC_RULE_EDITOR::VerifyRuleTreeContextMenuOptionToEnable(
 
 void DIALOG_DRC_RULE_EDITOR::RemoveRule( int aNodeId )
 {
-    RuleTreeItemData* itemData = dynamic_cast<RuleTreeItemData*>( m_ruleTreeCtrl->GetItemData(
+    RULE_TREE_ITEM_DATA* itemData = dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData(
             GetCurrentlySelectedRuleTreeItemData()->GetTreeItemId() ) );
-    RuleTreeNode*     nodeDetail = getRuleTreeNodeInfo( itemData->GetNodeId() );
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( itemData->GetNodeId() );
 
-    if( !nodeDetail->node_data->IsNew() )
+    if( !nodeDetail->m_nodeData->IsNew() )
     {
         if( OKOrCancelDialog( this, _( "Confirmation" ), "",
                               _( "Are you sure you want to delete?" ), _( "Delete" ) )
@@ -304,10 +300,10 @@ void DIALOG_DRC_RULE_EDITOR::RemoveRule( int aNodeId )
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::buildElectricalRuleTreeNodes( int& aParentId )
+std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::buildElectricalRuleTreeNodes( int& aParentId )
 {
-    std::vector<RuleTreeNode> result;
-    int                       lastParentId;
+    std::vector<RULE_TREE_NODE> result;
+    int lastParentId;
 
     result.push_back(
             buildRuleTreeNodeData( "Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, aParentId ) );
@@ -377,11 +373,11 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::buildElectricalRuleTreeNodes( 
 }
 
 
-std::vector<RuleTreeNode>
+std::vector<RULE_TREE_NODE>
 DIALOG_DRC_RULE_EDITOR::buildManufacturabilityRuleTreeNodes( int& aParentId )
 {
-    std::vector<RuleTreeNode> result;
-    int                       lastParentId;
+    std::vector<RULE_TREE_NODE> result;
+    int lastParentId;
 
     result.push_back( buildRuleTreeNodeData( "Annular Width", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
                                              aParentId ) );
@@ -483,10 +479,11 @@ DIALOG_DRC_RULE_EDITOR::buildManufacturabilityRuleTreeNodes( int& aParentId )
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::buildHighspeedDesignRuleTreeNodes( int& aParentId )
+std::vector<RULE_TREE_NODE>
+DIALOG_DRC_RULE_EDITOR::buildHighspeedDesignRuleTreeNodes( int& aParentId )
 {
-    std::vector<RuleTreeNode> result;
-    int                       lastParentId;
+    std::vector<RULE_TREE_NODE> result;
+    int lastParentId;
 
     result.push_back( buildRuleTreeNodeData( "Diff Pair (width, gap, uncoupled length)",
                                              DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, aParentId ) );
@@ -545,10 +542,10 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::buildHighspeedDesignRuleTreeNo
 }
 
 
-std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::buildFootprintsRuleTreeNodes( int& aParentId )
+std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::buildFootprintsRuleTreeNodes( int& aParentId )
 {
-    std::vector<RuleTreeNode> result;
-    int                       lastParentId;
+    std::vector<RULE_TREE_NODE> result;
+    int lastParentId;
 
     result.push_back( buildRuleTreeNodeData( "Allowed Layers", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
                                              aParentId ) );
@@ -592,17 +589,14 @@ std::vector<RuleTreeNode> DIALOG_DRC_RULE_EDITOR::buildFootprintsRuleTreeNodes( 
 }
 
 
-// Recursive function to check if a node_name exists
-bool nodeExists( const RuleTreeNode& aRuleTreeNode, const wxString& aTargetName )
+bool nodeExists( const RULE_TREE_NODE& aRuleTreeNode, const wxString& aTargetName )
 {
-    // Check the current node
-    if( aRuleTreeNode.node_name == aTargetName )
+    if( aRuleTreeNode.m_nodeName == aTargetName )
     {
         return true;
     }
 
-    // Check children nodes recursively
-    for( const auto& child : aRuleTreeNode.child_nodes )
+    for( const auto& child : aRuleTreeNode.m_childNodes )
     {
         if( nodeExists( child, aTargetName ) )
         {
@@ -610,12 +604,11 @@ bool nodeExists( const RuleTreeNode& aRuleTreeNode, const wxString& aTargetName 
         }
     }
 
-    // Node name not found
     return false;
 }
 
 
-bool nodeExists( const std::vector<RuleTreeNode>& aRuleTreeNodes, const wxString& aTargetName )
+bool nodeExists( const std::vector<RULE_TREE_NODE>& aRuleTreeNodes, const wxString& aTargetName )
 {
     for( const auto& node : aRuleTreeNodes )
     {
@@ -625,30 +618,29 @@ bool nodeExists( const std::vector<RuleTreeNode>& aRuleTreeNodes, const wxString
         }
     }
 
-    // Node name not found in the vector
     return false;
 }
 
 
-RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RuleTreeItemData* aRuleTreeItemData )
+RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
-    RuleTreeItemData* treeItemData;
-    RuleTreeNode*     nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
+    RULE_TREE_ITEM_DATA* treeItemData;
+    RULE_TREE_NODE*      nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
 
-    if( nodeDetail->node_type == CONSTRAINT )
+    if( nodeDetail->m_nodeType == CONSTRAINT )
     {
         treeItemData = aRuleTreeItemData;
     }
     else
     {
-        treeItemData = dynamic_cast<RuleTreeItemData*>(
+        treeItemData = dynamic_cast<RULE_TREE_ITEM_DATA*>(
                 m_ruleTreeCtrl->GetItemData( aRuleTreeItemData->GetParentTreeItemId() ) );
         nodeDetail = getRuleTreeNodeInfo( treeItemData->GetNodeId() );
     }
 
     m_nodeId++;
 
-    wxString nodeName = nodeDetail->node_name + " 1";
+    wxString nodeName = nodeDetail->m_nodeName + " 1";
 
     int  loop = 2;
     bool check = false;
@@ -657,94 +649,101 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RuleTreeItemData* aRuleT
     {
         check = false;
 
-        if( nodeExists( m_RuleTreeNodeDatas, nodeName ) )
+        if( nodeExists( m_ruleTreeNodeDatas, nodeName ) )
         {
-            nodeName = nodeDetail->node_name + wxString::Format( " %d", loop );
+            nodeName = nodeDetail->m_nodeName + wxString::Format( " %d", loop );
             loop++;
             check = true;
         }
     } while( check );
 
-    RuleTreeNode newRuleNode = buildRuleTreeNodeData(
-            nodeName.ToStdString(), RULE, nodeDetail->node_id,
-            static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( nodeDetail->node_type_map.value_or( 0 ) ),
+    RULE_TREE_NODE newRuleNode = buildRuleTreeNodeData(
+            nodeName.ToStdString(), RULE, nodeDetail->m_nodeId,
+            static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( nodeDetail->m_nodeTypeMap.value_or( 0 ) ),
             {}, m_nodeId );
 
     auto nodeType = static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>(
-            newRuleNode.node_type_map.value_or( -1 ) );
-    DrcReBaseConstraintData clearanceData( m_nodeId, nodeDetail->node_data->GetId(),
-                                           newRuleNode.node_name );
+            newRuleNode.m_nodeTypeMap.value_or( -1 ) );
+    DRC_RE_BASE_CONSTRAINT_DATA clearanceData( m_nodeId, nodeDetail->m_nodeData->GetId(),
+                                               newRuleNode.m_nodeName );
 
     switch( nodeType )
     {
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::VIA_STYLE:
-        newRuleNode.node_data = std::make_shared<DrcReViaStyleConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_VIA_STYLE_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::MINIMUM_TEXT_HEIGHT_AND_THICKNESS:
-        newRuleNode.node_data =
-                std::make_shared<DrcReMinimumTextHeightThicknessConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA>(
+                        clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::ROUTING_DIFF_PAIR:
-        newRuleNode.node_data =
-                std::make_shared<DrcReRoutingDiffPairConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::ROUTING_WIDTH:
-        newRuleNode.node_data = std::make_shared<DrcReRoutingWidthConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::PARALLEL_LIMIT:
-        newRuleNode.node_data = std::make_shared<DrcReParallelLimitConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::PERMITTED_LAYERS:
-        newRuleNode.node_data =
-                std::make_shared<DrcRePermittedLayersConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::ALLOWED_ORIENTATION:
-        newRuleNode.node_data =
-                std::make_shared<DrcReAllowedOrientationConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::CORNER_STYLE:
-        newRuleNode.node_data = std::make_shared<DrcReCornerStyleConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA>( clearanceData );
         break;
 
     case DRC_RULE_EDITOR_CONSTRAINT_NAME::SMD_ENTRY:
-        newRuleNode.node_data = std::make_shared<DrcReSmdEntryConstraintData>( clearanceData );
+        newRuleNode.m_nodeData =
+                std::make_shared<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( clearanceData );
         break;
 
     default:
     {
         if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( nodeType ) )
-            newRuleNode.node_data =
-                    std::make_shared<DrcReNumericInputConstraintData>( clearanceData );
+            newRuleNode.m_nodeData =
+                    std::make_shared<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>( clearanceData );
         else if( DRC_RULE_EDITOR_UTILS::IsBoolInputType( nodeType ) )
-            newRuleNode.node_data = std::make_shared<DrcReBoolInputConstraintData>( clearanceData );
+            newRuleNode.m_nodeData =
+                    std::make_shared<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>( clearanceData );
     }
     break;
     }
 
-    newRuleNode.node_data->SetIsNew( true );
+    newRuleNode.m_nodeData->SetIsNew( true );
 
-    m_RuleTreeNodeDatas.push_back( newRuleNode );
+    m_ruleTreeNodeDatas.push_back( newRuleNode );
 
     return newRuleNode;
 }
 
 
-RuleTreeNode* DIALOG_DRC_RULE_EDITOR::getRuleTreeNodeInfo( const int& aNodeId )
+RULE_TREE_NODE* DIALOG_DRC_RULE_EDITOR::getRuleTreeNodeInfo( const int& aNodeId )
 {
-    auto it = std::find_if( m_RuleTreeNodeDatas.begin(), m_RuleTreeNodeDatas.end(),
-                            [aNodeId]( const RuleTreeNode& node )
+    auto it = std::find_if( m_ruleTreeNodeDatas.begin(), m_ruleTreeNodeDatas.end(),
+                            [aNodeId]( const RULE_TREE_NODE& node )
                             {
-                                return node.node_id == aNodeId;
+                                return node.m_nodeId == aNodeId;
                             } );
 
-    if( it != m_RuleTreeNodeDatas.end() )
+    if( it != m_ruleTreeNodeDatas.end() )
     {
         return &( *it ); // Return pointer to the found node
     }
@@ -763,12 +762,13 @@ void DIALOG_DRC_RULE_EDITOR::saveRule( int aNodeId )
     }
     else
     {
-        RuleTreeItemData* itemData = dynamic_cast<RuleTreeItemData*>( m_ruleTreeCtrl->GetItemData(
-                GetCurrentlySelectedRuleTreeItemData()->GetTreeItemId() ) );
+        RULE_TREE_ITEM_DATA* itemData =
+                dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData(
+                        GetCurrentlySelectedRuleTreeItemData()->GetTreeItemId() ) );
 
         if( itemData )
         {
-            RuleTreeNode* nodeDetail = getRuleTreeNodeInfo( itemData->GetNodeId() );
+            RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( itemData->GetNodeId() );
             UpdateRuleTypeTreeItemData( itemData );
         }
 
@@ -785,14 +785,14 @@ void DIALOG_DRC_RULE_EDITOR::closeRuleEntryView( int aNodeId )
 
 bool DIALOG_DRC_RULE_EDITOR::validateRuleName( int aNodeId, wxString aRuleName )
 {
-    auto it = std::find_if( m_RuleTreeNodeDatas.begin(), m_RuleTreeNodeDatas.end(),
-                            [aNodeId, aRuleName]( const RuleTreeNode& node )
+    auto it = std::find_if( m_ruleTreeNodeDatas.begin(), m_ruleTreeNodeDatas.end(),
+                            [aNodeId, aRuleName]( const RULE_TREE_NODE& node )
                             {
-                                return node.node_name == aRuleName && node.node_id != aNodeId
-                                       && node.node_type == RULE;
+                                return node.m_nodeName == aRuleName && node.m_nodeId != aNodeId
+                                       && node.m_nodeType == RULE;
                             } );
 
-    if( it != m_RuleTreeNodeDatas.end() )
+    if( it != m_ruleTreeNodeDatas.end() )
     {
         return false;
     }
@@ -803,28 +803,28 @@ bool DIALOG_DRC_RULE_EDITOR::validateRuleName( int aNodeId, wxString aRuleName )
 
 bool DIALOG_DRC_RULE_EDITOR::deleteTreeNodeData( const int& aNodeId )
 {
-    size_t initial_size = m_RuleTreeNodeDatas.size();
+    size_t initial_size = m_ruleTreeNodeDatas.size();
 
-    m_RuleTreeNodeDatas.erase( std::remove_if( m_RuleTreeNodeDatas.begin(),
-                                               m_RuleTreeNodeDatas.end(),
-                                               [aNodeId]( const RuleTreeNode& node )
+    m_ruleTreeNodeDatas.erase( std::remove_if( m_ruleTreeNodeDatas.begin(),
+                                               m_ruleTreeNodeDatas.end(),
+                                               [aNodeId]( const RULE_TREE_NODE& node )
                                                {
-                                                   return node.node_id == aNodeId;
+                                                   return node.m_nodeId == aNodeId;
                                                } ),
-                               m_RuleTreeNodeDatas.end() );
+                               m_ruleTreeNodeDatas.end() );
 
-    if( m_RuleTreeNodeDatas.size() < initial_size )
+    if( m_ruleTreeNodeDatas.size() < initial_size )
         return true;
     else
         return false;
 }
 
 
-RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
+RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
         const std::string& aName, const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,
-        const std::optional<int>& aParentId,
+        const std::optional<int>&                             aParentId,
         const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType,
-        const std::vector<RuleTreeNode>& aChildNodes, const std::optional<int>& id )
+        const std::vector<RULE_TREE_NODE>& aChildNodes, const std::optional<int>& id )
 {
     unsigned int newId;
 
@@ -842,7 +842,7 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
 
     m_nodeId = newId;
 
-    RuleEditorBaseData baseData;
+    RULE_EDITOR_DATA_BASE baseData;
     baseData.SetId( newId );
 
     if( aParentId )
@@ -850,10 +850,10 @@ RuleTreeNode DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
         baseData.SetParentId( *aParentId );
     }
 
-    return { .node_id = m_nodeId,
-             .node_name = aName,
-             .node_type = aNodeType,
-             .node_type_map = aConstraintType,
-             .child_nodes = aChildNodes,
-             .node_data = std::make_shared<RuleEditorBaseData>( baseData ) };
+    return { .m_nodeId = m_nodeId,
+             .m_nodeName = aName,
+             .m_nodeType = aNodeType,
+             .m_nodeTypeMap = aConstraintType,
+             .m_childNodes = aChildNodes,
+             .m_nodeData = std::make_shared<RULE_EDITOR_DATA_BASE>( baseData ) };
 }

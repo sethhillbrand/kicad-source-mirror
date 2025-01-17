@@ -24,13 +24,12 @@
 #include "drc_re_validator_min_preferred_max_ctrl.h"
 
 
-VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATE_MIN_PREFERRED_MAX_CTRL( wxTextCtrl* minCtrl,
-                                                                  wxTextCtrl* preferredCtrl,
-                                                                  wxTextCtrl* maxCtrl ) :
-        m_minCtrl( minCtrl ),
-        m_preferredCtrl( preferredCtrl ), m_maxCtrl( maxCtrl ), m_minCtrlName( minCtrl->GetName() ),
-        m_preferredCtrlName( preferredCtrl->GetName() ), m_maxCtrlName( maxCtrl->GetName() ),
-        m_validationState( ValidationState::Valid )
+VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATE_MIN_PREFERRED_MAX_CTRL( wxTextCtrl* aMinCtrl,
+                                                                  wxTextCtrl* aPreferredCtrl,
+                                                                  wxTextCtrl* aMaxCtrl ) :
+        m_minCtrl( aMinCtrl ), m_preferredCtrl( aPreferredCtrl ), m_maxCtrl( aMaxCtrl ),
+        m_minCtrlName( aMinCtrl->GetName() ), m_preferredCtrlName( aPreferredCtrl->GetName() ),
+        m_maxCtrlName( aMaxCtrl->GetName() ), m_validationState( VALIDATION_STATE::Valid )
 {
 }
 
@@ -41,13 +40,13 @@ wxObject* VALIDATE_MIN_PREFERRED_MAX_CTRL::Clone() const
 }
 
 
-bool VALIDATE_MIN_PREFERRED_MAX_CTRL::Validate( wxWindow* parent )
+bool VALIDATE_MIN_PREFERRED_MAX_CTRL::Validate( wxWindow* aParent )
 {
     // Assume two text controls: one for min and one for max
-    wxTextCtrl* minCtrl = wxDynamicCast( parent->FindWindowByName( m_minCtrlName ), wxTextCtrl );
+    wxTextCtrl* minCtrl = wxDynamicCast( aParent->FindWindowByName( m_minCtrlName ), wxTextCtrl );
     wxTextCtrl* preferredCtrl =
-            wxDynamicCast( parent->FindWindowByName( m_preferredCtrlName ), wxTextCtrl );
-    wxTextCtrl* maxCtrl = wxDynamicCast( parent->FindWindowByName( m_maxCtrlName ), wxTextCtrl );
+            wxDynamicCast( aParent->FindWindowByName( m_preferredCtrlName ), wxTextCtrl );
+    wxTextCtrl* maxCtrl = wxDynamicCast( aParent->FindWindowByName( m_maxCtrlName ), wxTextCtrl );
 
     if( !minCtrl || !maxCtrl || !preferredCtrl )
     {
@@ -65,28 +64,29 @@ bool VALIDATE_MIN_PREFERRED_MAX_CTRL::Validate( wxWindow* parent )
 
     if( minValue > preferredValue )
     {
-        m_validationState = ValidationState::MinGreaterThanPreferred;
+        m_validationState = VALIDATION_STATE::MinGreaterThanPreferred;
         return false;
     }
 
     if( preferredValue > maxValue )
     {
-        m_validationState = ValidationState::PreferredGreaterThanMax;
+        m_validationState = VALIDATION_STATE::PreferredGreaterThanMax;
         return false;
     }
 
     if( minValue > maxValue )
     {
-        m_validationState = ValidationState::MinGreaterThanMax;
+        m_validationState = VALIDATION_STATE::MinGreaterThanMax;
         return false;
     }
 
-    m_validationState = ValidationState::Valid;
+    m_validationState = VALIDATION_STATE::Valid;
     return true;
 }
 
 
-VALIDATE_MIN_PREFERRED_MAX_CTRL::ValidationState VALIDATE_MIN_PREFERRED_MAX_CTRL::GetValidationState() const
+VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATION_STATE
+VALIDATE_MIN_PREFERRED_MAX_CTRL::GetValidationState() const
 {
     return m_validationState;
 }

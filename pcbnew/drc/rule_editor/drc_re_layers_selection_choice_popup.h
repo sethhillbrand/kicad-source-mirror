@@ -23,6 +23,7 @@
 #include <wx/wx.h>
 #include <wx/combo.h>
 #include <wx/checklst.h>
+
 #include <lset.h>
 #include <lseq.h>
 
@@ -30,38 +31,31 @@
 class DRC_RE_LAYER_SELECTION_CHOICE_POPUP : public wxComboPopup
 {
 public:
-    DRC_RE_LAYER_SELECTION_CHOICE_POPUP();
+    DRC_RE_LAYER_SELECTION_CHOICE_POPUP() = default;
 
-    // Initialize the popup control
     void Init() override;
 
-    // Create the popup control
     bool Create( wxWindow* aParent ) override;
 
-    // Return the control
     wxWindow* GetControl() override;
 
-    // Update the combo box's value when the popup is dismissed
     void SetStringValue( const wxString& value ) override;
 
-    // Return the combo box's current value
     wxString GetStringValue() const override;
 
-    // Get selected items as a comma-separated string
     wxString GetSelectedItemsString();
 
-    std::vector<PCB_LAYER_ID> GetSelectedLayers( const std::vector<PCB_LAYER_ID>& aAllLayerIds,
-        const std::function<wxString(PCB_LAYER_ID)>& nameGetter );
+    std::vector<PCB_LAYER_ID> GetSelectedLayers( 
+                        const std::vector<PCB_LAYER_ID>& aAllLayerIds,
+                        const std::function<wxString( PCB_LAYER_ID )>& nameGetter );
 
-    // Set selections by item strings
-    void SetSelections( const std::vector<PCB_LAYER_ID>& layerIDs,
-                        const std::function<wxString(PCB_LAYER_ID)>& nameGetter );
+    void SetSelections( const std::vector<PCB_LAYER_ID>& aLayerIDs,
+                        const std::function<wxString( PCB_LAYER_ID )>& aNameGetter );
 
-    void PopulateWithLayerIDs( const std::vector<PCB_LAYER_ID>& layerIDs, 
-                               const std::function<wxString(PCB_LAYER_ID)>& nameGetter );
+    void PopulateWithLayerIDs( const std::vector<PCB_LAYER_ID>& aLayerIDs,
+                               const std::function<wxString( PCB_LAYER_ID )>& aNameGetter );
 
 private:
-    // Populate the check list box
     void populate( const wxArrayString& items );
 
 private:

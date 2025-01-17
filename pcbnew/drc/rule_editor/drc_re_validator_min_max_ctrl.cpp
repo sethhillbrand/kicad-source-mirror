@@ -24,9 +24,9 @@
 #include "drc_re_validator_min_max_ctrl.h"
 
 
-VALIDATE_MIN_MAX_CTRL::VALIDATE_MIN_MAX_CTRL( wxTextCtrl* minCtrl, wxTextCtrl* maxCtrl ) :
-        m_minCtrl( minCtrl ), m_maxCtrl( maxCtrl ), m_minCtrlName( minCtrl->GetName() ),
-        m_maxCtrlName( maxCtrl->GetName() ), m_validationState( ValidationState::Valid )
+VALIDATE_MIN_MAX_CTRL::VALIDATE_MIN_MAX_CTRL( wxTextCtrl* aMinCtrl, wxTextCtrl* aMaxCtrl ) :
+        m_minCtrl( aMinCtrl ), m_maxCtrl( aMaxCtrl ), m_minCtrlName( aMinCtrl->GetName() ),
+        m_maxCtrlName( aMaxCtrl->GetName() ), m_validationState( VALIDATION_STATE::Valid )
 {
 }
 
@@ -37,11 +37,11 @@ wxObject* VALIDATE_MIN_MAX_CTRL::Clone() const
 }
 
 
-bool VALIDATE_MIN_MAX_CTRL::Validate( wxWindow* parent )
+bool VALIDATE_MIN_MAX_CTRL::Validate( wxWindow* aParent )
 {
     // Assume two text controls: one for min and one for max
-    wxTextCtrl* minCtrl = wxDynamicCast( parent->FindWindowByName( m_minCtrlName ), wxTextCtrl );
-    wxTextCtrl* maxCtrl = wxDynamicCast( parent->FindWindowByName( m_maxCtrlName ), wxTextCtrl );
+    wxTextCtrl* minCtrl = wxDynamicCast( aParent->FindWindowByName( m_minCtrlName ), wxTextCtrl );
+    wxTextCtrl* maxCtrl = wxDynamicCast( aParent->FindWindowByName( m_maxCtrlName ), wxTextCtrl );
 
     if( !minCtrl || !maxCtrl )
     {
@@ -58,15 +58,16 @@ bool VALIDATE_MIN_MAX_CTRL::Validate( wxWindow* parent )
     // Check if min is greater than max
     if( minValue > maxValue )
     {
-        m_validationState = ValidationState::MinGreaterThanMax;
+        m_validationState = VALIDATION_STATE::MinGreaterThanMax;
         return false;
     }
 
-    m_validationState = ValidationState::Valid;
+    m_validationState = VALIDATION_STATE::Valid;
     return true;
 }
 
-VALIDATE_MIN_MAX_CTRL::ValidationState VALIDATE_MIN_MAX_CTRL::GetValidationState() const
+
+VALIDATE_MIN_MAX_CTRL::VALIDATION_STATE VALIDATE_MIN_MAX_CTRL::GetValidationState() const
 {
     return m_validationState;
 }

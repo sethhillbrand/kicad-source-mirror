@@ -27,49 +27,52 @@
 #include "drc_re_base_constraint_data.h"
 
 
-class DrcReRoutingWidthConstraintData : public DrcReBaseConstraintData
+class DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA : public DRC_RE_BASE_CONSTRAINT_DATA
 {
 public:
-    DrcReRoutingWidthConstraintData() = default;
+    DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA() = default;
 
-    explicit DrcReRoutingWidthConstraintData( const DrcReBaseConstraintData& baseData ) :
-            DrcReBaseConstraintData( baseData )
+    explicit DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA( const DRC_RE_BASE_CONSTRAINT_DATA& aBaseData ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aBaseData )
     {
     }
 
-    explicit DrcReRoutingWidthConstraintData( unsigned int aId, unsigned int aParentId, wxString aRuleName,
-                                              double aMinRoutingWidth,
-                                              double aPreferredRoutingWidth, 
-                                              double aMaxRoutingWidth ) :
-            DrcReBaseConstraintData( aId, aParentId, aRuleName ),
+    explicit DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
+                                                   double aMinRoutingWidth,
+                                                   double aPreferredRoutingWidth,
+                                                   double aMaxRoutingWidth ) :
+            DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
             m_minRoutingWidth( aMinRoutingWidth ),
-            m_preferredRoutingWidth( aPreferredRoutingWidth ),
-            m_maxRoutingWidth( aMaxRoutingWidth )
+            m_preferredRoutingWidth( aPreferredRoutingWidth ), m_maxRoutingWidth( aMaxRoutingWidth )
     {
     }
 
-    virtual ~DrcReRoutingWidthConstraintData() = default;
+    virtual ~DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA() = default;
 
     double GetMinRoutingWidth() { return m_minRoutingWidth; }
-    void   SetMinRoutingWidth( double aMinRoutingWidth ) { m_minRoutingWidth = aMinRoutingWidth; }
+
+    void SetMinRoutingWidth( double aMinRoutingWidth ) { m_minRoutingWidth = aMinRoutingWidth; }
 
     double GetPreferredRoutingWidth() { return m_preferredRoutingWidth; }
-    void   SetPreferredRoutingWidth( double aPreferredRoutingWidth ) { m_preferredRoutingWidth = aPreferredRoutingWidth; }
+
+    void SetPreferredRoutingWidth( double aPreferredRoutingWidth )
+    {
+        m_preferredRoutingWidth = aPreferredRoutingWidth;
+    }
 
     double GetMaxRoutingWidth() { return m_maxRoutingWidth; }
-    void   SetMaxRoutingWidth( double aMaxRoutingWidth ) { m_maxRoutingWidth = aMaxRoutingWidth; }
 
-    void CopyFrom( const ICopyable& source ) override
+    void SetMaxRoutingWidth( double aMaxRoutingWidth ) { m_maxRoutingWidth = aMaxRoutingWidth; }
+
+    void CopyFrom( const ICopyable& aSource ) override
     {
-        const auto& viaSource = dynamic_cast<const DrcReRoutingWidthConstraintData&>( source );
+        const auto& source = dynamic_cast<const DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA&>( aSource );
 
-        // Call base class method
-        DrcReBaseConstraintData::CopyFrom( viaSource );
+        DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        // Copy via-specific data
-        m_minRoutingWidth = viaSource.m_minRoutingWidth;
-        m_preferredRoutingWidth = viaSource.m_preferredRoutingWidth;
-        m_maxRoutingWidth = viaSource.m_maxRoutingWidth;
+        m_minRoutingWidth = source.m_minRoutingWidth;
+        m_preferredRoutingWidth = source.m_preferredRoutingWidth;
+        m_maxRoutingWidth = source.m_maxRoutingWidth;
     }
 
 private:
@@ -77,6 +80,5 @@ private:
     double m_preferredRoutingWidth{ 0 };
     double m_maxRoutingWidth{ 0 };
 };
-
 
 #endif // DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA_H_

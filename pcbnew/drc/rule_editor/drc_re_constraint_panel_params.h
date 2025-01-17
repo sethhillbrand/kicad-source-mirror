@@ -26,21 +26,20 @@
 #define DRC_RE_CONSTRAINT_PANEL_PARAMS_H_
 
 #include <wx/string.h>
+
 #include "drc_rule_editor_enums.h"
 #include "drc_re_numeric_input_constraint_data.h"
 #include "drc_re_bool_input_constraint_data.h"
 
-class DrcReConstraintPanelParams
+
+class DRC_RE_CONSTRAINT_PANEL_PARAMS
 {
 public:
+    DRC_RE_CONSTRAINT_PANEL_PARAMS() {}
 
-    DrcReConstraintPanelParams(){}
-
-    // Constructor for easy initialization
-    DrcReConstraintPanelParams( const wxString& aConstraintTitle,
-                                const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :
-            m_constraintTitle( aConstraintTitle ), 
-            m_constraintType( aConstraintType )
+    DRC_RE_CONSTRAINT_PANEL_PARAMS( const wxString& aConstraintTitle,
+                                    const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :
+            m_constraintTitle( aConstraintTitle ), m_constraintType( aConstraintType )
     {
     }
 
@@ -49,28 +48,28 @@ public:
 };
 
 
-class DrcReNumericInputConstraintPanelParams : public DrcReConstraintPanelParams
+class DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS : public DRC_RE_CONSTRAINT_PANEL_PARAMS
 {
 public:
 
-    DrcReNumericInputConstraintPanelParams() : DrcReConstraintPanelParams()
+    DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS() : DRC_RE_CONSTRAINT_PANEL_PARAMS()
     {
     }
 
     // Constructor for easy initialization
-    DrcReNumericInputConstraintPanelParams( const wxString& aConstraintTitle,
-                                            const std::shared_ptr<DrcReNumericInputConstraintData>& aConstraintData,
+    DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS( const wxString& aConstraintTitle,
+                                            const std::shared_ptr<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>& aConstraintData,
                                             const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :
-            DrcReConstraintPanelParams( aConstraintTitle, aConstraintType ),
+            DRC_RE_CONSTRAINT_PANEL_PARAMS( aConstraintTitle, aConstraintType ),
             m_constraintData( aConstraintData )
     {
     }
 
-    DrcReNumericInputConstraintPanelParams( const wxString& aConstraintTitle,
-                                            const std::shared_ptr<DrcReNumericInputConstraintData>& aConstraintData,
+    DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS( const wxString& aConstraintTitle,
+                                            const std::shared_ptr<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>& aConstraintData,
                                             const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType,
                                             const wxString& aCustomLabelText ) :
-            DrcReNumericInputConstraintPanelParams( aConstraintTitle, aConstraintData, aConstraintType )
+            DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS( aConstraintTitle, aConstraintData, aConstraintType )
     {
         m_customLabelText = aCustomLabelText;
     }
@@ -80,39 +79,36 @@ public:
 
     wxString m_customLabelText;
     bool m_isCountInput = false;
-    std::shared_ptr<DrcReNumericInputConstraintData> m_constraintData;
+    std::shared_ptr<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA> m_constraintData;
 };
 
 
-class DrcReBoolInputConstraintPanelParams : public DrcReConstraintPanelParams
+class DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS : public DRC_RE_CONSTRAINT_PANEL_PARAMS
 {
 public:
-
-    DrcReBoolInputConstraintPanelParams() : DrcReConstraintPanelParams()
-    {
-    }
+    DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS() : DRC_RE_CONSTRAINT_PANEL_PARAMS() {}
 
     // Constructor for easy initialization
-    DrcReBoolInputConstraintPanelParams( const wxString& aConstraintTitle,
-                                         const std::shared_ptr<DrcReBoolInputConstraintData>& aConstraintData,
-                                         const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :
-            DrcReConstraintPanelParams( aConstraintTitle, aConstraintType ),
+    DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS( const wxString&  aConstraintTitle,
+            const std::shared_ptr<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>& aConstraintData,
+            const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :
+            DRC_RE_CONSTRAINT_PANEL_PARAMS( aConstraintTitle, aConstraintType ),
             m_constraintData( aConstraintData )
     {
     }
 
-    DrcReBoolInputConstraintPanelParams( const wxString& aConstraintTitle,
-                                         const std::shared_ptr<DrcReBoolInputConstraintData>& aConstraintData,
-                                         const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType,
-                                         const wxString& aCustomLabelText ) :
-            DrcReBoolInputConstraintPanelParams( aConstraintTitle, aConstraintData,
-                                                 aConstraintType )
+    DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS( const wxString& aConstraintTitle,
+            const std::shared_ptr<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>& aConstraintData,
+            const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType,
+            const wxString& aCustomLabelText ) :
+            DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS( aConstraintTitle, aConstraintData,
+                                                       aConstraintType )
     {
         m_customLabelText = aCustomLabelText;
     }
 
-    wxString m_customLabelText;
-    std::shared_ptr<DrcReBoolInputConstraintData> m_constraintData;
+    wxString  m_customLabelText;
+    std::shared_ptr<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA> m_constraintData;
 };
 
 #endif // DRC_RE_CONSTRAINT_PANEL_PARAMS_H_

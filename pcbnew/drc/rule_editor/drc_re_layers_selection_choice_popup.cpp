@@ -21,12 +21,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-
-#include "drc_re_layers_selection_choice_popup.h"
 #include <wx/tokenzr.h>
 
-
-DRC_RE_LAYER_SELECTION_CHOICE_POPUP::DRC_RE_LAYER_SELECTION_CHOICE_POPUP() = default;
+#include "drc_re_layers_selection_choice_popup.h"
 
 
 void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::Init()
@@ -48,22 +45,22 @@ wxWindow* DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetControl()
 }
 
 
-void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::SetStringValue( const wxString& value )
+void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::SetStringValue( const wxString& aValue )
 {
-    m_selectedItemsString = value;
+    m_selectedItemsString = aValue;
 }
 
-// Return the combo box's current value
+
 wxString DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetStringValue() const
 {
     return m_selectedItemsString;
 }
 
 
-void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::populate( const wxArrayString& items )
+void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::populate( const wxArrayString& aItems )
 {
     m_checkListBox->Clear();
-    m_checkListBox->Append( items );
+    m_checkListBox->Append( aItems );
 }
 
 
@@ -78,6 +75,7 @@ wxString DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetSelectedItemsString()
     {
         if( !selectedItems.IsEmpty() )
             selectedItems += ", ";
+
         selectedItems += m_checkListBox->GetString( checkedItems[i] );
     }
 
@@ -87,8 +85,9 @@ wxString DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetSelectedItemsString()
 }
 
 
-std::vector<PCB_LAYER_ID> DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetSelectedLayers( const std::vector<PCB_LAYER_ID>& aAllLayerIds,
-        const std::function<wxString( PCB_LAYER_ID )>& nameGetter )
+std::vector<PCB_LAYER_ID> DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetSelectedLayers(
+        const std::vector<PCB_LAYER_ID>& aAllLayerIds,
+        const std::function<wxString( PCB_LAYER_ID )>& aNameGetter )
 {
     wxString input = GetSelectedItemsString();
     input.Replace( ", ", "," );
@@ -97,8 +96,8 @@ std::vector<PCB_LAYER_ID> DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetSelectedLayers
 
     for( const auto& layerID : aAllLayerIds )
     {
-        wxString searchString = nameGetter( layerID );
-        bool found = ( "," + input + "," ).Contains( "," + searchString + "," );
+        wxString searchString = aNameGetter( layerID );
+        bool     found = ( "," + input + "," ).Contains( "," + searchString + "," );
 
         if( found )
         {
@@ -110,14 +109,15 @@ std::vector<PCB_LAYER_ID> DRC_RE_LAYER_SELECTION_CHOICE_POPUP::GetSelectedLayers
 }
 
 
-void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::SetSelections( const std::vector<PCB_LAYER_ID>& layerIDs,
-                                            const std::function<wxString(PCB_LAYER_ID)>& nameGetter )
+void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::SetSelections(
+        const std::vector<PCB_LAYER_ID>& aLayerIDs,
+        const std::function<wxString( PCB_LAYER_ID )>& aNameGetter )
 {
     wxArrayString names;
 
-    for( const auto& layerID : layerIDs )
+    for( const auto& layerID : aLayerIDs )
     {
-        names.Add( nameGetter( layerID ) );
+        names.Add( aNameGetter( layerID ) );
     }
 
     if( m_checkListBox )
@@ -135,14 +135,15 @@ void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::SetSelections( const std::vector<PCB_L
 }
 
 
-void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::PopulateWithLayerIDs(const std::vector<PCB_LAYER_ID>& layerIDs,
-                                            const std::function<wxString(PCB_LAYER_ID)>& nameGetter)
+void DRC_RE_LAYER_SELECTION_CHOICE_POPUP::PopulateWithLayerIDs(
+        const std::vector<PCB_LAYER_ID>& aLayerIDs,
+        const std::function<wxString( PCB_LAYER_ID )>& aNameGetter )
 {
     wxArrayString names;
 
-    for (const auto& layerID : layerIDs)
+    for( const auto& layerID : aLayerIDs )
     {
-        names.Add(nameGetter(layerID));
+        names.Add( aNameGetter( layerID ) );
     }
 
     populate( names );

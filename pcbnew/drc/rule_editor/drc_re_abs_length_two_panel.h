@@ -25,10 +25,12 @@
 #include "drc_re_abs_length_two_constraint_data.h"
 
 
-class DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL : public DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE, public DrcRuleEditorContentPanelBase
+class DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL : public DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE,
+                                         public DRC_RULE_EDITOR_CONTENT_PANEL_BASE
 {
 public:
-    DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, wxString* aConstraintTitle , std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> aConstraintData );
+    DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
+            std::shared_ptr<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA> aConstraintData );
 
     ~DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL() override;
 
@@ -45,7 +47,7 @@ public:
 private:
     double m_minAbsoluteLength;
     double m_maxAbsoluteLength;
-    std::shared_ptr<DrcReAbsoluteLengthTwoConstraintData> m_constraintData;
+    std::shared_ptr<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA> m_constraintData;
 };
 
 #endif // DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_H
