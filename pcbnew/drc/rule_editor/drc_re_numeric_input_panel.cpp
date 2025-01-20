@@ -68,12 +68,7 @@ DRC_RE_NUMERIC_INPUT_PANEL::DRC_RE_NUMERIC_INPUT_PANEL( wxWindow* aParent,
         m_constraintData( aConstraintPanelParams.m_constraintData ),
         m_isCountInput( aConstraintPanelParams.m_isCountInput )
 {
-    wxStaticBitmap* constraintBitmap =
-            new wxStaticBitmap( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
-
     auto it = NumericConstraintBitMapPairs.find( aConstraintPanelParams.m_constraintType );
-
-    constraintBitmap->SetBitmap( KiBitmapBundle( it->second ) );
 
     bConstraintImageSizer->Add( GetConstraintImage( this, it->second ), 0,
             wxALL | wxEXPAND, 10 );

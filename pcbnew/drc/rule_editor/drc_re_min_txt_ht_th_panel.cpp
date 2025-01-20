@@ -23,6 +23,7 @@
 
 #include "drc_re_min_txt_ht_th_panel.h"
 
+
 DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL(
         wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA> aConstraintData ) :

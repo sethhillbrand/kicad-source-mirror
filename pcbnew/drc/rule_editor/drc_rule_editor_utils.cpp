@@ -174,7 +174,6 @@ bool DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl( wxTextCtrl* aTextCtrl, std::str
 bool DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( wxComboBox* aComboBox, std::string aLabel,
                                                int* aErrorCount, std::string* aValidationMessage )
 {
-    // Set the custom validator
     auto* cmbCtrlValidator = new VALIDATOR_COMBO_CTRL();
     aComboBox->SetValidator( *cmbCtrlValidator );
 

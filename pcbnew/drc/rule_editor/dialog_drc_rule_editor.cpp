@@ -17,10 +17,12 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+#include <widgets/wx_progress_reporters.h>
+
 #include <confirm.h>
 #include <pcb_edit_frame.h>
 #include <kiface_base.h>
-#include <widgets/wx_progress_reporters.h>
 
 #include "dialog_drc_rule_editor.h"
 #include "panel_drc_rule_editor.h"
@@ -60,7 +62,7 @@ const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes,
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
         RULE_EDITOR_DIALOG_BASE( aFrame, _( "Design Rule Builder" ),
                                  aFrame->FromDIP( wxSize( 980, 680 ) ) ),
-        m_frame( aFrame ), m_ruleEditorPanel( nullptr ), m_groupHeaderPanel( nullptr ),
+        m_frame( aFrame ), 
         m_nodeId( 0 )
 {
     m_ruleTreeCtrl->DeleteAllItems();
@@ -82,6 +84,17 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
 
 DIALOG_DRC_RULE_EDITOR::~DIALOG_DRC_RULE_EDITOR()
 {
+    if( m_ruleEditorPanel )
+    {
+        delete m_ruleEditorPanel;
+        m_ruleEditorPanel = nullptr;
+    }
+
+    if( m_groupHeaderPanel )
+    {
+        delete m_groupHeaderPanel;
+        m_groupHeaderPanel = nullptr;
+    }
 }
 
 
@@ -589,6 +602,13 @@ std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::buildFootprintsRuleTreeNodes
 }
 
 
+/**
+ * Checks if a node with the given name exists in the rule tree or its child nodes.
+ *
+ * @param aRuleTreeNode The node to check.
+ * @param aTargetName The name of the target node to search for.
+ * @return true if the node exists, false otherwise.
+ */
 bool nodeExists( const RULE_TREE_NODE& aRuleTreeNode, const wxString& aTargetName )
 {
     if( aRuleTreeNode.m_nodeName == aTargetName )
@@ -608,6 +628,13 @@ bool nodeExists( const RULE_TREE_NODE& aRuleTreeNode, const wxString& aTargetNam
 }
 
 
+/**
+ * Checks if a node with the given name exists in a list of rule tree nodes.
+ *
+ * @param aRuleTreeNodes The list of rule tree nodes to check.
+ * @param aTargetName The name of the target node to search for.
+ * @return true if the node exists, false otherwise.
+ */
 bool nodeExists( const std::vector<RULE_TREE_NODE>& aRuleTreeNodes, const wxString& aTargetName )
 {
     for( const auto& node : aRuleTreeNodes )
@@ -822,7 +849,7 @@ bool DIALOG_DRC_RULE_EDITOR::deleteTreeNodeData( const int& aNodeId )
 
 RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
         const std::string& aName, const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,
-        const std::optional<int>&                             aParentId,
+        const std::optional<int>& aParentId,
         const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType,
         const std::vector<RULE_TREE_NODE>& aChildNodes, const std::optional<int>& id )
 {
