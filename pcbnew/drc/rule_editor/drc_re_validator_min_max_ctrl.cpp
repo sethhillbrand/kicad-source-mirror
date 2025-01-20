@@ -39,13 +39,12 @@ wxObject* VALIDATE_MIN_MAX_CTRL::Clone() const
 
 bool VALIDATE_MIN_MAX_CTRL::Validate( wxWindow* aParent )
 {
-    // Assume two text controls: one for min and one for max
     wxTextCtrl* minCtrl = wxDynamicCast( aParent->FindWindowByName( m_minCtrlName ), wxTextCtrl );
     wxTextCtrl* maxCtrl = wxDynamicCast( aParent->FindWindowByName( m_maxCtrlName ), wxTextCtrl );
 
     if( !minCtrl || !maxCtrl )
     {
-        return false; // Controls not properly set
+        return false;
     }
 
     wxString minValueStr = minCtrl->GetValue();
@@ -55,7 +54,6 @@ bool VALIDATE_MIN_MAX_CTRL::Validate( wxWindow* aParent )
     minValueStr.ToDouble( &minValue );
     maxValueStr.ToDouble( &maxValue );
 
-    // Check if min is greater than max
     if( minValue > maxValue )
     {
         m_validationState = VALIDATION_STATE::MinGreaterThanMax;

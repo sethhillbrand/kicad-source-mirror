@@ -197,9 +197,9 @@ public:
                                                           RULE_EDITOR_TREE_CONTEXT_OPT aOption ) = 0;
 
     /**
-     * Initializes the rule tree items by adding nodes and setting up the tree structure.
+     * Initializes the rule tree by adding nodes, setting up the structure, and saving its state.
      * 
-     * @param aRuleTreeNodes A vector of rule tree nodes to initialize.
+     * @param aRuleTreeNodes A vector of rule tree nodes with their IDs, names, and child nodes.
      */
     void InitRuleTreeItems( const std::vector<RULE_TREE_NODE>& aRuleTreeNodes );
 
@@ -211,20 +211,20 @@ public:
     wxPanel* GetContentPanel() { return m_contentPanel; }
 
     /**
-     * Sets a new content panel for the dialog.
+     * Replaces the current content panel with a new one based on the selected constraint type.
      * 
-     * @param aContentPanel A pointer to the new content panel to set.
+     * @param aContentPanel The new content panel to replace the existing one.
      */
     void SetContentPanel( wxPanel* aContentPanel );
 
     /**
-     * Appends a new rule tree item under a specified parent in the tree.
+     * Adds a new rule tree item under the specified parent and updates the tree history.
      * 
-     * @param aRuleTreeNode The rule tree node to add.
-     * @param aParentTreeItemId The parent tree item under which the new item will be added.
+     * @param aRuleTreeNode The node data to add.
+     * @param aParentTreeItemId The parent item's ID.
      */
     void AppendNewRuleTreeItem( const RULE_TREE_NODE& aRuleTreeNode,
-                                wxTreeItemId          aParentTreeItemId );
+                                wxTreeItemId aParentTreeItemId );
 
     /**
      * Retrieves the currently selected rule tree item data.
@@ -256,10 +256,10 @@ public:
     void SetControlsEnabled( bool aEnable );
 
     /**
-     * Deletes a specified rule tree item and removes it from the history data.
+     * Deletes a tree item and removes its corresponding node from history.
      * 
-     * @param aItemId The ID of the tree item to delete.
-     * @param aNodeId The node ID associated with the tree item to delete.
+     * @param aItemId The tree item ID to delete.
+     * @param aNodeId The node ID to remove from history.
      */
     void DeleteRuleTreeItem( wxTreeItemId aItemId, const int& aNodeId );
 
@@ -272,157 +272,154 @@ protected:
 
 private:
     /**
-     * Populates the rule tree control with nodes.
+     * Populates the rule tree with nodes and their children.
      * 
-     * @param aRuleTreeNodes A list of rule tree nodes to populate.
-     * @param aRuleTreeNode The current rule tree node to be processed.
-     * @param aParentTreeItemId The parent tree item ID to attach new nodes to.
+     * @param aRuleTreeNodes All rule tree nodes.
+     * @param aRuleTreeNode Current node to add.
+     * @param aParentTreeItemId Parent item ID for the current node.
      */
     void populateRuleTreeCtrl( const std::vector<RULE_TREE_NODE>& aRuleTreeNodes,
-                               const RULE_TREE_NODE&              aRuleTreeNode,
-                               wxTreeItemId                       aParentTreeItemId );
+                               const RULE_TREE_NODE& aRuleTreeNode,
+                               wxTreeItemId aParentTreeItemId );
 
     /**
-     * Handles right-click events on rule tree items.
+     * Handles right-click on a rule tree item to create a context menu.
      * 
-     * @param aEvent The tree event triggered by the right-click action.
+     * @param aEvent The right-click event.
      */
     void onRuleTreeItemRightClick( wxTreeEvent& aEvent );
 
     /**
-     * Handles the event triggered when a rule tree item selection changes.
+     * Updates action buttons based on the selected tree item.
      * 
-     * @param aEvent The tree event triggered by the selection change.
+     * @param aEvent The selection change event.
      */
     void onRuleTreeItemSelectionChanged( wxTreeEvent& aEvent );
 
     /**
-     * Handles the event triggered when the "New Rule" option is clicked.
+     * Creates a new rule when the "New Rule" option is clicked.
      * 
      * @param aEvent The command event triggered by the click.
      */
     void onNewRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
-     * Handles the event triggered when the "Duplicate Rule" option is clicked.
+     * Duplicates the selected rule when "Duplicate Rule" is clicked.
      * 
      * @param aEvent The command event triggered by the click.
      */
     void onDuplicateRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
-     * Handles the event triggered when the "Delete Rule" option is clicked.
+     * Deletes the selected rule when "Delete Rule" is clicked.
      * 
      * @param aEvent The command event triggered by the click.
      */
     void onDeleteRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
-     * Handles the event triggered when the "Move Up Rule" option is clicked.
+     * Moves a rule item up in the tree when "Move Up" is clicked.
      * 
      * @param aEvent The command event triggered by the click.
      */
     void onMoveUpRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
-     * Handles the event triggered when the "Move Down Rule" option is clicked.
+     * Moves a rule item down in the tree when "Move Down" is clicked.
      * 
      * @param aEvent The command event triggered by the click.
      */
     void onMoveDownRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
-     * Handles the event triggered when a tree item is left-clicked.
+     * Initiates drag operation for a tree item on mouse down.
      * 
-     * @param aEvent The mouse event triggered by the left-click.
+     * @param aEvent The mouse down event.
      */
     void onRuleTreeItemLeftDown( wxMouseEvent& aEvent );
 
-    /**
-     * Handles the event triggered when the mouse moves over a rule tree item.
+   /**
+     * Handles drag motion to move the item along with the cursor.
      * 
-     * @param aEvent The mouse event triggered by the mouse motion.
+     * @param aEvent The mouse motion event during drag.
      */
     void onRuleTreeItemMouseMotion( wxMouseEvent& aEvent );
 
     /**
-     * Handles the event triggered when a left-click on a rule tree item is released.
+     * Completes the drag operation on mouse release.
      * 
-     * @param aEvent The mouse event triggered by the left-click release.
+     * @param aEvent The mouse release event.
      */
     void onRuleTreeItemLeftUp( wxMouseEvent& aEvent );
 
     /**
-     * Handle a change in the hotkey filter text.
-     *
-     * @param aEvent is the search event, used to get the search query.
+     * Applies filter to the rule tree based on the search string.
+     * 
+     * @param aEvent The command event containing the filter string.
      */
     void onFilterSearch( wxCommandEvent& aEvent );
 
     /**
-     * Filters the rule tree based on the provided filter string.
+     * Recursively filters tree items to show only those matching the filter.
      * 
-     * @param aItem The tree item to filter.
-     * @param aFilter The filter string used to determine visibility.
-     * @return true if the item matches the filter, false otherwise.
+     * @param aItem The tree item to check.
+     * @param aFilter The filter string.
+     * @return True if the item matches the filter or has visible children.
      */
     bool filterRuleTree( const wxTreeItemId& aItem, const wxString& aFilter );
 
     /**
-     * Saves the current state of the rule tree to a persistent location.
+     * Saves the state of a tree item to history.
      * 
-     * @param aItem The tree item to save the state of.
-     * @param aNodeId The ID of the node to associate with the saved state.
+     * @param aItem The item to save.
+     * @param aNodeId The node ID (optional).
      */
     void saveRuleTreeState( const wxTreeItemId& aItem, const int& aNodeId = 0 );
 
     /**
-     * Restores the rule tree structure from a saved state.
+     * Restores a tree item from history and appends it under a parent.
      * 
-     * @param aParent The parent tree item to attach restored nodes to.
-     * @param aNodeId The ID of the node to restore the tree from.
+     * @param aParent The parent item to append to.
+     * @param aNodeId The node ID to restore.
      */
     void restoreRuleTree( const wxTreeItemId& aParent, const int& aNodeId );
 
     /**
-     * Appends a new rule tree item to the control.
+     * Appends a new rule item to the tree.
      * 
-     * @param aRuleTreeNode The rule tree node data for the item.
-     * @param aParentTreeItemId The parent tree item ID to append the item to.
-     * @return The ID of the newly appended tree item.
+     * @param aRuleTreeNode The rule tree node for the new item.
+     * @param aParentTreeItemId Parent item ID.
+     * @return The newly created tree item ID.
      */
-
     wxTreeItemId appendRuleTreeItem( const RULE_TREE_NODE& aRuleTreeNode,
-                                     wxTreeItemId          aParentTreeItemId );
+                                     wxTreeItemId aParentTreeItemId );
 
     /**
-     * Retrieves child nodes of the rule tree for the specified parent node.
+     * Retrieves child nodes of a given parent node.
      * 
-     * @param aNodes The list of rule tree nodes.
+     * @param aNodes List of all nodes.
      * @param aParentId The parent node ID.
-     * @param aResult The list to store the resulting child nodes.
+     * @param aResult A vector to store child nodes.
      */
     void getRuleTreeChildNodes( const std::vector<RULE_TREE_NODE>& aNodes, int aParentId,
                                 std::vector<RULE_TREE_NODE>& aResult );
 
     /**
-     * Moves the child items of a tree item when it is dragged.
+     * Recursively moves all child nodes of a source item to a destination during drag.
      * 
-     * @param aSrcTreeItemId The source tree item ID.
-     * @param aDestTreeItemId The destination tree item ID.
+     * @param aSrcTreeItemId Source item ID.
+     * @param aDestTreeItemId Destination item ID.
      */
     void moveRuleTreeItemChildrensTooOnDrag( wxTreeItemId aSrcTreeItemId,
                                              wxTreeItemId aDestTreeItemId );
 
     /**
-     * Updates the state of the rule tree move options based on the current selection.
+     * Updates the state of move options (up/down) for the selected item.
      */
     void updateRuleTreeItemMoveOptionState();
 
     /**
-     * Updates the state of the rule tree action buttons based on the selected item data.
-     * 
-     * @param aRuleTreeItemData The rule tree item data to determine the button states.
+     * Updates the action buttons based on the current selection.
      */
     void updateRuleTreeActionButtonsState( RULE_TREE_ITEM_DATA* aRuleTreeItemData );
 
