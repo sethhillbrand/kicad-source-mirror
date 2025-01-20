@@ -90,41 +90,77 @@ private:
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE* getConstraintPanel( wxWindow* aParent, 
         const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
 
+    /**
+     * Handles the save button click event, validating inputs and invoking the save callback if valid.
+     *
+     * @param aEvent The event triggered by the save button click.
+     */
     void onSaveButtonClicked( wxCommandEvent& aEvent );
 
+    /**
+     * Handles the remove button click event, invoking the remove callback.
+     *
+     * @param aEvent The event triggered by the remove button click.
+     */
     void onRemoveButtonClicked( wxCommandEvent& aEvent );
 
+    /**
+     * Handles the close button click event, invoking the close callback.
+     *
+     * @param aEvent The event triggered by the close button click.
+     */
     void onCloseButtonClicked( wxCommandEvent& aEvent );
 
+    /**
+     * Handles character addition in the Scintilla text control, performing auto-complete and context-sensitive operations.
+     *
+     * @param aEvent The event triggered when a character is added.
+     */
     void onScintillaCharAdded( wxStyledTextEvent& aEvent );
 
+    /**
+     * Displays a modeless help window with syntax and rule documentation.
+     *
+     * @param aEvent The event triggered by the hyperlink click.
+     */
     void onSyntaxHelp( wxHyperlinkEvent& aEvent ) override;
 
+    /**
+     * Checks the syntax of the DRC rule condition and reports any errors.
+     *
+     * @param event The event triggered by the syntax check action.
+     */
     void onCheckSyntax( wxCommandEvent& aEvent ) override;
 
+    /**
+     * Handles clicks on error links in the syntax error report and navigates to the error location.
+     *
+     * @param event The event triggered when an error link is clicked.
+     */
     void onErrorLinkClicked( wxHtmlLinkEvent& aEvent ) override;
 
+    /**
+     * Handles right-click context menu actions for text editing (undo, redo, cut, copy, paste, delete, select all, zoom).
+     *
+     * @param event The event triggered by the right-click menu.
+     */
     void onContextMenu( wxMouseEvent& aEvent ) override;
 
-protected:
-    wxButton*         btnSave;
-    wxButton*         btnRemove;
-    wxButton*         btnClose;
+private:
+    wxButton*         m_btnSave;
+    wxButton*         m_btnRemove;
+    wxButton*         m_btnClose;
     wxComboCtrl*      m_comboCtrl;
     SCINTILLA_TRICKS* m_scintillaTricks;
-
-private:
-    std::vector<int> m_validLayers;
-    LSEQ             m_layerList;
-    BOARD*           m_board;
-    wxString*        m_constraintTitle;
-    wxString*        m_name;
-    wxString*        m_comment;
-    bool             m_basicDetailValidated;
-    bool             m_syntaxChecked;
-    bool             m_isModified;
-    bool             m_validationSucceeded;
-    std::string      m_validationMessage;
+    std::vector<int>  m_validLayers;
+    LSEQ              m_layerList;
+    BOARD*            m_board;
+    wxString*         m_constraintTitle;
+    bool              m_basicDetailValidated;
+    bool              m_syntaxChecked;
+    bool              m_isModified;
+    bool              m_validationSucceeded;
+    std::string       m_validationMessage;
 
     DRC_RE_LAYER_SELECTION_COMBO*                m_layerListCmbCtrl;
     DRC_RULE_EDITOR_CONSTRAINT_NAME              m_constraintType;

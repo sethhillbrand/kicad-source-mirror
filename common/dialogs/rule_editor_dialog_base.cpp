@@ -70,11 +70,18 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                                                   const wxSize& aInitialSize ) :
         DIALOG_SHIM( aParent, wxID_ANY, aTitle, wxDefaultPosition, aInitialSize,
                      wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
-        m_title( aTitle ), m_ruleTreeCtrl( nullptr ), m_selectedTreeItemData( nullptr ),
-        m_previouslySelectedTreeItemId( nullptr ), m_draggedItemStartPos( 0, 0 ),
-        m_dragImage( nullptr ), m_isDragging( false ), m_enableMoveUp( false ),
-        m_enableMoveDown( false ), m_enableAddRule( false ), m_enableDuplicateRule( false ),
-        m_enableDeleteRule( false ), m_preventSelectionChange( false )
+        m_title( aTitle ), 
+        m_selectedTreeItemData( nullptr ),
+        m_previouslySelectedTreeItemId( nullptr ), 
+        m_draggedItemStartPos( 0, 0 ),
+        m_dragImage( nullptr ), 
+        m_isDragging( false ), 
+        m_enableMoveUp( false ),
+        m_enableMoveDown( false ), 
+        m_enableAddRule( false ), 
+        m_enableDuplicateRule( false ),
+        m_enableDeleteRule( false ), 
+        m_preventSelectionChange( false )
 {
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
     SetSizer( mainSizer );
@@ -113,10 +120,10 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     // Add the tree control to its sizer
     treeCtrlSizer->Add( m_ruleTreeCtrl, 1, wxEXPAND | wxBOTTOM, 5 );
 
-    // Create a sizer for the bitmap buttons
+    // Create a sizer for the action buttons
     wxBoxSizer* actionButtonsSizer = new wxBoxSizer( wxHORIZONTAL );
 
-    // Create the bitmap buttons
+    // Create the action buttons
     m_addRuleButton =
             new wxBitmapButton( treeCtrlPanel, wxID_ANY, KiBitmapBundle( BITMAPS::small_plus ),
                                 wxDefaultPosition, wxDefaultSize, 0 );
@@ -132,13 +139,8 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
             new wxBitmapButton( treeCtrlPanel, wxID_ANY, KiBitmapBundle( BITMAPS::small_trash ),
                                 wxDefaultPosition, wxDefaultSize, 0 );
 
-    // Add the "Add" button to the left side
     actionButtonsSizer->Add( m_addRuleButton, 0, wxLEFT | wxRIGHT, 5 );
-
-    // Add the "New" button next to the "Add" button
     actionButtonsSizer->Add( m_copyRuleButton, 0, wxLEFT | wxRIGHT, 5 );
-
-    // Add the "Move" buttons (Move Up, Move Down) centered
     actionButtonsSizer->Add( m_moveTreeItemUpButton, 0, wxLEFT | wxRIGHT, 5 );
     actionButtonsSizer->Add( m_moveTreeItemDownButton, 0, wxLEFT | wxRIGHT, 5 );
 
@@ -199,19 +201,7 @@ void RULE_EDITOR_DIALOG_BASE::finishInitialization()
 
 
 RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
-{
-    if( m_selectedTreeItemData )
-    {
-        delete m_selectedTreeItemData;
-        m_selectedTreeItemData = nullptr;
-    }
-
-    if( m_dragImage )
-    {
-        delete m_dragImage;
-        m_dragImage = nullptr;
-    }
-
+{    
     m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch,
                             this );
     m_ruleTreeCtrl->Unbind( wxEVT_TREE_ITEM_RIGHT_CLICK,
@@ -233,6 +223,15 @@ RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
                                       &RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick, this );
     m_deleteRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick,
                                 this );
+
+    m_selectedTreeItemData = nullptr;
+    m_previouslySelectedTreeItemId = nullptr;
+
+    if( m_dragImage )
+    {
+        delete m_dragImage;
+        m_dragImage = nullptr;
+    }
 }
 
 
@@ -266,9 +265,9 @@ RULE_EDITOR_DIALOG_BASE* RULE_EDITOR_DIALOG_BASE::GetDialog( wxWindow* aParent )
 {
     while( aParent )
     {
-        if( RULE_EDITOR_DIALOG_BASE* parentDialog =
+        if( RULE_EDITOR_DIALOG_BASE* currentDialog =
                     dynamic_cast<RULE_EDITOR_DIALOG_BASE*>( aParent ) )
-            return parentDialog;
+            return currentDialog;
 
         aParent = aParent->GetParent();
     }
@@ -324,7 +323,7 @@ void RULE_EDITOR_DIALOG_BASE::SetContentPanel( wxPanel* aContentPanel )
 
 
 void RULE_EDITOR_DIALOG_BASE::AppendNewRuleTreeItem( const RULE_TREE_NODE& aRuleTreeNode,
-                                                     wxTreeItemId          aParentTreeItemId )
+                                                     wxTreeItemId aParentTreeItemId )
 {
     wxTreeItemId currentTreeItemId = appendRuleTreeItem( aRuleTreeNode, aParentTreeItemId );
 
@@ -506,7 +505,7 @@ void RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick( wxCommandEvent& aEvent )
     wxTreeItemId parent = m_ruleTreeCtrl->GetItemParent( selectedItem );
 
     if( !parent.IsOk() )
-        return; // Exit if the item has no parent (root-level item)
+        return;
 
     wxTreeItemIdValue cookie;
     wxTreeItemId      current = m_ruleTreeCtrl->GetFirstChild( parent, cookie );
@@ -527,14 +526,11 @@ void RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick( wxCommandEvent& aEvent )
 
     wxTreeItemId insertPosition = beforePrevious.IsOk() ? beforePrevious : wxTreeItemId();
 
-    // Insert the selected item at the calculated position
     wxTreeItemId newItem = m_ruleTreeCtrl->InsertItem(
             parent, insertPosition, m_ruleTreeCtrl->GetItemText( selectedItem ) );
 
-    // Move children from the old item to the new one
     moveRuleTreeItemChildrensTooOnDrag( selectedItem, newItem );
 
-    // Transfer item data
     wxTreeItemData* itemData = m_ruleTreeCtrl->GetItemData( selectedItem );
 
     if( itemData )
@@ -553,7 +549,6 @@ void RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick( wxCommandEvent& aEvent )
         m_ruleTreeCtrl->ExpandAllChildren( newItem );
     }
 
-    // Delete the old item
     m_ruleTreeCtrl->DeleteChildren( selectedItem );
     m_ruleTreeCtrl->Delete( selectedItem );
 }
@@ -562,7 +557,7 @@ void RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick( wxCommandEvent& aEvent )
 void RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick( wxCommandEvent& aEvent )
 {
     if( !m_enableMoveDown )
-        return; // Exit if moving down is not allowed
+        return;
 
     wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
 
@@ -582,7 +577,7 @@ void RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick( wxCommandEvent& aEvent 
 
     if( !next.IsOk() )
     {
-        return; // No previous sibling means item is already at the top
+        return;
     }
 
     wxString        itemText = m_ruleTreeCtrl->GetItemText( selectedItem );
@@ -622,7 +617,6 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown( wxMouseEvent& aEvent )
     {
         m_draggedItem = item;
 
-        // Create a custom drag image
         wxString   text = m_ruleTreeCtrl->GetItemText( item );
         wxMemoryDC dc;
         wxBitmap   bitmap( 200, 30 );
@@ -634,7 +628,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown( wxMouseEvent& aEvent )
         dc.SelectObject( wxNullBitmap );
 
         m_dragImage = new wxDragImage( bitmap );
-        m_isDragging = false; // Reset drag state
+        m_isDragging = false;
     }
 
     aEvent.Skip();
@@ -651,7 +645,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion( wxMouseEvent& aEvent )
         {
             m_dragImage->BeginDrag( wxPoint( 0, 0 ), m_ruleTreeCtrl, true );
             m_dragImage->Show();
-            m_isDragging = true; // Set flag that dragging has started
+            m_isDragging = true;
         }
         else
         {
@@ -673,30 +667,27 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
             m_dragImage->EndDrag();
             delete m_dragImage;
             m_dragImage = nullptr;
-            m_isDragging = false; // Reset drag state
+            m_isDragging = false;
         }
 
-        // Handle item drop logic here
         wxPoint      pos = aEvent.GetPosition();
         int          flags;
         wxTreeItemId targetItem = m_ruleTreeCtrl->HitTest( pos, flags );
 
-        // Debug: Check if target item is valid
         if( !targetItem.IsOk() )
         {
             DisplayErrorMessage( this, "Invalid target item." );
-            return; // Exit if target is not valid
+            return;
         }
 
         wxTreeItemId draggedParent = m_ruleTreeCtrl->GetItemParent( m_draggedItem );
         wxTreeItemId targetParent = m_ruleTreeCtrl->GetItemParent( targetItem );
 
-        // Debug: Check if dragged and target items are in the same parent
         if( draggedParent != targetParent )
         {
             DisplayErrorMessage( this,
                                  "Invalid move: Items can only be moved within the same parent." );
-            return; // Exit if parents do not match
+            return;
         }
 
         if( draggedParent == targetParent )
@@ -704,21 +695,19 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
             wxTreeItemId      newItem;
             wxTreeItemIdValue cookie;
 
-            // Case 1: Drop directly on the first child (or before the first child)
             if( flags & wxTREE_HITTEST_ONITEMLABEL
                 && targetItem == m_ruleTreeCtrl->GetFirstChild( targetParent, cookie ) )
             {
-                // If the drop is on the first child, make it the first child
+                // Prepend item as the first child of target parent
                 newItem = m_ruleTreeCtrl->PrependItem(
                         targetParent, m_ruleTreeCtrl->GetItemText( m_draggedItem ) );
             }
             else
             {
-                // Case 2: Insert before or after the target item based on previous or next sibling
                 wxTreeItemId current = m_ruleTreeCtrl->GetFirstChild( targetParent, cookie );
                 wxTreeItemId previous;
 
-                // Traverse through siblings to find the right place to insert
+                // Traverse through siblings to find the position of the target item
                 while( current.IsOk() && current != targetItem )
                 {
                     previous = current;
@@ -727,35 +716,32 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
 
                 if( !previous.IsOk() )
                 {
-                    // If the target is the first child, insert as first child
+                    // If no previous item, insert as the first child
                     newItem = m_ruleTreeCtrl->PrependItem(
                             targetParent, m_ruleTreeCtrl->GetItemText( m_draggedItem ) );
                 }
                 else
                 {
-                    // Check if there is a next sibling (to insert after the target)
                     wxTreeItemId nextSibling = m_ruleTreeCtrl->GetNextChild( targetParent, cookie );
 
                     if( nextSibling.IsOk() )
                     {
-                        // Insert after the target item
+                        // If there is a next sibling, insert after the previous item
                         newItem = m_ruleTreeCtrl->InsertItem(
                                 targetParent, previous,
                                 m_ruleTreeCtrl->GetItemText( m_draggedItem ) );
                     }
                     else
                     {
-                        // If no next sibling, insert as the last child
+                        // If no next sibling, append the item as the last child
                         newItem = m_ruleTreeCtrl->AppendItem(
                                 targetParent, m_ruleTreeCtrl->GetItemText( m_draggedItem ) );
                     }
                 }
             }
 
-            // Recursively move children to the new item
             moveRuleTreeItemChildrensTooOnDrag( m_draggedItem, newItem );
 
-            // Handle item data transfer
             wxTreeItemData* itemData = m_ruleTreeCtrl->GetItemData( m_draggedItem );
 
             if( itemData )
@@ -765,7 +751,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
                 ruleTreeItemData->SetTreeItemId( newItem );
 
                 m_ruleTreeCtrl->SetItemData( newItem, ruleTreeItemData );
-                m_ruleTreeCtrl->SetItemData( m_draggedItem, nullptr ); // Detach data
+                m_ruleTreeCtrl->SetItemData( m_draggedItem, nullptr );
 
                 saveRuleTreeState( newItem, ruleTreeItemData->GetNodeId() );
 
@@ -774,7 +760,6 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
                 m_ruleTreeCtrl->Expand( newItem );
             }
 
-            // Delete the original dragged item
             m_ruleTreeCtrl->DeleteChildren( m_draggedItem );
             m_ruleTreeCtrl->Delete( m_draggedItem );
         }
@@ -784,7 +769,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
                                  "Invalid move: Items can only be moved within the same parent." );
         }
 
-        m_draggedItem = wxTreeItemId(); // Reset dragged item
+        m_draggedItem = wxTreeItemId();
     }
 
     aEvent.Skip();
@@ -795,7 +780,6 @@ void RULE_EDITOR_DIALOG_BASE::onFilterSearch( wxCommandEvent& aEvent )
 {
     const auto searchStr = aEvent.GetString().Lower();
 
-    // Capture the selected item
     wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
     int          selectedNodeId = wxNOT_FOUND;
 
@@ -816,7 +800,6 @@ void RULE_EDITOR_DIALOG_BASE::onFilterSearch( wxCommandEvent& aEvent )
 
     wxTreeItemId root = m_ruleTreeCtrl->GetRootItem();
 
-    // Apply the filter
     if( root.IsOk() )
     {
         filterRuleTree( root, searchStr );
@@ -832,7 +815,6 @@ bool RULE_EDITOR_DIALOG_BASE::filterRuleTree( const wxTreeItemId& aItem, const w
     wxTreeItemId      child = m_ruleTreeCtrl->GetFirstChild( aItem, cookie );
     bool              hasVisibleChildren = false;
 
-    // List to store items for deletion
     std::vector<wxTreeItemId> itemsToDelete;
 
     while( child.IsOk() )
@@ -843,14 +825,12 @@ bool RULE_EDITOR_DIALOG_BASE::filterRuleTree( const wxTreeItemId& aItem, const w
         }
         else
         {
-            // Collect child for deletion
             itemsToDelete.push_back( child );
         }
 
         child = m_ruleTreeCtrl->GetNextChild( aItem, cookie );
     }
 
-    // Delete non-matching children after iteration
     for( const auto& id : itemsToDelete )
     {
         m_ruleTreeCtrl->Delete( id );
@@ -875,16 +855,13 @@ void RULE_EDITOR_DIALOG_BASE::saveRuleTreeState( const wxTreeItemId& aItem, cons
                 dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData( child ) );
         int childId = childItemData->GetNodeId();
 
-        //std::string childId = itemId + "/" + std::to_string( index++ );
         children.push_back( childId );
 
-        // Recursively save the state of the child
         saveRuleTreeState( child, childId );
 
         child = m_ruleTreeCtrl->GetNextChild( aItem, cookie );
     }
 
-    // Store the current item in the map
     m_treeHistoryData[aNodeId] = { itemText, children, aItem };
 }
 
@@ -892,6 +869,7 @@ void RULE_EDITOR_DIALOG_BASE::saveRuleTreeState( const wxTreeItemId& aItem, cons
 void RULE_EDITOR_DIALOG_BASE::restoreRuleTree( const wxTreeItemId& aParent, const int& aNodeId )
 {
     auto it = m_treeHistoryData.find( aNodeId );
+
     if( it == m_treeHistoryData.end() )
         return;
 
@@ -901,7 +879,6 @@ void RULE_EDITOR_DIALOG_BASE::restoreRuleTree( const wxTreeItemId& aParent, cons
 
     if( aParent )
     {
-        // Add the restored item to the parent
         newItem = m_ruleTreeCtrl->AppendItem( aParent, itemText );
         wxTreeItemId& treeItemId = std::get<2>( it->second );
         treeItemId = newItem;
@@ -916,7 +893,6 @@ void RULE_EDITOR_DIALOG_BASE::restoreRuleTree( const wxTreeItemId& aParent, cons
     RULE_TREE_ITEM_DATA* itemData = new RULE_TREE_ITEM_DATA( aNodeId, aParent, newItem );
     m_ruleTreeCtrl->SetItemData( newItem, itemData );
 
-    // Recursively restore each child
     for( const auto& childId : children )
     {
         restoreRuleTree( newItem, childId );
@@ -927,17 +903,15 @@ void RULE_EDITOR_DIALOG_BASE::restoreRuleTree( const wxTreeItemId& aParent, cons
 
 
 wxTreeItemId RULE_EDITOR_DIALOG_BASE::appendRuleTreeItem( const RULE_TREE_NODE& aRuleTreeNode,
-                                                          wxTreeItemId          aParentTreeItemId )
+                                                          wxTreeItemId aParentTreeItemId )
 {
     wxTreeItemId currentTreeItemId =
             m_ruleTreeCtrl->AppendItem( aParentTreeItemId, aRuleTreeNode.m_nodeName );
 
-    // Attach TreeItemData to the tree item
     RULE_TREE_ITEM_DATA* itemData =
             new RULE_TREE_ITEM_DATA( aRuleTreeNode.m_nodeId, aParentTreeItemId, currentTreeItemId );
     m_ruleTreeCtrl->SetItemData( currentTreeItemId, itemData );
 
-    // Optionally expand the root node
     m_ruleTreeCtrl->Expand( currentTreeItemId );
 
     return currentTreeItemId;
@@ -945,11 +919,11 @@ wxTreeItemId RULE_EDITOR_DIALOG_BASE::appendRuleTreeItem( const RULE_TREE_NODE& 
 
 
 void RULE_EDITOR_DIALOG_BASE::getRuleTreeChildNodes( const std::vector<RULE_TREE_NODE>& aNodes,
-                                                     int                                aParentId,
-                                                     std::vector<RULE_TREE_NODE>&       aResult )
+                                                     int aParentId,
+                                                     std::vector<RULE_TREE_NODE>& aResult )
 {
-    // Filter nodes that match the parentId
     std::vector<RULE_TREE_NODE> filteredNodes;
+
     std::copy_if( aNodes.begin(), aNodes.end(), std::back_inserter( filteredNodes ),
                   [&aParentId]( const RULE_TREE_NODE& node )
                   {
@@ -958,7 +932,6 @@ void RULE_EDITOR_DIALOG_BASE::getRuleTreeChildNodes( const std::vector<RULE_TREE
 
     if( filteredNodes.size() > 0 )
     {
-        // Add the filtered nodes to the result
         aResult.insert( aResult.end(), filteredNodes.begin(), filteredNodes.end() );
     }
 }
@@ -971,7 +944,6 @@ void RULE_EDITOR_DIALOG_BASE::moveRuleTreeItemChildrensTooOnDrag( wxTreeItemId a
 
     while( child.IsOk() )
     {
-        // Create a new child under the destination item
         wxTreeItemId newChild =
                 m_ruleTreeCtrl->AppendItem( aDestTreeItemId, m_ruleTreeCtrl->GetItemText( child ) );
 
@@ -980,14 +952,11 @@ void RULE_EDITOR_DIALOG_BASE::moveRuleTreeItemChildrensTooOnDrag( wxTreeItemId a
         ruleTreeItemData->SetParentTreeItemId( aDestTreeItemId );
         ruleTreeItemData->SetTreeItemId( newChild );
 
-        // Copy any associated data
         m_ruleTreeCtrl->SetItemData( newChild, ruleTreeItemData );
         m_ruleTreeCtrl->SetItemData( child, nullptr );
 
-        // Recurse for the current child
         moveRuleTreeItemChildrensTooOnDrag( child, newChild );
 
-        // Move to the next sibling
         child = m_ruleTreeCtrl->GetNextChild( aSrcTreeItemId, cookie );
     }
 }
@@ -997,43 +966,37 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeItemMoveOptionState()
 {
     wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
 
-    // Reset flags if no selection
     m_enableMoveUp = false;
     m_enableMoveDown = false;
 
     if( !selectedItem.IsOk() )
-    {
         return;
-    }
-
-    // If the root item is selected, no need to check move options
+    
     if( selectedItem == m_ruleTreeCtrl->GetRootItem() )
-    {
         return;
-    }
 
     wxTreeItemId      parent = m_ruleTreeCtrl->GetItemParent( selectedItem );
     wxTreeItemIdValue cookie;
     wxTreeItemId      firstChild = m_ruleTreeCtrl->GetFirstChild( parent, cookie );
     wxTreeItemId      lastChild = firstChild;
 
-    // Traverse to find the last child
     while( lastChild.IsOk() )
     {
         wxTreeItemId next = m_ruleTreeCtrl->GetNextChild( parent, cookie );
+
         if( !next.IsOk() )
             break;
+
         lastChild = next;
     }
 
-    // Update flags based on the position
     m_enableMoveUp = ( selectedItem != firstChild );
     m_enableMoveDown = ( selectedItem != lastChild );
 }
 
 
-void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState(
-        RULE_TREE_ITEM_DATA* aRuleTreeItemData )
+void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState( 
+    RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
     wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
 

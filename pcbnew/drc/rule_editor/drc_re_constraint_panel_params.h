@@ -56,7 +56,6 @@ public:
     {
     }
 
-    // Constructor for easy initialization
     DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS( const wxString& aConstraintTitle,
                                             const std::shared_ptr<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>& aConstraintData,
                                             const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :
@@ -88,7 +87,6 @@ class DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS : public DRC_RE_CONSTRAINT_PANEL
 public:
     DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS() : DRC_RE_CONSTRAINT_PANEL_PARAMS() {}
 
-    // Constructor for easy initialization
     DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS( const wxString&  aConstraintTitle,
             const std::shared_ptr<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>& aConstraintData,
             const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType ) :

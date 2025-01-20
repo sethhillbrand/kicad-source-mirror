@@ -40,13 +40,7 @@ public:
 
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
-    double GetMinAbsoluteLength() { return m_minAbsoluteLength; }
-
-    double GetMaxAbsoluteLength() { return m_maxAbsoluteLength; }
-
 private:
-    double m_minAbsoluteLength;
-    double m_maxAbsoluteLength;
     std::shared_ptr<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA> m_constraintData;
 };
 
