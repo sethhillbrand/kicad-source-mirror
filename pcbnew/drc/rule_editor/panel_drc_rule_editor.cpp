@@ -75,13 +75,16 @@
 PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType,
         wxString* aConstraintTitle, std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData ) :
-        PANEL_DRC_RULE_EDITOR_BASE( aParent ), m_comboCtrl( nullptr ), m_board( aBoard ),
-        m_constraintTitle( aConstraintTitle ), m_name( nullptr ), m_comment( nullptr ),
-        m_constraintData( aConstraintData ), m_constraintType( aConstraintType ),
-        m_basicDetailValidated( false ), m_validationSucceeded( false ), m_syntaxChecked( false ),
-        m_isModified( false ), m_helpWindow( nullptr ), m_callBackSave( nullptr ),
-        m_callBackRemove( nullptr ), m_callBackClose( nullptr ),
-        m_callBackRuleNameValidation( nullptr )
+        PANEL_DRC_RULE_EDITOR_BASE( aParent ), 
+        m_board( aBoard ),
+        m_constraintTitle( aConstraintTitle ), 
+        m_constraintData( aConstraintData ),
+        m_constraintType( aConstraintType ),
+        m_basicDetailValidated( false ), 
+        m_validationSucceeded( false ), 
+        m_syntaxChecked( false ),
+        m_isModified( false ),
+        m_helpWindow( nullptr )
 {
     m_constraintPanel = getConstraintPanel( this, aConstraintType );
     m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP,
@@ -96,27 +99,22 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         return m_board->GetLayerName( layer );
     };
 
-    wxArrayInt initiallySelectedIndices = { 0, 2 }; // Indices of pre-selected layers
     m_layerListCmbCtrl = new DRC_RE_LAYER_SELECTION_COMBO( this, layerIDs, layerNameGetter );
-
     m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 );
-
-    // Create another sizer for the buttons on the right
+    
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
-    btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
-    btnRemove = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
-    btnClose = new wxButton( this, wxID_ANY, "Close" );
-    buttonSizer->Add( btnSave, 0, wxALL, 5 );
-    buttonSizer->Add( btnRemove, 0, wxALL, 5 );
-    buttonSizer->Add( btnClose, 0, wxALL, 5 );
-
-    // Add the button sizer to the main sizer (to the right)
+    m_btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
+    m_btnRemove = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
+    m_btnClose = new wxButton( this, wxID_ANY, "Close" );
+    buttonSizer->Add( m_btnSave, 0, wxALL, 5 );
+    buttonSizer->Add( m_btnRemove, 0, wxALL, 5 );
+    buttonSizer->Add( m_btnClose, 0, wxALL, 5 );
+    
     bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
-
-    // Bind the button's event to an event handler
-    btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
-    btnRemove->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
-    btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+    
+    m_btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
+    m_btnRemove->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
+    m_btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
 
     m_checkSyntaxBtnCtrl->SetBitmap( KiBitmapBundle( BITMAPS::drc ) );
 
@@ -161,29 +159,8 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
         m_scintillaTricks = nullptr;
     }
 
-    if( m_board )
-    {
-        delete m_board;
-        m_board = nullptr;
-    }
-
-    if( m_constraintTitle )
-    {
-        delete m_constraintTitle;
-        m_constraintTitle = nullptr;
-    }
-
-    if( m_name )
-    {
-        delete m_name;
-        m_name = nullptr;
-    }
-
-    if( m_comment )
-    {
-        delete m_comment;
-        m_comment = nullptr;
-    }
+    m_board = nullptr;
+    m_constraintTitle = nullptr;
 
     if( m_layerListCmbCtrl )
     {
@@ -195,17 +172,17 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
     {
         delete m_constraintPanel;
         m_constraintPanel = nullptr;
-    }
+    }   
 
     if( m_helpWindow )
     {
         delete m_helpWindow;
         m_helpWindow = nullptr;
-    }
+    }   
 
-    btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
-    btnRemove->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
-    btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+    m_btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
+    m_btnRemove->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
+    m_btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
 }
 
 
@@ -216,6 +193,7 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataToWindow()
         m_nameCtrl->SetValue( m_constraintData->GetRuleName() );
         m_commentCtrl->SetValue( m_constraintData->GetComment() );
         m_layerListCmbCtrl->SetItemsSelected( m_constraintData->GetLayers() );
+        m_textConditionCtrl->SetText( m_constraintData->GetRuleCondition() );
     }
 
     return dynamic_cast<wxPanel*>( m_constraintPanel )->TransferDataToWindow();
@@ -229,6 +207,7 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
     m_constraintData->SetRuleName( m_nameCtrl->GetValue() );
     m_constraintData->SetComment( m_commentCtrl->GetValue() );
     m_constraintData->SetLayers( m_layerListCmbCtrl->GetSelectedLayers() );
+    m_constraintData->SetRuleCondition( m_textConditionCtrl->GetValue() );
 
     return true;
 }
@@ -384,8 +363,8 @@ void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& aEvent )
 
 void PANEL_DRC_RULE_EDITOR::RefreshScreen()
 {
-    btnSave->SetLabelText( "Update" );
-    btnRemove->SetLabelText( "Delete" );
+    m_btnSave->SetLabelText( "Update" );
+    m_btnRemove->SetLabelText( "Delete" );
 }
 
 
@@ -786,6 +765,15 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
 void PANEL_DRC_RULE_EDITOR::onCheckSyntax( wxCommandEvent& event )
 {
     m_syntaxErrorReport->Clear();
+     
+    if( m_textConditionCtrl->GetText().IsEmpty() )
+    {
+        wxString msg = _( "ERROR: No text provided for validation." );
+        m_syntaxErrorReport->Report( msg, RPT_SEVERITY_ERROR );
+        m_syntaxErrorReport->Flush();
+        return;
+    }
+
 
     try
     {

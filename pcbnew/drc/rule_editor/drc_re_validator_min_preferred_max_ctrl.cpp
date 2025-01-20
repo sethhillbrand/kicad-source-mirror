@@ -27,9 +27,13 @@
 VALIDATE_MIN_PREFERRED_MAX_CTRL::VALIDATE_MIN_PREFERRED_MAX_CTRL( wxTextCtrl* aMinCtrl,
                                                                   wxTextCtrl* aPreferredCtrl,
                                                                   wxTextCtrl* aMaxCtrl ) :
-        m_minCtrl( aMinCtrl ), m_preferredCtrl( aPreferredCtrl ), m_maxCtrl( aMaxCtrl ),
-        m_minCtrlName( aMinCtrl->GetName() ), m_preferredCtrlName( aPreferredCtrl->GetName() ),
-        m_maxCtrlName( aMaxCtrl->GetName() ), m_validationState( VALIDATION_STATE::Valid )
+        m_minCtrl( aMinCtrl ), 
+        m_preferredCtrl( aPreferredCtrl ), 
+        m_maxCtrl( aMaxCtrl ),
+        m_minCtrlName( aMinCtrl->GetName() ), 
+        m_preferredCtrlName( aPreferredCtrl->GetName() ),
+        m_maxCtrlName( aMaxCtrl->GetName() ), 
+        m_validationState( VALIDATION_STATE::Valid )
 {
 }
 
