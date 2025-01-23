@@ -160,11 +160,11 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 
 	bLayerSizer->Add( m_LayersComboBoxSizer, 1, wxEXPAND, 5 );
 
+	m_staticline4 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
+	bLayerSizer->Add( m_staticline4, 0, wxEXPAND | wxALL, 5 );
+
 
 	bContentSizer->Add( bLayerSizer, 0, wxEXPAND|wxTOP, 15 );
-
-	m_staticline4 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-	bContentSizer->Add( m_staticline4, 0, wxEXPAND | wxALL, 5 );
 
 
 	mainSizer->Add( bContentSizer, 1, wxEXPAND, 5 );

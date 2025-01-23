@@ -559,6 +559,48 @@ void DRC_ENGINE::compileRules()
 }
 
 
+void DRC_ENGINE::InitEngine( const std::shared_ptr<DRC_RULE>& rule )
+{
+    m_testProviders = DRC_SHOWMATCHES_PROVIDER_REGISTRY::Instance().GetShowMatchesProviders();
+
+    for( DRC_TEST_PROVIDER* provider : m_testProviders )
+    {
+        ReportAux( wxString::Format( wxT( "Create DRC provider: '%s'" ), provider->GetName() ) );
+        provider->SetDRCEngine( this );
+    }
+
+    m_rules.clear();
+    m_rulesValid = false;
+
+    for( std::pair<DRC_CONSTRAINT_T, std::vector<DRC_ENGINE_CONSTRAINT*>*> pair : m_constraintMap )
+    {
+        for( DRC_ENGINE_CONSTRAINT* constraint : *pair.second )
+            delete constraint;
+
+        delete pair.second;
+    }
+
+    m_constraintMap.clear();
+
+    m_board->IncrementTimeStamp(); // Clear board-level caches
+
+    try 
+    {
+        m_rules.push_back( rule );            
+        compileRules();
+    }
+    catch( PARSE_ERROR& original_parse_error )
+    {
+        throw original_parse_error;
+    }
+
+    for( int ii = DRCE_FIRST; ii < DRCE_LAST; ++ii )
+        m_errorLimits[ii] = ERROR_LIMIT;
+
+    m_rulesValid = true;
+}
+
+
 void DRC_ENGINE::InitEngine( const wxFileName& aRulePath )
 {
     m_testProviders = DRC_TEST_PROVIDER_REGISTRY::Instance().GetTestProviders();

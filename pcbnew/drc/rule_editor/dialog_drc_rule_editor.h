@@ -21,6 +21,14 @@
 #ifndef DIALOG_DRC_RULE_EDITOR_H
 #define DIALOG_DRC_RULE_EDITOR_H
 
+
+#include <drc/drc_rule_parser.h>
+#include <thread_pool.h>
+#include <drc/drc_item.h>
+#include "tools/drc_tool.h"
+#include <tool/tool_manager.h>
+#include <drc/drc_rtree.h>
+
 #include <dialogs/rule_editor_dialog_base.h>
 #include "panel_drc_rule_editor.h"
 #include "drc_rule_editor_utils.h"
@@ -28,11 +36,14 @@
 
 
 class PCB_EDIT_FRAME;
+class DIALOG_DRC_RULE_EDITOR;
+class TOOL_MANAGER;
+class DRC_RTREE;
 
-class DIALOG_DRC_RULE_EDITOR : public RULE_EDITOR_DIALOG_BASE
+class DIALOG_DRC_RULE_EDITOR : public RULE_EDITOR_DIALOG_BASE, PROGRESS_REPORTER_BASE
 {
 public:
-    DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame );
+    DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wxWindow* aParent );
 
     ~DIALOG_DRC_RULE_EDITOR();
 
@@ -88,6 +99,8 @@ public:
      * @param aNodeId The ID of the node to be removed.
      */
     void RemoveRule( int aNodeId ) override;
+
+    void UpdateData();
 
 private:
     std::vector<RULE_TREE_NODE> buildElectricalRuleTreeNodes( int& aParentId );
@@ -151,6 +164,8 @@ private:
      */
     void closeRuleEntryView( int aNodeId );
 
+    void showConditionMatches( int aNodeId );
+
     /**
      * Validates if the rule name is unique for the given node ID.
      *
@@ -170,14 +185,32 @@ private:
      */
     bool deleteTreeNodeData( const int& aNodeId );
 
+     // PROGRESS_REPORTER calls
+    bool updateUI() override;
+
+    void AdvancePhase( const wxString& aMessage ) override;
+
+    void highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl, const wxDataViewItem& item );
+
 protected:
+    BOARD_DESIGN_SETTINGS& bds() { return m_currentBoard->GetDesignSettings(); }
+
+    BOARD*          m_currentBoard; // the board currently on test
     PCB_EDIT_FRAME* m_frame;
+    REPORTER*       m_reporter;
+    DRC_TOOL*       m_drcTool;
+    wxDataViewCtrl* m_markerDataView;
 
 private:
     int                         m_nodeId;
     std::vector<RULE_TREE_NODE> m_ruleTreeNodeDatas;
     PANEL_DRC_RULE_EDITOR*      m_ruleEditorPanel;
     PANEL_DRC_GROUP_HEADER*     m_groupHeaderPanel;
+
+    std::shared_ptr<RC_ITEMS_PROVIDER> m_markersProvider;
+    RC_TREE_MODEL* m_markersTreeModel;
+    int m_severities;
+    std::vector<BOARD_ITEM*> m_violatedBoarditems;
 };
 
 #endif //DIALOG_DRC_RULE_EDITOR_H

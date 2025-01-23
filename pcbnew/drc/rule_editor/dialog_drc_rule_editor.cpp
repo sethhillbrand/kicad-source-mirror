@@ -19,6 +19,7 @@
 
 
 #include <widgets/wx_progress_reporters.h>
+#include <widgets/appearance_controls.h>
 
 #include <confirm.h>
 #include <pcb_edit_frame.h>
@@ -59,12 +60,16 @@ const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes,
 }
 
 
-DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
-        RULE_EDITOR_DIALOG_BASE( aFrame, _( "Design Rule Builder" ),
-                                 aFrame->FromDIP( wxSize( 980, 680 ) ) ),
-        m_frame( aFrame ), 
-        m_nodeId( 0 )
+DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wxWindow* aParent ) :
+        RULE_EDITOR_DIALOG_BASE( aParent, _( "Design Rule Builder" ),
+                                 aParent->FromDIP( wxSize( 980, 680 ) ) ),
+        PROGRESS_REPORTER_BASE( 1 ),
+        m_nodeId( 0 ), 
+        m_reporter( nullptr )
 {
+    m_frame = aEditorFrame;
+    m_currentBoard = m_frame->GetBoard();
+
     m_ruleTreeCtrl->DeleteAllItems();
 
     m_ruleTreeNodeDatas = GetDefaultRuleTreeItems();
@@ -78,7 +83,22 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aFrame ) :
         m_infoBar->ShowMessage( _( "Project is missing or read-only. Settings will not be "
                                    "editable." ),
                                 wxICON_WARNING );
-    }
+    }   
+
+    PCBNEW_SETTINGS* cfg = m_frame->GetPcbNewSettings();
+    m_severities = cfg->m_DrcDialog.severities;
+
+    m_markersProvider = std::make_shared<DRC_ITEMS_PROVIDER>(
+            m_currentBoard, MARKER_BASE::MARKER_DRC, MARKER_BASE::MARKER_DRAWING_SHEET );
+
+    m_markerDataView =  new wxDataViewCtrl( this, wxID_ANY, wxDefaultPosition, 
+            wxDefaultSize, wxDV_ROW_LINES | wxDV_SINGLE );
+
+    m_markersTreeModel = new RC_TREE_MODEL( m_frame, m_markerDataView );
+    m_markerDataView->AssociateModel( m_markersTreeModel );
+    m_markersTreeModel->Update( m_markersProvider, m_severities );
+
+    m_markerDataView->Hide();
 }
 
 
@@ -243,6 +263,12 @@ void DIALOG_DRC_RULE_EDITOR::RuleTreeItemSelectionChanged(
                 [this]( int aNodeId, wxString aRuleName )
                 {
                     return this->validateRuleName( aNodeId, aRuleName );
+                } );
+
+        m_ruleEditorPanel->SetShowMatchesCallBack(
+                [this]( int aNodeId )
+                {
+                    this->showConditionMatches( aNodeId );
                 } );
 
         m_groupHeaderPanel = nullptr;
@@ -810,6 +836,70 @@ void DIALOG_DRC_RULE_EDITOR::closeRuleEntryView( int aNodeId )
 }
 
 
+void DIALOG_DRC_RULE_EDITOR::showConditionMatches( int aNodeId )
+{
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aNodeId );    
+    auto m_nodeTypeMap =
+            static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( nodeDetail->m_nodeTypeMap.value_or( 0 ) );
+
+    wxString ruleString = R"(  
+             (version 1)
+             (rule )";
+
+    switch( m_nodeTypeMap )
+    {
+    default:
+    {
+        if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( m_nodeTypeMap ) )
+        {
+            auto it = dynamic_pointer_cast<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>(
+                    nodeDetail->m_nodeData );
+
+            wxString ruleName = it->GetRuleName();
+            ruleName.Replace( " ", "_" );
+
+            ruleString.Append( ruleName );
+            ruleString.Append( "\n(constraint " );
+
+            if( m_nodeTypeMap == BASIC_CLEARANCE )
+            {
+                ruleString.Append( "edge_clearance (min " );
+                ruleString.Append( wxString::Format( "%.1f", it->GetNumericInputValue() ) );
+                ruleString.Append( "mm))" );
+            }
+
+            ruleString.Append( "\n" + it->GetRuleCondition() + "\n" + ")" );
+        }
+    }
+    break;
+    }   
+
+    m_drcTool = m_frame->GetToolManager()->GetTool<DRC_TOOL>();
+    std::vector<std::shared_ptr<DRC_RULE>> rules;
+
+    DRC_RULES_PARSER ruleParser( ruleString, _( "DRC rule" ) );
+    ruleParser.Parse( rules, m_reporter );
+
+    try
+    {
+        wxFileName emptyFileName;
+        m_drcTool->GetDRCEngine()->InitEngine( rules[0] );
+        m_drcTool->RunTests( this, false, false, false );
+
+        wxDataViewItem rootItem( nullptr ); // Start from the root
+        highlightViolatedBoardItems( m_markerDataView, rootItem );
+
+        m_frame->FocusOnItems( m_violatedBoarditems );
+    }
+    catch( PARSE_ERROR& )
+    {
+        return;
+    }
+
+    Show( false );
+}
+
+
 bool DIALOG_DRC_RULE_EDITOR::validateRuleName( int aNodeId, wxString aRuleName )
 {
     auto it = std::find_if( m_ruleTreeNodeDatas.begin(), m_ruleTreeNodeDatas.end(),
@@ -883,4 +973,127 @@ RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
              .m_nodeTypeMap = aConstraintType,
              .m_childNodes = aChildNodes,
              .m_nodeData = std::make_shared<RULE_EDITOR_DATA_BASE>( baseData ) };
+}
+
+
+bool DIALOG_DRC_RULE_EDITOR::updateUI()
+{
+    return !m_cancelled;
+}
+
+
+void DIALOG_DRC_RULE_EDITOR::AdvancePhase( const wxString& aMessage )
+{
+    PROGRESS_REPORTER_BASE::AdvancePhase( aMessage );
+    SetCurrentProgress( 0.0 );
+}
+
+
+void DIALOG_DRC_RULE_EDITOR::UpdateData()
+{
+    m_markersTreeModel->Update( m_markersProvider, m_severities );
+}
+
+
+void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl*       dataViewCtrl, 
+    const wxDataViewItem& item )
+{
+    wxDataViewModel* model = dataViewCtrl->GetModel();
+    if( !model )
+        return;
+
+    RC_TREE_NODE* node = RC_TREE_MODEL::ToNode( item );
+
+    wxDataViewItemArray children;
+    model->GetChildren( item, children );
+
+    auto getActiveLayers =
+            []( BOARD_ITEM* aItem ) -> LSET
+            {
+                if( aItem->Type() == PCB_PAD_T )
+                {
+                    PAD* pad = static_cast<PAD*>( aItem );
+                    LSET layers;
+
+                    for( int layer : aItem->GetLayerSet().Seq() )
+                    {
+                        if( pad->FlashLayer( layer ) )
+                            layers.set( layer );
+                    }
+
+                    return layers;
+                }
+                else
+                {
+                    return aItem->GetLayerSet();
+                }
+            };
+
+    for( const auto& child : children )
+    {
+        RC_TREE_NODE* childNode = RC_TREE_MODEL::ToNode( child );
+
+        if( !childNode )
+        {
+            continue;
+        }
+
+        if (childNode->m_Type != RC_TREE_NODE::NODE_TYPE::MARKER
+            && childNode->m_Type != RC_TREE_NODE::NODE_TYPE::COMMENT)
+        {
+            std::shared_ptr<RC_ITEM> rc_item = childNode->m_RcItem;
+            const KIID& itemID = RC_TREE_MODEL::ToUUID( child );
+            BOARD_ITEM* item = m_currentBoard->GetItem( itemID );
+
+            if( !item || item == DELETED_BOARD_ITEM::GetInstance() )
+            {
+                continue;
+            }
+
+            PCB_LAYER_ID principalLayer;
+            LSET         violationLayers;
+            BOARD_ITEM*  a = m_currentBoard->GetItem( rc_item->GetMainItemID() );
+            BOARD_ITEM*  b = m_currentBoard->GetItem( rc_item->GetAuxItemID() );
+            BOARD_ITEM*  c = m_currentBoard->GetItem( rc_item->GetAuxItem2ID() );
+            BOARD_ITEM*  d = m_currentBoard->GetItem( rc_item->GetAuxItem3ID() );
+
+             principalLayer = UNDEFINED_LAYER;
+
+            if( a || b || c || d )
+                violationLayers = LSET::AllLayersMask();
+
+            // Try to initialize principalLayer to a valid layer.  Note that some markers have
+            // a layer set to UNDEFINED_LAYER, so we may need to keep looking.
+
+            for( BOARD_ITEM* it : { a, b, c, d } )
+            {
+                if( !it )
+                    continue;
+
+                LSET layersList = getActiveLayers( it );
+                violationLayers &= layersList;
+
+                if( principalLayer <= UNDEFINED_LAYER && layersList.count() )
+                    principalLayer = layersList.Seq().front();
+            }
+
+            if( violationLayers.count() )
+                principalLayer = violationLayers.Seq().front();
+            else if( !( principalLayer <= UNDEFINED_LAYER ) )
+                violationLayers.set( principalLayer );
+
+            WINDOW_THAWER thawer( m_frame );
+
+            if( principalLayer > UNDEFINED_LAYER && ( violationLayers & m_currentBoard->GetVisibleLayers() ).none() )
+                m_frame->GetAppearancePanel()->SetLayerVisible( principalLayer, true );
+
+            if( principalLayer > UNDEFINED_LAYER && m_currentBoard->GetVisibleLayers().test( principalLayer ) )
+                m_frame->SetActiveLayer( principalLayer );
+
+            m_violatedBoarditems.push_back( item );            
+        }
+
+        // Recursively traverse the child items
+        highlightViolatedBoardItems( dataViewCtrl, child );
+    }
 }
