@@ -106,7 +106,9 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
     m_btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
     m_btnRemove = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
     m_btnClose = new wxButton( this, wxID_ANY, "Close" );
+    m_btnShowMatches = new wxButton( this, wxID_ANY, "Show Matches" );
     buttonSizer->Add( m_btnSave, 0, wxALL, 5 );
+    buttonSizer->Add( m_btnShowMatches, 0, wxALL, 5 );
     buttonSizer->Add( m_btnRemove, 0, wxALL, 5 );
     buttonSizer->Add( m_btnClose, 0, wxALL, 5 );
     
@@ -115,6 +117,10 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
     m_btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
     m_btnRemove->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
     m_btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+    m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
+                            this );
+
+    m_btnShowMatches->Enable( !m_constraintData->IsNew() );
 
     m_checkSyntaxBtnCtrl->SetBitmap( KiBitmapBundle( BITMAPS::drc ) );
 
@@ -183,6 +189,8 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
     m_btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
     m_btnRemove->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
     m_btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+    m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
+                              this );
 }
 
 
@@ -338,8 +346,11 @@ void PANEL_DRC_RULE_EDITOR::onSaveButtonClicked( wxCommandEvent& aEvent )
 
     if( m_callBackSave )
     {
-        m_callBackSave( m_constraintData->GetId() ); // Invoke the callback
+        m_callBackSave( m_constraintData->GetId() );
     }
+
+    if( m_validationSucceeded )
+        m_btnShowMatches->Enable( true );
 }
 
 
@@ -347,7 +358,7 @@ void PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked( wxCommandEvent& aEvent )
 {
     if( m_callBackRemove )
     {
-        m_callBackRemove( m_constraintData->GetId() ); // Invoke the callback
+        m_callBackRemove( m_constraintData->GetId() );
     }
 }
 
@@ -356,7 +367,7 @@ void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& aEvent )
 {
     if( m_callBackClose )
     {
-        m_callBackClose( m_constraintData->GetId() ); // Invoke the callback
+        m_callBackClose( m_constraintData->GetId() );
     }
 }
 
@@ -873,5 +884,14 @@ void PANEL_DRC_RULE_EDITOR::onContextMenu( wxMouseEvent& event )
 
     case wxID_ZOOM_IN: m_textConditionCtrl->ZoomIn(); break;
     case wxID_ZOOM_OUT: m_textConditionCtrl->ZoomOut(); break;
+    }
+}
+
+
+void PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked( wxCommandEvent& event )
+{ 
+    if( m_callBackShowMatches )
+    {
+        m_callBackShowMatches( m_constraintData->GetId() ); 
     }
 }

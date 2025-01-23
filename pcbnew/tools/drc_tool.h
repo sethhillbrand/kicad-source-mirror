@@ -36,6 +36,7 @@
 
 class PCB_EDIT_FRAME;
 class DIALOG_DRC;
+class DIALOG_DRC_RULE_EDITOR;
 class DRC_ITEM;
 class WX_PROGRESS_REPORTER;
 class DRC_ENGINE;
@@ -99,6 +100,11 @@ public:
 
     wxString FixDRCErrorMenuText( const std::shared_ptr<RC_ITEM>& aDRCItem );
     void FixDRCError( const std::shared_ptr<RC_ITEM>& aDRCItem );
+    void ShowDesignRuleEditorDialog( wxWindow* aParent );
+
+    int ShowDesignRuleEditorDialog( const TOOL_EVENT& aEvent );
+
+    void DestroyDesignRuleEditorDialog();
 
 private:
     ///< Set up handlers for various events.
@@ -115,6 +121,7 @@ private:
     PCB_EDIT_FRAME*             m_editFrame;
     BOARD*                      m_pcb;
     DIALOG_DRC*                 m_drcDialog;
+    DIALOG_DRC_RULE_EDITOR*     m_designRuleEditorDlg;
     bool                        m_drcRunning;
     std::shared_ptr<DRC_ENGINE> m_drcEngine;
 };

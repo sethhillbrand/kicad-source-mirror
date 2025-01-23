@@ -78,6 +78,12 @@ public:
         m_callBackRuleNameValidation = aCallbackRuleNameValidation;
     }
 
+    void SetShowMatchesCallBack(
+            std::function<void( int aNodeId )> aCallBackShowMatches )
+    {
+        m_callBackShowMatches = aCallBackShowMatches;
+    }
+
     bool GetIsValidationSucceeded() { return m_validationSucceeded; }
 
     std::string GetValidationMessage() { return m_validationMessage; }
@@ -146,10 +152,13 @@ private:
      */
     void onContextMenu( wxMouseEvent& aEvent ) override;
 
+    void onShowMatchesButtonClicked( wxCommandEvent& aEvent );
+
 private:
     wxButton*         m_btnSave;
     wxButton*         m_btnRemove;
     wxButton*         m_btnClose;
+    wxButton*         m_btnShowMatches;
     wxComboCtrl*      m_comboCtrl;
     SCINTILLA_TRICKS* m_scintillaTricks;
     std::vector<int>  m_validLayers;
@@ -171,6 +180,7 @@ private:
     std::function<void( int aNodeId )>                     m_callBackRemove;
     std::function<void( int aNodeId )>                     m_callBackClose;
     std::function<bool( int aNodeId, wxString aRuleName )> m_callBackRuleNameValidation;
+    std::function<void( int aNodeId )> m_callBackShowMatches;
 
     wxRegEx m_netClassRegex;
     wxRegEx m_netNameRegex;
