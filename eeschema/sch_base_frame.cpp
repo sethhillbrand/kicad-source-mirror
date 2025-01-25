@@ -43,7 +43,7 @@
 #include <confirm.h>
 #include <preview_items/selection_area.h>
 #include <project_sch.h>
-#include <symbol_library.h>
+#include <libraries/legacy_symbol_library.h>
 #include <symbol_lib_table.h>
 #include <sch_base_frame.h>
 #include <dialogs/dialog_sch_find.h>
@@ -69,7 +69,7 @@
 
 
 LIB_SYMBOL* SchGetLibSymbol( const LIB_ID& aLibId, SYMBOL_LIB_TABLE* aLibTable,
-                             SYMBOL_LIB* aCacheLib, wxWindow* aParent, bool aShowErrorMsg )
+                             LEGACY_SYMBOL_LIB* aCacheLib, wxWindow* aParent, bool aShowErrorMsg )
 {
     wxCHECK_MSG( aLibTable, nullptr, wxS( "Invalid symbol library table." ) );
 
@@ -264,8 +264,8 @@ void SCH_BASE_FRAME::UpdateStatusBar()
 LIB_SYMBOL* SCH_BASE_FRAME::GetLibSymbol( const LIB_ID& aLibId, bool aUseCacheLib,
                                           bool aShowErrorMsg )
 {
-    SYMBOL_LIB* cache =
-            ( aUseCacheLib ) ? PROJECT_SCH::SchLibs( &Prj() )->GetCacheLibrary() : nullptr;
+    LEGACY_SYMBOL_LIB* cache =
+            ( aUseCacheLib ) ? PROJECT_SCH::LegacySchLibs( &Prj() )->GetCacheLibrary() : nullptr;
 
     return SchGetLibSymbol( aLibId, PROJECT_SCH::SchSymbolLibTable( &Prj() ), cache, this,
                             aShowErrorMsg );
@@ -873,7 +873,7 @@ void SCH_BASE_FRAME::setSymWatcher( const LIB_ID* aID )
 
 void SCH_BASE_FRAME::OnSymChange( wxFileSystemWatcherEvent& aEvent )
 {
-    SYMBOL_LIBS* libs = PROJECT_SCH::SchLibs( &Prj() );
+    LEGACY_SYMBOL_LIBS* libs = PROJECT_SCH::LegacySchLibs( &Prj() );
 
     wxLogTrace( "KICAD_LIB_WATCH", "OnSymChange: %s, watcher file: %s",
                 aEvent.GetPath().GetFullPath(), m_watcherFileName.GetFullPath() );
