@@ -1107,9 +1107,10 @@ void InvokeSchEditSymbolLibTable( KIWAY* aKiway, wxWindow *aParent )
     wxString          msg;
     wxString          currentLib;
 
+    // TODO(JE)
     // Don't allow editing project tables if no project is open
-    if( !aKiway->Prj().IsNullProject() )
-        projectTable = PROJECT_SCH::SchSymbolLibTable( &aKiway->Prj() );
+    // if( !aKiway->Prj().IsNullProject() )
+    //     projectTable = PROJECT_SCH::SchSymbolLibTable( &aKiway->Prj() );
 
     if( symbolEditor )
     {

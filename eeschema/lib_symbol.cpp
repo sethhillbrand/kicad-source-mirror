@@ -825,7 +825,20 @@ std::vector<SCH_PIN*> LIB_SYMBOL::GetPins() const
 
 int LIB_SYMBOL::GetPinCount()
 {
-    return (int) GetPins( 0 /* all units */, 1 /* single body style */ ).size();
+    int pins = 0;
+    LIB_SYMBOL_SPTR            parent = m_parent.lock();
+    const LIB_ITEMS_CONTAINER& drawItems = parent ? parent->m_drawings : m_drawings;
+
+    for( const SCH_ITEM& item : drawItems[SCH_PIN_T] )
+    {
+        // De Morgan variant filtering:
+        if( item.m_bodyStyle && ( item.m_bodyStyle != 1 ) )
+            continue;
+
+        ++pins;
+    }
+
+    return pins;
 }
 
 
