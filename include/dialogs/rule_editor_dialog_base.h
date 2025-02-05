@@ -32,6 +32,7 @@
 #include <dialogs/rule_editor_data_base.h>
 
 class WX_INFOBAR;
+class wxDragImage;
 
 /**
  * Enumeration representing the available context menu options for the rule editor tree.
@@ -117,7 +118,7 @@ public:
 
     /**
      * Gets the tree control used for displaying and managing rules.
-     * 
+     *
      * @return A pointer to the wxTreeCtrl instance.
      */
     wxTreeCtrl* GetRuleTreeCtrl() { return m_ruleTreeCtrl; }
@@ -129,9 +130,9 @@ public:
 
     /**
      * Static method to retrieve the rule editor dialog instance associated with a given window.
-     * 
+     *
      * @param aWindow The window for which the dialog is being retrieved.
-     * 
+     *
      * @return A pointer to the RULE_EDITOR_DIALOG_BASE instance, or nullptr if not found.
      */
     static RULE_EDITOR_DIALOG_BASE* GetDialog( wxWindow* aWindow );
@@ -139,7 +140,7 @@ public:
     /**
      * Pure virtual method to get the default rule tree items.
      * Must be implemented by derived classes.
-     * 
+     *
      * @return A vector of default RULE_TREE_NODE items.
      */
     virtual std::vector<RULE_TREE_NODE> GetDefaultRuleTreeItems() = 0;
@@ -147,7 +148,7 @@ public:
     /**
      * Pure virtual method to add a new rule to the tree.
      * Must be implemented by derived classes.
-     * 
+     *
      * @param aRuleTreeItemData The data associated with the new rule.
      */
     virtual void AddNewRule( RULE_TREE_ITEM_DATA* aRuleTreeItemData ) = 0;
@@ -155,7 +156,7 @@ public:
     /**
      * Pure virtual method to duplicate an existing rule in the tree.
      * Must be implemented by derived classes.
-     * 
+     *
      * @param aRuleTreeItemData The data of the rule to duplicate.
      */
     virtual void DuplicateRule( RULE_TREE_ITEM_DATA* aRuleTreeItemData ) = 0;
@@ -163,7 +164,7 @@ public:
     /**
      * Pure virtual method to remove a rule from the tree.
      * Must be implemented by derived classes.
-     * 
+     *
      * @param aNodeId The ID of the rule node to remove.
      */
     virtual void RemoveRule( int aNodeId ) = 0;
@@ -171,7 +172,7 @@ public:
     /**
      * Pure virtual method to handle tree item selection changes.
      * Must be implemented by derived classes.
-     * 
+     *
      * @param aCurrentRuleTreeItemData The data of the newly selected rule tree item.
      */
     virtual void RuleTreeItemSelectionChanged( RULE_TREE_ITEM_DATA* aCurrentRuleTreeItemData ) = 0;
@@ -179,7 +180,7 @@ public:
     /**
      * Pure virtual method to update the rule tree item data.
      * Must be implemented by derived classes.
-     * 
+     *
      * @param aRuleTreeItemData The data of the rule tree item to be updated.
      */
     virtual void UpdateRuleTypeTreeItemData( RULE_TREE_ITEM_DATA* aRuleTreeItemData ) = 0;
@@ -187,10 +188,10 @@ public:
     /**
      * Pure virtual method to verify if a context menu option for a rule tree item should be enabled.
      * Must be implemented by derived classes.
-     * 
+     *
      * @param aRuleTreeItemData The data of the rule tree item to check.
      * @param aOption The context menu option to verify.
-     * 
+     *
      * @return true if the option should be enabled, false otherwise.
      */
     virtual bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA* aRuleTreeItemData,
@@ -198,28 +199,28 @@ public:
 
     /**
      * Initializes the rule tree by adding nodes, setting up the structure, and saving its state.
-     * 
+     *
      * @param aRuleTreeNodes A vector of rule tree nodes with their IDs, names, and child nodes.
      */
     void InitRuleTreeItems( const std::vector<RULE_TREE_NODE>& aRuleTreeNodes );
 
     /**
      * Retrieves the current content panel.
-     * 
+     *
      * @return A pointer to the current content panel.
      */
     wxPanel* GetContentPanel() { return m_contentPanel; }
 
     /**
      * Replaces the current content panel with a new one based on the selected constraint type.
-     * 
+     *
      * @param aContentPanel The new content panel to replace the existing one.
      */
     void SetContentPanel( wxPanel* aContentPanel );
 
     /**
      * Adds a new rule tree item under the specified parent and updates the tree history.
-     * 
+     *
      * @param aRuleTreeNode The node data to add.
      * @param aParentTreeItemId The parent item's ID.
      */
@@ -228,21 +229,21 @@ public:
 
     /**
      * Retrieves the currently selected rule tree item data.
-     * 
+     *
      * @return A pointer to the currently selected rule tree item data.
      */
     RULE_TREE_ITEM_DATA* GetCurrentlySelectedRuleTreeItemData() { return m_selectedTreeItemData; }
 
     /**
      * Retrieves the previously selected rule tree item ID.
-     * 
+     *
      * @return The ID of the previously selected rule tree item.
      */
     wxTreeItemId GetPreviouslySelectedRuleTreeItemId() { return m_previouslySelectedTreeItemId; }
 
     /**
      * Updates the text of a specified rule tree item.
-     * 
+     *
      * @param aItemId The ID of the tree item to update.
      * @param aItemText The new text to set for the tree item.
      */
@@ -250,14 +251,14 @@ public:
 
     /**
      * Enables or disables controls within the rule editor dialog.
-     * 
+     *
      * @param aEnable true to enable the controls, false to disable them.
      */
     void SetControlsEnabled( bool aEnable );
 
     /**
      * Deletes a tree item and removes its corresponding node from history.
-     * 
+     *
      * @param aItemId The tree item ID to delete.
      * @param aNodeId The node ID to remove from history.
      */
@@ -273,7 +274,7 @@ protected:
 private:
     /**
      * Populates the rule tree with nodes and their children.
-     * 
+     *
      * @param aRuleTreeNodes All rule tree nodes.
      * @param aRuleTreeNode Current node to add.
      * @param aParentTreeItemId Parent item ID for the current node.
@@ -284,84 +285,84 @@ private:
 
     /**
      * Handles right-click on a rule tree item to create a context menu.
-     * 
+     *
      * @param aEvent The right-click event.
      */
     void onRuleTreeItemRightClick( wxTreeEvent& aEvent );
 
     /**
      * Updates action buttons based on the selected tree item.
-     * 
+     *
      * @param aEvent The selection change event.
      */
     void onRuleTreeItemSelectionChanged( wxTreeEvent& aEvent );
 
     /**
      * Creates a new rule when the "New Rule" option is clicked.
-     * 
+     *
      * @param aEvent The command event triggered by the click.
      */
     void onNewRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
      * Duplicates the selected rule when "Duplicate Rule" is clicked.
-     * 
+     *
      * @param aEvent The command event triggered by the click.
      */
     void onDuplicateRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
      * Deletes the selected rule when "Delete Rule" is clicked.
-     * 
+     *
      * @param aEvent The command event triggered by the click.
      */
     void onDeleteRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
      * Moves a rule item up in the tree when "Move Up" is clicked.
-     * 
+     *
      * @param aEvent The command event triggered by the click.
      */
     void onMoveUpRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
      * Moves a rule item down in the tree when "Move Down" is clicked.
-     * 
+     *
      * @param aEvent The command event triggered by the click.
      */
     void onMoveDownRuleOptionClick( wxCommandEvent& aEvent );
 
     /**
      * Initiates drag operation for a tree item on mouse down.
-     * 
+     *
      * @param aEvent The mouse down event.
      */
     void onRuleTreeItemLeftDown( wxMouseEvent& aEvent );
 
    /**
      * Handles drag motion to move the item along with the cursor.
-     * 
+     *
      * @param aEvent The mouse motion event during drag.
      */
     void onRuleTreeItemMouseMotion( wxMouseEvent& aEvent );
 
     /**
      * Completes the drag operation on mouse release.
-     * 
+     *
      * @param aEvent The mouse release event.
      */
     void onRuleTreeItemLeftUp( wxMouseEvent& aEvent );
 
     /**
      * Applies filter to the rule tree based on the search string.
-     * 
+     *
      * @param aEvent The command event containing the filter string.
      */
     void onFilterSearch( wxCommandEvent& aEvent );
 
     /**
      * Recursively filters tree items to show only those matching the filter.
-     * 
+     *
      * @param aItem The tree item to check.
      * @param aFilter The filter string.
      * @return True if the item matches the filter or has visible children.
@@ -370,7 +371,7 @@ private:
 
     /**
      * Saves the state of a tree item to history.
-     * 
+     *
      * @param aItem The item to save.
      * @param aNodeId The node ID (optional).
      */
@@ -378,7 +379,7 @@ private:
 
     /**
      * Restores a tree item from history and appends it under a parent.
-     * 
+     *
      * @param aParent The parent item to append to.
      * @param aNodeId The node ID to restore.
      */
@@ -386,7 +387,7 @@ private:
 
     /**
      * Appends a new rule item to the tree.
-     * 
+     *
      * @param aRuleTreeNode The rule tree node for the new item.
      * @param aParentTreeItemId Parent item ID.
      * @return The newly created tree item ID.
@@ -396,7 +397,7 @@ private:
 
     /**
      * Retrieves child nodes of a given parent node.
-     * 
+     *
      * @param aNodes List of all nodes.
      * @param aParentId The parent node ID.
      * @param aResult A vector to store child nodes.
@@ -406,7 +407,7 @@ private:
 
     /**
      * Recursively moves all child nodes of a source item to a destination during drag.
-     * 
+     *
      * @param aSrcTreeItemId Source item ID.
      * @param aDestTreeItemId Destination item ID.
      */
