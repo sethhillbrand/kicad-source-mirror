@@ -96,12 +96,6 @@ public:
 
     int ExcludeMarker( const TOOL_EVENT& aEvent );
 
-    void ShowDesignRuleEditorDialog( wxWindow* aParent );
-
-    int ShowDesignRuleEditorDialog( const TOOL_EVENT& aEvent );
-
-    void DestroyDesignRuleEditorDialog();
-
 private:
     ///< Set up handlers for various events.
     void setTransitions() override;
@@ -117,7 +111,6 @@ private:
     PCB_EDIT_FRAME*             m_editFrame;
     BOARD*                      m_pcb;
     DIALOG_DRC*                 m_drcDialog;
-    DIALOG_DRC_RULE_EDITOR*     m_designRuleEditorDlg;
     bool                        m_drcRunning;
     std::shared_ptr<DRC_ENGINE> m_drcEngine;
 };

@@ -455,6 +455,7 @@ set( PCBNEW_CLASS_SRCS
     tools/generator_tool.cpp
     tools/generator_tool_pns_proxy.cpp
     tools/multichannel_tool.cpp
+    tools/drc_rule_editor_tool.cpp
 
     footprint_preview_panel.cpp
     footprint_tree_pane.cpp
