@@ -49,7 +49,6 @@ DRC_TOOL::DRC_TOOL() :
         m_editFrame( nullptr ),
         m_pcb( nullptr ),
         m_drcDialog( nullptr ),
-        m_designRuleEditorDlg( nullptr ),
         m_drcRunning( false )
 {
 }
@@ -68,9 +67,6 @@ void DRC_TOOL::Reset( RESET_REASON aReason )
     {
         if( m_drcDialog )
             DestroyDRCDialog();
-
-        if( m_designRuleEditorDlg )
-            DestroyDesignRuleEditorDialog();
 
         m_pcb = m_editFrame->GetBoard();
         m_drcEngine = m_pcb->GetDesignSettings().m_DRCEngine;
@@ -156,9 +152,6 @@ void DRC_TOOL::RunTests( PROGRESS_REPORTER* aProgressReporter, bool aRefillZones
     if( m_drcDialog )
         wxWindowDisabler  disabler( /* disable everything except: */ m_drcDialog );
 
-     if( m_designRuleEditorDlg )
-        wxWindowDisabler disabler( /* disable everything except: */ m_designRuleEditorDlg );
-
     m_drcRunning = true;
 
     if( m_drcDialog )
@@ -233,9 +226,6 @@ void DRC_TOOL::updatePointers( bool aDRCWasCancelled )
 
     if( m_drcDialog )
         m_drcDialog->UpdateData();
-
-    if( m_designRuleEditorDlg )
-        m_designRuleEditorDlg->UpdateData();
 }
 
 
@@ -306,163 +296,9 @@ int DRC_TOOL::ExcludeMarker( const TOOL_EVENT& aEvent )
 }
 
 
-wxString DRC_TOOL::FixDRCErrorMenuText( const std::shared_ptr<RC_ITEM>& aDRCItem )
-{
-    if( aDRCItem->GetErrorCode() == DRCE_LIB_FOOTPRINT_ISSUES )
-    {
-        return frame()->GetRunMenuCommandDescription( PCB_ACTIONS::showFootprintLibTable );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_LIB_FOOTPRINT_MISMATCH )
-    {
-        return frame()->GetRunMenuCommandDescription( PCB_ACTIONS::updateFootprint );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_FOOTPRINT_FILTERS )
-    {
-        return frame()->GetRunMenuCommandDescription( PCB_ACTIONS::changeFootprint );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_SCHEMATIC_PARITY
-                || aDRCItem->GetErrorCode() == DRCE_MISSING_FOOTPRINT
-                || aDRCItem->GetErrorCode() == DRCE_DUPLICATE_FOOTPRINT
-                || aDRCItem->GetErrorCode() == DRCE_EXTRA_FOOTPRINT )
-    {
-        return frame()->GetRunMenuCommandDescription( PCB_ACTIONS::updatePcbFromSchematic );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_FOOTPRINT_TYPE_MISMATCH
-                || aDRCItem->GetErrorCode() == DRCE_FOOTPRINT )
-    {
-        return _( "Edit Footprint Properties..." );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_PADSTACK
-                || aDRCItem->GetErrorCode() == DRCE_PADSTACK_INVALID )
-    {
-        return _( "Edit Pad Properties..." );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_TEXT_HEIGHT
-                || aDRCItem->GetErrorCode() == DRCE_TEXT_THICKNESS
-                || aDRCItem->GetErrorCode() == DRCE_MIRRORED_TEXT_ON_FRONT_LAYER
-                || aDRCItem->GetErrorCode() == DRCE_NONMIRRORED_TEXT_ON_BACK_LAYER )
-    {
-        BOARD_ITEM* item = m_pcb->ResolveItem( aDRCItem->GetMainItemID() );
-
-        if( item && BaseType( item->Type() ) == PCB_DIMENSION_T )
-            return _( "Edit Dimension Properties..." );
-        else if( item && item->Type() == PCB_FIELD_T )
-            return _( "Edit Field Properties..." );
-        else
-            return _( "Edit Text Properties..." );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_DANGLING_TRACK
-                || aDRCItem->GetErrorCode() == DRCE_DANGLING_VIA )
-    {
-        return frame()->GetRunMenuCommandDescription( PCB_ACTIONS::cleanupTracksAndVias );
-    }
-
-    return wxEmptyString;
-}
-
-
-void DRC_TOOL::FixDRCError( const std::shared_ptr<RC_ITEM>& aDRCItem )
-{
-    if( aDRCItem->GetErrorCode() == DRCE_LIB_FOOTPRINT_ISSUES )
-    {
-        m_toolMgr->RunAction( PCB_ACTIONS::showFootprintLibTable );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_LIB_FOOTPRINT_MISMATCH
-            || aDRCItem->GetErrorCode() == DRCE_FOOTPRINT_FILTERS )
-    {
-        bool        updateMode = aDRCItem->GetErrorCode() == DRCE_LIB_FOOTPRINT_MISMATCH;
-        BOARD_ITEM* item = m_pcb->ResolveItem( aDRCItem->GetMainItemID() );
-
-        if( FOOTPRINT* footprint = dynamic_cast<FOOTPRINT*>( item ) )
-        {
-            DIALOG_EXCHANGE_FOOTPRINTS dialog( m_editFrame, footprint, updateMode, true );
-            dialog.ShowQuasiModal();
-        }
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_SCHEMATIC_PARITY
-                || aDRCItem->GetErrorCode() == DRCE_MISSING_FOOTPRINT
-                || aDRCItem->GetErrorCode() == DRCE_DUPLICATE_FOOTPRINT
-                || aDRCItem->GetErrorCode() == DRCE_EXTRA_FOOTPRINT )
-    {
-        m_toolMgr->RunAction( PCB_ACTIONS::updatePcbFromSchematic );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_FOOTPRINT_TYPE_MISMATCH
-                || aDRCItem->GetErrorCode() == DRCE_FOOTPRINT
-                || aDRCItem->GetErrorCode() == DRCE_PADSTACK
-                || aDRCItem->GetErrorCode() == DRCE_PADSTACK_INVALID
-                || aDRCItem->GetErrorCode() == DRCE_TEXT_HEIGHT
-                || aDRCItem->GetErrorCode() == DRCE_TEXT_THICKNESS
-                || aDRCItem->GetErrorCode() == DRCE_MIRRORED_TEXT_ON_FRONT_LAYER
-                || aDRCItem->GetErrorCode() == DRCE_NONMIRRORED_TEXT_ON_BACK_LAYER)
-
-    {
-        BOARD_ITEM* item = m_pcb->ResolveItem( aDRCItem->GetMainItemID() );
-
-        m_editFrame->OnEditItemRequest( item );
-    }
-    else if( aDRCItem->GetErrorCode() == DRCE_DANGLING_TRACK
-                || aDRCItem->GetErrorCode() == DRCE_DANGLING_VIA )
-    {
-        m_toolMgr->RunAction( PCB_ACTIONS::cleanupTracksAndVias );
-    }
-}
-
-
-void DRC_TOOL::ShowDesignRuleEditorDialog( wxWindow* aParent )
-{
-    bool show_dlg_modal = true;
-
-    // the dialog needs a parent frame. if it is not specified, this is the PCB editor frame
-    // specified in DRC_TOOL class.
-    if( !aParent )
-    {
-        // if any parent is specified, the dialog is modal.
-        // if this is the default PCB editor frame, it is not modal
-        show_dlg_modal = false;
-        aParent = m_editFrame;
-    }
-
-    Activate();
-    m_toolMgr->RunAction( PCB_ACTIONS::selectionClear );
-
-    if( !m_designRuleEditorDlg )
-    {
-        m_designRuleEditorDlg = new DIALOG_DRC_RULE_EDITOR( m_editFrame, aParent );
-        updatePointers( false );
-
-        if( show_dlg_modal )
-            m_designRuleEditorDlg->ShowModal();
-        else
-            m_designRuleEditorDlg->Show( true );
-    }
-    else // The dialog is just not visible (because the user has double clicked on an error item)
-    {
-        updatePointers( false );
-        m_designRuleEditorDlg->Show( true );
-    }
-}
-
-
-int DRC_TOOL::ShowDesignRuleEditorDialog( const TOOL_EVENT& aEvent )
-{
-    ShowDesignRuleEditorDialog( nullptr );
-    return 0;
-}
-
-
-void DRC_TOOL::DestroyDesignRuleEditorDialog()
-{
-    if( m_designRuleEditorDlg )
-    {
-        m_designRuleEditorDlg->Destroy();
-        m_designRuleEditorDlg = nullptr;
-    }
-}
-
-
 void DRC_TOOL::setTransitions()
 {
-    Go( &DRC_TOOL::ShowDesignRuleEditorDialog, PCB_ACTIONS::runDRC.MakeEvent() );
+    Go( &DRC_TOOL::ShowDRCDialog,              PCB_ACTIONS::runDRC.MakeEvent() );
     Go( &DRC_TOOL::PrevMarker,                 ACTIONS::prevMarker.MakeEvent() );
     Go( &DRC_TOOL::NextMarker,                 ACTIONS::nextMarker.MakeEvent() );
     Go( &DRC_TOOL::ExcludeMarker,              ACTIONS::excludeMarker.MakeEvent() );
