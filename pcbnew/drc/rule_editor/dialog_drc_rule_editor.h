@@ -29,6 +29,8 @@
 #include <tool/tool_manager.h>
 #include <drc/drc_rtree.h>
 
+#include <widgets/progress_reporter_base.h>
+
 #include <dialogs/rule_editor_dialog_base.h>
 #include "panel_drc_rule_editor.h"
 #include "drc_rule_editor_utils.h"

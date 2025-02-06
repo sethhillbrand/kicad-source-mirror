@@ -388,6 +388,9 @@ void PCB_EDIT_FRAME::doReCreateMenuBar()
     toolsMenu->Add( ACTIONS::showCalculatorTools );
 
     toolsMenu->AppendSeparator();
+    toolsMenu->Add( PCB_ACTIONS::drcRuleEditor );
+
+    toolsMenu->AppendSeparator();
     toolsMenu->Add( ACTIONS::showFootprintEditor );
     toolsMenu->Add( PCB_ACTIONS::updateFootprints );
 
