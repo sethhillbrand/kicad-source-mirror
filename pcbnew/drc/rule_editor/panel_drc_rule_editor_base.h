@@ -60,7 +60,6 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 		wxStaticText* m_staticText711;
 		wxStaticLine* m_staticline111;
 		wxBoxSizer* m_LayersComboBoxSizer;
-		wxStaticLine* m_staticline4;
 
 		// Virtual event handlers, override them in your derived class
 		virtual void onSyntaxHelp( wxHyperlinkEvent& event ) { event.Skip(); }
