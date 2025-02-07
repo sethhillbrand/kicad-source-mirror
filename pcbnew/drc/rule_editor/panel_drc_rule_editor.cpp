@@ -100,23 +100,24 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
     };
 
     m_layerListCmbCtrl = new DRC_RE_LAYER_SELECTION_COMBO( this, layerIDs, layerNameGetter );
-    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 );
+    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND , 5 ); // Remove wxEXPAND
+
     
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
-    m_btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
+   /* m_btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
     m_btnRemove = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
-    m_btnClose = new wxButton( this, wxID_ANY, "Close" );
+    m_btnClose = new wxButton( this, wxID_ANY, "Close" );*/
     m_btnShowMatches = new wxButton( this, wxID_ANY, "Show Matches" );
-    buttonSizer->Add( m_btnSave, 0, wxALL, 5 );
+    /*buttonSizer->Add( m_btnSave, 0, wxALL, 5 );*/
     buttonSizer->Add( m_btnShowMatches, 0, wxALL, 5 );
-    buttonSizer->Add( m_btnRemove, 0, wxALL, 5 );
-    buttonSizer->Add( m_btnClose, 0, wxALL, 5 );
+    /*buttonSizer->Add( m_btnRemove, 0, wxALL, 5 );
+    buttonSizer->Add( m_btnClose, 0, wxALL, 5 );*/
     
     bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
     
-    m_btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
+    /*m_btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
     m_btnRemove->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
-    m_btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+    m_btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );*/
     m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
                             this );
 
@@ -186,9 +187,9 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
         m_helpWindow = nullptr;
     }   
 
-    m_btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
+    /*m_btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
     m_btnRemove->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
-    m_btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );
+    m_btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );*/
     m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
                               this );
 }
@@ -374,8 +375,8 @@ void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& aEvent )
 
 void PANEL_DRC_RULE_EDITOR::RefreshScreen()
 {
-    m_btnSave->SetLabelText( "Update" );
-    m_btnRemove->SetLabelText( "Delete" );
+ /*   m_btnSave->SetLabelText( "Update" );
+    m_btnRemove->SetLabelText( "Delete" );*/
 }
 
 

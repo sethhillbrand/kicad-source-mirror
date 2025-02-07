@@ -61,8 +61,7 @@ const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes,
 
 
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wxWindow* aParent ) :
-        RULE_EDITOR_DIALOG_BASE( aParent, _( "Design Rule Editor" ),
-                                 aParent->FromDIP( wxSize( 800, 600 ) ) ),
+        RULE_EDITOR_DIALOG_BASE( aParent, _( "Design Rule Editor" ), wxSize( 980, 600 ) ),
         PROGRESS_REPORTER_BASE( 1 ),
         m_nodeId( 0 ), 
         m_reporter( nullptr )
