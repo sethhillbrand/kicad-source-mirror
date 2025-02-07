@@ -452,7 +452,6 @@ private:
     RULE_TREE_ITEM_DATA*        m_selectedTreeItemData;
     wxTreeItemId                m_previouslySelectedTreeItemId;
     wxTreeItemId                m_draggedItem;
-    wxPoint                     m_draggedItemStartPos;
     wxDragImage*                m_dragImage;
 
     std::unordered_map<int, std::tuple<wxString, std::vector<int>, wxTreeItemId>> m_treeHistoryData;

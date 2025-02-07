@@ -73,7 +73,6 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
         m_title( aTitle ), 
         m_selectedTreeItemData( nullptr ),
         m_previouslySelectedTreeItemId( nullptr ), 
-        m_draggedItemStartPos( 0, 0 ),
         m_dragImage( nullptr ), 
         m_isDragging( false ), 
         m_enableMoveUp( false ),
@@ -81,7 +80,8 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
         m_enableAddRule( false ), 
         m_enableDuplicateRule( false ),
         m_enableDeleteRule( false ), 
-        m_preventSelectionChange( false )
+        m_preventSelectionChange( false ), 
+        m_draggedItem( nullptr )
 {
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
     SetSizer( mainSizer );
@@ -191,6 +191,21 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                                     &RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick, this );
     m_deleteRuleButton->Bind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick,
                               this );
+
+   wxBoxSizer* m_sizerButtons = new wxBoxSizer( wxHORIZONTAL );
+
+   wxStdDialogButtonSizer* m_sdbSizer1 = new wxStdDialogButtonSizer();
+    wxButton*                m_sdbSizer1OK = new wxButton( this, wxID_OK );
+   m_sdbSizer1OK->SetLabelText( "Save" );
+    m_sdbSizer1->AddButton( m_sdbSizer1OK );
+    wxButton* m_sdbSizer1Cancel = new wxButton( this, wxID_CANCEL );
+    m_sdbSizer1->AddButton( m_sdbSizer1Cancel );
+    m_sdbSizer1->Realize();
+
+    m_sizerButtons->Add( m_sdbSizer1, 1, wxEXPAND, 5 );
+
+
+    mainSizer->Add( m_sizerButtons, 0, wxALL | wxEXPAND, 5 );
 }
 
 
@@ -609,9 +624,17 @@ void RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick( wxCommandEvent& aEvent 
 
 void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown( wxMouseEvent& aEvent )
 {
-    m_draggedItemStartPos = aEvent.GetPosition();
+    wxPoint      pt = aEvent.GetPosition();
     int          flags;
-    wxTreeItemId item = m_ruleTreeCtrl->HitTest( m_draggedItemStartPos, flags );
+    wxTreeItemId item = m_ruleTreeCtrl->HitTest( pt, flags );
+
+    // Check if click is on the expand/collapse button
+    if( flags & wxTREE_HITTEST_ONITEMBUTTON )
+    {
+        // Prevent wxEVT_LEFT_DOWN from propagating further
+        aEvent.Skip(); 
+        return;
+    }
 
     if( item.IsOk() )
     {
@@ -769,7 +792,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
                                  "Invalid move: Items can only be moved within the same parent." );
         }
 
-        m_draggedItem = wxTreeItemId();
+        m_draggedItem = nullptr;
     }
 
     aEvent.Skip();

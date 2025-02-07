@@ -120,6 +120,8 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDERTAIL, wxSTC_MARK_EMPTY );
 	m_textConditionCtrl->SetSelBackground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHT ) );
 	m_textConditionCtrl->SetSelForeground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHTTEXT ) );
+	m_textConditionCtrl->SetMaxSize( wxSize( -1,100 ) );
+
 	bSizer15->Add( m_textConditionCtrl, 0, wxBOTTOM|wxEXPAND|wxRIGHT, 5 );
 
 	wxBoxSizer* bSizer16;
@@ -156,12 +158,8 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 
 	m_LayersComboBoxSizer = new wxBoxSizer( wxVERTICAL );
 
-	m_LayersComboBoxSizer->SetMinSize( wxSize( -1,70 ) );
 
-	bLayerSizer->Add( m_LayersComboBoxSizer, 1, wxEXPAND, 5 );
-
-	m_staticline4 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-	bLayerSizer->Add( m_staticline4, 0, wxEXPAND | wxALL, 5 );
+	bLayerSizer->Add( m_LayersComboBoxSizer, 1, wxALL|wxEXPAND, 5 );
 
 
 	bContentSizer->Add( bLayerSizer, 0, wxEXPAND|wxTOP, 15 );
