@@ -77,6 +77,8 @@ void LIB_TABLE_GRID_TRICKS::showPopupMenu( wxMenu& menu, wxGridEvent& aEvent )
 
     bool showSettings = false;
 
+    // TODO(JE) library tables
+#if 0
     if( m_sel_row_count == 1 && tbl->At( m_sel_row_start )->SupportsSettingsDialog() )
     {
         showSettings = true;
@@ -84,6 +86,7 @@ void LIB_TABLE_GRID_TRICKS::showPopupMenu( wxMenu& menu, wxGridEvent& aEvent )
                      wxString::Format( _( "Library settings for %s..." ),
                                        tbl->GetValue( m_sel_row_start, 2 ) ) );
     }
+#endif
 
     if( showActivate || showDeactivate || showSetVisible || showUnsetVisible || showSettings )
         menu.AppendSeparator();
@@ -125,9 +128,12 @@ void LIB_TABLE_GRID_TRICKS::doPopupSelection( wxCommandEvent& event )
     }
     else if( menu_id == LIB_TABLE_GRID_TRICKS_LIBRARY_SETTINGS )
     {
+        // TODO(JE) library tables
+#if 0
         LIB_TABLE_ROW* row = tbl->At( m_sel_row_start );
         row->Refresh();
         row->ShowSettingsDialog( m_grid->GetParent() );
+#endif
     }
     else
     {

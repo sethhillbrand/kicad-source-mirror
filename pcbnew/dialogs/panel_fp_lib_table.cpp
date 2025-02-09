@@ -73,46 +73,49 @@
 #include <project_pcb.h>
 #include <common.h>
 #include <dialog_HTML_reporter_base.h>
+#include <libraries/library_manager.h>
 #include <widgets/wx_html_report_box.h>
 
 
 /**
  * This class builds a wxGridTableBase by wrapping an #FP_LIB_TABLE object.
  */
-class FP_LIB_TABLE_GRID : public LIB_TABLE_GRID, public FP_LIB_TABLE
+class FP_LIB_TABLE_GRID : public LIB_TABLE_GRID
 {
     friend class PANEL_FP_LIB_TABLE;
     friend class FP_GRID_TRICKS;
 
 protected:
-    LIB_TABLE_ROW* at( size_t aIndex ) override { return &m_rows.at( aIndex ); }
+    LIBRARY_TABLE_ROW& at( size_t aIndex ) override { return m_table.Rows().at( aIndex ); }
 
-    size_t size() const override { return m_rows.size(); }
+    size_t size() const override { return m_table.Rows().size(); }
 
-    LIB_TABLE_ROW* makeNewRow() override
+    LIBRARY_TABLE_ROW makeNewRow() override
     {
-        return dynamic_cast< LIB_TABLE_ROW* >( new FP_LIB_TABLE_ROW );
+        return LIBRARY_TABLE_ROW();
     }
 
-    LIB_TABLE_ROWS_ITER begin() override { return m_rows.begin(); }
+    LIBRARY_TABLE_ROWS_ITER begin() override { return m_table.Rows().begin(); }
 
-    LIB_TABLE_ROWS_ITER insert( LIB_TABLE_ROWS_ITER aIterator, LIB_TABLE_ROW* aRow ) override
+    LIBRARY_TABLE_ROWS_ITER insert( LIBRARY_TABLE_ROWS_ITER aIterator,
+                                    const LIBRARY_TABLE_ROW& aRow ) override
     {
-        return m_rows.insert( aIterator, aRow );
+        return m_table.Rows().insert( aIterator, aRow );
     }
 
-    void push_back( LIB_TABLE_ROW* aRow ) override { m_rows.push_back( aRow ); }
+    void push_back( const LIBRARY_TABLE_ROW& aRow ) override { m_table.Rows().push_back( aRow ); }
 
-    LIB_TABLE_ROWS_ITER erase( LIB_TABLE_ROWS_ITER aFirst, LIB_TABLE_ROWS_ITER aLast ) override
+    LIBRARY_TABLE_ROWS_ITER erase( LIBRARY_TABLE_ROWS_ITER aFirst,
+                                   LIBRARY_TABLE_ROWS_ITER aLast ) override
     {
-        return m_rows.erase( aFirst, aLast );
+        return m_table.Rows().erase( aFirst, aLast );
     }
 
 public:
 
-    FP_LIB_TABLE_GRID( const FP_LIB_TABLE& aTableToEdit )
+    FP_LIB_TABLE_GRID( const LIBRARY_TABLE& aTableToEdit ) :
+            m_table( aTableToEdit )
     {
-        m_rows = aTableToEdit.m_rows;
     }
 
     void SetValue( int aRow, int aCol, const wxString &aValue ) override
@@ -124,10 +127,9 @@ public:
         // If setting a filepath, attempt to auto-detect the format
         if( aCol == COL_URI )
         {
-            LIB_TABLE_ROW* row = at( (size_t) aRow );
-            wxString       fullURI = row->GetFullURI( true );
-
-            PCB_IO_MGR::PCB_FILE_T pluginType = PCB_IO_MGR::GuessPluginTypeFromLibPath( fullURI );
+            LIBRARY_TABLE_ROW& row = at( (size_t) aRow );
+            wxString uri = LIBRARY_MANAGER::ExpandURI( row.URI(), Pgm().GetSettingsManager().Prj() );
+            PCB_IO_MGR::PCB_FILE_T pluginType = PCB_IO_MGR::GuessPluginTypeFromLibPath( uri );
 
             if( pluginType == PCB_IO_MGR::FILE_TYPE_NONE )
                 pluginType = PCB_IO_MGR::KICAD_SEXP;
@@ -135,6 +137,10 @@ public:
             SetValue( aRow, COL_TYPE, PCB_IO_MGR::ShowType( pluginType ) );
         }
     }
+
+private:
+    /// Working copy of a table
+    LIBRARY_TABLE m_table;
 };
 
 
@@ -156,21 +162,21 @@ protected:
 
         if( tbl->GetNumberRows() > aRow )
         {
-            LIB_TABLE_ROW*  row = tbl->at( (size_t) aRow );
-            const wxString& options = row->GetOptions();
+            LIBRARY_TABLE_ROW& row = tbl->at( static_cast<size_t>( aRow ) );
+            const wxString& options = row.Options();
             wxString        result = options;
             std::map<std::string, UTF8> choices;
 
-            PCB_IO_MGR::PCB_FILE_T pi_type = PCB_IO_MGR::EnumFromStr( row->GetType() );
+            PCB_IO_MGR::PCB_FILE_T pi_type = PCB_IO_MGR::EnumFromStr( row.Type() );
             IO_RELEASER<PCB_IO>    pi( PCB_IO_MGR::PluginFind( pi_type ) );
             pi->GetLibraryOptions( &choices );
 
-            DIALOG_PLUGIN_OPTIONS dlg( m_dialog, row->GetNickName(), choices, options, &result );
+            DIALOG_PLUGIN_OPTIONS dlg( m_dialog, row.Nickname(), choices, options, &result );
             dlg.ShowModal();
 
             if( options != result )
             {
-                row->SetOptions( result );
+                row.SetOptions( result );
                 m_grid->Refresh();
             }
         }
@@ -180,6 +186,8 @@ protected:
     /// spreadsheet formatted text.
     void paste_text( const wxString& cb_text ) override
     {
+        // TODO(JE) library tables
+#if 0
         FP_LIB_TABLE_GRID* tbl = (FP_LIB_TABLE_GRID*) m_grid->GetTable();
         size_t             ndx = cb_text.find( "(fp_lib_table" );
 
@@ -222,6 +230,7 @@ protected:
 
             m_grid->AutoSizeColumns( false );
         }
+#endif
     }
 
 
@@ -269,8 +278,8 @@ void PANEL_FP_LIB_TABLE::setupGrid( WX_GRID* aGrid )
                 [this]( WX_GRID* grid, int row ) -> wxString
                 {
                     auto* libTable = static_cast<FP_LIB_TABLE_GRID*>( grid->GetTable() );
-                    auto* tableRow = static_cast<FP_LIB_TABLE_ROW*>( libTable->at( row ) );
-                    PCB_IO_MGR::PCB_FILE_T       fileType = tableRow->GetFileType();
+                    LIBRARY_TABLE_ROW& tableRow = libTable->at( row );
+                    PCB_IO_MGR::PCB_FILE_T       fileType = PCB_IO_MGR::EnumFromStr( tableRow.Type() );
                     const IO_BASE::IO_FILE_DESC& pluginDesc = m_supportedFpFiles.at( fileType );
 
                     if( pluginDesc.m_IsFile )
@@ -324,7 +333,12 @@ PANEL_FP_LIB_TABLE::PANEL_FP_LIB_TABLE( DIALOG_EDIT_LIBRARY_TABLES* aParent, PRO
         m_projectBasePath( aProjectBasePath ),
         m_parent( aParent )
 {
-    m_global_grid->SetTable( new FP_LIB_TABLE_GRID( *aGlobalTable ), true );
+    std::optional<LIBRARY_TABLE*> table =
+        Pgm().GetLibraryManager().Table( LIBRARY_TABLE_TYPE::FOOTPRINT,
+                                         LIBRARY_TABLE_SCOPE::GLOBAL );
+    wxASSERT( table );
+
+    m_global_grid->SetTable( new FP_LIB_TABLE_GRID( *table.value() ), true );
 
     // add Cut, Copy, and Paste to wxGrids
     m_path_subs_grid->PushEventHandler( new GRID_TRICKS( m_path_subs_grid ) );
@@ -348,7 +362,10 @@ PANEL_FP_LIB_TABLE::PANEL_FP_LIB_TABLE( DIALOG_EDIT_LIBRARY_TABLES* aParent, PRO
 
     if( aProjectTable )
     {
+        // TODO(JE) library tables
+#if 0
         m_project_grid->SetTable( new FP_LIB_TABLE_GRID( *aProjectTable ), true );
+#endif
         setupGrid( m_project_grid );
     }
     else
@@ -667,6 +684,8 @@ void PANEL_FP_LIB_TABLE::moveUpHandler( wxCommandEvent& event )
     m_cur_grid->OnMoveRowUp(
             [&]( int row )
             {
+                // TODO(JE) library tables
+#if 0
                 FP_LIB_TABLE_GRID*                          tbl = cur_model();
                 boost::ptr_vector<LIB_TABLE_ROW>::auto_type move_me = tbl->m_rows.release( tbl->m_rows.begin() + row );
 
@@ -675,6 +694,7 @@ void PANEL_FP_LIB_TABLE::moveUpHandler( wxCommandEvent& event )
                 // Update the wxGrid
                 wxGridTableMessage msg( tbl, wxGRIDTABLE_NOTIFY_ROWS_INSERTED, row - 1, 0 );
                 tbl->GetView()->ProcessTableMessage( msg );
+#endif
             } );
 }
 
@@ -684,6 +704,8 @@ void PANEL_FP_LIB_TABLE::moveDownHandler( wxCommandEvent& event )
     m_cur_grid->OnMoveRowDown(
             [&]( int row )
             {
+                // TODO(JE) library tables
+#if 0
                 FP_LIB_TABLE_GRID*                          tbl = cur_model();
                 boost::ptr_vector<LIB_TABLE_ROW>::auto_type move_me = tbl->m_rows.release( tbl->m_rows.begin() + row );
 
@@ -692,6 +714,7 @@ void PANEL_FP_LIB_TABLE::moveDownHandler( wxCommandEvent& event )
                 // Update the wxGrid
                 wxGridTableMessage msg( tbl, wxGRIDTABLE_NOTIFY_ROWS_INSERTED, row, 0 );
                 tbl->GetView()->ProcessTableMessage( msg );
+#endif
             } );
 }
 
@@ -980,7 +1003,12 @@ void PANEL_FP_LIB_TABLE::onReset( wxCommandEvent& event )
         wxGridTableBase* table = m_global_grid->GetTable();
         m_global_grid->DestroyTable( table );
 
-        m_global_grid->SetTable( new FP_LIB_TABLE_GRID( *m_globalTable ), true );
+        std::optional<LIBRARY_TABLE*> newTable =
+                Pgm().GetLibraryManager().Table( LIBRARY_TABLE_TYPE::FOOTPRINT,
+                                                 LIBRARY_TABLE_SCOPE::GLOBAL );
+        wxASSERT( newTable );
+
+        m_global_grid->SetTable( new FP_LIB_TABLE_GRID( *newTable.value() ), true );
         m_global_grid->PopEventHandler( true );
         setupGrid( m_global_grid );
         m_parent->m_GlobalTableChanged = true;
@@ -1014,6 +1042,8 @@ bool PANEL_FP_LIB_TABLE::TransferDataFromWindow()
 
     if( verifyTables() )
     {
+        // TODO(JE) library tables
+#if 0
         if( *global_model() != *m_globalTable )
         {
             m_parent->m_GlobalTableChanged = true;
@@ -1025,7 +1055,7 @@ bool PANEL_FP_LIB_TABLE::TransferDataFromWindow()
             m_parent->m_ProjectTableChanged = true;
             m_projectTable->TransferRows( project_model()->m_rows );
         }
-
+#endif
         return true;
     }
 
