@@ -22,11 +22,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include "magic_enum.hpp"
+#include "nlohmann/json.hpp"
+#include "passive_action/agent/agent_action.h"
+#include "passive_action/agent/agent_action_handle.h"
 #include <algorithm>
 #include <api/api_handler_sch.h>
 #include <api/api_server.h>
 #include <base_units.h>
 #include <bitmaps.h>
+#include <memory>
 #include <symbol_library.h>
 #include <confirm.h>
 #include <connection_graph.h>
@@ -105,6 +110,15 @@
 #include <project/project_local_settings.h>
 #include <toolbars_sch_editor.h>
 
+#include <context/sch/sch_copilot_global_context.h>
+#include <context/sch/details/sch_netlist.h>
+#include <copilot/sch_copilot_ui.h>
+#include <copilot/sch_agent_action_executor.h>
+#include <copilot/sch_copilot_cmd.h>
+#include <copilot/sch_copilot_context_interface.h>
+#include <copilot/sch_copilot_context_initialization.h>
+#include <copilot/sch_agent_api.h>
+
 #ifdef KICAD_IPC_API
 #include <api/api_plugin_manager.h>
 #include <api/api_utils.h>
@@ -140,13 +154,19 @@ wxDEFINE_EVENT( EDA_EVT_SCHEMATIC_CHANGED, wxCommandEvent );
 SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         SCH_BASE_FRAME( aKiway, aParent, FRAME_SCH, wxT( "Eeschema" ), wxDefaultPosition,
                         wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE, SCH_EDIT_FRAME_NAME ),
-        m_ercDialog( nullptr ),
-        m_diffSymbolDialog( nullptr ),
-        m_symbolFieldsTableDialog( nullptr ),
-        m_netNavigator( nullptr ),
-        m_highlightedConnChanged( false ),
-        m_designBlocksPane( nullptr )
+    m_ercDialog( nullptr ),
+    m_diffSymbolDialog( nullptr ),
+    m_symbolFieldsTableDialog( nullptr ),
+    m_netNavigator( nullptr ),
+    m_highlightedConnChanged( false ),
+    m_designBlocksPane( nullptr ),
+    m_copilotContextCache(new SCH_COPILOT_GLOBAL_CONTEXT ),
+    m_symbolCmdContext(new SYMBOL_CMD_CONTEXT),
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]() -> COPILOT_GLOBAL_CONTEXT const&{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } )),
+    m_copilotAgentActionHdl(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);})),
+    m_copilotSelectionHdl(std::make_shared<SELECTION_HDL_T>([this](){ return nlohmann::json(GetSelection()).dump(); }))
 {
+    InitCopilotContext();
     m_maximizeByDefault = true;
     m_schematic = new SCHEMATIC( nullptr );
     m_schematic->SetSchematicHolder( this );
@@ -183,6 +203,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     root.push_back( &Schematic().Root() );
     SetCurrentSheet( root );
 
+    InitCopilotPanel();
     setupTools();
     setupUIConditions();
     ReCreateMenuBar();
@@ -244,6 +265,8 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.AddPane( m_selectionFilterPanel, defaultSchSelectionFilterPaneInfo( this ) );
 
     m_auimgr.AddPane( m_designBlocksPane, defaultDesignBlocksPaneInfo( this ) );
+
+    InitCopilotAui();
 
     m_auimgr.AddPane( createHighlightedNetNavigator(), defaultNetNavigatorPaneInfo() );
 
@@ -328,7 +351,10 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         netNavigatorPane.Float();
 
     if( aui_cfg.design_blocks_show )
-        SetAuiPaneSize( m_auimgr, designBlocksPane, aui_cfg.design_blocks_panel_docked_width, -1 );
+        SetAuiPaneSize( m_auimgr, designBlocksPane,
+            aui_cfg.design_blocks_panel_docked_width, -1 );
+
+    LoadCopilotCnf();
 
     if( aui_cfg.hierarchy_panel_docked_width > 0 )
     {
@@ -929,6 +955,8 @@ void SCH_EDIT_FRAME::CreateScreens()
         SCH_SCREEN* screen = new SCH_SCREEN( m_schematic );
         SetScreen( screen );
     }
+
+    m_copilotContextCache->is_newest = false;
 }
 
 
@@ -1170,6 +1198,9 @@ void SCH_EDIT_FRAME::OnModify()
 
     if( m_isClosing )
         return;
+
+    m_copilotContextCache->is_newest = false;
+
 
     if( GetCanvas() )
         GetCanvas()->Refresh();
@@ -1862,6 +1893,8 @@ void SCH_EDIT_FRAME::ShowChangedLanguage()
     bool panel_shown = design_blocks_pane_info.IsShown();
     design_blocks_pane_info.Caption( _( "Design Blocks" ) );
     design_blocks_pane_info.Show( panel_shown );
+
+    CopilotPanelShowChangedLanguage();
 
     m_auimgr.GetPane( m_hierarchy ).Caption( _( "Schematic Hierarchy" ) );
     m_auimgr.GetPane( m_selectionFilterPanel ).Caption( _( "Selection Filter" ) );

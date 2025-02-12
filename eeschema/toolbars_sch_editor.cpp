@@ -189,6 +189,9 @@ std::optional<TOOLBAR_CONFIGURATION> SCH_EDIT_TOOLBAR_SETTINGS::DefaultToolbarCo
         config.AppendSeparator()
               .AppendAction( SCH_ACTIONS::showPcbNew );
 
+        config.AppendSeparator()
+              .AppendAction( ACTIONS::toggleCopilotPanel );
+
         // Insert all the IPC plugins here on the toolbar
         // TODO (ISM): Move this to individual actions for each script
         config.AppendControl( ACTION_TOOLBAR_CONTROLS::ipcScripting );
@@ -232,3 +235,4 @@ void SCH_EDIT_FRAME::configureToolbars()
 
     RegisterCustomToolbarControlFactory( ACTION_TOOLBAR_CONTROLS::ipcScripting, pluginControlFactory );
 }
+

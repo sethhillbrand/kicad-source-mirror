@@ -1,0 +1,69 @@
+{
+  "version": 9,
+  "configurePresets": [
+      {
+          "name": "base",
+          "hidden": true,
+          "generator": "Ninja",
+          "binaryDir": "${sourceDir}/build",
+          "toolchainFile": "/Users/admin/code/kicad-mac-builder/toolchain/kicad-mac-builder.cmake",
+          "cacheVariables": {
+              "KICAD_BUILD_QA_TESTS": "OFF",
+              "KICAD_BUILD_I18N": "ON",
+              "KICAD_SCRIPTING_WXPYTHON": "ON"
+          }
+      },
+      {
+          "name": "macos",
+          "hidden": true,
+          "inherits": [
+              "base"
+          ]
+      },
+      {
+          "name": "m1-debug",
+          "displayName": "m1 Debug",
+          "description": "Sets debug build type and m1 arch",
+          "inherits": "macos",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "Debug"
+          }
+      },
+      {
+          "name": "m1-release",
+          "displayName": "m1 Release",
+          "description": "Sets release build type",
+          "inherits": "macos",
+          "cacheVariables": {
+              "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+          }
+      }
+  ],  
+  "buildPresets": [
+      {
+        "name": "kicad",
+        "configurePreset": "m1-debug",
+        "configuration": "Debug",
+        "targets": [
+          "install"  
+        ]
+      }
+    ],
+  "workflowPresets": [
+      {
+          "name": "kicad",
+          "description": "kicad",
+          "displayName": "kicad",
+          "steps": [
+              {
+                "type": "configure",
+                "name": "m1-debug"
+              },
+              {
+                "type": "build",
+                "name": "kicad"
+              }
+            ]
+      }
+  ]
+}

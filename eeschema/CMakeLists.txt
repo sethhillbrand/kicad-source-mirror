@@ -567,6 +567,7 @@ set_source_files_properties( ${CMAKE_SOURCE_DIR}/common/single_top.cpp PROPERTIE
 target_link_libraries( eeschema
     kicommon
     ${wxWidgets_LIBRARIES}
+    assistant
     )
 
 # the main Eeschema program, in DSO form.
@@ -609,6 +610,8 @@ add_subdirectory( navlib )
 
 target_link_libraries( eeschema_kiface_objects PUBLIC eeschema_navlib)
 
+target_link_libraries( eeschema_kiface_objects PUBLIC assistant)
+
 add_dependencies( eeschema_kiface_objects eeschema_navlib )
 
 add_library( eeschema_kiface MODULE
@@ -626,6 +629,7 @@ target_link_libraries( eeschema_kiface
         Boost::headers
         ${wxWidgets_LIBRARIES}
         ${NGSPICE_LIBRARY}
+        assistant
     )
 
 if( MSVC )

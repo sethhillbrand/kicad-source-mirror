@@ -67,6 +67,7 @@
 #include <view/view_controls.h>
 #include <wx/textdlg.h>
 #include <project/net_settings.h>
+#include "copilot/sch_copilot_symbol_ctx_menu.h"
 
 
 class SYMBOL_UNIT_MENU : public ACTION_MENU
@@ -724,6 +725,13 @@ bool SCH_EDIT_TOOL::Init()
     selToolMenu.AddMenu( makeConvertToMenu(),          toChangeCondition, 200 );
 
     selToolMenu.AddItem( SCH_ACTIONS::cleanupSheetPins, sheetHasUndefinedPins, 250 );
+
+    if( true )
+    {
+        selToolMenu.AddSeparator( 275 );
+        selToolMenu.AddMenu(new SCH_COPILOT_SYMBOL_CTX_MENU( m_selectionTool ) ,  S_C::SingleSymbol, 275);
+    }                  
+
 
     selToolMenu.AddSeparator( 300 );
     selToolMenu.AddItem( ACTIONS::cut,                 S_C::IdleSelection, 300 );

@@ -30,6 +30,7 @@
 #include <sch_bitmap.h>
 #include <sch_line_wire_bus_tool.h>
 #include <tool/tool_action.h>
+#include <copilot/sch_copilot_actions.h>
 
 class DESIGN_BLOCK;
 
@@ -122,7 +123,7 @@ TOOL_ACTION SCH_ACTIONS::showDesignBlockPanel( TOOL_ACTION_ARGS()
         .Scope( AS_GLOBAL )
         .FriendlyName( _( "Design Blocks" ) )
         .Tooltip( _( "Show/hide design blocks library" ) )
-        .Icon( BITMAPS::search_tree ) );
+        .Icon( BITMAPS::search_tree ) );   
 
 TOOL_ACTION SCH_ACTIONS::saveSheetAsDesignBlock( TOOL_ACTION_ARGS()
         .Name( "eeschema.SchDesignBlockControl.saveSheetAsDesignBlock" )

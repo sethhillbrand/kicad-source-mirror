@@ -25,6 +25,7 @@
 #include <kiface_base.h>
 #include <kiway.h>
 #include <board_design_settings.h>
+#include <memory>
 #include <pgm_base.h>
 #include <pcb_edit_frame.h>
 #include <3d_viewer/eda_3d_viewer_frame.h>
@@ -115,6 +116,15 @@
 #include <footprint_chooser_frame.h>
 #include <toolbars_pcb_editor.h>
 
+#include <copilot/pcb_copilot_cmd.h>
+#include <copilot/pcb_copilot_context_interface.h>
+#include <context/pcb/pcb_copilot_global_context.h>
+#include <copilot/pcb_copilot_ui.h>
+#include <copilot/pcb_copilot_context_initialization.h>
+#include <copilot/pcb_agent_action_executor.h>
+#include <copilot/pcb_agent_api.h>
+#include <context/pcb/details/board_ir.h>
+
 #ifdef KICAD_IPC_API
 #include <api/api_server.h>
 #include <api/api_handler_pcb.h>
@@ -186,8 +196,16 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_boardSetupDlg( nullptr ),
     m_designBlocksPane( nullptr ),
     m_importProperties( nullptr ),
-    m_eventCounterTimer( nullptr )
+    m_eventCounterTimer( nullptr ),
+    m_copilotContextCache(new PCB_COPILOT_GLOBAL_CONTEXT ),
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]()->COPILOT_GLOBAL_CONTEXT const&{
+         UpdateCopilotContextCache();
+        return *m_copilotContextCache;
+    } )),
+    m_copilotAgentActionHdl(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);})),
+    m_copilotSelectionHdl(std::make_shared<SELECTION_HDL_T>([this](){ return GetSelectionJsonString(); }))
 {
+    InitCopilotContext();
     m_maximizeByDefault = true;
     m_showBorderAndTitleBlock = true;   // true to display sheet references
     m_SelTrackWidthBox = nullptr;
@@ -245,6 +263,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     // PCB drawings start in the upper left corner.
     GetScreen()->m_Center = false;
 
+    InitCopilotPanel();
     setupTools();
     setupUIConditions();
 
@@ -321,6 +340,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
                       .BestSize( m_selectionFilterPanel->GetBestSize().x, -1 )
                       .FloatingSize( m_selectionFilterPanel->GetBestSize() )
                       .CloseButton( false ) );
+    InitCopilotAui();
+
 
     m_auimgr.AddPane( m_designBlocksPane, EDA_PANE().Name( DesignBlocksPaneName() )
                       .Right().Layer( 5 )
@@ -436,6 +457,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
             PrepareLayerIndicator();
         });
     }
+
+    LoadCopilotCnf();
 
     GetToolManager()->PostAction( ACTIONS::zoomFitScreen );
 
@@ -619,6 +642,7 @@ void PCB_EDIT_FRAME::SetBoard( BOARD* aBoard, bool aBuildConnectivity,
 
     // reload the drawing-sheet
     SetPageSettings( aBoard->GetPageSettings() );
+    m_copilotContextCache->is_newest = false;
 }
 
 
@@ -1557,6 +1581,21 @@ void PCB_EDIT_FRAME::SaveSettings( APP_SETTINGS_BASE* aCfg )
             cfg->m_AuiPanels.design_blocks_panel_float_width = designBlocksPane.floating_size.x;
         }
 
+        if( m_copilotPanel )
+        {
+
+            wxAuiPaneInfo& copilotPane = m_auimgr.GetPane( CopilotPanelName() );
+            cfg->m_AuiPanels.copilot_panel_show = copilotPane.IsShown();
+
+            if( copilotPane.IsDocked() )
+                cfg->m_AuiPanels.copilot_panel_docked_width = m_copilotPanel->GetSize().x;
+            else
+            {
+                cfg->m_AuiPanels.copilot_panel_float_height = copilotPane.floating_size.y;
+                cfg->m_AuiPanels.copilot_panel_float_width = copilotPane.floating_size.x;
+            }
+        }
+
         m_designBlocksPane->SaveSettings();
     }
 }
@@ -1789,6 +1828,8 @@ void PCB_EDIT_FRAME::ShowChangedLanguage()
     // call my base class
     PCB_BASE_EDIT_FRAME::ShowChangedLanguage();
 
+    CopilotPanelShowChangedLanguage();
+
     m_auimgr.GetPane( m_appearancePanel ).Caption( _( "Appearance" ) );
     m_auimgr.GetPane( m_selectionFilterPanel ).Caption( _( "Selection Filter" ) );
     m_auimgr.GetPane( m_propertiesPanel ).Caption( _( "Properties" ) );
@@ -1844,6 +1885,7 @@ void PCB_EDIT_FRAME::OnModify()
     if( !GetTitle().StartsWith( wxT( "*" ) ) )
         UpdateTitle();
 
+    m_copilotContextCache->is_newest = false;
 }
 
 

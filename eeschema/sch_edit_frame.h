@@ -27,6 +27,7 @@
 #ifndef  SCH_EDIT_FRAME_H
 #define  SCH_EDIT_FRAME_H
 
+#include <memory>
 #include <stddef.h>
 #include <vector>
 #include <wx/cmndata.h>
@@ -42,6 +43,9 @@
 #include <math/box2.h>
 #include <sch_base_frame.h>
 #include <template_fieldnames.h>
+#include <context/copilot_global_context_handle.h>
+#include <passive_action/agent/agent_action_handle.h>
+#include "copilot/sch_copilot_ds_fwd.h"
 
 class SCH_ITEM;
 class EDA_ITEM;
@@ -595,7 +599,7 @@ public:
      * @param aItem The junction to delete
      */
     void DeleteJunction( SCH_COMMIT* aCommit, SCH_ITEM* aItem );
-    
+
     void UpdateHopOveredWires( SCH_ITEM* aItem );
 
     void FlipBodyStyle( SCH_SYMBOL* aSymbol );
@@ -708,6 +712,8 @@ public:
     bool SaveSelectionToDesignBlock( const LIB_ID& aLibId );
 
     SCH_DESIGN_BLOCK_PANE* GetDesignBlockPane() const { return m_designBlocksPane; }
+
+    WEBVIEW_CONTAINER* GetCopilotPane() const { return m_copilotPanel; }
 
     void SetNetListerCommand( const wxString& aCommand ) { m_netListerCommand = aCommand; }
 
@@ -1026,6 +1032,73 @@ private:
 #ifdef KICAD_IPC_API
     std::unique_ptr<API_HANDLER_SCH> m_apiHandler;
 #endif
+
+public:
+    // Copilot UI interfaces
+    void InitCopilotPanel();
+
+    void InitCopilotAui();
+
+    void RecreateCopilotToolBar();
+
+    void CopilotPanelShowChangedLanguage();
+
+    void ToggleCopilot();
+
+    void ShowCopilot( bool show = true );
+
+    void SaveCopilotCnf();
+
+    void LoadCopilotCnf();
+
+    // Copilot context interfaces
+    void InitCopilotContext();
+
+    void UpdateCopilotContextCache();
+
+    wxString GetBomList();
+
+    wxString GetNetList();
+
+    SYMBOL_CMD_CONTEXT const& GetSelectedSymbolContext();
+
+    wxString GetSymbolNetList( wxString const& aDesignator );
+
+    // Copilot commands Dispatcher
+    void FireCopilotCommand( std::string const& aCmdType );
+
+    // Concreate cmd handlers
+    void DesignIntention();
+
+    void CoreComponents();
+
+    void CurrentComponent();
+
+    void SimilarComponents();
+
+    void CheckSymbolConnections();
+
+    void ComponentPinsDetails();
+
+    void SymbolUnconnectedPins();
+
+    // Agent execution entrypoint
+    void ExecuteAgentAction( AGENT_ACTION const& aAction );
+
+    // Agent APIS
+    void HighlightSymbol(std::string const & aDesignator);
+
+    copilot::NETLIST GetSelection()const ;
+
+    void SetHasSelection( bool aHasSelection );
+
+private:
+    WEBVIEW_CONTAINER*                          m_copilotPanel{};
+    std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
+    std::unique_ptr<SYMBOL_CMD_CONTEXT>         m_symbolCmdContext;
+    COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
+    AGENT_ACTION_OWNED_HANDLE                   m_copilotAgentActionHdl;
+    COPILOT_SELECTION_OWNED_HDL                 m_copilotSelectionHdl;
 };
 
 

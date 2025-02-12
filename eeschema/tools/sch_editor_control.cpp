@@ -83,6 +83,7 @@
 #include <wx/msgdlg.h>
 #include <io/kicad/kicad_io_utils.h>
 #include <printing/dialog_print.h>
+#include "copilot/sch_copilot_control.h"
 
 #ifdef KICAD_IPC_API
 #include <api/api_plugin_manager.h>

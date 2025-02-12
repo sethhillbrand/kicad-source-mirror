@@ -461,6 +461,7 @@ private:
     bool                     m_isFootprintEditor;
 
     PCB_SELECTION            m_selection;            // Current state of selection
+    PCB_SELECTION            m_pre_selection;        // Previous state of selection
 
     PCB_SELECTION_FILTER_OPTIONS m_filter;
 

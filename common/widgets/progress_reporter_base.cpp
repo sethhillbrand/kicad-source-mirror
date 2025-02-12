@@ -129,11 +129,11 @@ bool PROGRESS_REPORTER_BASE::KeepRefreshing( bool aWait )
     }
     else
     {
-        if( !updateUI() )
-        {
-            m_cancelled.store( true );
-            return false;
-        }
+        // if( !updateUI() )
+        // {
+        //     m_cancelled.store( true );
+        //     return false;
+        // }
 
         return true;
     }

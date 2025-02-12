@@ -58,6 +58,7 @@
 #include <wx/log.h>
 
 #include "symb_transforms_utils.h"
+#include "copilot/sch_copilot_global_ctx_menu.h"
 
 
 SELECTION_CONDITION SCH_CONDITIONS::SingleSymbol = []( const SELECTION& aSel )
@@ -316,6 +317,12 @@ bool SCH_SELECTION_TOOL::Init()
     menu.AddSeparator( 100 );
     menu.AddItem( SCH_ACTIONS::drawWire,              schEditCondition && SCH_CONDITIONS::Empty, 100 );
     menu.AddItem( SCH_ACTIONS::drawBus,               schEditCondition && SCH_CONDITIONS::Empty, 100 );
+
+    if( true )
+    {
+        menu.AddSeparator( 100 );
+        menu.AddMenu( new SCH_COPILOT_GLOBAL_CTX_MENU( ), schEditCondition && SCH_CONDITIONS::Empty, 100 );
+    }
 
     menu.AddSeparator( 100 );
     menu.AddItem( ACTIONS::finishInteractive,         SCH_LINE_WIRE_BUS_TOOL::IsDrawingLineWireOrBus, 100 );
@@ -1303,6 +1310,21 @@ void SCH_SELECTION_TOOL::OnIdle( wxIdleEvent& aEvent )
             m_frame->GetCanvas()->SetCurrentCursor( KICURSOR::XOR );
         else
             m_frame->GetCanvas()->SetCurrentCursor( m_nonModifiedCursor );
+    }
+
+    if( auto editor = dynamic_cast<SCH_EDIT_FRAME*>( m_frame );
+        editor && m_pre_selection != m_selection )
+    {
+        m_pre_selection = m_selection;
+        editor->SetHasSelection( (
+                [&]()
+                {
+                    for( auto it : m_selection.GetItems() )
+                        if( dynamic_cast<SCH_SYMBOL*>( it ) )
+                            return true;
+
+                    return false;
+                } )() );
     }
 }
 

@@ -278,6 +278,13 @@ void PCB_SELECTION_TOOL::OnIdle( wxIdleEvent& aEvent )
         else
             m_frame->GetCanvas()->SetCurrentCursor( m_nonModifiedCursor );
     }
+
+    if( auto editor = dynamic_cast<PCB_EDIT_FRAME*>( m_frame );
+        editor && m_pre_selection != m_selection )
+    {
+        m_pre_selection = m_selection;
+        editor->SetHasSelection( !m_selection.GetItems().empty() );
+    }
 }
 
 

@@ -115,6 +115,11 @@ public:
         int  design_blocks_panel_docked_width;
         int  design_blocks_panel_float_width;
         int  design_blocks_panel_float_height;
+
+        bool copilot_panel_show;
+        int  copilot_panel_docked_width;
+        int  copilot_panel_float_width;
+        int  copilot_panel_float_height;
     };
 
     struct AUTOPLACE_FIELDS
@@ -345,6 +350,8 @@ private:
 
     nlohmann::json netlistSettingsToJson() const;
     static std::vector<NETLIST_PLUGIN_SETTINGS> netlistSettingsFromJson( const nlohmann::json& aObj );
+
+    void initCopilotSettings();
 
 public:
     APPEARANCE m_Appearance;

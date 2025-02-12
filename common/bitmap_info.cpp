@@ -446,6 +446,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_24.png" ), 24, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_24.png" ), 24, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_24.png" ), 24, wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_24.png" ), 24, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_24.png" ), 24, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_24.png" ), 24, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_24.png" ), 24, wxT( "light" ) );
@@ -882,6 +883,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_dark_24.png" ), 24, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_dark_24.png" ), 24, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_dark_24.png" ), 24, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_dark_24.png" ), 24, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_dark_24.png" ), 24, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_dark_24.png" ), 24, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_dark_24.png" ), 24, wxT( "dark" ) );
@@ -1318,6 +1320,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_16.png" ), 16, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_16.png" ), 16, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_16.png" ), 16, wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_16.png" ), 16, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_16.png" ), 16, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_16.png" ), 16, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_16.png" ), 16, wxT( "light" ) );
@@ -1754,6 +1757,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_dark_16.png" ), 16, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_dark_16.png" ), 16, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_dark_16.png" ), 16, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_dark_16.png" ), 16, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_dark_16.png" ), 16, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_dark_16.png" ), 16, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_dark_16.png" ), 16, wxT( "dark" ) );
@@ -2190,6 +2194,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_32.png" ), 32, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_32.png" ), 32, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_32.png" ), 32, wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_32.png" ), 32, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_32.png" ), 32, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_32.png" ), 32, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_32.png" ), 32, wxT( "light" ) );
@@ -2626,6 +2631,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_dark_32.png" ), 32, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_dark_32.png" ), 32, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_dark_32.png" ), 32, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_dark_32.png" ), 32, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_dark_32.png" ), 32, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_dark_32.png" ), 32, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_dark_32.png" ), 32, wxT( "dark" ) );
@@ -3062,6 +3068,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_48.png" ), 48, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_48.png" ), 48, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_48.png" ), 48, wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_48.png" ), 48, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_48.png" ), 48, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_48.png" ), 48, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_48.png" ), 48, wxT( "light" ) );
@@ -3498,6 +3505,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_dark_48.png" ), 48, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_dark_48.png" ), 48, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_dark_48.png" ), 48, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_dark_48.png" ), 48, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_dark_48.png" ), 48, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_dark_48.png" ), 48, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_dark_48.png" ), 48, wxT( "dark" ) );
@@ -3934,6 +3942,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_64.png" ), 64, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_64.png" ), 64, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_64.png" ), 64, wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_64.png" ), 64, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_64.png" ), 64, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_64.png" ), 64, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_64.png" ), 64, wxT( "light" ) );
@@ -4370,6 +4379,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::config].emplace_back( BITMAPS::config, wxT( "config_dark_64.png" ), 64, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::contrast_mode].emplace_back( BITMAPS::contrast_mode, wxT( "contrast_mode_dark_64.png" ), 64, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::convert].emplace_back( BITMAPS::convert, wxT( "convert_dark_64.png" ), 64, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::copilot].emplace_back( BITMAPS::copilot, wxT( "copilot_dark_64.png" ), 64, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy].emplace_back( BITMAPS::copy, wxT( "copy_dark_64.png" ), 64, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::copy_pad_settings].emplace_back( BITMAPS::copy_pad_settings, wxT( "copy_pad_settings_dark_64.png" ), 64, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::cursor_shape].emplace_back( BITMAPS::cursor_shape, wxT( "cursor_shape_dark_64.png" ), 64, wxT( "dark" ) );
