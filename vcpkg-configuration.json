@@ -8,8 +8,8 @@
   "registries": [
     {
       "kind": "git",
-      "repository": "https://gitlab.com/kicad/packaging/kicad-vcpkg-registry.git",
-      "baseline": "9c06375b6b62483d39ffe78e5fc2918365ee8ead",
+      "repository": "https://gitlab.com/liangtie/kicad-vcpkg-registry.git",
+      "baseline": "a5326119d9699322db955f6e7730fd4281d83db0",
       "packages": [
         "glew",
         "python3",
