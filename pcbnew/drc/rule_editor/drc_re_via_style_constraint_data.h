@@ -43,9 +43,9 @@ public:
                                                double aMaxViaHoleSize,
                                                double aPreferredViaHoleSize ) :
             DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
-            m_minViaDiameter( aMinViaDiameter ), m_maxViaDiameter( aMaxViaDiameter ),
-            m_preferredViaDiameter( aPreferredViaDiameter ), m_minViaHoleSize( aMinViaHoleSize ),
-            m_maxViaHoleSize( aMaxViaHoleSize ), m_preferredViaHoleSize( aPreferredViaHoleSize )
+            m_minViaDiameter( aMinViaDiameter ), m_preferredViaDiameter( aPreferredViaDiameter ),
+            m_maxViaDiameter( aMaxViaDiameter ), m_minViaHoleSize( aMinViaHoleSize ),
+            m_preferredViaHoleSize( aPreferredViaHoleSize ), m_maxViaHoleSize( aMaxViaHoleSize )
     {
     }
 

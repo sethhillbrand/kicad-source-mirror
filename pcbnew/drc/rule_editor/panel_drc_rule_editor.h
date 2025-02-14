@@ -88,9 +88,11 @@ public:
 
     std::string GetValidationMessage() { return m_validationMessage; }
 
-    void RefreshScreen();
-
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
+
+    void Save( wxCommandEvent& aEvent );
+
+    void Cancel( wxCommandEvent& aEvent );
 
 private:
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE* getConstraintPanel( wxWindow* aParent, 

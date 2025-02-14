@@ -25,9 +25,9 @@
 
 
 VALIDATOR_NUMERIC_CTRL::VALIDATOR_NUMERIC_CTRL( bool aCanBeZero, bool aIntegerOnly ) :
-        m_validationState( VALIDATION_STATE::Valid ), 
+        m_isIntegerOnly( aIntegerOnly ), 
         m_canBeZero( aCanBeZero ),
-        m_isIntegerOnly( aIntegerOnly )
+        m_validationState( VALIDATION_STATE::Valid )
 {
 }
 
