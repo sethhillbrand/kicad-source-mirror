@@ -61,10 +61,10 @@ const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes,
 
 
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wxWindow* aParent ) :
-        RULE_EDITOR_DIALOG_BASE( aParent, _( "Design Rule Editor" ), wxSize( 980, 600 ) ),
-        PROGRESS_REPORTER_BASE( 1 ),
-        m_nodeId( 0 ), 
-        m_reporter( nullptr )
+        RULE_EDITOR_DIALOG_BASE( aParent, _( "Design Rule Editor" ), wxSize( 980, 680 ) ),
+        PROGRESS_REPORTER_BASE( 1 ), 
+        m_reporter( nullptr ),
+        m_nodeId( 0 )
 {
     m_frame = aEditorFrame;
     m_currentBoard = m_frame->GetBoard();
@@ -196,7 +196,6 @@ void DIALOG_DRC_RULE_EDITOR::DuplicateRule( RULE_TREE_ITEM_DATA* aRuleTreeItemDa
 {
     RULE_TREE_NODE* sourceTreeNode = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
     RULE_TREE_NODE  targetTreeNode = buildRuleTreeNode( aRuleTreeItemData );
-    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( targetTreeNode.m_nodeId );
 
     auto sourceDataPtr = dynamic_pointer_cast<RULE_EDITOR_DATA_BASE>( sourceTreeNode->m_nodeData );
 
@@ -275,6 +274,20 @@ void DIALOG_DRC_RULE_EDITOR::RuleTreeItemSelectionChanged(
 }
 
 
+void DIALOG_DRC_RULE_EDITOR::OnSave( wxCommandEvent& aEvent )
+{
+    if( m_ruleEditorPanel )
+        m_ruleEditorPanel->Save( aEvent );
+}
+
+
+void DIALOG_DRC_RULE_EDITOR::OnCancel( wxCommandEvent& aEvent )
+{
+    if( m_ruleEditorPanel )
+        m_ruleEditorPanel->Cancel( aEvent );
+}
+
+
 void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
     RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
@@ -286,8 +299,6 @@ void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RULE_TREE_ITEM_DATA* aR
         nodeDetail->m_nodeName = nodeDetail->m_nodeData->GetRuleName();
         nodeDetail->m_nodeData->SetIsNew( false );
         UpdateRuleTreeItemText( aRuleTreeItemData->GetTreeItemId(), nodeDetail->m_nodeName );
-
-        m_ruleEditorPanel->RefreshScreen();
     }
 }
 
@@ -359,6 +370,15 @@ std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::buildElectricalRuleTreeNodes
     result.push_back( buildRuleTreeNodeData( "Minimum item clearance",
                                              DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
                                              MINIMUM_ITEM_CLEARANCE ) );
+    result.push_back( buildRuleTreeNodeData( "Copper to edge clearance",
+                                             DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
+                                             COPPER_TO_EDGE_CLEARANCE ) );
+    result.push_back( buildRuleTreeNodeData( "Courtyard Clearance",
+                                             DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
+                                             COURTYARD_CLEARANCE ) );
+    result.push_back( buildRuleTreeNodeData( "Physical Clearance",
+                                             DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
+                                             PHYSICAL_CLEARANCE ) );
     result.push_back( buildRuleTreeNodeData( "Net antenna", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT,
                                              lastParentId, NET_ANTENNA ) );
     result.push_back( buildRuleTreeNodeData( "Short circuit", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT,
@@ -424,23 +444,9 @@ DIALOG_DRC_RULE_EDITOR::buildManufacturabilityRuleTreeNodes( int& aParentId )
     result.push_back( buildRuleTreeNodeData( "Minimum annular width",
                                              DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
                                              MINIMUM_ANNULAR_WIDTH ) );
-
-    result.push_back( buildRuleTreeNodeData( "Courtyard Clearance",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, aParentId ) );
-    lastParentId = m_nodeId;
-
-    result.push_back( buildRuleTreeNodeData( "Edge Clearance", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-                                             aParentId ) );
-    result.push_back( buildRuleTreeNodeData( "Copper to edge clearance",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
-                                             COPPER_TO_EDGE_CLEARANCE ) );
-
-    result.push_back( buildRuleTreeNodeData( "Physical Clearance",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, aParentId ) );
-    lastParentId = m_nodeId;
-
     result.push_back(
-            buildRuleTreeNodeData( "Hole Size", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, aParentId ) );
+            buildRuleTreeNodeData( "Hole", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, aParentId ) );
+    lastParentId = m_nodeId;
     result.push_back( buildRuleTreeNodeData( "Minimum through hole",
                                              DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, lastParentId,
                                              MINIMUM_THROUGH_HOLE ) );
@@ -820,7 +826,6 @@ void DIALOG_DRC_RULE_EDITOR::saveRule( int aNodeId )
 
         if( itemData )
         {
-            RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( itemData->GetNodeId() );
             UpdateRuleTypeTreeItemData( itemData );
         }
 
@@ -969,6 +974,7 @@ RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
     return { .m_nodeId = m_nodeId,
              .m_nodeName = aName,
              .m_nodeType = aNodeType,
+             .m_nodeLevel = -1,
              .m_nodeTypeMap = aConstraintType,
              .m_childNodes = aChildNodes,
              .m_nodeData = std::make_shared<RULE_EDITOR_DATA_BASE>( baseData ) };
@@ -994,17 +1000,15 @@ void DIALOG_DRC_RULE_EDITOR::UpdateData()
 }
 
 
-void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl*       dataViewCtrl, 
-    const wxDataViewItem& item )
+void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl, 
+    const wxDataViewItem& dataViewItem )
 {
     wxDataViewModel* model = dataViewCtrl->GetModel();
     if( !model )
         return;
 
-    RC_TREE_NODE* node = RC_TREE_MODEL::ToNode( item );
-
     wxDataViewItemArray children;
-    model->GetChildren( item, children );
+    model->GetChildren( dataViewItem, children );
 
     auto getActiveLayers =
             []( BOARD_ITEM* aItem ) -> LSET

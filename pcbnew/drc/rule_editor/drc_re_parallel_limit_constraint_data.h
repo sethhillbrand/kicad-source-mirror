@@ -40,7 +40,7 @@ public:
     explicit DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA( int aId, int aParentId, wxString aRuleName,
                                                     double aParallelLimit, double aParallelGap ) :
             DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
-            m_parallelLimit( aParallelLimit ), m_parallelGap( aParallelGap )
+            m_parallelGap( aParallelGap ), m_parallelLimit( aParallelLimit )
     {
     }
 

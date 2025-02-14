@@ -77,13 +77,13 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         wxString* aConstraintTitle, std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData ) :
         PANEL_DRC_RULE_EDITOR_BASE( aParent ), 
         m_board( aBoard ),
-        m_constraintTitle( aConstraintTitle ), 
-        m_constraintData( aConstraintData ),
-        m_constraintType( aConstraintType ),
-        m_basicDetailValidated( false ), 
-        m_validationSucceeded( false ), 
+        m_constraintTitle( aConstraintTitle ),
+        m_basicDetailValidated( false ),
         m_syntaxChecked( false ),
         m_isModified( false ),
+        m_validationSucceeded( false ), 
+        m_constraintType( aConstraintType ),
+        m_constraintData( aConstraintData ),
         m_helpWindow( nullptr )
 {
     m_constraintPanel = getConstraintPanel( this, aConstraintType );
@@ -104,20 +104,11 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
 
     
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
-   /* m_btnSave = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Save" : "Update" );
-    m_btnRemove = new wxButton( this, wxID_ANY, m_constraintData->IsNew() ? "Cancel" : "Delete" );
-    m_btnClose = new wxButton( this, wxID_ANY, "Close" );*/
     m_btnShowMatches = new wxButton( this, wxID_ANY, "Show Matches" );
-    /*buttonSizer->Add( m_btnSave, 0, wxALL, 5 );*/
     buttonSizer->Add( m_btnShowMatches, 0, wxALL, 5 );
-    /*buttonSizer->Add( m_btnRemove, 0, wxALL, 5 );
-    buttonSizer->Add( m_btnClose, 0, wxALL, 5 );*/
     
     bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
-    
-    /*m_btnSave->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
-    m_btnRemove->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
-    m_btnClose->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );*/
+
     m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
                             this );
 
@@ -187,9 +178,6 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
         m_helpWindow = nullptr;
     }   
 
-    /*m_btnSave->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onSaveButtonClicked, this );
-    m_btnRemove->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked, this );
-    m_btnClose->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onCloseButtonClicked, this );*/
     m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
                               this );
 }
@@ -355,6 +343,12 @@ void PANEL_DRC_RULE_EDITOR::onSaveButtonClicked( wxCommandEvent& aEvent )
 }
 
 
+void PANEL_DRC_RULE_EDITOR::Save( wxCommandEvent& aEvent )
+{
+    onSaveButtonClicked( aEvent );
+}
+
+
 void PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked( wxCommandEvent& aEvent )
 {
     if( m_callBackRemove )
@@ -364,19 +358,21 @@ void PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked( wxCommandEvent& aEvent )
 }
 
 
+void PANEL_DRC_RULE_EDITOR::Cancel( wxCommandEvent& aEvent )
+{
+    if( m_constraintData->IsNew() )
+        onRemoveButtonClicked( aEvent );
+    else
+        onCloseButtonClicked( aEvent );
+}
+
+
 void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& aEvent )
 {
     if( m_callBackClose )
     {
         m_callBackClose( m_constraintData->GetId() );
     }
-}
-
-
-void PANEL_DRC_RULE_EDITOR::RefreshScreen()
-{
- /*   m_btnSave->SetLabelText( "Update" );
-    m_btnRemove->SetLabelText( "Delete" );*/
 }
 
 

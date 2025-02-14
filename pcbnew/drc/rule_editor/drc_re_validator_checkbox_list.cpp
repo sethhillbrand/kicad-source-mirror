@@ -25,7 +25,7 @@
 
 
 VALIDATE_CHECKBOX_LIST::VALIDATE_CHECKBOX_LIST( const std::vector<wxCheckBox*>& aCheckboxes ) :
-        m_checkboxes( aCheckboxes ), m_validationState( VALIDATION_STATE::Valid )
+        m_validationState( VALIDATION_STATE::Valid ), m_checkboxes( aCheckboxes )
 {
 }
 
