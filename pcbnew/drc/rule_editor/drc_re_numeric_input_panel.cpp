@@ -65,8 +65,8 @@ const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> NumericConstraintBitMap
 DRC_RE_NUMERIC_INPUT_PANEL::DRC_RE_NUMERIC_INPUT_PANEL( wxWindow* aParent, 
         const DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS& aConstraintPanelParams ) :
         DRC_RE_NUMERIC_INPUT_PANEL_BASE( aParent ),
-        m_constraintData( aConstraintPanelParams.m_constraintData ),
-        m_isCountInput( aConstraintPanelParams.m_isCountInput )
+        m_isCountInput( aConstraintPanelParams.m_isCountInput ),
+        m_constraintData( aConstraintPanelParams.m_constraintData )
 {
     auto it = NumericConstraintBitMapPairs.find( aConstraintPanelParams.m_constraintType );
 

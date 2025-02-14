@@ -71,8 +71,9 @@ class RULE_TREE_ITEM_DATA : public wxTreeItemData
 public:
     explicit RULE_TREE_ITEM_DATA( int aNodeId, wxTreeItemId aParentTreeItemId,
                                   wxTreeItemId aTreeItemId ) :
-            m_nodeId( aNodeId ), m_parentTreeItemId( aParentTreeItemId ),
-            m_treeItemId( aTreeItemId )
+            m_nodeId( aNodeId ),
+            m_treeItemId( aTreeItemId ), 
+            m_parentTreeItemId( aParentTreeItemId )            
     {
     }
 
@@ -264,6 +265,10 @@ public:
      */
     void DeleteRuleTreeItem( wxTreeItemId aItemId, const int& aNodeId );
 
+    virtual void OnSave( wxCommandEvent& aEvent ) = 0;
+
+    virtual void OnCancel( wxCommandEvent& aEvent ) = 0;
+
 protected:
     void finishInitialization();
 
@@ -424,6 +429,10 @@ private:
      */
     void updateRuleTreeActionButtonsState( RULE_TREE_ITEM_DATA* aRuleTreeItemData );
 
+    void onResize( wxSizeEvent& event );
+
+    void setTreeCtrlSize( int aHeight );
+
 protected:
     wxTreeCtrl*     m_ruleTreeCtrl;
     WX_INFOBAR*     m_infoBar;
@@ -437,6 +446,8 @@ protected:
     wxBitmapButton* m_moveTreeItemUpButton;
     wxBitmapButton* m_moveTreeItemDownButton;
     wxBitmapButton* m_deleteRuleButton;
+    wxButton*       m_saveRuleButton;
+    wxButton*       m_cancelRuleButton;
 
 private:
     bool m_isDragging;

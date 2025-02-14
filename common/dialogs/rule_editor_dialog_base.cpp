@@ -70,10 +70,6 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                                                   const wxSize& aInitialSize ) :
         DIALOG_SHIM( aParent, wxID_ANY, aTitle, wxDefaultPosition, aInitialSize,
                      wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
-        m_title( aTitle ), 
-        m_selectedTreeItemData( nullptr ),
-        m_previouslySelectedTreeItemId( nullptr ), 
-        m_dragImage( nullptr ), 
         m_isDragging( false ), 
         m_enableMoveUp( false ),
         m_enableMoveDown( false ), 
@@ -81,7 +77,11 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
         m_enableDuplicateRule( false ),
         m_enableDeleteRule( false ), 
         m_preventSelectionChange( false ), 
-        m_draggedItem( nullptr )
+        m_title( aTitle ), 
+        m_selectedTreeItemData( nullptr ),
+        m_previouslySelectedTreeItemId( nullptr ),    
+        m_draggedItem( nullptr ),
+        m_dragImage( nullptr ) 
 {
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
     SetSizer( mainSizer );
@@ -111,6 +111,7 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     // Create the tree control and set its font
     m_ruleTreeCtrl = new wxTreeCtrl( treeCtrlPanel );
     m_ruleTreeCtrl->SetFont( KIUI::GetControlFont( this ) );
+    setTreeCtrlSize( aInitialSize.y );
 
     // Adjust the tree control's window style to remove the border
     long treeCtrlFlags = m_ruleTreeCtrl->GetWindowStyleFlag();
@@ -166,6 +167,20 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     // Add the content sizer to the main sizer
     mainSizer->Add( m_contentSizer, 1, wxEXPAND, 0 );
 
+    wxBoxSizer* m_sizerButtons = new wxBoxSizer( wxHORIZONTAL );
+
+    wxStdDialogButtonSizer* m_sdbSizer = new wxStdDialogButtonSizer();
+    m_cancelRuleButton = new wxButton( this, wxID_CANCEL );
+    m_sdbSizer->AddButton( m_cancelRuleButton );
+    m_saveRuleButton = new wxButton( this, wxID_OK );
+    m_saveRuleButton->SetLabelText( "Save" );
+    m_sdbSizer->AddButton( m_saveRuleButton );
+    m_sdbSizer->Realize();
+
+    m_sizerButtons->Add( m_sdbSizer, 1, wxEXPAND, 5 );
+
+    mainSizer->Add( m_sizerButtons, 0, wxALL | wxEXPAND, 5 );
+
     // We normally save the dialog size and position based on its class-name.  This class
     // substitutes the title so that each distinctly-titled dialog can have its own saved
     // size and position.
@@ -191,21 +206,10 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                                     &RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick, this );
     m_deleteRuleButton->Bind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick,
                               this );
+    m_saveRuleButton->Bind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnSave, this );
+    m_cancelRuleButton->Bind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnCancel, this );
 
-   wxBoxSizer* m_sizerButtons = new wxBoxSizer( wxHORIZONTAL );
-
-   wxStdDialogButtonSizer* m_sdbSizer1 = new wxStdDialogButtonSizer();
-    wxButton*                m_sdbSizer1OK = new wxButton( this, wxID_OK );
-   m_sdbSizer1OK->SetLabelText( "Save" );
-    m_sdbSizer1->AddButton( m_sdbSizer1OK );
-    wxButton* m_sdbSizer1Cancel = new wxButton( this, wxID_CANCEL );
-    m_sdbSizer1->AddButton( m_sdbSizer1Cancel );
-    m_sdbSizer1->Realize();
-
-    m_sizerButtons->Add( m_sdbSizer1, 1, wxEXPAND, 5 );
-
-
-    mainSizer->Add( m_sizerButtons, 0, wxALL | wxEXPAND, 5 );
+    Bind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
 }
 
 
@@ -238,6 +242,10 @@ RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
                                       &RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick, this );
     m_deleteRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick,
                                 this );
+    m_saveRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnSave, this );
+    m_cancelRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnCancel, this );
+
+    Unbind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
 
     m_selectedTreeItemData = nullptr;
     m_previouslySelectedTreeItemId = nullptr;
@@ -666,7 +674,13 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion( wxMouseEvent& aEvent )
 
         if( !m_isDragging )
         {
-            m_dragImage->BeginDrag( wxPoint( 0, 0 ), m_ruleTreeCtrl, true );
+            if( !m_dragImage->BeginDrag( wxPoint( 0, 0 ), m_ruleTreeCtrl, true ) )
+            {
+                delete m_dragImage;
+                m_dragImage = nullptr;
+                return;
+            }
+
             m_dragImage->Show();
             m_isDragging = true;
         }
@@ -682,7 +696,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion( wxMouseEvent& aEvent )
 
 void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp( wxMouseEvent& aEvent )
 {
-    if( m_draggedItem.IsOk() )
+    if( m_draggedItem.IsOk() && m_isDragging )
     {
         if( m_dragImage )
         {
@@ -803,20 +817,6 @@ void RULE_EDITOR_DIALOG_BASE::onFilterSearch( wxCommandEvent& aEvent )
 {
     const auto searchStr = aEvent.GetString().Lower();
 
-    wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
-    int          selectedNodeId = wxNOT_FOUND;
-
-    if( selectedItem.IsOk() )
-    {
-        RULE_TREE_ITEM_DATA* itemData =
-                dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData( selectedItem ) );
-
-        if( itemData )
-        {
-            selectedNodeId = itemData->GetNodeId();
-        }
-    }
-
     m_ruleTreeCtrl->DeleteAllItems();
 
     restoreRuleTree( nullptr, m_defaultTreeItems[0].m_nodeId );
@@ -870,7 +870,6 @@ void RULE_EDITOR_DIALOG_BASE::saveRuleTreeState( const wxTreeItemId& aItem, cons
 
     wxTreeItemIdValue cookie;
     wxTreeItemId      child = m_ruleTreeCtrl->GetFirstChild( aItem, cookie );
-    int               index = 0;
 
     while( child.IsOk() )
     {
@@ -896,19 +895,17 @@ void RULE_EDITOR_DIALOG_BASE::restoreRuleTree( const wxTreeItemId& aParent, cons
     if( it == m_treeHistoryData.end() )
         return;
 
-    const auto& [itemText, children, treeItemId] = it->second;
+    const auto& [itemText, children, itemId] = it->second;
 
     wxTreeItemId newItem;
 
     if( aParent )
-    {
         newItem = m_ruleTreeCtrl->AppendItem( aParent, itemText );
-        wxTreeItemId& treeItemId = std::get<2>( it->second );
-        treeItemId = newItem;
-    }
     else
-    {
         newItem = m_ruleTreeCtrl->AddRoot( itemText );
+
+    if( newItem )
+    {
         wxTreeItemId& treeItemId = std::get<2>( it->second );
         treeItemId = newItem;
     }
@@ -1057,4 +1054,21 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState(
     m_moveTreeItemUpButton->Enable( m_enableMoveUp );
     m_moveTreeItemDownButton->Enable( m_enableMoveDown );
     m_deleteRuleButton->Enable( m_enableDeleteRule );
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::onResize( wxSizeEvent& event )
+{
+    setTreeCtrlSize( GetSize().GetHeight() );
+
+    Layout();
+
+    event.Skip();
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::setTreeCtrlSize( int aHeight )
+{   
+    // Set the maximum height for wxTreeCtrl to 75% of the available height
+    m_ruleTreeCtrl->SetMaxSize( wxSize( -1, ( 75 * aHeight ) / 100.0 ) );
 }

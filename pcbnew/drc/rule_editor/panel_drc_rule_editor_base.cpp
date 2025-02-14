@@ -120,7 +120,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	m_textConditionCtrl->MarkerDefine( wxSTC_MARKNUM_FOLDERTAIL, wxSTC_MARK_EMPTY );
 	m_textConditionCtrl->SetSelBackground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHT ) );
 	m_textConditionCtrl->SetSelForeground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHTTEXT ) );
-	m_textConditionCtrl->SetMaxSize( wxSize( -1,100 ) );
+	m_textConditionCtrl->SetMaxSize( wxSize( -1,60 ) );
 
 	bSizer15->Add( m_textConditionCtrl, 0, wxBOTTOM|wxEXPAND|wxRIGHT, 5 );
 

@@ -104,6 +104,10 @@ public:
 
     void UpdateData();
 
+    void OnSave( wxCommandEvent& aEvent ) override;
+
+    void OnCancel( wxCommandEvent& aEvent ) override;
+
 private:
     std::vector<RULE_TREE_NODE> buildElectricalRuleTreeNodes( int& aParentId );
 
@@ -192,7 +196,8 @@ private:
 
     void AdvancePhase( const wxString& aMessage ) override;
 
-    void highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl, const wxDataViewItem& item );
+    void highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl,
+                                      const wxDataViewItem& dataViewItem );
 
 protected:
     BOARD_DESIGN_SETTINGS& bds() { return m_currentBoard->GetDesignSettings(); }
