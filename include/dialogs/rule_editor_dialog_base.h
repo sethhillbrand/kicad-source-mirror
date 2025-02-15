@@ -433,6 +433,8 @@ private:
 
     void setTreeCtrlSize( int aHeight );
 
+    void onClose( wxCloseEvent& aEvt );
+
 protected:
     wxTreeCtrl*     m_ruleTreeCtrl;
     WX_INFOBAR*     m_infoBar;
