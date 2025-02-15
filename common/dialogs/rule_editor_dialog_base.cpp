@@ -209,7 +209,10 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     m_saveRuleButton->Bind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnSave, this );
     m_cancelRuleButton->Bind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnCancel, this );
 
-    Bind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
+    this->Bind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
+
+    this->Connect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( RULE_EDITOR_DIALOG_BASE::onClose ), nullptr,
+             this );
 }
 
 
@@ -245,7 +248,10 @@ RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
     m_saveRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnSave, this );
     m_cancelRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnCancel, this );
 
-    Unbind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
+    this->Unbind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
+
+    this->Disconnect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( RULE_EDITOR_DIALOG_BASE::onClose ),
+                   nullptr, this );
 
     m_selectedTreeItemData = nullptr;
     m_previouslySelectedTreeItemId = nullptr;
@@ -1071,4 +1077,10 @@ void RULE_EDITOR_DIALOG_BASE::setTreeCtrlSize( int aHeight )
 {   
     // Set the maximum height for wxTreeCtrl to 75% of the available height
     m_ruleTreeCtrl->SetMaxSize( wxSize( -1, ( 75 * aHeight ) / 100.0 ) );
+}
+
+
+void RULE_EDITOR_DIALOG_BASE::onClose( wxCloseEvent& aEvt )
+{
+    wxPostEvent( this, wxCommandEvent( wxEVT_COMMAND_BUTTON_CLICKED, wxID_CANCEL ) );
 }
