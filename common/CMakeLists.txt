@@ -213,6 +213,7 @@ set( KICOMMON_SRCS
     trace_helpers.cpp
     wildcards_and_files_ext.cpp
     wx_filename.cpp
+    xnode.cpp
 
     singleton.cpp
     pgm_base.cpp
@@ -698,7 +699,6 @@ set( COMMON_SRCS
     undo_redo_container.cpp
     validators.cpp
     drawing_sheet/ds_painter.cpp
-    xnode.cpp
     view/wx_view_controls.cpp
     )
 
