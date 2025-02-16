@@ -1301,7 +1301,7 @@ void SYMBOL_EDIT_FRAME::CopySymbolToClipboard()
     }
 
     std::string prettyData = formatter.GetString();
-    KICAD_FORMAT::Prettify( prettyData, true );
+    KICAD_FORMAT::Prettify( prettyData, KICAD_FORMAT::FORMAT_MODE::COMPACT_TEXT_PROPERTIES );
 
     wxLogNull doNotLog; // disable logging of failed clipboard actions
 
