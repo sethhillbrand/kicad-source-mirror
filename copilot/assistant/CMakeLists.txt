@@ -16,8 +16,8 @@ target_link_libraries(assistant PRIVATE
     core
     ${wxWidgets_LIBRARIES}
 
-    eeschema_kiface
-    pcbnew_kiface
+    eeschema_kiface_objects
+    pcbnew_kiface_objects
 
     sioclient::sioclient 
     sioclient::sioclient_tls
