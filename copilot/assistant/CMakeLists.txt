@@ -10,7 +10,14 @@ add_library( assistant SHARED
 )
 
 target_link_libraries(assistant PRIVATE 
-    wx::core wx::base
+    nlohmann_json
+    common
+    core
+    ${wxWidgets_LIBRARIES}
+
+    eeschema_kiface
+    pcbnew_kiface
+
     sioclient::sioclient 
     sioclient::sioclient_tls
     unofficial::sqlite3::sqlite3
