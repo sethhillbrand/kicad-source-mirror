@@ -3,6 +3,7 @@ find_package(sioclient CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 
 add_library( assistant SHARED 
+    assistant_launcher.cpp
     chat/chat_cmd.cpp
     chat/chat_context.cpp
     chat/chat_history.cpp
