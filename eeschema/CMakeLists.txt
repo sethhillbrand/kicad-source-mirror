@@ -566,7 +566,7 @@ set_source_files_properties( ${CMAKE_SOURCE_DIR}/common/single_top.cpp PROPERTIE
 target_link_libraries( eeschema
     kicommon
     ${wxWidgets_LIBRARIES}
-    copilot
+    assistant
     )
 
 # the main Eeschema program, in DSO form.
@@ -612,7 +612,7 @@ target_link_libraries( eeschema_kiface
         Boost::headers
         ${wxWidgets_LIBRARIES}
         ${NGSPICE_LIBRARY}
-        copilot
+        assistant
     )
 
 if( MSVC )
