@@ -12,13 +12,7 @@ add_library( assistant SHARED
 
 target_link_libraries(assistant PRIVATE 
     nlohmann_json
-    common
-    core
     ${wxWidgets_LIBRARIES}
-
-    eeschema_kiface_objects
-    pcbnew_kiface_objects
-
     sioclient::sioclient 
     sioclient::sioclient_tls
     unofficial::sqlite3::sqlite3
