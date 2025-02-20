@@ -104,7 +104,6 @@
 #include <widgets/wx_aui_utils.h>
 #include <drawing_sheet/ds_proxy_view_item.h>
 #include <project/project_local_settings.h>
-#include <assistant/assistant_launcher.h>
 
 #ifdef KICAD_IPC_API
 #include <api/api_plugin_manager.h>
@@ -1174,7 +1173,6 @@ SEVERITY SCH_EDIT_FRAME::GetSeverity( int aErrorCode ) const
 void SCH_EDIT_FRAME::OnModify()
 {
     EDA_BASE_FRAME::OnModify();
-    ASSISTANT_LAUNCHER::launch_assistant();
 
     if( GetScreen() )
         GetScreen()->SetContentModified();
@@ -2352,6 +2350,7 @@ void SCH_EDIT_FRAME::onSize( wxSizeEvent& aEvent )
         Unbind( wxEVT_SIZE, &SCH_EDIT_FRAME::onSize, this );
         GetToolManager()->RunAction( ACTIONS::zoomFitScreen );
     }
+
     // Skip() is called in the base class.
     EDA_DRAW_FRAME::OnSize( aEvent );
 }
