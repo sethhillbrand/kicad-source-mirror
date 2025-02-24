@@ -909,6 +909,7 @@ endif()
 set( INC_BEFORE
     .
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/copilot/interface
     )
 
 set( INC_AFTER
@@ -1226,5 +1227,4 @@ endif()
 find_path(DYLIB_INCLUDE_DIRS "dylib.hpp")
 include_directories( SYSTEM ${DYLIB_INCLUDE_DIRS} )
 
-include_directories( SYSTEM copilot )
 add_subdirectory( copilot )

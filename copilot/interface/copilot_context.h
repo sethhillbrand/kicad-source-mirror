@@ -22,12 +22,35 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "chat_cmd.h"
+#ifndef COPILOT_CONTEXT_H
+#define COPILOT_CONTEXT_H
 
-CHAT_CMD::CHAT_CMD()
-{
-}
+#include "sch/bom.h"
+#include <nlohmann/json.hpp>
+#include <string>
+ 
+using NET_LIST =  std::string;
+using NET = std::string;
 
-CHAT_CMD::~CHAT_CMD()
-{
-}
+
+struct DESIGN_GLOBAL_CONTEXT{
+    BOM bom;
+    NET_LIST net_list;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DESIGN_GLOBAL_CONTEXT, bom, net_list)
+};
+
+
+struct SYMBOL_CMD_CONTEXT{
+    std::string designator;
+    SYMBOL_PROPERTIES symbol_properties;
+    NET net;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SYMBOL_CMD_CONTEXT, designator, symbol_properties, net)
+};
+
+struct GENERAL_CHAT_CONTEXT : DESIGN_GLOBAL_CONTEXT{
+    std::string user_input;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(GENERAL_CHAT_CONTEXT, user_input)
+};
+
+
+#endif

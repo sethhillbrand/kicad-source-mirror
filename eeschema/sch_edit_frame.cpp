@@ -104,6 +104,7 @@
 #include <widgets/wx_aui_utils.h>
 #include <drawing_sheet/ds_proxy_view_item.h>
 #include <project/project_local_settings.h>
+#include <cmd/copilot_cmd.h>
 
 #ifdef KICAD_IPC_API
 #include <api/api_plugin_manager.h>

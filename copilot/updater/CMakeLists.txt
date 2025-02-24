@@ -7,3 +7,8 @@ add_executable( assistant_updater
 target_link_libraries(assistant_updater PRIVATE 
     CURL::libcurl
 )
+
+install( TARGETS assistant_updater
+    DESTINATION ${KICAD_BIN}
+    COMPONENT binary
+)

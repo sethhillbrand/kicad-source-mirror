@@ -22,10 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "assistant_launcher.h"
-#include <iostream>
+#ifndef ASSISTANT_INTERFACE_H
+#define ASSISTANT_INTERFACE_H
 
-void COPILOT_API launch_assistant()
+class ASSISTANT_INTERFACE
 {
-    std::cout << "Launching assistant..." << std::endl;
-}
+public:
+    ASSISTANT_INTERFACE();
+    ~ASSISTANT_INTERFACE();
+
+private:
+
+};
+
+#endif

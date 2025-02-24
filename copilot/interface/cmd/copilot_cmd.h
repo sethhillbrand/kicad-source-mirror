@@ -22,14 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef CHAT_CMD_H
-#define CHAT_CMD_H
+#ifndef COPILOT_CMD_H
+#define COPILOT_CMD_H
 
-class CHAT_CMD
+class COPILOT_CMD
 {
 public:
-    CHAT_CMD();
-    ~CHAT_CMD();
+    COPILOT_CMD();
+    ~COPILOT_CMD();
 
 private:
 

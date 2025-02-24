@@ -4,7 +4,6 @@ find_package(unofficial-sqlite3 CONFIG REQUIRED)
 
 add_library( assistant SHARED 
     assistant_launcher.cpp
-    chat/chat_cmd.cpp
     chat/chat_context.cpp
     chat/chat_history.cpp
     chat/chat_panel.cpp
@@ -19,3 +18,8 @@ target_link_libraries(assistant PRIVATE
 )
 
 target_compile_definitions(assistant PRIVATE COPILOT_SHARED_LIBRARY)
+
+install( TARGETS assistant
+    DESTINATION ${KICAD_BIN}
+    COMPONENT binary
+)

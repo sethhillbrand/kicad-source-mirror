@@ -27,14 +27,11 @@
 
 #include "copilot_global.h"
 
-class COPILOT_API  ASSISTANT_LAUNCHER
+extern "C"
 {
-public:
 
-
-static void launch_assistant(  );
-
-
-};
+    void COPILOT_API launch_assistant();
+    
+}
 
 #endif
