@@ -2,6 +2,8 @@
 
 #include <wx/sysopt.h>
 #include "standalone.h"
+#include <assistant/chat/chat_panel.h>
+#include "dylib.hpp"
 
 
 static const auto do_init = []() {

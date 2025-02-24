@@ -26,8 +26,13 @@
 #define CHAT_PANEL_H
 
 #include "copilot_global.h"
+#include <dylib.hpp>
 
-class COPILOT_API CHAT_PANEL
+
+#include <wx/panel.h>
+
+
+class COPILOT_API CHAT_PANEL : public wxPanel
 {
 public:
     CHAT_PANEL();

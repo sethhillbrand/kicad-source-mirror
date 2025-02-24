@@ -49,8 +49,7 @@
     "nng",
     "protobuf",
     "zstd",
-    "socket-io-client",
-    "dylib"
+    "socket-io-client"
   ],
   "overrides": [
     {
@@ -87,11 +86,7 @@
       "name": "vcpkg-get-python-packages",
       "version": "2024-01-24",
       "$comment": "forces python 3.11 compat"
-    },
-    {
-      "name": "dylib",
-      "version": "2.2.1"
-    },    
+    },  
     {
       "name": "socket-io-client",
       "version": "2023-11-11"

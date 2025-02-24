@@ -23,9 +23,14 @@
  */
 
 #include "assistant_launcher.h"
-#include <iostream>
 
-void COPILOT_API launch_assistant()
+
+ wxPanel* create_chat_panel()
 {
-    std::cout << "Launching assistant..." << std::endl;
+    return nullptr;
+}
+
+ void fire_cmd(wxPanel* target, const char* cmd)
+{
+    
 }

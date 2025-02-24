@@ -27,11 +27,20 @@
 
 #include "copilot_global.h"
 
+
+class wxPanel;
+#ifdef __cplusplus
+
 extern "C"
 {
+#endif
 
-    void COPILOT_API launch_assistant();
-    
+    COPILOT_API wxPanel* create_chat_panel();
+
+    COPILOT_API void fire_cmd( wxPanel* target, const char* cmd );
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif

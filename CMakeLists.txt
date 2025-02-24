@@ -1224,7 +1224,4 @@ endif()
 
 
 # Copilot
-find_path(DYLIB_INCLUDE_DIRS "dylib.hpp")
-include_directories( SYSTEM ${DYLIB_INCLUDE_DIRS} )
-
 add_subdirectory( copilot )
