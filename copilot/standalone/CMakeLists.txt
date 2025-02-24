@@ -6,7 +6,6 @@ add_executable( copilot_standalone  WIN32
 
 target_link_libraries(copilot_standalone PRIVATE 
     ${wxWidgets_LIBRARIES}
-    assistant
 )
 
 install( TARGETS copilot_standalone

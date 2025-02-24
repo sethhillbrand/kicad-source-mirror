@@ -25,14 +25,110 @@
 #ifndef ASSISTANT_INTERFACE_H
 #define ASSISTANT_INTERFACE_H
 
+#include <dylib.hpp>
+#include <optional>
+#include <string>
+#include <wx/app.h>
+#include <memory>
+#include <wx/stdpaths.h>
+#include <wx/panel.h>
+#include <nlohmann/json.hpp>
+
+
+using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ();
+using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 class ASSISTANT_INTERFACE
 {
 public:
-    ASSISTANT_INTERFACE();
-    ~ASSISTANT_INTERFACE();
+    ~ASSISTANT_INTERFACE() {}
+
+    static ASSISTANT_INTERFACE& instance()
+    {
+        static ASSISTANT_INTERFACE assistant;
+        return assistant;
+    }
+
+    auto load()
+    {
+        try
+        {
+            std::string exe_path = wxStandardPaths::Get().GetExecutablePath().ToStdString();
+            exe_path = std::filesystem::path( exe_path ).parent_path().string();
+            std::string assistant_full_path = exe_path + "/assistant";
+            _assistant = std::make_unique<dylib>( assistant_full_path );
+            _create_chat_panel_handel =
+                    *_assistant->get_function<CREATE_CHAT_PANEL_HANDEL>( "create_chat_panel" );
+            _fire_cmd_handel = *_assistant->get_function<FIRE_CMD_HANDEL>( "fire_cmd" );
+            _assistant_version = *_assistant->get_variable<const char*>( "COPILOT_VERSION" );
+        }
+        catch( const std::exception& e )
+        {
+            wxLogError( "Failed to load assistant: %s", e.what() );
+            _assistant.reset();
+            return false;
+        }
+
+        return true;
+    }
+
+    void close() { _assistant.reset(); }
+
+    wxPanel* create_chat_panel()
+    {
+        if( !_assistant )
+        {
+            if( !load() )
+            {
+                return nullptr;
+            }
+        }
+
+        return _create_chat_panel_handel();
+    }
+
+    void fire_cmd( wxPanel* target, const std::string& cmd )
+    {
+        if( !_assistant )
+        {
+            if( !load() )
+            {
+                return;
+            }
+        }
+
+        _fire_cmd_handel( target, cmd.c_str() );
+    }
+
+    template <typename T>
+    void chat( wxPanel* target, const T& context )
+    {
+        fire_cmd( target, nlohmann::json( context ).dump() );
+    }
+
+
+    std::optional<std::string> get_assistant_version()
+    {
+        if( !_assistant )
+        {
+            if( !load() )
+            {
+                return {};
+            }
+        }
+
+        return _assistant_version;
+    }
+
 
 private:
+    std::unique_ptr<dylib> _assistant;
 
+    CREATE_CHAT_PANEL_HANDEL _create_chat_panel_handel{};
+    FIRE_CMD_HANDEL          _fire_cmd_handel{};
+    std::string              _assistant_version;
+
+    ASSISTANT_INTERFACE() { load(); }
 };
+
 
 #endif

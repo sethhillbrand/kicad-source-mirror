@@ -7,6 +7,7 @@ add_library( assistant SHARED
     chat/chat_context.cpp
     chat/chat_history.cpp
     chat/chat_panel.cpp
+    copilot_version.cpp
 )
 
 target_link_libraries(assistant PRIVATE 
