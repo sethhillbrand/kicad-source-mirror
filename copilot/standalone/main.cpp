@@ -4,24 +4,6 @@
 #include "standalone.h"
 #include <assistant_interface.h>
 
-static const auto do_init = []()
-{
-    wxSystemOptions::SetOption( "msw.no-manifest-check", 1 );
-    return 0;
-}();
-
-// ----------------------------------------------------------------------------
-// global variables
-// ----------------------------------------------------------------------------
-
-
-// ============================================================================
-// implementation
-// ============================================================================
-
-// ----------------------------------------------------------------------------
-// MyApp
-// ----------------------------------------------------------------------------
 
 wxIMPLEMENT_APP( MyApp );
 
@@ -33,7 +15,7 @@ bool MyApp::OnInit()
     // Create the main window
     auto gs_dialog = new MyDialog( "wxTaskBarIcon Test Dialog" );
 
-    gs_dialog->Show(  );
+    gs_dialog->Show();
 
     return true;
 }
@@ -46,10 +28,11 @@ bool MyApp::OnInit()
 
 MyDialog::MyDialog( const wxString& title ) : wxFrame( NULL, wxID_ANY, title )
 {
-    SetSize( wxSize( 800, 600 ) );
     wxSizer* const sizerTop = new wxBoxSizer( wxVERTICAL );
-    sizerTop->Add( ASSISTANT_INTERFACE::get_instance().create_chat_panel( this ), wxSizerFlags(1).Expand().Border() );
+    sizerTop->Add( ASSISTANT_INTERFACE::get_instance().create_chat_panel( this ),
+                   wxSizerFlags( 1 ).Expand().Border() );
     SetSizerAndFit( sizerTop );
+    SetSize( wxSize( 800, 600 ) );
 }
 
 MyDialog::~MyDialog()
