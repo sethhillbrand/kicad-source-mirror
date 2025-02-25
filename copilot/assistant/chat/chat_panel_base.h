@@ -40,6 +40,7 @@ class CHAT_PANEL_BASE : public wxPanel
 
 		// Virtual event handlers, override them in your derived class
 		virtual void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) { event.Skip(); }
+		virtual void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) { event.Skip(); }
 		virtual void m_usr_inputOnTextMaxLen( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_btn_sendOnButtonClick( wxCommandEvent& event ) { event.Skip(); }
 
