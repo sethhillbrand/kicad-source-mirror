@@ -25,14 +25,16 @@
 #ifndef CHAT_PANEL_H
 #define CHAT_PANEL_H
 
-#include <dylib.hpp>
-#include <wx/panel.h>
 
 
-class  CHAT_PANEL : public wxPanel
+#include "chat_panel_base.h"
+
+
+
+class  CHAT_PANEL : public CHAT_PANEL_BASE
 {
 public:
-    CHAT_PANEL();
+    CHAT_PANEL( wxWindow* parent);
     ~CHAT_PANEL();
 
 private:

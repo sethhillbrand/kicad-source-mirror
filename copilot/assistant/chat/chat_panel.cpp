@@ -24,7 +24,7 @@
 
 #include "chat_panel.h"
 
-CHAT_PANEL::CHAT_PANEL()
+CHAT_PANEL::CHAT_PANEL(wxWindow* parent) : CHAT_PANEL_BASE(parent)
 {
 }
 
