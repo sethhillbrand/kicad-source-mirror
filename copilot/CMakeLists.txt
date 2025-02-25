@@ -1,5 +1,4 @@
 include_directories(.)
-include_directories($<TARGET_PROPERTY:magic_enum,INTERFACE_INCLUDE_DIRECTORIES>)
 add_subdirectory(assistant)
 add_subdirectory(updater)
 add_subdirectory(standalone)

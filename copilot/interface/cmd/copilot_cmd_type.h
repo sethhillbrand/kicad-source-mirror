@@ -25,9 +25,20 @@
 #ifndef COPILOT_CMD_TYPE_H
 #define COPILOT_CMD_TYPE_H
 
-#include <magic_enum.hpp>
+enum class CMD_TYPE
+{
+    GENERIC_CHAT = -1,
 
+    DESIGN_INTENTION = 1,
+    CORE_COMPONENTS = 2,
 
+    CURRENT_COMPONENT = 3,
+    SIMILAR_COMPONENTS = 4,
+
+    CHECK_COMPONENT_CONNECTIONS = 5,
+    COMPONENT_PINS_DETAILS = 6,
+    UNCONNECTED_PINS = 7,
+};
 
 
 #endif

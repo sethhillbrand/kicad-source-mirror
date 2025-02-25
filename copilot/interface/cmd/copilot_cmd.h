@@ -25,14 +25,72 @@
 #ifndef COPILOT_CMD_H
 #define COPILOT_CMD_H
 
-class COPILOT_CMD
+#include "copilot_cmd_type.h"
+#include <nlohmann/json.hpp>
+#include <interface/copilot_context.h>
+#include <string>
+
+struct CMD_BASE
 {
-public:
-    COPILOT_CMD();
-    ~COPILOT_CMD();
-
-private:
-
+    std::string client_type = "kicad";
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CMD_BASE, client_type )
 };
 
-#endif
+struct DESIGN_INTENTION : CMD_BASE
+{
+    DESIGN_GLOBAL_CONTEXT context;
+    CMD_TYPE              type = CMD_TYPE::DESIGN_INTENTION;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_INTENTION, context, type )
+};
+
+struct CORE_COMPONENTS : CMD_BASE
+{
+    DESIGN_GLOBAL_CONTEXT context;
+    CMD_TYPE              type = CMD_TYPE::CORE_COMPONENTS;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CORE_COMPONENTS, context, type )
+};
+
+struct CURRENT_COMPONENT : CMD_BASE
+{
+    SYMBOL_CMD_CONTEXT context;
+    CMD_TYPE           type = CMD_TYPE::CURRENT_COMPONENT;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CURRENT_COMPONENT, context, type )
+};
+
+struct SIMILAR_COMPONENTS : CMD_BASE
+{
+    SYMBOL_CMD_CONTEXT context;
+    CMD_TYPE           type = CMD_TYPE::SIMILAR_COMPONENTS;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SIMILAR_COMPONENTS, context, type )
+};
+
+struct CHECK_COMPONENT_CONNECTIONS : CMD_BASE
+{
+    SYMBOL_CMD_CONTEXT context;
+    CMD_TYPE           type = CMD_TYPE::CHECK_COMPONENT_CONNECTIONS;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CHECK_COMPONENT_CONNECTIONS, context, type )
+};
+
+struct COMPONENT_PINS_DETAILS : CMD_BASE
+{
+    SYMBOL_CMD_CONTEXT context;
+    CMD_TYPE           type = CMD_TYPE::COMPONENT_PINS_DETAILS;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COMPONENT_PINS_DETAILS, context, type )
+};
+
+struct UNCONNECTED_PINS : CMD_BASE
+{
+    SYMBOL_CMD_CONTEXT context;
+    CMD_TYPE           type = CMD_TYPE::UNCONNECTED_PINS;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( UNCONNECTED_PINS, context, type )
+};
+
+struct GENERIC_CHAT : CMD_BASE
+{
+    GENERAL_CHAT_CONTEXT context;
+    CMD_TYPE             type = CMD_TYPE::GENERIC_CHAT;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( GENERIC_CHAT, context, type )
+};
+
+
+#endif // COPILOT_CMD_H
