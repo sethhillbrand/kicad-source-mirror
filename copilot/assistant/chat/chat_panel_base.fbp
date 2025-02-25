@@ -100,7 +100,7 @@
             <property name="minimize_button">0</property>
             <property name="minimum_size"></property>
             <property name="moveable">1</property>
-            <property name="name">m_richText1</property>
+            <property name="name">m_chat_ctrl</property>
             <property name="pane_border">1</property>
             <property name="pane_position"></property>
             <property name="pane_size"></property>
@@ -122,6 +122,7 @@
             <property name="window_extra_style"></property>
             <property name="window_name"></property>
             <property name="window_style">wxHSCROLL|wxVSCROLL</property>
+            <event name="OnTextMaxLen">m_chat_ctrlOnTextMaxLen</event>
           </object>
         </object>
         <object class="sizeritem" expanded="true">
@@ -196,10 +197,7 @@
                 <property name="window_extra_style"></property>
                 <property name="window_name"></property>
                 <property name="window_style"></property>
-                <event name="OnText">m_usr_inputOnText</event>
-                <event name="OnTextEnter">m_usr_inputOnTextEnter</event>
                 <event name="OnTextMaxLen">m_usr_inputOnTextMaxLen</event>
-                <event name="OnTextURL">m_usr_inputOnTextURL</event>
               </object>
             </object>
             <object class="sizeritem" expanded="true">

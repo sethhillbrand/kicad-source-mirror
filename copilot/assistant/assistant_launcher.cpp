@@ -23,11 +23,11 @@
  */
 
 #include "assistant_launcher.h"
+#include "chat/chat_panel.h"
 
-
- wxPanel* create_chat_panel()
+ wxPanel* create_chat_panel(wxWindow* parent)
 {
-    return nullptr;
+    return new CHAT_PANEL(parent);
 }
 
  void fire_cmd(wxPanel* target, const char* cmd)

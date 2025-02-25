@@ -35,7 +35,7 @@
 #include <nlohmann/json.hpp>
 
 
-using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ();
+using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 class ASSISTANT_INTERFACE
 {
@@ -57,8 +57,22 @@ public:
             std::string assistant_full_path = exe_path + "/assistant";
             _assistant = std::make_unique<dylib>( assistant_full_path );
             _create_chat_panel_handel =
-                    *_assistant->get_function<CREATE_CHAT_PANEL_HANDEL>( "create_chat_panel" );
-            _fire_cmd_handel = *_assistant->get_function<FIRE_CMD_HANDEL>( "fire_cmd" );
+                    _assistant->get_function<wxPanel*( wxWindow* )>( "create_chat_panel" );
+            if( !_create_chat_panel_handel )
+            {
+                wxLogError( "Failed to load function: create_chat_panel" );
+                _assistant.reset();
+                return false;
+            }
+
+            _fire_cmd_handel =
+                    _assistant->get_function<void( wxPanel*, const char* )>( "fire_cmd" );
+            if( !_fire_cmd_handel )
+            {
+                wxLogError( "Failed to load function: fire_cmd" );
+                _assistant.reset();
+                return false;
+            }
             _assistant_version = _assistant->get_variable<const char*>( "COPILOT_VERSION" );
         }
         catch( const std::exception& e )
@@ -73,7 +87,7 @@ public:
 
     void close() { _assistant.reset(); }
 
-    wxPanel* create_chat_panel()
+    wxPanel* create_chat_panel( wxWindow* parent )
     {
         if( !_assistant )
         {
@@ -83,7 +97,13 @@ public:
             }
         }
 
-        return _create_chat_panel_handel();
+        if( !_create_chat_panel_handel )
+        {
+            wxLogError( "create_chat_panel_handel is not initialized" );
+            return nullptr;
+        }
+
+        return _create_chat_panel_handel( parent );
     }
 
     void fire_cmd( wxPanel* target, const std::string& cmd )
@@ -94,6 +114,12 @@ public:
             {
                 return;
             }
+        }
+
+        if( !_fire_cmd_handel )
+        {
+            wxLogError( "fire_cmd_handel is not initialized" );
+            return;
         }
 
         _fire_cmd_handel( target, cmd.c_str() );

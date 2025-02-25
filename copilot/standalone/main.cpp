@@ -4,8 +4,9 @@
 #include "standalone.h"
 #include <assistant_interface.h>
 
-static const auto do_init = []() {
-    wxSystemOptions::SetOption("msw.no-manifest-check",1);
+static const auto do_init = []()
+{
+    wxSystemOptions::SetOption( "msw.no-manifest-check", 1 );
     return 0;
 }();
 
@@ -13,7 +14,6 @@ static const auto do_init = []() {
 // global variables
 // ----------------------------------------------------------------------------
 
-static MyDialog* gs_dialog = NULL;
 
 // ============================================================================
 // implementation
@@ -27,14 +27,13 @@ wxIMPLEMENT_APP( MyApp );
 
 bool MyApp::OnInit()
 {
-
     if( !wxApp::OnInit() )
         return false;
 
     // Create the main window
-    gs_dialog = new MyDialog( "wxTaskBarIcon Test Dialog" );
+    auto gs_dialog = new MyDialog( "wxTaskBarIcon Test Dialog" );
 
-    gs_dialog->Show( true );
+    gs_dialog->Show(  );
 
     return true;
 }
@@ -44,63 +43,17 @@ bool MyApp::OnInit()
 // MyDialog implementation
 // ----------------------------------------------------------------------------
 
-wxBEGIN_EVENT_TABLE( MyDialog, wxDialog ) EVT_BUTTON( wxID_ABOUT, MyDialog::OnAbout )
-        EVT_BUTTON( wxID_OK, MyDialog::OnOK ) EVT_BUTTON( wxID_EXIT, MyDialog::OnExit )
-                EVT_CLOSE( MyDialog::OnCloseWindow ) wxEND_EVENT_TABLE()
 
-
-                        MyDialog::MyDialog( const wxString& title ) :
-        wxDialog( NULL, wxID_ANY, title )
+MyDialog::MyDialog( const wxString& title ) : wxFrame( NULL, wxID_ANY, title )
 {
+    SetSize( wxSize( 800, 600 ) );
     wxSizer* const sizerTop = new wxBoxSizer( wxVERTICAL );
-
-    wxSizerFlags flags;
-    flags.Border( wxALL, 10 );
-
-    sizerTop->Add( new wxStaticText( this, wxID_ANY,
-                                     "Press 'Hide me' to hide this window, Exit to quit." ),
-                   flags );
-
-    sizerTop->Add( new wxStaticText( this, wxID_ANY,
-                                     "Double-click on the taskbar icon to show me again." ),
-                   flags );
-
-    sizerTop->AddStretchSpacer()->SetMinSize( 200, 50 );
-
-    wxSizer* const sizerBtns = new wxBoxSizer( wxHORIZONTAL );
-    sizerBtns->Add( new wxButton( this, wxID_ABOUT, "&About" ), flags );
-    sizerBtns->Add( new wxButton( this, wxID_OK, "&Hide" ), flags );
-    sizerBtns->Add( new wxButton( this, wxID_EXIT, "E&xit" ), flags );
-
-    sizerTop->Add( sizerBtns, flags.Align( wxALIGN_CENTER_HORIZONTAL ) );
+    sizerTop->Add( ASSISTANT_INTERFACE::get_instance().create_chat_panel( this ), wxSizerFlags(1).Expand().Border() );
     SetSizerAndFit( sizerTop );
-    Centre();
 }
 
 MyDialog::~MyDialog()
 {
-}
-
-void MyDialog::OnAbout( wxCommandEvent& WXUNUSED( event ) )
-{
-    static const char* const title = "About Assistant Version";
-
-    wxMessageBox(     ASSISTANT_INTERFACE::get_instance().get_assistant_version()->c_str() , title, wxICON_INFORMATION | wxOK, this );
-}
-
-void MyDialog::OnOK( wxCommandEvent& WXUNUSED( event ) )
-{
-    Show( false );
-}
-
-void MyDialog::OnExit( wxCommandEvent& WXUNUSED( event ) )
-{
-    Close( true );
-}
-
-void MyDialog::OnCloseWindow( wxCloseEvent& WXUNUSED( event ) )
-{
-    Destroy();
 }
 
 

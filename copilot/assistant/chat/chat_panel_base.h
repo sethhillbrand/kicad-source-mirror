@@ -34,15 +34,13 @@ class CHAT_PANEL_BASE : public wxPanel
 	private:
 
 	protected:
-		wxRichTextCtrl* m_richText1;
+		wxRichTextCtrl* m_chat_ctrl;
 		wxTextCtrl* m_usr_input;
 		wxButton* m_btn_send;
 
 		// Virtual event handlers, override them in your derived class
-		virtual void m_usr_inputOnText( wxCommandEvent& event ) { event.Skip(); }
-		virtual void m_usr_inputOnTextEnter( wxCommandEvent& event ) { event.Skip(); }
+		virtual void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_usr_inputOnTextMaxLen( wxCommandEvent& event ) { event.Skip(); }
-		virtual void m_usr_inputOnTextURL( wxTextUrlEvent& event ) { event.Skip(); }
 		virtual void m_btn_sendOnButtonClick( wxCommandEvent& event ) { event.Skip(); }
 
 

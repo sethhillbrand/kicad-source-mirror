@@ -1,5 +1,7 @@
 #include <wx/app.h>
 #include <wx/dialog.h>
+#include <wx/frame.h>
+#include <wx/window.h>
 
 
 
@@ -9,17 +11,12 @@ public:
     virtual bool OnInit() wxOVERRIDE;
 };
 
-class MyDialog: public wxDialog
+class MyDialog: public wxFrame
 {
 public:
     MyDialog(const wxString& title);
     virtual ~MyDialog();
 
-protected:
-    void OnAbout(wxCommandEvent& event);
-    void OnOK(wxCommandEvent& event);
-    void OnExit(wxCommandEvent& event);
-    void OnCloseWindow(wxCloseEvent& event);
 
-    wxDECLARE_EVENT_TABLE();
+
 };
