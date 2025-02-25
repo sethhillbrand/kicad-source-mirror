@@ -42,7 +42,7 @@ class ASSISTANT_INTERFACE
 public:
     ~ASSISTANT_INTERFACE() {}
 
-    static ASSISTANT_INTERFACE& instance()
+    static ASSISTANT_INTERFACE& get_instance()
     {
         static ASSISTANT_INTERFACE assistant;
         return assistant;
@@ -59,7 +59,7 @@ public:
             _create_chat_panel_handel =
                     *_assistant->get_function<CREATE_CHAT_PANEL_HANDEL>( "create_chat_panel" );
             _fire_cmd_handel = *_assistant->get_function<FIRE_CMD_HANDEL>( "fire_cmd" );
-            _assistant_version = *_assistant->get_variable<const char*>( "COPILOT_VERSION" );
+            _assistant_version = _assistant->get_variable<const char*>( "COPILOT_VERSION" );
         }
         catch( const std::exception& e )
         {

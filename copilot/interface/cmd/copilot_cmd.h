@@ -27,7 +27,7 @@
 
 #include "copilot_cmd_type.h"
 #include <nlohmann/json.hpp>
-#include <interface/copilot_context.h>
+#include <copilot_context.h>
 #include <string>
 
 struct CMD_BASE

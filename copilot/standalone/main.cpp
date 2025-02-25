@@ -2,9 +2,7 @@
 
 #include <wx/sysopt.h>
 #include "standalone.h"
-#include <assistant/chat/chat_panel.h>
-#include "dylib.hpp"
-
+#include <assistant_interface.h>
 
 static const auto do_init = []() {
     wxSystemOptions::SetOption("msw.no-manifest-check",1);
@@ -85,12 +83,9 @@ MyDialog::~MyDialog()
 
 void MyDialog::OnAbout( wxCommandEvent& WXUNUSED( event ) )
 {
-    static const char* const title = "About wxWidgets Taskbar Sample";
-    static const char* const message = "wxWidgets sample showing wxTaskBarIcon class\n"
-                                       "\n"
-                                       "(C) 1997 Julian Smart\n"
-                                       "(C) 2007 Vadim Zeitlin";
-    wxMessageBox( message, title, wxICON_INFORMATION | wxOK, this );
+    static const char* const title = "About Assistant Version";
+
+    wxMessageBox(     ASSISTANT_INTERFACE::get_instance().get_assistant_version()->c_str() , title, wxICON_INFORMATION | wxOK, this );
 }
 
 void MyDialog::OnOK( wxCommandEvent& WXUNUSED( event ) )

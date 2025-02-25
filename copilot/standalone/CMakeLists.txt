@@ -6,6 +6,7 @@ add_executable( copilot_standalone  WIN32
 
 target_link_libraries(copilot_standalone PRIVATE 
     ${wxWidgets_LIBRARIES}
+    nlohmann_json
 )
 
 install( TARGETS copilot_standalone

@@ -6,6 +6,7 @@ add_executable( assistant_updater
 )
 target_link_libraries(assistant_updater PRIVATE 
     CURL::libcurl
+    nlohmann_json
 )
 
 install( TARGETS assistant_updater

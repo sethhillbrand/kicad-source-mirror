@@ -1,4 +1,5 @@
 include_directories(.)
+include_directories(./interface)
 add_subdirectory(assistant)
 add_subdirectory(updater)
 add_subdirectory(standalone)
