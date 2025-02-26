@@ -36,6 +36,11 @@ typedef websocketpp::client<websocketpp::config::asio_client> client;
 typedef websocketpp::config::asio_client::message_type::ptr   message_ptr;
 
 
+enum MEG_TYPE
+{
+    CONTENT = 1,
+    END_OF_CHAT = 2,
+};
 class WEBSOCKET_CLIENT
 {
 public:
@@ -44,13 +49,11 @@ public:
 
     void send( std::string const& msg );
 
-    void quit();
-
 private:
-    std::unique_ptr<client> _client;
-    client::connection_ptr  _con{};
+    std::unique_ptr<client>                                _client;
+    client::connection_ptr                                 _con{};
     websocketpp::lib::shared_ptr<websocketpp::lib::thread> _thread;
-
+    MEG_TYPE                                               _previous_type{ MEG_TYPE::END_OF_CHAT };
 };
 
 #endif

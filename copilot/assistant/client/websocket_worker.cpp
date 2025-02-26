@@ -43,11 +43,10 @@ void* WEBSOCKET_WORKER::Entry()
     {
         std::string cmd;
 
-        if( _cmds.ReceiveTimeout( 300, cmd ) == wxMSGQUEUE_NO_ERROR )
+        if( _cmds.ReceiveTimeout( 0, cmd ) == wxMSGQUEUE_NO_ERROR )
             send( cmd );
     }
 
-    _client->quit();
     return nullptr;
 }
 

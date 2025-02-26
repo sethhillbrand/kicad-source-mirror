@@ -48,13 +48,14 @@ protected:
 private:
     void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;
     void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) override;
-    void m_usr_inputOnTextMaxLen( wxCommandEvent& event ) override;
     void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
+    void on_send_button_clicked();
 
 
 private:
     CHAT_CMDS                         _cmds;
     std::unique_ptr<WEBSOCKET_WORKER> _client_worker;
+    wxLog*                            _old;
 };
 
 #endif

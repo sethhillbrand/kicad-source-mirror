@@ -27,17 +27,26 @@
 #include <assistant/client/websocket_worker.h>
 #include <interface/cmd/copilot_cmd.h>
 #include <wx/msgqueue.h>
+#include <wx/string.h>
 
 
 CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
-        CHAT_PANEL_BASE( parent ), _client_worker( new WEBSOCKET_WORKER( _cmds ) )
+        CHAT_PANEL_BASE( parent ), _client_worker( new WEBSOCKET_WORKER( _cmds ) ),
+        _old( wxLog::GetActiveTarget() )
 {
     _client_worker->Run();
-    wxLog::SetActiveTarget(this);
+
+    wxLog::SetActiveTarget( this );
+    m_usr_input->Bind( wxEVT_TEXT_ENTER,
+                       [this]( wxCommandEvent& event )
+                       {
+                           on_send_button_clicked();
+                       } );
 }
 
 CHAT_PANEL::~CHAT_PANEL()
 {
+    wxLog::SetActiveTarget( _old );
     _client_worker->quit();
 }
 
@@ -61,18 +70,19 @@ void CHAT_PANEL::m_chat_ctrlOnTextURL( wxTextUrlEvent& event )
     event.Skip();
 }
 
-void CHAT_PANEL::m_usr_inputOnTextMaxLen( wxCommandEvent& event )
-{
-    event.Skip();
-}
-
 void CHAT_PANEL::m_btn_sendOnButtonClick( wxCommandEvent& event )
 {
-    const auto   usr_input = m_usr_input->GetValue().ToStdString();
-    GENERIC_CHAT chat{ {}, { {}, usr_input }
+    WXUNUSED( event );
+}
+
+
+void CHAT_PANEL::on_send_button_clicked()
+{
+    const auto usr_input = m_usr_input->GetValue();
+    m_chat_ctrl->AppendText( "\nQ:" + usr_input );
+    GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() }
 
     };
     _cmds.Post( nlohmann::json( chat ).dump() );
-    m_chat_ctrl->AppendText( usr_input + "\n" );
     m_usr_input->Clear();
 }

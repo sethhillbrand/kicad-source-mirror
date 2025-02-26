@@ -23,6 +23,9 @@
  */
 
 #include "websocket_client.h"
+#include <exception>
+#include <nlohmann/json.hpp>
+#include <websocketpp/close.hpp>
 #include <wx/log.h>
 #include <iostream>
 
@@ -32,16 +35,60 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 
 
+struct RESPONSE
+{
+    MEG_TYPE    type{};
+    std::string msg;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( RESPONSE, type, msg );
+};
+
+
 // constexpr auto kUri = "ws://localhost:9002";
 
 constexpr auto kUri = "ws://www.fdatasheets.com/kicad/chat/36335";
 
-void on_message( client* c, websocketpp::connection_hdl hdl, message_ptr msg )
+void on_message( client* c, MEG_TYPE& pre_type, websocketpp::connection_hdl hdl, message_ptr msg )
 {
     const auto msg_str = msg->get_payload();
-    wxLogMessage( msg_str.c_str() );
-}
+    wxString   wx_msg_str( msg_str.c_str(), wxConvUTF8 );
 
+    if( wx_msg_str.empty() )
+        return;
+
+    try
+    {
+        RESPONSE r;
+        nlohmann::json::parse( msg_str ).get_to( r );
+        wxString wx_msg( r.msg.c_str(), wxConvUTF8 );
+
+        if( wx_msg.empty() )
+            return;
+
+        switch( r.type )
+        {
+        case CONTENT:
+        {
+            if( pre_type == END_OF_CHAT )
+                wxLogMessage( "\nA:" );
+
+            wxLogMessage( wx_msg );
+            break;
+        }
+        case END_OF_CHAT:
+        {
+            if( pre_type == CONTENT )
+                wxLogMessage( "\n" );
+            break;
+        }
+        }
+
+        pre_type = r.type;
+    }
+    catch( std::exception const& e )
+    {
+        wxLogMessage( "error while parsing message: %s\n", wx_msg_str );
+    }
+}
 WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
 {
     try
@@ -54,7 +101,8 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
         _client->init_asio();
 
         // Register our message handler
-        _client->set_message_handler( bind( &on_message, _client.get(), ::_1, ::_2 ) );
+        _client->set_message_handler(
+                bind( &on_message, _client.get(), _previous_type, ::_1, ::_2 ) );
 
         websocketpp::lib::error_code ec;
         _con = _client->get_connection( kUri, ec );
@@ -81,12 +129,25 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
     }
     catch( websocketpp::exception const& e )
     {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
     }
 }
 
 WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()
 {
+    _client->stop_perpetual();
+
+    try
+    {
+        _client->close( _con, websocketpp::close::status::going_away, "user close" );
+    }
+    catch( std::exception const& e )
+    {
+        std::cerr << e.what() << std::endl;
+    }
+
+    // FIXME: Calling join will throw an exception on MSVC
+    // _thread->join();
 }
 
 void WEBSOCKET_CLIENT::send( std::string const& msg )
@@ -98,19 +159,5 @@ void WEBSOCKET_CLIENT::send( std::string const& msg )
     {
         const auto er_msg = ec.message();
         std::cerr << "Echo failed because: " << er_msg << std::endl;
-    }
-}
-
-
-void WEBSOCKET_CLIENT::quit()
-{
-    try
-    {
-        _client->stop_perpetual();
-        _client->close( _con, websocketpp::close::status::normal, "user close" );
-        _thread->join();
-    }
-    catch( ... )
-    {
     }
 }

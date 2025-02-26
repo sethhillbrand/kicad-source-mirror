@@ -20,7 +20,7 @@ CHAT_PANEL_BASE::CHAT_PANEL_BASE( wxWindow* parent, wxWindowID id, const wxPoint
 	wxBoxSizer* bSizer2;
 	bSizer2 = new wxBoxSizer( wxHORIZONTAL );
 
-	m_usr_input = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	m_usr_input = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
 	bSizer2->Add( m_usr_input, 1, wxEXPAND, 0 );
 
 	m_btn_send = new wxButton( this, wxID_ANY, _("<"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -37,7 +37,6 @@ CHAT_PANEL_BASE::CHAT_PANEL_BASE( wxWindow* parent, wxWindowID id, const wxPoint
 	// Connect Events
 	m_chat_ctrl->Connect( wxEVT_COMMAND_TEXT_MAXLEN, wxCommandEventHandler( CHAT_PANEL_BASE::m_chat_ctrlOnTextMaxLen ), NULL, this );
 	m_chat_ctrl->Connect( wxEVT_COMMAND_TEXT_URL, wxTextUrlEventHandler( CHAT_PANEL_BASE::m_chat_ctrlOnTextURL ), NULL, this );
-	m_usr_input->Connect( wxEVT_COMMAND_TEXT_MAXLEN, wxCommandEventHandler( CHAT_PANEL_BASE::m_usr_inputOnTextMaxLen ), NULL, this );
 	m_btn_send->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( CHAT_PANEL_BASE::m_btn_sendOnButtonClick ), NULL, this );
 }
 
