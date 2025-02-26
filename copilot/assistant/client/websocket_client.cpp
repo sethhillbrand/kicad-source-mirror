@@ -32,9 +32,9 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 
 
-constexpr auto kUri = "ws://localhost:9002";
+// constexpr auto kUri = "ws://localhost:9002";
 
-// constexpr auto kUri = "ws://www.fdatasheets.com/kicad/chat/36335";
+constexpr auto kUri = "ws://www.fdatasheets.com/kicad/chat/36335";
 
 void on_message( client* c, websocketpp::connection_hdl hdl, message_ptr msg )
 {
@@ -57,7 +57,7 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
         _client->set_message_handler( bind( &on_message, _client.get(), ::_1, ::_2 ) );
 
         websocketpp::lib::error_code ec;
-        _con = _client->get_connection( kUri , ec );
+        _con = _client->get_connection( kUri, ec );
         if( ec )
         {
             const auto er_msg = ec.message();
