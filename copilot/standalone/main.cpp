@@ -21,7 +21,7 @@ public:
     virtual bool OnInit() wxOVERRIDE;
 };
 
-wxIMPLEMENT_APP( MyApp );
+wxIMPLEMENT_APP_CONSOLE( MyApp );
 
 bool MyApp::OnInit()
 {

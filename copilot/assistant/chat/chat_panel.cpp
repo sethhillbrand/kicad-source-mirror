@@ -48,6 +48,7 @@ CHAT_PANEL::~CHAT_PANEL()
 {
     wxLog::SetActiveTarget( _old );
     _client_worker->quit();
+    _client_worker->Wait();
 }
 
 void CHAT_PANEL::DoLogRecord( wxLogLevel level, const wxString& msg, const wxLogRecordInfo& info )
@@ -73,6 +74,7 @@ void CHAT_PANEL::m_chat_ctrlOnTextURL( wxTextUrlEvent& event )
 void CHAT_PANEL::m_btn_sendOnButtonClick( wxCommandEvent& event )
 {
     WXUNUSED( event );
+    on_send_button_clicked();
 }
 
 

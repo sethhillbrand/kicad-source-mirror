@@ -27,12 +27,14 @@
 #include <memory>
 #include <wx/log.h>
 
-WEBSOCKET_WORKER::WEBSOCKET_WORKER( CHAT_CMDS& cmds ) : _cmds( cmds )
+WEBSOCKET_WORKER::WEBSOCKET_WORKER( CHAT_CMDS& cmds ) :
+        wxThread( wxThreadKind::wxTHREAD_JOINABLE ), _cmds( cmds )
 {
 }
 
 WEBSOCKET_WORKER::~WEBSOCKET_WORKER()
 {
+    std::cout << "WEBSOCKET_WORKER::~WEBSOCKET_WORKER()" << std::endl;
 }
 
 void* WEBSOCKET_WORKER::Entry()

@@ -1,6 +1,6 @@
 find_package(wxWidgets CONFIG REQUIRED)
 
-add_executable( copilot_standalone  WIN32
+add_executable( copilot_standalone  
     main.cpp
     sample.rc
     wx.manifest

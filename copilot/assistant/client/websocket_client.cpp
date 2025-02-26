@@ -123,8 +123,6 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
         // this will cause a single connection to be made to the server. c.run()
         // will exit when this connection is closed.
         _thread.reset( new websocketpp::lib::thread( &client::run, _client.get() ) );
-
-
         _client->connect( _con );
     }
     catch( websocketpp::exception const& e )
@@ -135,6 +133,8 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
 
 WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()
 {
+    std::cout << "WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()" << std::endl;
+
     _client->stop_perpetual();
 
     try
@@ -146,8 +146,22 @@ WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()
         std::cerr << e.what() << std::endl;
     }
 
-    // FIXME: Calling join will throw an exception on MSVC
-    // _thread->join();
+    try
+    {
+        _thread->join();
+    }
+    catch( const std::system_error& e )
+    {
+        std::cerr << "Caught a system_error exception: " << e.what() << std::endl;
+    }
+    catch( const std::exception& e )
+    {
+        std::cerr << "Caught an exception: " << e.what() << std::endl;
+    }
+    catch( ... )
+    {
+        std::cerr << "Caught an unknown exception" << std::endl;
+    }
 }
 
 void WEBSOCKET_CLIENT::send( std::string const& msg )
