@@ -1,6 +1,5 @@
 find_package(wxWidgets CONFIG REQUIRED)
-find_package(sioclient CONFIG REQUIRED)
-find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_package(websocketpp CONFIG REQUIRED)
 
 add_library( assistant SHARED 
     assistant_launcher.cpp
@@ -14,9 +13,7 @@ add_library( assistant SHARED
 target_link_libraries(assistant PRIVATE 
     nlohmann_json
     ${wxWidgets_LIBRARIES}
-    sioclient::sioclient 
-    sioclient::sioclient_tls
-    unofficial::sqlite3::sqlite3
+    websocketpp::websocketpp
 )
 
 target_compile_definitions(assistant PRIVATE COPILOT_SHARED_LIBRARY)
