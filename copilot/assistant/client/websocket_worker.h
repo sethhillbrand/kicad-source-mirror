@@ -22,35 +22,34 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_CLIENT_H
-#define WEBSOCKET_CLIENT_H
+#ifndef WEBSOCKET_WORKER_H
+#define WEBSOCKET_WORKER_H
 
+#include <wx/thread.h>
 #include <string>
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
 #include <memory>
-#include <mutex>
+#include <nlohmann/json.hpp>
+#include <atomic>
+#include "assistant/client/chat_cmd_queue.h"
 
 
-typedef websocketpp::client<websocketpp::config::asio_client> client;
-typedef websocketpp::config::asio_client::message_type::ptr   message_ptr;
-
-
-class WEBSOCKET_CLIENT
+class WEBSOCKET_CLIENT;
+class WEBSOCKET_WORKER : public wxThread
 {
 public:
-    WEBSOCKET_CLIENT();
-    ~WEBSOCKET_CLIENT();
+    WEBSOCKET_WORKER( CHAT_CMDS & cmds );
+    ~WEBSOCKET_WORKER();
 
-    void send( std::string const& msg );
+    void* Entry() override;
 
-    void quit();
+    void send( const std::string& aMessage );
+
+    auto quit() { _should_quit.store( true ); }
 
 private:
-    std::unique_ptr<client> _client;
-    client::connection_ptr  _con{};
-    websocketpp::lib::shared_ptr<websocketpp::lib::thread> _thread;
-
+    std::unique_ptr<WEBSOCKET_CLIENT> _client;
+    CHAT_CMDS &                  _cmds;
+    std::atomic_bool                  _should_quit{false};
 };
 
 #endif

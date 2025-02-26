@@ -22,35 +22,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_CLIENT_H
-#define WEBSOCKET_CLIENT_H
+#ifndef CHAT_CMD_QUEUE_H
+#define CHAT_CMD_QUEUE_H
 
+#include <wx/msgqueue.h>
 #include <string>
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
-#include <memory>
-#include <mutex>
 
+typedef wxMessageQueue<std::string> CHAT_CMDS;
 
-typedef websocketpp::client<websocketpp::config::asio_client> client;
-typedef websocketpp::config::asio_client::message_type::ptr   message_ptr;
-
-
-class WEBSOCKET_CLIENT
-{
-public:
-    WEBSOCKET_CLIENT();
-    ~WEBSOCKET_CLIENT();
-
-    void send( std::string const& msg );
-
-    void quit();
-
-private:
-    std::unique_ptr<client> _client;
-    client::connection_ptr  _con{};
-    websocketpp::lib::shared_ptr<websocketpp::lib::thread> _thread;
-
-};
 
 #endif

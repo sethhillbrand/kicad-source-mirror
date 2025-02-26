@@ -26,18 +26,35 @@
 #define CHAT_PANEL_H
 
 
-
 #include "chat_panel_base.h"
+#include <memory>
+#include <wx/log.h>
+#include "assistant/client/chat_cmd_queue.h"
 
-
-
-class  CHAT_PANEL : public CHAT_PANEL_BASE
+class WEBSOCKET_WORKER;
+class CHAT_PANEL : public CHAT_PANEL_BASE, wxLog
 {
 public:
-    CHAT_PANEL( wxWindow* parent);
+    CHAT_PANEL( wxWindow* parent );
     ~CHAT_PANEL();
 
+protected:
+    void DoLogRecord( wxLogLevel level, const wxString& msg, const wxLogRecordInfo& info ) override;
+
+    // logging helper
+    void DoLogLine( wxRichTextCtrl* text, const wxString& msg );
+
+
 private:
+    void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;
+    void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) override;
+    void m_usr_inputOnTextMaxLen( wxCommandEvent& event ) override;
+    void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
+
+
+private:
+    CHAT_CMDS                         _cmds;
+    std::unique_ptr<WEBSOCKET_WORKER> _client_worker;
 };
 
 #endif

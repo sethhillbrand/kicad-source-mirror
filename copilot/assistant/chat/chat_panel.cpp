@@ -23,11 +23,56 @@
  */
 
 #include "chat_panel.h"
+#include "nlohmann/json.hpp"
+#include <assistant/client/websocket_worker.h>
+#include <interface/cmd/copilot_cmd.h>
+#include <wx/msgqueue.h>
 
-CHAT_PANEL::CHAT_PANEL(wxWindow* parent) : CHAT_PANEL_BASE(parent)
+
+CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
+        CHAT_PANEL_BASE( parent ), _client_worker( new WEBSOCKET_WORKER( _cmds ) )
 {
+    _client_worker->Run();
+    wxLog::SetActiveTarget(this);
 }
 
 CHAT_PANEL::~CHAT_PANEL()
 {
+    _client_worker->quit();
+}
+
+void CHAT_PANEL::DoLogRecord( wxLogLevel level, const wxString& msg, const wxLogRecordInfo& info )
+{
+    DoLogLine( m_chat_ctrl, msg );
+}
+
+void CHAT_PANEL::DoLogLine( wxRichTextCtrl* text, const wxString& msg )
+{
+    text->AppendText( msg );
+}
+
+void CHAT_PANEL::m_chat_ctrlOnTextMaxLen( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CHAT_PANEL::m_chat_ctrlOnTextURL( wxTextUrlEvent& event )
+{
+    event.Skip();
+}
+
+void CHAT_PANEL::m_usr_inputOnTextMaxLen( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CHAT_PANEL::m_btn_sendOnButtonClick( wxCommandEvent& event )
+{
+    const auto   usr_input = m_usr_input->GetValue().ToStdString();
+    GENERIC_CHAT chat{ {}, { {}, usr_input }
+
+    };
+    _cmds.Post( nlohmann::json( chat ).dump() );
+    m_chat_ctrl->AppendText( usr_input + "\n" );
+    m_usr_input->Clear();
 }

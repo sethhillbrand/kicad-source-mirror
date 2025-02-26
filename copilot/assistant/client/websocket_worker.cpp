@@ -22,35 +22,37 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_CLIENT_H
-#define WEBSOCKET_CLIENT_H
-
-#include <string>
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
+#include "websocket_worker.h"
+#include "websocket_client.h"
 #include <memory>
-#include <mutex>
+#include <wx/log.h>
 
-
-typedef websocketpp::client<websocketpp::config::asio_client> client;
-typedef websocketpp::config::asio_client::message_type::ptr   message_ptr;
-
-
-class WEBSOCKET_CLIENT
+WEBSOCKET_WORKER::WEBSOCKET_WORKER( CHAT_CMDS& cmds ) : _cmds( cmds )
 {
-public:
-    WEBSOCKET_CLIENT();
-    ~WEBSOCKET_CLIENT();
+}
 
-    void send( std::string const& msg );
+WEBSOCKET_WORKER::~WEBSOCKET_WORKER()
+{
+}
 
-    void quit();
+void* WEBSOCKET_WORKER::Entry()
+{
+    _client = std::make_unique<WEBSOCKET_CLIENT>();
 
-private:
-    std::unique_ptr<client> _client;
-    client::connection_ptr  _con{};
-    websocketpp::lib::shared_ptr<websocketpp::lib::thread> _thread;
+    while( !_should_quit )
+    {
+        std::string cmd;
 
-};
+        if( _cmds.ReceiveTimeout( 300, cmd ) == wxMSGQUEUE_NO_ERROR )
+            send( cmd );
+    }
 
-#endif
+    _client->quit();
+    return nullptr;
+}
+
+void WEBSOCKET_WORKER::send( const std::string& aMessage )
+{
+    if( _client )
+        _client->send( aMessage );
+}
