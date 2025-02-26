@@ -15,7 +15,7 @@ CHAT_PANEL_BASE::CHAT_PANEL_BASE( wxWindow* parent, wxWindowID id, const wxPoint
 	bSizer1 = new wxBoxSizer( wxVERTICAL );
 
 	m_chat_ctrl = new wxRichTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_AUTO_URL|wxTE_READONLY|wxHSCROLL|wxVSCROLL );
-	bSizer1->Add( m_chat_ctrl, 1, wxEXPAND | wxALL, 5 );
+	bSizer1->Add( m_chat_ctrl, 1, wxEXPAND | wxALL, 0 );
 
 	wxBoxSizer* bSizer2;
 	bSizer2 = new wxBoxSizer( wxHORIZONTAL );

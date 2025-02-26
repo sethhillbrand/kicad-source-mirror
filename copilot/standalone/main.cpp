@@ -1,9 +1,25 @@
 #include "wx/wx.h"
+#include <wx/app.h>
+#include <wx/dialog.h>
+#include <wx/frame.h>
+#include <wx/window.h>
 
 #include <wx/sysopt.h>
-#include "standalone.h"
 #include <assistant_interface.h>
 
+
+class MyDialog : public wxFrame
+{
+public:
+    MyDialog( const wxString& title );
+    virtual ~MyDialog();
+};
+
+class MyApp : public wxApp
+{
+public:
+    virtual bool OnInit() wxOVERRIDE;
+};
 
 wxIMPLEMENT_APP( MyApp );
 
@@ -13,17 +29,12 @@ bool MyApp::OnInit()
         return false;
 
     // Create the main window
-    auto gs_dialog = new MyDialog( "wxTaskBarIcon Test Dialog" );
+    auto gs_dialog = new MyDialog( "Standalone Copilot" );
 
     gs_dialog->Show();
 
     return true;
 }
-
-
-// ----------------------------------------------------------------------------
-// MyDialog implementation
-// ----------------------------------------------------------------------------
 
 
 MyDialog::MyDialog( const wxString& title ) : wxFrame( NULL, wxID_ANY, title )
@@ -38,19 +49,3 @@ MyDialog::MyDialog( const wxString& title ) : wxFrame( NULL, wxID_ANY, title )
 MyDialog::~MyDialog()
 {
 }
-
-
-// ----------------------------------------------------------------------------
-// MyTaskBarIcon implementation
-// ----------------------------------------------------------------------------
-
-enum
-{
-    PU_RESTORE = 10001,
-    PU_NEW_ICON,
-    PU_EXIT,
-    PU_CHECKMARK,
-    PU_SUB1,
-    PU_SUB2,
-    PU_SUBMAIN
-};
