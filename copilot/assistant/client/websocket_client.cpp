@@ -59,16 +59,18 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT( wxEvtHandler* eventSink ) :
 
                     try
                     {
-                        WEBSOCKET_PAYLOAD r;
+                        WEBSOCKET_PAYLOAD_INTERFACE r;
                         nlohmann::json::parse( msg_str ).get_to( r );
                         wxString   wx_msg( r.msg.c_str(), wxConvUTF8 );
+                        WEBSOCKET_PAYLOAD payload{r.type, wx_msg};
                         const auto evt = new WEBSOCKET_EVENT( EVT_WEBSOCKET_PAYLOAD );
-                        evt->SetPayload( r );
+                        evt->SetPayload( payload);
                         _eventSink->QueueEvent( evt );
                     }
                     catch( std::exception const& e )
                     {
                         wxLogError( "error while parsing message: %s\n", wx_msg_str );
+                        wxLogError( e.what() );
                     }
                 } );
 

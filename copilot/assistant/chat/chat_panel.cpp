@@ -72,11 +72,16 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         return;
 
     const auto usr_input = m_usr_input->GetValue();
-    m_chat_ctrl->AppendText( "\nQ:" + usr_input );
+
+    if( !m_chat_ctrl->GetValue().empty() )
+        m_chat_ctrl->AppendText( "\n" );
+
+    m_chat_ctrl->AppendText( "Q:" + usr_input );
     GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() } };
     _cmds.Post( nlohmann::json( chat ).dump() );
     m_usr_input->Clear();
     m_btn_send->Enable( false );
+    _previous_msg_type = MEG_TYPE::END_OF_CHAT;
 }
 
 void CHAT_PANEL::on_websocket_event( const WEBSOCKET_EVENT& event )
@@ -87,20 +92,19 @@ void CHAT_PANEL::on_websocket_event( const WEBSOCKET_EVENT& event )
     {
     case MEG_TYPE::CONTENT:
     {
-        if( _previous_msg_type == MEG_TYPE::END_OF_CHAT )
-            m_chat_ctrl->AppendText( "\nA:" );
-
         m_chat_ctrl->AppendText( payload.msg );
+        break;
     }
-    break;
     case MEG_TYPE::END_OF_CHAT:
     {
         if( _previous_msg_type == MEG_TYPE::CONTENT )
-            m_chat_ctrl->AppendText( "\n" );
+        {
+            m_chat_ctrl->AppendText( "\n");
+        }
 
         m_btn_send->Enable( true );
+        break;
     }
-    break;
     }
 
     _previous_msg_type = payload.type;

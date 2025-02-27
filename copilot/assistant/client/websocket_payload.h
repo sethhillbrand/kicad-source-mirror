@@ -25,7 +25,8 @@
 #ifndef WEBSOCKET_PAYLOAD_H
 #define WEBSOCKET_PAYLOAD_H
 #include <nlohmann/json.hpp>
-
+#include <string>
+#include <wx/string.h>
 
 enum class MEG_TYPE
 {
@@ -35,9 +36,16 @@ enum class MEG_TYPE
 
 struct WEBSOCKET_PAYLOAD
 {
+    MEG_TYPE type{};
+    wxString msg;
+};
+
+
+struct WEBSOCKET_PAYLOAD_INTERFACE
+{
     MEG_TYPE    type{};
     std::string msg;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBSOCKET_PAYLOAD, type, msg );
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBSOCKET_PAYLOAD_INTERFACE, type, msg );
 };
 
 #endif
