@@ -22,32 +22,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_CLIENT_H
-#define WEBSOCKET_CLIENT_H
+#ifndef WEBSOCKET_URI_H
+#define WEBSOCKET_URI_H
 
 #include <string>
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
-#include <memory>
-#include <wx/event.h>
 
+constexpr auto kUriPrefix = "ws://www.fdatasheets.com/kicad/chat";
 
-typedef websocketpp::client<websocketpp::config::asio_client> client;
-typedef websocketpp::config::asio_client::message_type::ptr   message_ptr;
-
-class WEBSOCKET_CLIENT
+static const auto kUri = ([]
 {
-public:
-    WEBSOCKET_CLIENT( wxEvtHandler* eventSink );
-    ~WEBSOCKET_CLIENT();
-
-    void send( std::string const& msg );
-
-private:
-    wxEvtHandler*                                          _eventSink;
-    std::unique_ptr<client>                                _client;
-    client::connection_ptr                                 _con{};
-    websocketpp::lib::shared_ptr<websocketpp::lib::thread> _thread;
-};
+    static const auto kRandomNum = ([]{
+    return std::to_string(std::rand() % 90000 + 10000);
+    }) ();
+    return std::string( kUriPrefix ) + "/" + kRandomNum;
+})();
 
 #endif

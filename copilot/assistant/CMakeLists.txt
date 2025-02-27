@@ -3,7 +3,7 @@ find_package(websocketpp CONFIG REQUIRED)
 
 add_library( assistant SHARED 
     assistant_launcher.cpp
-    client/websocket_client.cpp
+    client/websocket_endpoint.cpp
     client/websocket_event.cpp
     client/websocket_worker.cpp
     chat/chat_context.cpp

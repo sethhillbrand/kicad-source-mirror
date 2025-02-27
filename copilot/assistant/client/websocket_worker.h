@@ -33,7 +33,7 @@
 #include <atomic>
 #include "assistant/client/chat_cmd_queue.h"
 
-class WEBSOCKET_CLIENT;
+class WEBSOCKET_ENDPOINT;
 class WEBSOCKET_WORKER : public wxThread
 {
 public:
@@ -49,7 +49,7 @@ public:
 private:
     CHAT_CMDS&                        _cmds;
     wxEvtHandler*                     _event_sink;
-    std::unique_ptr<WEBSOCKET_CLIENT> _client;
+    std::unique_ptr<WEBSOCKET_ENDPOINT> _client;
     std::atomic_bool                  _should_quit{ false };
 };
 

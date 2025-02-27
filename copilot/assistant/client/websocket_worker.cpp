@@ -23,7 +23,7 @@
  */
 
 #include "websocket_worker.h"
-#include "websocket_client.h"
+#include "websocket_endpoint.h"
 #include <memory>
 #include <wx/log.h>
 
@@ -38,7 +38,7 @@ WEBSOCKET_WORKER::~WEBSOCKET_WORKER()
 
 void* WEBSOCKET_WORKER::Entry()
 {
-    _client = std::make_unique<WEBSOCKET_CLIENT>(_event_sink);
+    _client = std::make_unique<WEBSOCKET_ENDPOINT>(_event_sink,_should_quit);
 
     while( !_should_quit )
     {
