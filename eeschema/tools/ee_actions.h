@@ -196,6 +196,8 @@ public:
 
     // Design Block management
     static TOOL_ACTION showDesignBlockPanel;
+    // Copilot
+    static TOOL_ACTION showCopilotPanel;
     static TOOL_ACTION saveSheetAsDesignBlock;
     static TOOL_ACTION saveSelectionAsDesignBlock;
     static TOOL_ACTION deleteDesignBlock;

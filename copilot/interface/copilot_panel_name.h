@@ -22,37 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_AUI_INFO_H
-#define COPILOT_AUI_INFO_H
+#ifndef COPILOT_PANEL_NAME_H
+#define COPILOT_PANEL_NAME_H
 
-#include <wx/aui/aui.h>
-#include <wx/aui/framemanager.h>
-#include <wx/aui/auibook.h>
-#include <wx/aui/auibar.h>
-#include <wx/aui/auibook.h>
 #include <wx/chartype.h>
-#include <copilot_panel_name.h>
+#include <wx/string.h>
 
-const wxAuiPaneInfo& defaultCopilotPaneInfo( wxWindow* aWindow )
-{
-    static wxAuiPaneInfo paneInfo;
 
-    paneInfo.Name( CopilotPanelName() )
-            .Caption( CopilotPanelName() )
-            .CaptionVisible( true )
-            .PaneBorder( true )
-            .Right().Layer( 3 ).Position( 2 )
-            .TopDockable( false )
-            .BottomDockable( false )
-            .CloseButton( true )
-            .MinSize( aWindow->FromDIP( wxSize( 240, 60 ) ) )
-            .BestSize( aWindow->FromDIP( wxSize( 300, 200 ) ) )
-            .FloatingSize( aWindow->FromDIP( wxSize( 800, 600 ) ) )
-            .FloatingPosition( aWindow->FromDIP( wxPoint( 50, 200 ) ) )
-            .Show( true );
-
-    return paneInfo;
-}
+static const wxString CopilotPanelName() { return wxS( "Copilot" ); }
 
 
 #endif

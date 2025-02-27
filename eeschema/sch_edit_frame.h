@@ -910,6 +910,8 @@ public:
 
     void ToggleLibraryTree() override;
 
+    void ToggleCopilot() ;
+
     DIALOG_BOOK_REPORTER* GetSymbolDiffDialog();
 
     DIALOG_ERC* GetErcDialog();
