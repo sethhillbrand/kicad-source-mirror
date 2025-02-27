@@ -812,6 +812,9 @@ public:
 
     DESIGN_BLOCK_PANE* GetDesignBlockPane() const { return m_designBlocksPane; }
 
+    wxPanel* GetCopilotPane() const { return m_copilotPanel; }
+
+
     /**
      * Plot or print the current sheet to the clipboard.
      */
@@ -1133,7 +1136,9 @@ private:
 
     std::vector<LIB_ID> m_designBlockHistoryList;
 
-    DESIGN_BLOCK_PANE* m_designBlocksPane;
+    DESIGN_BLOCK_PANE* m_designBlocksPane ;
+
+    wxPanel* m_copilotPanel {};
 
 #ifdef KICAD_IPC_API
     std::unique_ptr<API_HANDLER_SCH> m_apiHandler;

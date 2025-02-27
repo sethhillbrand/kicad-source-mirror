@@ -39,6 +39,7 @@ using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 class ASSISTANT_INTERFACE
 {
+    bool _is_assistant_available = false;
 public:
     ~ASSISTANT_INTERFACE() {}
 
@@ -46,6 +47,11 @@ public:
     {
         static ASSISTANT_INTERFACE assistant;
         return assistant;
+    }
+
+    auto is_assistant_available() const
+    {
+        return _is_assistant_available;
     }
 
     auto load()
@@ -153,7 +159,7 @@ private:
     FIRE_CMD_HANDEL          _fire_cmd_handel{};
     std::string              _assistant_version;
 
-    ASSISTANT_INTERFACE() { load(); }
+    ASSISTANT_INTERFACE() : _is_assistant_available(load()) {  }
 };
 
 
