@@ -23,6 +23,7 @@
  */
 
 #include "websocket_client.h"
+#include "websocket_event.h"
 #include <exception>
 #include <nlohmann/json.hpp>
 #include <websocketpp/close.hpp>
@@ -31,65 +32,11 @@
 
 
 using websocketpp::lib::bind;
-using websocketpp::lib::placeholders::_1;
-using websocketpp::lib::placeholders::_2;
-
-
-struct RESPONSE
-{
-    MEG_TYPE    type{};
-    std::string msg;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( RESPONSE, type, msg );
-};
-
-
-// constexpr auto kUri = "ws://localhost:9002";
 
 constexpr auto kUri = "ws://www.fdatasheets.com/kicad/chat/36335";
 
-void on_message( client* c, MEG_TYPE& pre_type, websocketpp::connection_hdl hdl, message_ptr msg )
-{
-    const auto msg_str = msg->get_payload();
-    wxString   wx_msg_str( msg_str.c_str(), wxConvUTF8 );
-
-    if( wx_msg_str.empty() )
-        return;
-
-    try
-    {
-        RESPONSE r;
-        nlohmann::json::parse( msg_str ).get_to( r );
-        wxString wx_msg( r.msg.c_str(), wxConvUTF8 );
-
-        if( wx_msg.empty() )
-            return;
-
-        switch( r.type )
-        {
-        case CONTENT:
-        {
-            if( pre_type == END_OF_CHAT )
-                wxLogMessage( "\nA:" );
-
-            wxLogMessage( wx_msg );
-            break;
-        }
-        case END_OF_CHAT:
-        {
-            if( pre_type == CONTENT )
-                wxLogMessage( "\n" );
-            break;
-        }
-        }
-
-        pre_type = r.type;
-    }
-    catch( std::exception const& e )
-    {
-        wxLogMessage( "error while parsing message: %s\n", wx_msg_str );
-    }
-}
-WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
+WEBSOCKET_CLIENT::WEBSOCKET_CLIENT( wxEvtHandler* eventSink ) :
+        _eventSink( eventSink ), _client( new client )
 {
     try
     {
@@ -102,14 +49,35 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
 
         // Register our message handler
         _client->set_message_handler(
-                bind( &on_message, _client.get(), _previous_type, ::_1, ::_2 ) );
+                [this]( websocketpp::connection_hdl hdl, message_ptr msg )
+                {
+                    const auto msg_str = msg->get_payload();
+                    wxString   wx_msg_str( msg_str.c_str(), wxConvUTF8 );
+
+                    if( wx_msg_str.empty() )
+                        return;
+
+                    try
+                    {
+                        WEBSOCKET_PAYLOAD r;
+                        nlohmann::json::parse( msg_str ).get_to( r );
+                        wxString   wx_msg( r.msg.c_str(), wxConvUTF8 );
+                        const auto evt = new WEBSOCKET_EVENT( EVT_WEBSOCKET_PAYLOAD );
+                        evt->SetPayload( r );
+                        _eventSink->QueueEvent( evt );
+                    }
+                    catch( std::exception const& e )
+                    {
+                        wxLogError( "error while parsing message: %s\n", wx_msg_str );
+                    }
+                } );
 
         websocketpp::lib::error_code ec;
         _con = _client->get_connection( kUri, ec );
         if( ec )
         {
             const auto er_msg = ec.message();
-            std::cerr << "Connect failed because: " << er_msg << std::endl;
+            wxLogError( "Connect failed because: ", er_msg );
             return;
         }
 
@@ -133,8 +101,6 @@ WEBSOCKET_CLIENT::WEBSOCKET_CLIENT() : _client( new client )
 
 WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()
 {
-    std::cout << "WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()" << std::endl;
-
     _client->stop_perpetual();
 
     try
@@ -143,7 +109,7 @@ WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()
     }
     catch( std::exception const& e )
     {
-        std::cerr << e.what() << std::endl;
+        wxLogError( e.what() );
     }
 
     try
@@ -152,15 +118,15 @@ WEBSOCKET_CLIENT::~WEBSOCKET_CLIENT()
     }
     catch( const std::system_error& e )
     {
-        std::cerr << "Caught a system_error exception: " << e.what() << std::endl;
+        wxLogError( "Caught a system_error exception: ", e.what() );
     }
     catch( const std::exception& e )
     {
-        std::cerr << "Caught an exception: " << e.what() << std::endl;
+        wxLogError( "Caught an exception: ", e.what() );
     }
     catch( ... )
     {
-        std::cerr << "Caught an unknown exception" << std::endl;
+        wxLogError( "Caught an unknown exception" );
     }
 }
 
@@ -172,6 +138,6 @@ void WEBSOCKET_CLIENT::send( std::string const& msg )
     if( ec )
     {
         const auto er_msg = ec.message();
-        std::cerr << "Echo failed because: " << er_msg << std::endl;
+        wxLogError( "Echo failed because: ", er_msg );
     }
 }

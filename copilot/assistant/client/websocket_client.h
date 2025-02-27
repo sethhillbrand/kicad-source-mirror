@@ -29,31 +29,25 @@
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <memory>
-#include <mutex>
+#include <wx/event.h>
 
 
 typedef websocketpp::client<websocketpp::config::asio_client> client;
 typedef websocketpp::config::asio_client::message_type::ptr   message_ptr;
 
-
-enum MEG_TYPE
-{
-    CONTENT = 1,
-    END_OF_CHAT = 2,
-};
 class WEBSOCKET_CLIENT
 {
 public:
-    WEBSOCKET_CLIENT();
+    WEBSOCKET_CLIENT( wxEvtHandler* eventSink );
     ~WEBSOCKET_CLIENT();
 
     void send( std::string const& msg );
 
 private:
+    wxEvtHandler*                                          _eventSink;
     std::unique_ptr<client>                                _client;
     client::connection_ptr                                 _con{};
     websocketpp::lib::shared_ptr<websocketpp::lib::thread> _thread;
-    MEG_TYPE                                               _previous_type{ MEG_TYPE::END_OF_CHAT };
 };
 
 #endif

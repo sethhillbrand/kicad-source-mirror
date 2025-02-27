@@ -27,19 +27,18 @@
 #include <memory>
 #include <wx/log.h>
 
-WEBSOCKET_WORKER::WEBSOCKET_WORKER( CHAT_CMDS& cmds ) :
-        wxThread( wxThreadKind::wxTHREAD_JOINABLE ), _cmds( cmds )
+WEBSOCKET_WORKER::WEBSOCKET_WORKER( wxEvtHandler* eventSink,CHAT_CMDS& cmds ) :
+        wxThread( wxThreadKind::wxTHREAD_JOINABLE ),_event_sink(eventSink), _cmds( cmds )
 {
 }
 
 WEBSOCKET_WORKER::~WEBSOCKET_WORKER()
 {
-    std::cout << "WEBSOCKET_WORKER::~WEBSOCKET_WORKER()" << std::endl;
 }
 
 void* WEBSOCKET_WORKER::Entry()
 {
-    _client = std::make_unique<WEBSOCKET_CLIENT>();
+    _client = std::make_unique<WEBSOCKET_CLIENT>(_event_sink);
 
     while( !_should_quit )
     {

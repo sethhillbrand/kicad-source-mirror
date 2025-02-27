@@ -32,30 +32,28 @@
 #include "assistant/client/chat_cmd_queue.h"
 
 class WEBSOCKET_WORKER;
-class CHAT_PANEL : public CHAT_PANEL_BASE, wxLog
+enum class MEG_TYPE;
+class WEBSOCKET_EVENT;
+
+class CHAT_PANEL : public CHAT_PANEL_BASE
 {
 public:
     CHAT_PANEL( wxWindow* parent );
     ~CHAT_PANEL();
-
-protected:
-    void DoLogRecord( wxLogLevel level, const wxString& msg, const wxLogRecordInfo& info ) override;
-
-    // logging helper
-    void DoLogLine( wxRichTextCtrl* text, const wxString& msg );
 
 
 private:
     void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;
     void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) override;
     void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
-    void on_send_button_clicked();
+    void on_send_button_clicked(wxCommandEvent& event);
+    void on_websocket_event( const WEBSOCKET_EVENT& event );
 
 
 private:
+    MEG_TYPE                          _previous_msg_type;
     CHAT_CMDS                         _cmds;
     std::unique_ptr<WEBSOCKET_WORKER> _client_worker;
-    wxLog*                            _old;
 };
 
 #endif

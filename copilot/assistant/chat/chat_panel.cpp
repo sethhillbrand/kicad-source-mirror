@@ -23,7 +23,8 @@
  */
 
 #include "chat_panel.h"
-#include "nlohmann/json.hpp"
+#include "assistant/client/websocket_event.h"
+#include <nlohmann/json.hpp>
 #include <assistant/client/websocket_worker.h>
 #include <interface/cmd/copilot_cmd.h>
 #include <wx/msgqueue.h>
@@ -31,35 +32,21 @@
 
 
 CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
-        CHAT_PANEL_BASE( parent ), _client_worker( new WEBSOCKET_WORKER( _cmds ) ),
-        _old( wxLog::GetActiveTarget() )
+        _previous_msg_type(), CHAT_PANEL_BASE( parent ),
+        _client_worker( new WEBSOCKET_WORKER( this, _cmds ) )
 {
     _client_worker->Run();
 
-    wxLog::SetActiveTarget( this );
-    m_usr_input->Bind( wxEVT_TEXT_ENTER,
-                       [this]( wxCommandEvent& event )
-                       {
-                           on_send_button_clicked();
-                       } );
+    Bind( EVT_WEBSOCKET_PAYLOAD, &CHAT_PANEL::on_websocket_event, this );
+    m_usr_input->Bind( wxEVT_TEXT_ENTER, &CHAT_PANEL::on_send_button_clicked, this );
 }
 
 CHAT_PANEL::~CHAT_PANEL()
 {
-    wxLog::SetActiveTarget( _old );
     _client_worker->quit();
     _client_worker->Wait();
 }
 
-void CHAT_PANEL::DoLogRecord( wxLogLevel level, const wxString& msg, const wxLogRecordInfo& info )
-{
-    DoLogLine( m_chat_ctrl, msg );
-}
-
-void CHAT_PANEL::DoLogLine( wxRichTextCtrl* text, const wxString& msg )
-{
-    text->AppendText( msg );
-}
 
 void CHAT_PANEL::m_chat_ctrlOnTextMaxLen( wxCommandEvent& event )
 {
@@ -73,18 +60,48 @@ void CHAT_PANEL::m_chat_ctrlOnTextURL( wxTextUrlEvent& event )
 
 void CHAT_PANEL::m_btn_sendOnButtonClick( wxCommandEvent& event )
 {
-    WXUNUSED( event );
-    on_send_button_clicked();
+    on_send_button_clicked( event );
 }
 
 
-void CHAT_PANEL::on_send_button_clicked()
+void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
 {
+    WXUNUSED( event );
+
+    if( _previous_msg_type == MEG_TYPE::CONTENT )
+        return;
+
     const auto usr_input = m_usr_input->GetValue();
     m_chat_ctrl->AppendText( "\nQ:" + usr_input );
-    GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() }
-
-    };
+    GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() } };
     _cmds.Post( nlohmann::json( chat ).dump() );
     m_usr_input->Clear();
+    m_btn_send->Enable( false );
+}
+
+void CHAT_PANEL::on_websocket_event( const WEBSOCKET_EVENT& event )
+{
+    auto payload = event.GetCommandResult();
+
+    switch( payload.type )
+    {
+    case MEG_TYPE::CONTENT:
+    {
+        if( _previous_msg_type == MEG_TYPE::END_OF_CHAT )
+            m_chat_ctrl->AppendText( "\nA:" );
+
+        m_chat_ctrl->AppendText( payload.msg );
+    }
+    break;
+    case MEG_TYPE::END_OF_CHAT:
+    {
+        if( _previous_msg_type == MEG_TYPE::CONTENT )
+            m_chat_ctrl->AppendText( "\n" );
+
+        m_btn_send->Enable( true );
+    }
+    break;
+    }
+
+    _previous_msg_type = payload.type;
 }

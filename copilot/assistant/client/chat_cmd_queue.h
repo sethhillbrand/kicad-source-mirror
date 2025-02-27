@@ -28,7 +28,7 @@
 #include <wx/msgqueue.h>
 #include <string>
 
-typedef wxMessageQueue<std::string> CHAT_CMDS;
+using CHAT_CMDS = wxMessageQueue<std::string>;
 
 
 #endif

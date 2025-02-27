@@ -22,35 +22,24 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_WORKER_H
-#define WEBSOCKET_WORKER_H
+#ifndef WEBSOCKET_EVENT_H
+#define WEBSOCKET_EVENT_H
 
-#include <wx/event.h>
+#include <wx/wx.h>
+#include <wx/any.h>
+#include <wx/msgqueue.h>
 #include <wx/thread.h>
-#include <string>
-#include <memory>
-#include <nlohmann/json.hpp>
-#include <atomic>
-#include "assistant/client/chat_cmd_queue.h"
+#include "websocket_payload.h"
 
-class WEBSOCKET_CLIENT;
-class WEBSOCKET_WORKER : public wxThread
+class WEBSOCKET_EVENT : public wxThreadEvent
 {
 public:
-    WEBSOCKET_WORKER( wxEvtHandler* eventSink, CHAT_CMDS& cmds );
-    ~WEBSOCKET_WORKER();
+    using wxThreadEvent ::wxThreadEvent;
+    WEBSOCKET_PAYLOAD GetCommandResult() const { return GetPayload<WEBSOCKET_PAYLOAD>(); }
 
-    void* Entry() override;
-
-    void send( const std::string& aMessage );
-
-    auto quit() { _should_quit.store( true ); }
-
-private:
-    CHAT_CMDS&                        _cmds;
-    wxEvtHandler*                     _event_sink;
-    std::unique_ptr<WEBSOCKET_CLIENT> _client;
-    std::atomic_bool                  _should_quit{ false };
+    wxEvent* Clone() const override { return new WEBSOCKET_EVENT( *this ); }
 };
+
+wxDECLARE_EVENT( EVT_WEBSOCKET_PAYLOAD, WEBSOCKET_EVENT );
 
 #endif

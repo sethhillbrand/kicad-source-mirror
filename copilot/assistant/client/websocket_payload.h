@@ -22,35 +22,22 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_WORKER_H
-#define WEBSOCKET_WORKER_H
-
-#include <wx/event.h>
-#include <wx/thread.h>
-#include <string>
-#include <memory>
+#ifndef WEBSOCKET_PAYLOAD_H
+#define WEBSOCKET_PAYLOAD_H
 #include <nlohmann/json.hpp>
-#include <atomic>
-#include "assistant/client/chat_cmd_queue.h"
 
-class WEBSOCKET_CLIENT;
-class WEBSOCKET_WORKER : public wxThread
+
+enum class MEG_TYPE
 {
-public:
-    WEBSOCKET_WORKER( wxEvtHandler* eventSink, CHAT_CMDS& cmds );
-    ~WEBSOCKET_WORKER();
+    CONTENT = 1,
+    END_OF_CHAT = 2,
+};
 
-    void* Entry() override;
-
-    void send( const std::string& aMessage );
-
-    auto quit() { _should_quit.store( true ); }
-
-private:
-    CHAT_CMDS&                        _cmds;
-    wxEvtHandler*                     _event_sink;
-    std::unique_ptr<WEBSOCKET_CLIENT> _client;
-    std::atomic_bool                  _should_quit{ false };
+struct WEBSOCKET_PAYLOAD
+{
+    MEG_TYPE    type{};
+    std::string msg;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBSOCKET_PAYLOAD, type, msg );
 };
 
 #endif
