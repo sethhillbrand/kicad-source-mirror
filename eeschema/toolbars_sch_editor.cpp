@@ -42,9 +42,6 @@
 #include <widgets/wx_aui_utils.h>
 #include <widgets/sch_properties_panel.h>
 #include <widgets/sch_search_pane.h>
-#include <copilot_panel_name.h>
-#include <assistant_interface.h>
-
 
 /* Create  the main Horizontal Toolbar for the schematic editor
  */
@@ -126,9 +123,7 @@ void SCH_EDIT_FRAME::ReCreateHToolbar()
     m_mainToolBar->AddScaledSeparator( this );
     m_mainToolBar->Add( EE_ACTIONS::showPcbNew );
 
-    m_mainToolBar->AddScaledSeparator( this );
-    m_mainToolBar->Add( EE_ACTIONS::showCopilotPanel );    
-
+    RecreateCopilotToolBar();
     // Add scripting console and API plugins
     bool scriptingAvailable = SCRIPTING::IsWxAvailable();
 
@@ -405,45 +400,3 @@ void SCH_EDIT_FRAME::ToggleLibraryTree()
     }
 }
 
-
-
-void SCH_EDIT_FRAME::ToggleCopilot()
-{
-    EESCHEMA_SETTINGS* cfg = eeconfig();
-
-    wxCHECK( cfg, /* void */ );
-
-    wxAuiPaneInfo& copilot_pane = m_auimgr.GetPane( CopilotPanelName() );
-
-    copilot_pane.Show( !copilot_pane.IsShown() );
-
-    if( copilot_pane.IsShown() )
-    {
-        if( copilot_pane.IsFloating() )
-        {
-            copilot_pane.FloatingSize( cfg->m_AuiPanels.copilot_panel_float_width,
-                                          cfg->m_AuiPanels.copilot_panel_float_height );
-            m_auimgr.Update();
-        }
-        else if( cfg->m_AuiPanels.copilot_panel_docked_width > 0 )
-        {
-            // SetAuiPaneSize also updates m_auimgr
-            SetAuiPaneSize( m_auimgr, copilot_pane,
-                            cfg->m_AuiPanels.copilot_panel_docked_width, -1 );
-        }
-    }
-    else
-    {
-        if( copilot_pane.IsFloating() )
-        {
-            cfg->m_AuiPanels.copilot_panel_float_width  = copilot_pane.floating_size.x;
-            cfg->m_AuiPanels.copilot_panel_float_height = copilot_pane.floating_size.y;
-        }
-        else
-        {
-            cfg->m_AuiPanels.copilot_panel_docked_width = m_designBlocksPane->GetSize().x;
-        }
-
-        m_auimgr.Update();
-    }
-}

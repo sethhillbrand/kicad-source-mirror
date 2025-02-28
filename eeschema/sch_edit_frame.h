@@ -910,7 +910,19 @@ public:
 
     void ToggleLibraryTree() override;
 
-    void ToggleCopilot() ;
+    void InitCopilotPanel();
+
+    void InitCopilotAui();
+
+    void RecreateCopilotToolBar();
+
+    void CopilotPanelShowChangedLanguage();
+
+    void ToggleCopilot();
+
+    void SaveCopilotCnf();
+
+    void LoadCopilotCnf();
 
     DIALOG_BOOK_REPORTER* GetSymbolDiffDialog();
 

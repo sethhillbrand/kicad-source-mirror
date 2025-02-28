@@ -17,7 +17,6 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <copilot_panel_name.h>
 #include <mutex>
 #include <wx/ffile.h>
 
@@ -345,20 +344,7 @@ void SCH_EDIT_FRAME::SaveSettings( APP_SETTINGS_BASE* aCfg )
 
         m_designBlocksPane->SaveSettings();
 
-        if( m_copilotPanel )
-        {
-            wxAuiPaneInfo& copilotPane = m_auimgr.GetPane( CopilotPanelName() );
-            cfg->m_AuiPanels.copilot_panel_show = copilotPane.IsShown();
-    
-            if( copilotPane.IsDocked() )
-                cfg->m_AuiPanels.copilot_panel_docked_width = m_copilotPanel->GetSize().x;
-            else
-            {
-                cfg->m_AuiPanels.copilot_panel_float_height = copilotPane.floating_size.y;
-                cfg->m_AuiPanels.copilot_panel_float_width = copilotPane.floating_size.x;
-            }    
-        }         
-
+        SaveCopilotCnf();
     }
 }
 
