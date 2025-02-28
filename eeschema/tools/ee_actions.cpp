@@ -150,14 +150,19 @@ TOOL_ACTION EE_ACTIONS::showDesignBlockPanel( TOOL_ACTION_ARGS()
         .Tooltip( _( "Show/hide design blocks library" ) )
         .Icon( BITMAPS::search_tree ) );
 
-// SCH_DESIGN_BLOCK_CONTROL
-TOOL_ACTION EE_ACTIONS::showCopilotPanel( TOOL_ACTION_ARGS()
-        .Name( "eeschema.SchDesignBlockControl.showCopilotPanel" )
+TOOL_ACTION EE_ACTIONS::toggleCopilotPanel( TOOL_ACTION_ARGS()
+        .Name( "eeschema.SchDesignBlockControl.toggleCopilotPanel" )
         .Scope( AS_GLOBAL )
-        .FriendlyName( _( "Copilot" ) )
+        .FriendlyName( _( "Show/hide copilot" ) )
         .Tooltip( _( "Show/hide copilot panel" ) )
         .Icon( BITMAPS::copilot ) );
 
+TOOL_ACTION EE_ACTIONS::showCopilotPanel( TOOL_ACTION_ARGS()
+        .Name( "eeschema.SchDesignBlockControl.showCopilotPanel" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Show copilot" ) )
+        .Tooltip( _( "Show copilot panel" ) )
+        .Icon( BITMAPS::copilot ) );        
 
 TOOL_ACTION EE_ACTIONS::saveSheetAsDesignBlock( TOOL_ACTION_ARGS()
         .Name( "eeschema.SchDesignBlockControl.saveSheetAsDesignBlock" )

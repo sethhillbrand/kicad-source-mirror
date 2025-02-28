@@ -920,6 +920,8 @@ public:
 
     void ToggleCopilot();
 
+    void ShowCopilot( bool show = true );
+
     void SaveCopilotCnf();
 
     void LoadCopilotCnf();

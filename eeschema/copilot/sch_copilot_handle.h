@@ -53,7 +53,7 @@ void SCH_EDIT_FRAME::RecreateCopilotToolBar()
     if( m_copilotPanel )
     {
         m_mainToolBar->AddScaledSeparator( this );
-        m_mainToolBar->Add( EE_ACTIONS::showCopilotPanel );
+        m_mainToolBar->Add( EE_ACTIONS::toggleCopilotPanel );
     }
 }
 
@@ -70,13 +70,19 @@ void SCH_EDIT_FRAME::CopilotPanelShowChangedLanguage()
 
 void SCH_EDIT_FRAME::ToggleCopilot()
 {
+    wxAuiPaneInfo& copilot_pane = m_auimgr.GetPane( CopilotPanelName() );
+    ShowCopilot(!copilot_pane.IsShown());
+}
+
+void SCH_EDIT_FRAME::ShowCopilot( bool show )
+{
     EESCHEMA_SETTINGS* cfg = eeconfig();
 
     wxCHECK( cfg, /* void */ );
 
     wxAuiPaneInfo& copilot_pane = m_auimgr.GetPane( CopilotPanelName() );
 
-    copilot_pane.Show( !copilot_pane.IsShown() );
+    copilot_pane.Show( show );
 
     if( copilot_pane.IsShown() )
     {
@@ -108,7 +114,6 @@ void SCH_EDIT_FRAME::ToggleCopilot()
         m_auimgr.Update();
     }
 }
-
 
 void SCH_EDIT_FRAME::SaveCopilotCnf()
 {
