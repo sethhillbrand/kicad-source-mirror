@@ -43,6 +43,7 @@
 #include <widgets/sch_properties_panel.h>
 #include <widgets/sch_search_pane.h>
 #include <copilot_panel_name.h>
+#include <assistant_interface.h>
 
 
 /* Create  the main Horizontal Toolbar for the schematic editor
@@ -124,6 +125,9 @@ void SCH_EDIT_FRAME::ReCreateHToolbar()
 
     m_mainToolBar->AddScaledSeparator( this );
     m_mainToolBar->Add( EE_ACTIONS::showPcbNew );
+
+    m_mainToolBar->AddScaledSeparator( this );
+    m_mainToolBar->Add( EE_ACTIONS::showCopilotPanel );    
 
     // Add scripting console and API plugins
     bool scriptingAvailable = SCRIPTING::IsWxAvailable();
@@ -409,35 +413,35 @@ void SCH_EDIT_FRAME::ToggleCopilot()
 
     wxCHECK( cfg, /* void */ );
 
-    wxAuiPaneInfo& db_library_pane = m_auimgr.GetPane( CopilotPanelName() );
+    wxAuiPaneInfo& copilot_pane = m_auimgr.GetPane( CopilotPanelName() );
 
-    db_library_pane.Show( !db_library_pane.IsShown() );
+    copilot_pane.Show( !copilot_pane.IsShown() );
 
-    if( db_library_pane.IsShown() )
+    if( copilot_pane.IsShown() )
     {
-        if( db_library_pane.IsFloating() )
+        if( copilot_pane.IsFloating() )
         {
-            db_library_pane.FloatingSize( cfg->m_AuiPanels.design_blocks_panel_float_width,
-                                          cfg->m_AuiPanels.design_blocks_panel_float_height );
+            copilot_pane.FloatingSize( cfg->m_AuiPanels.copilot_panel_float_width,
+                                          cfg->m_AuiPanels.copilot_panel_float_height );
             m_auimgr.Update();
         }
-        else if( cfg->m_AuiPanels.design_blocks_panel_docked_width > 0 )
+        else if( cfg->m_AuiPanels.copilot_panel_docked_width > 0 )
         {
             // SetAuiPaneSize also updates m_auimgr
-            SetAuiPaneSize( m_auimgr, db_library_pane,
-                            cfg->m_AuiPanels.design_blocks_panel_docked_width, -1 );
+            SetAuiPaneSize( m_auimgr, copilot_pane,
+                            cfg->m_AuiPanels.copilot_panel_docked_width, -1 );
         }
     }
     else
     {
-        if( db_library_pane.IsFloating() )
+        if( copilot_pane.IsFloating() )
         {
-            cfg->m_AuiPanels.design_blocks_panel_float_width  = db_library_pane.floating_size.x;
-            cfg->m_AuiPanels.design_blocks_panel_float_height = db_library_pane.floating_size.y;
+            cfg->m_AuiPanels.copilot_panel_float_width  = copilot_pane.floating_size.x;
+            cfg->m_AuiPanels.copilot_panel_float_height = copilot_pane.floating_size.y;
         }
         else
         {
-            cfg->m_AuiPanels.design_blocks_panel_docked_width = m_designBlocksPane->GetSize().x;
+            cfg->m_AuiPanels.copilot_panel_docked_width = m_designBlocksPane->GetSize().x;
         }
 
         m_auimgr.Update();

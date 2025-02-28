@@ -351,6 +351,18 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         SetAuiPaneSize( m_auimgr, designBlocksPane,
                         cfg->m_AuiPanels.design_blocks_panel_docked_width, -1 );
 
+
+    if( m_copilotPanel )
+    {
+        wxAuiPaneInfo& copilotPane = m_auimgr.GetPane( CopilotPanelName() );
+        copilotPane.Show( cfg->m_AuiPanels.copilot_panel_show );
+        if( cfg->m_AuiPanels.copilot_panel_show )
+        {
+            SetAuiPaneSize( m_auimgr, copilotPane, cfg->m_AuiPanels.copilot_panel_docked_width, -1 );                        
+        }
+
+    }                        
+
     if( cfg->m_AuiPanels.hierarchy_panel_docked_width > 0 )
     {
         // If the net navigator is not show, let the hierarchy navigator take all of the vertical

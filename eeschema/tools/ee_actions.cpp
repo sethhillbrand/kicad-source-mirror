@@ -156,7 +156,7 @@ TOOL_ACTION EE_ACTIONS::showCopilotPanel( TOOL_ACTION_ARGS()
         .Scope( AS_GLOBAL )
         .FriendlyName( _( "Copilot" ) )
         .Tooltip( _( "Show/hide copilot panel" ) )
-        .Icon( BITMAPS::info ) );
+        .Icon( BITMAPS::copilot ) );
 
 
 TOOL_ACTION EE_ACTIONS::saveSheetAsDesignBlock( TOOL_ACTION_ARGS()

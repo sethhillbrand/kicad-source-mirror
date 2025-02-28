@@ -39,6 +39,7 @@ CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
 
     Bind( EVT_WEBSOCKET_PAYLOAD, &CHAT_PANEL::on_websocket_event, this );
     m_usr_input->Bind( wxEVT_TEXT_ENTER, &CHAT_PANEL::on_send_button_clicked, this );
+    m_usr_input->SetFocus();
 }
 
 CHAT_PANEL::~CHAT_PANEL()
