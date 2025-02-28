@@ -187,6 +187,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     root.push_back( &Schematic().Root() );
     SetCurrentSheet( root );
 
+    InitCopilotPanel();
     setupTools();
     setupUIConditions();
     ReCreateMenuBar();
@@ -214,8 +215,6 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
 
     m_selectionFilterPanel = new PANEL_SCH_SELECTION_FILTER( this );
     m_designBlocksPane = new DESIGN_BLOCK_PANE( this, nullptr, m_designBlockHistoryList );
-
-    InitCopilotPanel();
 
     m_auimgr.SetManagedWindow( this );
 
