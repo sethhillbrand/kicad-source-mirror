@@ -30,6 +30,7 @@
 #include <sch_bitmap.h>
 #include <sch_line_wire_bus_tool.h>
 #include <tool/tool_action.h>
+#include <copilot/sch_copilot_actions.h>
 
 // Actions, being statically-defined, require specialized I18N handling.  We continue to
 // use the _() macro so that string harvesting by the I18N framework doesn't have to be
@@ -148,21 +149,7 @@ TOOL_ACTION EE_ACTIONS::showDesignBlockPanel( TOOL_ACTION_ARGS()
         .Scope( AS_GLOBAL )
         .FriendlyName( _( "Design Blocks" ) )
         .Tooltip( _( "Show/hide design blocks library" ) )
-        .Icon( BITMAPS::search_tree ) );
-
-TOOL_ACTION EE_ACTIONS::toggleCopilotPanel( TOOL_ACTION_ARGS()
-        .Name( "eeschema.SchDesignBlockControl.toggleCopilotPanel" )
-        .Scope( AS_GLOBAL )
-        .FriendlyName( _( "Show/hide copilot" ) )
-        .Tooltip( _( "Show/hide copilot panel" ) )
-        .Icon( BITMAPS::copilot ) );
-
-TOOL_ACTION EE_ACTIONS::showCopilotPanel( TOOL_ACTION_ARGS()
-        .Name( "eeschema.SchDesignBlockControl.showCopilotPanel" )
-        .Scope( AS_GLOBAL )
-        .FriendlyName( _( "Show copilot" ) )
-        .Tooltip( _( "Show copilot panel" ) )
-        .Icon( BITMAPS::copilot ) );        
+        .Icon( BITMAPS::search_tree ) );   
 
 TOOL_ACTION EE_ACTIONS::saveSheetAsDesignBlock( TOOL_ACTION_ARGS()
         .Name( "eeschema.SchDesignBlockControl.saveSheetAsDesignBlock" )
