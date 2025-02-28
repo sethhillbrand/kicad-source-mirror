@@ -137,6 +137,7 @@ enum class BITMAPS : unsigned int
     config,
     contrast_mode,
     convert,
+    copilot,
     copper_layers_setup,
     copy,
     copy_pad_settings,
