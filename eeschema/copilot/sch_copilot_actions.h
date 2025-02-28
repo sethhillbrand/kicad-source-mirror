@@ -31,6 +31,8 @@
 #include <sch_bitmap.h>
 #include <tool/tool_action.h>
 
+#undef _
+#define _( s ) s
 
 TOOL_ACTION EE_ACTIONS::toggleCopilotPanel(
         TOOL_ACTION_ARGS()
@@ -53,7 +55,7 @@ TOOL_ACTION EE_ACTIONS::copilotCurrentSymbol(
         TOOL_ACTION_ARGS()
                 .Name( "eeschema.SchDesignBlockControl.copilotCurrentSymbol" )
                 .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Explaint current symbol" ) ));
+                .FriendlyName( _( "Explaint current symbol" ) ) );
 
 
 TOOL_ACTION EE_ACTIONS::copilotSimilarComponents(
