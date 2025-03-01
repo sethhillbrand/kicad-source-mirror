@@ -22,6 +22,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include "assistant_interface.h"
 #include <kiway.h>
 #include <tool/action_manager.h>
 #include <tool/picker_tool.h>
@@ -723,6 +724,17 @@ bool SCH_EDIT_TOOL::Init()
     selToolMenu.AddMenu( makeConvertToMenu(),          toChangeCondition, 200 );
 
     selToolMenu.AddItem( EE_ACTIONS::cleanupSheetPins, sheetHasUndefinedPins, 250 );
+
+    if(ASSISTANT_INTERFACE::get_instance().is_assistant_available())
+    {
+        selToolMenu.AddSeparator( 275 );
+        selToolMenu.AddItem( EE_ACTIONS::copilotCurrentSymbol,                 hasElements, 275 );
+        selToolMenu.AddItem( EE_ACTIONS::copilotSimilarComponents,             hasElements, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotCheckSymbolConnections,        hasElements, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotComponentPinsDetails,          hasElements, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotSymbolUnconnectedPins,         hasElements, 275 );    
+    }                  
+
 
     selToolMenu.AddSeparator( 300 );
     selToolMenu.AddItem( ACTIONS::cut,                 E_C::IdleSelection, 300 );

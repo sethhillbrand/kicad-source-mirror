@@ -38,7 +38,7 @@ TOOL_ACTION EE_ACTIONS::toggleCopilotPanel(
         TOOL_ACTION_ARGS()
                 .Name( "eeschema.SchDesignBlockControl.toggleCopilotPanel" )
                 .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Show/hide copilot" ) )
+                .FriendlyName( _( "Copilot" ) )
                 .Tooltip( _( "Show/hide copilot panel" ) )
                 .Icon( BITMAPS::copilot ) );
 
@@ -51,11 +51,25 @@ TOOL_ACTION EE_ACTIONS::showCopilotPanel(
                 .Icon( BITMAPS::copilot ) );
 
 
+TOOL_ACTION EE_ACTIONS::copilotDesignIntention(
+        TOOL_ACTION_ARGS()
+                .Name( "eeschema.SchDesignBlockControl.copilotDesignIntention" )
+                .Scope( AS_GLOBAL )
+                .FriendlyName( _( "Explain design intention" ) ) );
+
+
+TOOL_ACTION EE_ACTIONS::copilotCoreComponents(
+        TOOL_ACTION_ARGS()
+                .Name( "eeschema.SchDesignBlockControl.copilotCoreComponents" )
+                .Scope( AS_GLOBAL )
+                .FriendlyName( _( "Explain core components" ) ) );
+
+
 TOOL_ACTION EE_ACTIONS::copilotCurrentSymbol(
         TOOL_ACTION_ARGS()
                 .Name( "eeschema.SchDesignBlockControl.copilotCurrentSymbol" )
                 .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Explaint current symbol" ) ) );
+                .FriendlyName( _( "Explain current symbol" ) ) );
 
 
 TOOL_ACTION EE_ACTIONS::copilotSimilarComponents(
