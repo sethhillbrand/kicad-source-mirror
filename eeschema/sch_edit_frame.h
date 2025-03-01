@@ -910,6 +910,9 @@ public:
 
     void ToggleLibraryTree() override;
 
+    /**
+     * Copilot UI interfaces
+     */
     void InitCopilotPanel();
 
     void InitCopilotAui();
@@ -925,6 +928,17 @@ public:
     void SaveCopilotCnf();
 
     void LoadCopilotCnf();
+
+    /**
+     * Copilot context interfaces
+     */
+     
+     
+    /**
+     * Copilot Commands
+     */
+
+
 
     DIALOG_BOOK_REPORTER* GetSymbolDiffDialog();
 

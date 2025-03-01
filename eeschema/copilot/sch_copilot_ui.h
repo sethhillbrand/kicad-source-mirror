@@ -22,8 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_HANDLE_H
-#define SCH_COPILOT_HANDLE_H
+#ifndef SCH_COPILOT_UI_H
+#define SCH_COPILOT_UI_H
 
 #include <tool/action_toolbar.h>
 #include <tools/ee_actions.h>
@@ -153,5 +153,6 @@ void SCH_EDIT_FRAME::LoadCopilotCnf()
         }
     }
 }
+
 
 #endif
