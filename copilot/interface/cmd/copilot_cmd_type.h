@@ -25,7 +25,7 @@
 #ifndef COPILOT_CMD_TYPE_H
 #define COPILOT_CMD_TYPE_H
 
-enum class CMD_TYPE
+enum class COPILOT_CMD_TYPE
 {
     GENERIC_CHAT = -1,
 

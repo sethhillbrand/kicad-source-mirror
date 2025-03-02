@@ -25,14 +25,9 @@
 #ifndef SCH_COPILOT_CMD_H
 #define SCH_COPILOT_CMD_H
 
-class SCH_COPILOT_CMD
-{
-public:
-    SCH_COPILOT_CMD();
-    ~SCH_COPILOT_CMD();
+#include <sch_edit_frame.h>
 
-private:
 
-};
+void SCH_EDIT_FRAME::FireCopilotCommand(COPILOT_CMD_TYPE aCmdType) const {}
 
 #endif

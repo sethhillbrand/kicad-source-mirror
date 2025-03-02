@@ -25,14 +25,16 @@
 #ifndef SCH_COPILOT_CONTEXT_H
 #define SCH_COPILOT_CONTEXT_H
 
-class SCH_COPILOT_CONTEXT
-{
-public:
-    SCH_COPILOT_CONTEXT();
-    ~SCH_COPILOT_CONTEXT();
+#include <sch_edit_frame.h>
 
-private:
 
-};
+wxString SCH_EDIT_FRAME::GetBomList() const {}
+
+wxString SCH_EDIT_FRAME::GetNetList() const{}
+
+wxString SCH_EDIT_FRAME::GetSymbol() const {}
+
+wxString SCH_EDIT_FRAME::GetSymbolNetList() const {}
+
 
 #endif

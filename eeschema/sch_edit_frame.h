@@ -66,7 +66,7 @@ class RESCUER;
 class HIERARCHY_PANE;
 class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
-
+enum class COPILOT_CMD_TYPE;
 
 /// Schematic search type used by the socket link with Pcbnew
 enum SCH_SEARCH_T
@@ -933,11 +933,19 @@ public:
      * Copilot context interfaces
      */
      
+    wxString GetBomList() const;
+
+    wxString GetNetList() const;
+
+    wxString GetSymbol() const;
+
+    wxString GetSymbolNetList() const;
      
     /**
      * Copilot Commands
      */
-
+    
+    void FireCopilotCommand(COPILOT_CMD_TYPE aCmdType) const;
 
 
     DIALOG_BOOK_REPORTER* GetSymbolDiffDialog();
