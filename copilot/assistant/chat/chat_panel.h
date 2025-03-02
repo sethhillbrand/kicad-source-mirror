@@ -41,6 +41,8 @@ public:
     CHAT_PANEL( wxWindow* parent );
     ~CHAT_PANEL();
 
+    void fire_cmd(const char* cmd);
+
 
 private:
     void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;

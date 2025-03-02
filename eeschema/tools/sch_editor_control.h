@@ -136,6 +136,14 @@ public:
     int ToggleCopilot( const TOOL_EVENT& aEvent );
     int ShowCopilot( const TOOL_EVENT& aEvent );
 
+    int DesignIntention( const TOOL_EVENT& aEvent );
+    int CoreComponents( const TOOL_EVENT& aEvent );
+    int CurrentComponent( const TOOL_EVENT& aEvent );
+    int SimilarComponents( const TOOL_EVENT& aEvent );
+    int CheckSymbolConnections( const TOOL_EVENT& aEvent );
+    int ComponentPinsDetails( const TOOL_EVENT& aEvent );
+    int SymbolUnconnectedPins( const TOOL_EVENT& aEvent );
+
     int ToggleHiddenPins( const TOOL_EVENT& aEvent );
     int ToggleHiddenFields( const TOOL_EVENT& aEvent );
     int ToggleDirectiveLabels( const TOOL_EVENT& aEvent );

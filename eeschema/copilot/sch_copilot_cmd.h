@@ -25,9 +25,76 @@
 #ifndef SCH_COPILOT_CMD_H
 #define SCH_COPILOT_CMD_H
 
+#include <nlohmann/json.hpp>
 #include <sch_edit_frame.h>
+#include <cmd/copilot_cmd.h>
+#include <assistant_interface.h>
+
+void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
+{
+    if( !m_copilotPanel )
+        return;
+
+    nlohmann::json cmd;
+
+    switch( aCmdType )
+    {
+    case COPILOT_CMD_TYPE::GENERIC_CHAT: break;
+    case COPILOT_CMD_TYPE::DESIGN_INTENTION:
+    case COPILOT_CMD_TYPE::CORE_COMPONENTS:
+        cmd = nlohmann::json( CORE_COMPONENTS{ {}, m_copilotContextCache } );
+        break;
+
+    case COPILOT_CMD_TYPE::CURRENT_COMPONENT:
+
+    case COPILOT_CMD_TYPE::SIMILAR_COMPONENTS:
+
+    case COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS:
+
+    case COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS:
+
+    case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS:
+        cmd = nlohmann::json( CURRENT_COMPONENT{ {}, *GetSymbol() } );
+        break;
+    }
+
+    if( !cmd.empty() )
+    {
+        cmd["type"] = static_cast<int>( aCmdType );
+        ShowCopilot();
+        ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
+    }
+}
 
 
-void SCH_EDIT_FRAME::FireCopilotCommand(COPILOT_CMD_TYPE aCmdType) const {}
+void SCH_EDIT_FRAME::DesignIntention()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::DESIGN_INTENTION );
+}
+void SCH_EDIT_FRAME::CoreComponents()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::CORE_COMPONENTS );
+}
+void SCH_EDIT_FRAME::CurrentComponent()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::CURRENT_COMPONENT );
+}
+void SCH_EDIT_FRAME::SimilarComponents()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::SIMILAR_COMPONENTS );
+}
+void SCH_EDIT_FRAME::CheckSymbolConnections()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS );
+}
+void SCH_EDIT_FRAME::ComponentPinsDetails()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS );
+}
+void SCH_EDIT_FRAME::SymbolUnconnectedPins()
+{
+    FireCopilotCommand( COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS );
+}
+
 
 #endif

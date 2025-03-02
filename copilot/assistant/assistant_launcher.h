@@ -26,19 +26,20 @@
 #define ASSISTANT_LAUNCHER_H
 
 #include "copilot_global.h"
-
-
+#include "copilot_global_ctx_hdl.h"
 class wxPanel;
 class wxWindow;
 #ifdef __cplusplus
+
 
 extern "C"
 {
 #endif
 
-    COPILOT_API wxPanel* create_chat_panel(wxWindow* parent);
+    COPILOT_API wxPanel* create_chat_panel( wxWindow* parent );
 
     COPILOT_API void fire_cmd( wxPanel* target, const char* cmd );
+
 
 #ifdef __cplusplus
 }

@@ -27,6 +27,7 @@
 #ifndef  SCH_EDIT_FRAME_H
 #define  SCH_EDIT_FRAME_H
 
+#include <memory>
 #include <stddef.h>
 #include <vector>
 #include <wx/cmndata.h>
@@ -42,6 +43,7 @@
 #include <math/box2.h>
 #include <sch_base_frame.h>
 #include <template_fieldnames.h>
+#include <copilot/sch_copilot_context_cache.h>
 
 class SCH_ITEM;
 class EDA_ITEM;
@@ -67,6 +69,7 @@ class HIERARCHY_PANE;
 class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
 enum class COPILOT_CMD_TYPE;
+struct SYMBOL_CMD_CONTEXT;
 
 /// Schematic search type used by the socket link with Pcbnew
 enum SCH_SEARCH_T
@@ -933,19 +936,31 @@ public:
      * Copilot context interfaces
      */
      
-    wxString GetBomList() const;
+    wxString GetBomList() ;
 
-    wxString GetNetList() const;
+    wxString GetNetList() ;
 
-    wxString GetSymbol() const;
+    std::shared_ptr<SYMBOL_CMD_CONTEXT> GetSymbol() ;
 
-    wxString GetSymbolNetList(wxString const& aDesignator) const;
+    wxString GetSymbolNetList(wxString const& aDesignator) ;
+
+    void UpdateCopilotContextCache();
+
+    const char* GetCopilotContextCache();
      
     /**
      * Copilot Commands
      */
     
-    void FireCopilotCommand(COPILOT_CMD_TYPE aCmdType) const;
+    void FireCopilotCommand(COPILOT_CMD_TYPE aCmdType) ;
+
+    void DesignIntention();
+    void CoreComponents();
+    void CurrentComponent();
+    void SimilarComponents();
+    void CheckSymbolConnections();
+    void ComponentPinsDetails();
+    void SymbolUnconnectedPins();
 
 
     DIALOG_BOOK_REPORTER* GetSymbolDiffDialog();
@@ -1177,6 +1192,8 @@ private:
     DESIGN_BLOCK_PANE* m_designBlocksPane ;
 
     wxPanel* m_copilotPanel {};
+
+    SCH_COPILOT_CONTEXT_CACHE m_copilotContextCache;
 
 #ifdef KICAD_IPC_API
     std::unique_ptr<API_HANDLER_SCH> m_apiHandler;

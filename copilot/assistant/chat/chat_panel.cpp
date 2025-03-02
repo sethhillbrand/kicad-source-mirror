@@ -23,12 +23,29 @@
  */
 
 #include "chat_panel.h"
+#include <copilot_global_ctx_hdl.h>
 #include "assistant/client/websocket_event.h"
+#include "copilot_context.h"
+#include "copilot_global.h"
 #include <nlohmann/json.hpp>
 #include <assistant/client/websocket_worker.h>
 #include <interface/cmd/copilot_cmd.h>
+#include <string>
 #include <wx/msgqueue.h>
 #include <wx/string.h>
+
+extern "C"
+
+{
+    COPILOT_API COPILOT_GLOBAL_CONTEXT_HDL get_global_context_hdl = nullptr;
+}
+
+
+struct CMD_TYPE_TRAITS
+{
+    COPILOT_CMD_TYPE type{ COPILOT_CMD_TYPE::GENERIC_CHAT };
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CMD_TYPE_TRAITS, type )
+};
 
 
 CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
@@ -46,6 +63,45 @@ CHAT_PANEL::~CHAT_PANEL()
 {
     _client_worker->quit();
     _client_worker->Wait();
+}
+
+void CHAT_PANEL::fire_cmd( const char* cmd )
+{
+    if( _previous_msg_type == MEG_TYPE::CONTENT )
+    {
+        m_chat_ctrl->AppendText( "小助手正忙,请稍后再试" );
+        return;
+    }
+
+    wxString cmd_desc;
+
+    try
+    {
+        CMD_TYPE_TRAITS t;
+        auto            cmd_type = nlohmann::json::parse( cmd ).get_to( t );
+
+        switch( t.type )
+        {
+        case COPILOT_CMD_TYPE::GENERIC_CHAT: break;
+        case COPILOT_CMD_TYPE::DESIGN_INTENTION: cmd_desc = "解释设计意图"; break;
+        case COPILOT_CMD_TYPE::CORE_COMPONENTS: cmd_desc = "核心器件"; break;
+        case COPILOT_CMD_TYPE::CURRENT_COMPONENT: cmd_desc = "解释当前器件"; break;
+        case COPILOT_CMD_TYPE::SIMILAR_COMPONENTS: cmd_desc = "相似器件推荐"; break;
+        case COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS: cmd_desc = "检查符号连接关系"; break;
+        case COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS: cmd_desc = "介绍器件引脚详情"; break;
+        case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS: cmd_desc = "检查符号未连接引脚"; break;
+        }
+    }
+    catch( ... )
+    {
+    }
+
+    if( !cmd_desc.empty() )
+        m_chat_ctrl->AppendText( "Q:" + cmd_desc );
+
+    _cmds.Post( std::string( cmd ) );
+
+    _previous_msg_type = MEG_TYPE::END_OF_CHAT;
 }
 
 
@@ -78,7 +134,21 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         m_chat_ctrl->AppendText( "\n" );
 
     m_chat_ctrl->AppendText( "Q:" + usr_input );
-    GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() } };
+    DESIGN_GLOBAL_CONTEXT ctx;
+
+    if( get_global_context_hdl )
+    {
+        try
+        {
+            auto ctx_str = get_global_context_hdl();
+            nlohmann::json::parse( ctx_str ).get_to( ctx );
+        }
+        catch( ... )
+        {
+        }
+    }
+
+    GENERIC_CHAT chat{ {}, { ctx, usr_input.ToUTF8().data() } };
     _cmds.Post( nlohmann::json( chat ).dump() );
     m_usr_input->Clear();
     m_btn_send->Enable( false );
@@ -100,7 +170,7 @@ void CHAT_PANEL::on_websocket_event( const WEBSOCKET_EVENT& event )
     {
         if( _previous_msg_type == MEG_TYPE::CONTENT )
         {
-            m_chat_ctrl->AppendText( "\n");
+            m_chat_ctrl->AppendText( "\n" );
         }
 
         m_btn_send->Enable( true );

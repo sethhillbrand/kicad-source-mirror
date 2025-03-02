@@ -22,39 +22,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CONTEXT_H
-#define COPILOT_CONTEXT_H
+#ifndef COPILOT_GLOBAL_CTX_HDL_H
+#define COPILOT_GLOBAL_CTX_HDL_H
 
-#include "sch/symbol_properties.h"
-#include <nlohmann/json.hpp>
-#include <string>
-
-using NET_LIST = std::string;
-using NET = std::string;
-using BOM = std::string;
+#include <functional>
 
 
-struct DESIGN_GLOBAL_CONTEXT
-{
-    BOM bom;
-    NET_LIST net_list;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, bom, net_list )
-};
-
-
-struct SYMBOL_CMD_CONTEXT
-{
-    std::string       designator;
-    SYMBOL_PROPERTIES symbol_properties;
-    NET               net;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CMD_CONTEXT, designator, symbol_properties, net )
-};
-
-struct GENERAL_CHAT_CONTEXT : DESIGN_GLOBAL_CONTEXT
-{
-    std::string user_input;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( GENERAL_CHAT_CONTEXT, user_input )
-};
-
+using COPILOT_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
 
 #endif

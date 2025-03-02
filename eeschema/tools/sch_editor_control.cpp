@@ -2566,6 +2566,41 @@ int SCH_EDITOR_CONTROL::ShowCopilot( const TOOL_EVENT& aEvent )
     return 0;
 }
 
+int SCH_EDITOR_CONTROL:: DesignIntention( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->DesignIntention();
+    return 0;
+}
+
+int SCH_EDITOR_CONTROL:: CoreComponents( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->CoreComponents();
+    return 0;
+}
+
+int SCH_EDITOR_CONTROL:: CurrentComponent( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->CurrentComponent();
+    return 0;
+}
+
+int SCH_EDITOR_CONTROL:: SimilarComponents( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->SimilarComponents();
+    return 0;
+}
+
+int SCH_EDITOR_CONTROL:: CheckSymbolConnections( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->CheckSymbolConnections();
+    return 0;
+}
+
+int SCH_EDITOR_CONTROL:: ComponentPinsDetails( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->ComponentPinsDetails();
+    return 0;
+}
+
+int SCH_EDITOR_CONTROL:: SymbolUnconnectedPins( const TOOL_EVENT& aEvent ){
+    getEditFrame<SCH_EDIT_FRAME>()->SymbolUnconnectedPins();
+    return 0;
+}
+
 int SCH_EDITOR_CONTROL::ToggleHiddenPins( const TOOL_EVENT& aEvent )
 {
     EESCHEMA_SETTINGS* cfg = m_frame->eeconfig();
@@ -2964,6 +2999,15 @@ void SCH_EDITOR_CONTROL::setTransitions()
 
     Go( &SCH_EDITOR_CONTROL::ToggleCopilot,     EE_ACTIONS::toggleCopilotPanel.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::ShowCopilot,     EE_ACTIONS::showCopilotPanel.MakeEvent() );
+
+    Go( &SCH_EDITOR_CONTROL::CurrentComponent,     EE_ACTIONS::copilotCurrentSymbol.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::SimilarComponents,     EE_ACTIONS::copilotSimilarComponents.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::CheckSymbolConnections,     EE_ACTIONS::copilotCheckSymbolConnections.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::ComponentPinsDetails,     EE_ACTIONS::copilotComponentPinsDetails.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::SymbolUnconnectedPins,     EE_ACTIONS::copilotSymbolUnconnectedPins.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::DesignIntention,     EE_ACTIONS::copilotDesignIntention.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::CoreComponents,     EE_ACTIONS::copilotCoreComponents.MakeEvent() );
+
 
     Go( &SCH_EDITOR_CONTROL::ToggleHiddenPins,      EE_ACTIONS::toggleHiddenPins.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::ToggleHiddenFields,    EE_ACTIONS::toggleHiddenFields.MakeEvent() );

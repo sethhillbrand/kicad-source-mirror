@@ -33,6 +33,7 @@
 #include <wx/stdpaths.h>
 #include <wx/panel.h>
 #include <nlohmann/json.hpp>
+#include <copilot_global_ctx_hdl.h>
 
 
 using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
@@ -40,6 +41,7 @@ using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 class ASSISTANT_INTERFACE
 {
     bool _is_assistant_available = false;
+
 public:
     ~ASSISTANT_INTERFACE() {}
 
@@ -49,9 +51,14 @@ public:
         return assistant;
     }
 
-    auto is_assistant_available() const
+    auto is_assistant_available() const { return _is_assistant_available; }
+
+    auto set_copilot_global_ctx_hdl( COPILOT_GLOBAL_CONTEXT_HDL hdl )
     {
-        return _is_assistant_available;
+        if( !is_assistant_available() )
+            return;
+
+        _assistant->get_variable<COPILOT_GLOBAL_CONTEXT_HDL>( "get_global_context_hdl" ) = hdl;
     }
 
     auto load()
@@ -159,7 +166,7 @@ private:
     FIRE_CMD_HANDEL          _fire_cmd_handel{};
     std::string              _assistant_version;
 
-    ASSISTANT_INTERFACE() : _is_assistant_available(load()) {  }
+    ASSISTANT_INTERFACE() { _is_assistant_available = load(); }
 };
 
 
