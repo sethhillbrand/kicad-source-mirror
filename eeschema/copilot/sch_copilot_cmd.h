@@ -35,6 +35,8 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     if( !m_copilotPanel )
         return;
 
+    UpdateCopilotContextCache();
+    
     nlohmann::json cmd;
 
     switch( aCmdType )
