@@ -27,10 +27,12 @@
 #include "assistant/client/websocket_event.h"
 #include "copilot_context.h"
 #include "copilot_global.h"
+#include <exception>
 #include <nlohmann/json.hpp>
 #include <assistant/client/websocket_worker.h>
 #include <interface/cmd/copilot_cmd.h>
 #include <string>
+#include <wx/log.h>
 #include <wx/msgqueue.h>
 #include <wx/string.h>
 
@@ -134,21 +136,24 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         m_chat_ctrl->AppendText( "\n" );
 
     m_chat_ctrl->AppendText( "Q:" + usr_input );
-    DESIGN_GLOBAL_CONTEXT ctx;
-
+    GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() } };
     if( get_global_context_hdl )
     {
         try
         {
+            DESIGN_GLOBAL_CONTEXT ctx;
             auto ctx_str = get_global_context_hdl();
             nlohmann::json::parse( ctx_str ).get_to( ctx );
+            chat.context.bom = ctx.bom;
+            chat.context.net_list = ctx.net_list;
         }
-        catch( ... )
+        catch( std::exception const& e )
         {
+            wxLogError(e.what());
         }
     }
 
-    GENERIC_CHAT chat{ {}, { ctx, usr_input.ToUTF8().data() } };
+   
     _cmds.Post( nlohmann::json( chat ).dump() );
     m_usr_input->Clear();
     m_btn_send->Enable( false );
