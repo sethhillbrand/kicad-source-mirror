@@ -43,8 +43,9 @@ wxString SCH_EDIT_FRAME::GetSymbol() const
     return {};
 }
 
-wxString SCH_EDIT_FRAME::GetSymbolNetList() const
+wxString SCH_EDIT_FRAME::GetSymbolNetList(wxString const& aDesignator) const
 {
+    WXUNUSED(aDesignator);
     return {};
 }
 
