@@ -728,11 +728,11 @@ bool SCH_EDIT_TOOL::Init()
     if(ASSISTANT_INTERFACE::get_instance().is_assistant_available())
     {
         selToolMenu.AddSeparator( 275 );
-        selToolMenu.AddItem( EE_ACTIONS::copilotCurrentSymbol,                 hasElements, 275 );
-        selToolMenu.AddItem( EE_ACTIONS::copilotSimilarComponents,             hasElements, 275 );    
-        selToolMenu.AddItem( EE_ACTIONS::copilotCheckSymbolConnections,        hasElements, 275 );    
-        selToolMenu.AddItem( EE_ACTIONS::copilotComponentPinsDetails,          hasElements, 275 );    
-        selToolMenu.AddItem( EE_ACTIONS::copilotSymbolUnconnectedPins,         hasElements, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotCurrentSymbol,                 E_C::SingleSymbol, 275 );
+        selToolMenu.AddItem( EE_ACTIONS::copilotSimilarComponents,             E_C::SingleSymbol, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotCheckSymbolConnections,        E_C::SingleSymbol, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotComponentPinsDetails,          E_C::SingleSymbol, 275 );    
+        selToolMenu.AddItem( EE_ACTIONS::copilotSymbolUnconnectedPins,         E_C::SingleSymbol, 275 );    
     }                  
 
 

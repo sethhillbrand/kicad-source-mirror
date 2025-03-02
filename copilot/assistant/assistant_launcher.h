@@ -26,7 +26,6 @@
 #define ASSISTANT_LAUNCHER_H
 
 #include "copilot_global.h"
-#include "copilot_global_ctx_hdl.h"
 class wxPanel;
 class wxWindow;
 #ifdef __cplusplus
