@@ -28,13 +28,25 @@
 #include <sch_edit_frame.h>
 
 
-wxString SCH_EDIT_FRAME::GetBomList() const {}
+wxString SCH_EDIT_FRAME::GetBomList() const
+{
+    return {};
+}
 
-wxString SCH_EDIT_FRAME::GetNetList() const{}
+wxString SCH_EDIT_FRAME::GetNetList() const
+{
+    return {};
+}
 
-wxString SCH_EDIT_FRAME::GetSymbol() const {}
+wxString SCH_EDIT_FRAME::GetSymbol() const
+{
+    return {};
+}
 
-wxString SCH_EDIT_FRAME::GetSymbolNetList() const {}
+wxString SCH_EDIT_FRAME::GetSymbolNetList() const
+{
+    return {};
+}
 
 
 #endif
