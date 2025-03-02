@@ -35,7 +35,7 @@
 
 #include "sch_io_database.h"
 
-
+#include <dialog_database_lib_settings.h>
 
 
 SCH_IO_DATABASE::SCH_IO_DATABASE() :
@@ -664,4 +664,10 @@ std::unique_ptr<LIB_SYMBOL>  SCH_IO_DATABASE::loadSymbolFromRow( const wxString&
     symbol->GetDrawItems().sort();
 
     return symbol;
+}
+
+
+DIALOG_SHIM* SCH_IO_DATABASE::CreateConfigurationDialog( wxWindow* aParent )
+{
+    return new DIALOG_DATABASE_LIB_SETTINGS( aParent, this );
 }
