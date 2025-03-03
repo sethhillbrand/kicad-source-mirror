@@ -43,7 +43,6 @@
 #include <math/box2.h>
 #include <sch_base_frame.h>
 #include <template_fieldnames.h>
-#include <copilot/sch_copilot_context_cache.h>
 
 class SCH_ITEM;
 class EDA_ITEM;
@@ -70,6 +69,7 @@ class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
 enum class COPILOT_CMD_TYPE;
 struct SYMBOL_CMD_CONTEXT;
+struct SCH_COPILOT_CONTEXT_CACHE;
 
 /// Schematic search type used by the socket link with Pcbnew
 enum SCH_SEARCH_T
@@ -1193,7 +1193,7 @@ private:
 
     wxPanel* m_copilotPanel {};
 
-    SCH_COPILOT_CONTEXT_CACHE m_copilotContextCache;
+   std::unique_ptr< SCH_COPILOT_CONTEXT_CACHE> m_copilotContextCache;
 
 #ifdef KICAD_IPC_API
     std::unique_ptr<API_HANDLER_SCH> m_apiHandler;

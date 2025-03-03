@@ -108,6 +108,8 @@
 #include <copilot/sch_copilot_ui.h>
 #include <copilot/sch_copilot_context.h>
 #include <copilot/sch_copilot_cmd.h>
+#include <copilot/sch_copilot_context_cache.h>
+
 
 #ifdef KICAD_IPC_API
 #include <api/api_plugin_manager.h>
@@ -149,7 +151,8 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_symbolFieldsTableDialog( nullptr ),
     m_netNavigator( nullptr ),
     m_highlightedConnChanged( false ),
-    m_designBlocksPane( nullptr )
+    m_designBlocksPane( nullptr ),
+    m_copilotContextCache(new SCH_COPILOT_CONTEXT_CACHE )
 {
     m_maximizeByDefault = true;
     m_schematic = new SCHEMATIC( nullptr );
@@ -1190,7 +1193,7 @@ void SCH_EDIT_FRAME::OnModify()
         GetScreen()->SetContentModified();
 
     m_autoSaveRequired = true;
-    m_copilotContextCache.is_newest = false;
+    m_copilotContextCache->is_newest = false;
 
     if( GetCanvas() )
         GetCanvas()->Refresh();

@@ -25,7 +25,8 @@
 #ifndef SCH_COPILOT_CONTEXT_H
 #define SCH_COPILOT_CONTEXT_H
 
-#include "nlohmann/json_fwd.hpp"
+#include <nlohmann/json.hpp>
+#include "sch_copilot_context_cache.h"
 #include <ee_selection_tool.h>
 #include <string>
 #include <tool/tool_manager.h>
@@ -37,7 +38,7 @@
 
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {
-    if( m_copilotContextCache.is_newest )
+    if( m_copilotContextCache->is_newest )
         return;
 
     SCH_REFERENCE_LIST referenceList;
@@ -51,8 +52,8 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
     }
 
     dataModel.ApplyBomPreset( BOM_PRESET::GroupedByValueFootprint() );
-    m_copilotContextCache.bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
-    m_copilotContextCache.net_list = (([&] () -> wxString {
+    m_copilotContextCache->bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
+    m_copilotContextCache->net_list = (([&] () -> wxString {
      Schematic().Hierarchy().AnnotatePowerSymbols();
      SCHEMATIC*               sch = &Schematic();
      WX_STRING_REPORTER       reporter;
@@ -80,18 +81,18 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
      return  {};
     })()).ToStdString();
 
-    m_copilotContextCache.is_newest = true;
+    m_copilotContextCache->is_newest = true;
 }
 wxString SCH_EDIT_FRAME::GetBomList()
 {
     UpdateCopilotContextCache();
-    return m_copilotContextCache.bom;
+    return m_copilotContextCache->bom;
 }
 
 wxString SCH_EDIT_FRAME::GetNetList()
 {
     UpdateCopilotContextCache();
-    return m_copilotContextCache.net_list;
+    return m_copilotContextCache->net_list;
 }
 
 std::shared_ptr<SYMBOL_CMD_CONTEXT> SCH_EDIT_FRAME::GetSymbol()
@@ -134,7 +135,7 @@ wxString SCH_EDIT_FRAME::GetSymbolNetList( wxString const& aDesignator )
 const char* SCH_EDIT_FRAME::GetCopilotContextCache(){
     static std::string  ptr;
     UpdateCopilotContextCache();
-    ptr= nlohmann::json(m_copilotContextCache).dump();
+    ptr= nlohmann::json(*m_copilotContextCache).dump();
     return ptr.c_str();
 }
 #endif
