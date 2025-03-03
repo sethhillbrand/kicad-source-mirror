@@ -45,7 +45,7 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     case COPILOT_CMD_TYPE::GENERIC_CHAT: break;
     case COPILOT_CMD_TYPE::DESIGN_INTENTION:
     case COPILOT_CMD_TYPE::CORE_COMPONENTS:
-        cmd = nlohmann::json( CORE_COMPONENTS{ {}, *m_copilotContextCache } );
+        cmd = nlohmann::json( CORE_COMPONENTS{ { {m_copilotContextCache.net_list} } } );
         break;
 
     case COPILOT_CMD_TYPE::CURRENT_COMPONENT:
@@ -57,13 +57,13 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     case COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS:
 
     case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS:
-        cmd = nlohmann::json( CURRENT_COMPONENT{ {}, *GetSymbol() } );
+        cmd = nlohmann::json( CURRENT_COMPONENT{ { GetSelectedSymbolContext() } } );
         break;
     }
 
     if( !cmd.empty() )
     {
-        cmd["type"] = static_cast<int>( aCmdType );
+        cmd["type"] = aCmdType;
         ShowCopilot();
         ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
     }

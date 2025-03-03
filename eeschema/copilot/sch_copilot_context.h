@@ -38,7 +38,7 @@
 
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {
-    if( m_copilotContextCache->is_newest )
+    if( m_copilotContextCache.is_newest )
         return;
 
     SCH_REFERENCE_LIST referenceList;
@@ -52,50 +52,55 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
     }
 
     dataModel.ApplyBomPreset( BOM_PRESET::GroupedByValueFootprint() );
-    m_copilotContextCache->bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
-    m_copilotContextCache->net_list = (([&] () -> wxString {
-     Schematic().Hierarchy().AnnotatePowerSymbols();
-     SCHEMATIC*               sch = &Schematic();
-     WX_STRING_REPORTER       reporter;
-     NETLIST_EXPORTER_ALLEGRO helper( sch );
- 
-     wxString tmp_file_path = wxFileName::CreateTempFileName( wxFileName::GetTempDir() + "/" );
- 
-     if( !helper.WriteNetlist( tmp_file_path, 0, reporter ) )
-         return {};
- 
- 
-     {
-         wxFile tmp_file( tmp_file_path, wxFile::read );
- 
-         if( tmp_file.IsOpened() )
-         {
-             wxString content;
-             tmp_file.ReadAll( &content );
-             tmp_file.Close();
-             return content;
-         }
-     }
- 
-     wxRemoveFile( tmp_file_path );
-     return  {};
-    })()).ToStdString();
+    m_copilotContextCache.bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
+    m_copilotContextCache.net_list =
+            ( (
+                      [&]() -> wxString
+                      {
+                          Schematic().Hierarchy().AnnotatePowerSymbols();
+                          SCHEMATIC*               sch = &Schematic();
+                          WX_STRING_REPORTER       reporter;
+                          NETLIST_EXPORTER_ALLEGRO helper( sch );
 
-    m_copilotContextCache->is_newest = true;
+                          wxString tmp_file_path =
+                                  wxFileName::CreateTempFileName( wxFileName::GetTempDir() + "/" );
+
+                          if( !helper.WriteNetlist( tmp_file_path, 0, reporter ) )
+                              return {};
+
+
+                          {
+                              wxFile tmp_file( tmp_file_path, wxFile::read );
+
+                              if( tmp_file.IsOpened() )
+                              {
+                                  wxString content;
+                                  tmp_file.ReadAll( &content );
+                                  tmp_file.Close();
+                                  return content;
+                              }
+                          }
+
+                          wxRemoveFile( tmp_file_path );
+                          return {};
+                      } )() )
+                    .ToStdString();
+
+    m_copilotContextCache.is_newest = true;
 }
 wxString SCH_EDIT_FRAME::GetBomList()
 {
     UpdateCopilotContextCache();
-    return m_copilotContextCache->bom;
+    return m_copilotContextCache.bom;
 }
 
 wxString SCH_EDIT_FRAME::GetNetList()
 {
     UpdateCopilotContextCache();
-    return m_copilotContextCache->net_list;
+    return m_copilotContextCache.net_list;
 }
 
-std::shared_ptr<SYMBOL_CMD_CONTEXT> SCH_EDIT_FRAME::GetSymbol()
+SYMBOL_CMD_CONTEXT SCH_EDIT_FRAME::GetSelectedSymbolContext()
 {
     EE_SELECTION_TOOL* selTool = GetToolManager()->GetTool<EE_SELECTION_TOOL>();
     EE_SELECTION&      selection = selTool->GetSelection();
@@ -104,11 +109,11 @@ std::shared_ptr<SYMBOL_CMD_CONTEXT> SCH_EDIT_FRAME::GetSymbol()
     if( !symbol )
         return {};
 
-    auto       ctx = std::make_shared<SYMBOL_CMD_CONTEXT>();
-    const auto ref = symbol->GetRefProp();
-    ctx->designator = ref;
-    ctx->net = GetSymbolNetList( ref );
-    ctx->symbol_properties = {
+    SYMBOL_CMD_CONTEXT ctx;
+    const auto         ref = symbol->GetRefProp();
+    ctx.symbol_ctx.designator = ref;
+    ctx.global_ctx.optional_ctx = GetGlobalContext();
+    ctx.symbol_ctx.symbol_properties = {
         symbol->GetValueProp().ToStdString(),
         symbol->GetDescription().ToStdString(),
         symbol->GetFootprintFieldText( true, &Schematic().CurrentSheet(), false ).ToStdString(),
@@ -117,13 +122,17 @@ std::shared_ptr<SYMBOL_CMD_CONTEXT> SCH_EDIT_FRAME::GetSymbol()
 
     for( const auto& pin : symbol->GetPins() )
     {
-        ctx->symbol_properties.pins.push_back(
+        ctx.symbol_ctx.symbol_properties.pins.push_back(
                 { pin->GetNumber().ToStdString(), pin->GetName().ToStdString(),
                   PinShapeGetText( pin->GetShape() ).ToStdString() } );
     }
 
 
     return ctx;
+}
+DESIGN_GLOBAL_CONTEXT SCH_EDIT_FRAME::GetGlobalContext()
+{
+    return { GetNetList().ToStdString() };
 }
 
 wxString SCH_EDIT_FRAME::GetSymbolNetList( wxString const& aDesignator )
@@ -132,10 +141,11 @@ wxString SCH_EDIT_FRAME::GetSymbolNetList( wxString const& aDesignator )
     return GetNetList();
 }
 
-const char* SCH_EDIT_FRAME::GetCopilotContextCache(){
-    static std::string  ptr;
+const char* SCH_EDIT_FRAME::GetCopilotContextCache()
+{
+    static std::string ptr;
     UpdateCopilotContextCache();
-    ptr= nlohmann::json(*m_copilotContextCache).dump();
+    ptr = nlohmann::json( m_copilotContextCache ).dump();
     return ptr.c_str();
 }
 #endif

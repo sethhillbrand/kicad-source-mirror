@@ -22,18 +22,23 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CONTEXT_CACHE_H
-#define SCH_COPILOT_CONTEXT_CACHE_H
+#ifndef KICAD_VERSION_INFO_H
+#define KICAD_VERSION_INFO_H
+
 
 #include <string>
 #include <nlohmann/json.hpp>
 
-struct SCH_COPILOT_CONTEXT_CACHE 
+
+struct KICAD_VERSION_INFO
 {
-    std::string bom;
-    std::string net_list;
-    bool is_newest {};
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SCH_COPILOT_CONTEXT_CACHE, bom, net_list )
+    std::string KiCadBuildVersion;
+    std::string osDescription;
+    std::string BitnessName;
+    std::string EndiannessName;
+    std::string PortIdName;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( KICAD_VERSION_INFO, KiCadBuildVersion, osDescription,
+                                    BitnessName, EndiannessName, PortIdName )
 };
 
 #endif

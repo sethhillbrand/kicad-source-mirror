@@ -22,18 +22,31 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CONTEXT_CACHE_H
-#define SCH_COPILOT_CONTEXT_CACHE_H
+#ifndef OPTIONAL_CONTEXT_H
+#define OPTIONAL_CONTEXT_H
 
-#include <string>
+#include <optional>
 #include <nlohmann/json.hpp>
 
-struct SCH_COPILOT_CONTEXT_CACHE 
+
+template <auto KEY, typename T>
+struct OPTIONAL_CONTEXT
 {
-    std::string bom;
-    std::string net_list;
-    bool is_newest {};
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SCH_COPILOT_CONTEXT_CACHE, bom, net_list )
+    std::optional<T> optional_ctx;
+    friend void to_json( nlohmann ::json& nlohmann_json_j, const OPTIONAL_CONTEXT& nlohmann_json_t )
+    {
+        if( nlohmann_json_t.optional_ctx )
+            nlohmann_json_j[KEY] = *nlohmann_json_t.optional_ctx;
+    }
+    friend void from_json( const nlohmann ::json& nlohmann_json_j, OPTIONAL_CONTEXT& nlohmann_json_t )
+    {
+        if( auto it = nlohmann_json_j.find( KEY ); it != nlohmann_json_j.end() )
+        {
+            nlohmann_json_t.optional_ctx = T{};
+            it->get_to( *nlohmann_json_t.optional_ctx );
+        }
+    }
 };
+
 
 #endif

@@ -22,18 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CONTEXT_CACHE_H
-#define SCH_COPILOT_CONTEXT_CACHE_H
+#ifndef KICAD_BUILD_VERSION_H
+#define KICAD_BUILD_VERSION_H
 
-#include <string>
-#include <nlohmann/json.hpp>
-
-struct SCH_COPILOT_CONTEXT_CACHE 
+class KICAD_BUILD_VERSION
 {
-    std::string bom;
-    std::string net_list;
-    bool is_newest {};
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SCH_COPILOT_CONTEXT_CACHE, bom, net_list )
+public:
+    KICAD_BUILD_VERSION();
+    ~KICAD_BUILD_VERSION();
+
+private:
+
 };
 
 #endif

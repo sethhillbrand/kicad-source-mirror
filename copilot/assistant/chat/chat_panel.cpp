@@ -98,8 +98,9 @@ void CHAT_PANEL::fire_cmd( const char* cmd )
         case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS: cmd_desc = "检查符号未连接引脚"; break;
         }
     }
-    catch( ... )
+    catch( std::exception const& e )
     {
+        wxLogError( e.what() );
     }
 
     if( !cmd_desc.empty() )
@@ -140,7 +141,7 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         append_msg( "\n" );
 
     append_msg( "Q:" + usr_input );
-    GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() } };
+    GENERIC_CHAT chat{ { usr_input.ToUTF8().data() } };
 
     if( get_global_context_hdl )
     {
@@ -149,8 +150,7 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
             DESIGN_GLOBAL_CONTEXT ctx;
             auto ctx_str = get_global_context_hdl();
             nlohmann::json::parse( ctx_str ).get_to( ctx );
-            chat.context.bom = ctx.bom;
-            chat.context.net_list = ctx.net_list;
+            chat.context.global_ctx.optional_ctx = ctx;
         }
         catch( std::exception const& e )
         {
