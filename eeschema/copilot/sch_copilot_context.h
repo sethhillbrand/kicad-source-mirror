@@ -26,13 +26,13 @@
 #define SCH_COPILOT_CONTEXT_H
 
 #include <nlohmann/json.hpp>
+#include <netlist_exporter_xml.h>
 #include "sch_copilot_context_cache.h"
 #include <ee_selection_tool.h>
 #include <string>
 #include <tool/tool_manager.h>
 #include <sch_edit_frame.h>
 #include <fields_data_model.h>
-#include <netlist_exporter_allegro.h>
 #include <copilot_context.h>
 
 
@@ -60,7 +60,7 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                           Schematic().Hierarchy().AnnotatePowerSymbols();
                           SCHEMATIC*               sch = &Schematic();
                           WX_STRING_REPORTER       reporter;
-                          NETLIST_EXPORTER_ALLEGRO helper( sch );
+                          NETLIST_EXPORTER_XML helper( sch );
 
                           wxString tmp_file_path =
                                   wxFileName::CreateTempFileName( wxFileName::GetTempDir() + "/" );

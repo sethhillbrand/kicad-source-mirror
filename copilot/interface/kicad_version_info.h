@@ -32,13 +32,8 @@
 
 struct KICAD_VERSION_INFO
 {
-    std::string KiCadBuildVersion;
-    std::string osDescription;
-    std::string BitnessName;
-    std::string EndiannessName;
-    std::string PortIdName;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( KICAD_VERSION_INFO, KiCadBuildVersion, osDescription,
-                                    BitnessName, EndiannessName, PortIdName )
+    std::string version_info_str;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( KICAD_VERSION_INFO,version_info_str )
 };
 
 #endif
