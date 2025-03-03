@@ -22,12 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "chat_context.h"
+#ifndef ASSISTANT_H
+#define ASSISTANT_H
 
-CHAT_CONTEXT::CHAT_CONTEXT()
+class ASSISTANT
 {
-}
+public:
+    virtual ~ASSISTANT() = default;
+    virtual void fire_cmd( const char* cmd ) = 0;
+};
 
-CHAT_CONTEXT::~CHAT_CONTEXT()
-{
-}
+#endif

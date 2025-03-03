@@ -27,6 +27,7 @@
 
 #include "copilot_global.h"
 class wxPanel;
+class ASSISTANT;
 class wxWindow;
 #ifdef __cplusplus
 
@@ -35,7 +36,8 @@ extern "C"
 {
 #endif
 
-    COPILOT_API wxPanel* create_chat_panel( wxWindow* parent );
+
+    COPILOT_API wxPanel* create_assistant_panel( wxWindow* parent );
 
     COPILOT_API void fire_cmd( wxPanel* target, const char* cmd );
 

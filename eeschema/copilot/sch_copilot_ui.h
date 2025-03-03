@@ -38,7 +38,7 @@ void SCH_EDIT_FRAME::InitCopilotPanel()
 {
     if( ASSISTANT_INTERFACE::get_instance().is_assistant_available() )
     {
-        m_copilotPanel = ASSISTANT_INTERFACE::get_instance().create_chat_panel( this );
+        m_copilotPanel = ASSISTANT_INTERFACE::get_instance().create_assistant_panel( this );
     }
 }
 

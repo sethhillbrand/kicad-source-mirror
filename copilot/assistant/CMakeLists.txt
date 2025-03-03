@@ -6,7 +6,6 @@ add_library( assistant SHARED
     client/websocket_endpoint.cpp
     client/websocket_event.cpp
     client/websocket_worker.cpp
-    chat/chat_context.cpp
     chat/chat_history.cpp
     chat/chat_panel_base.cpp
     chat/chat_panel.cpp

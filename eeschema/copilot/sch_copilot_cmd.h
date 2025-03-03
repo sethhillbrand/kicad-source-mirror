@@ -29,6 +29,7 @@
 #include <sch_edit_frame.h>
 #include <cmd/copilot_cmd.h>
 #include <assistant_interface.h>
+#include "sch_copilot_context_cache.h"
 
 void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
 {
@@ -36,7 +37,7 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
         return;
 
     UpdateCopilotContextCache();
-    
+
     nlohmann::json cmd;
 
     switch( aCmdType )

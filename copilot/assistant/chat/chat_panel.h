@@ -27,28 +27,31 @@
 
 
 #include "chat_panel_base.h"
+#include "assistant/client/chat_cmd_queue.h"
+#include "assistant/assistant.h"
+#include "assistant/assistant_view.h"
+
 #include <memory>
 #include <wx/log.h>
-#include "assistant/client/chat_cmd_queue.h"
 
 class WEBSOCKET_WORKER;
 enum class MEG_TYPE;
 class WEBSOCKET_EVENT;
 
-class CHAT_PANEL : public CHAT_PANEL_BASE
+class CHAT_PANEL : public  CHAT_PANEL_BASE, public ASSISTANT, public  ASSISTANT_VIEW
 {
 public:
     CHAT_PANEL( wxWindow* parent );
     ~CHAT_PANEL();
 
-    void fire_cmd(const char* cmd);
-
+    void fire_cmd( const char* cmd ) override;
+    void append_msg( wxString const& msg ) override;
 
 private:
     void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;
     void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) override;
     void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
-    void on_send_button_clicked(wxCommandEvent& event);
+    void on_send_button_clicked( wxCommandEvent& event );
     void on_websocket_event( const WEBSOCKET_EVENT& event );
 
 

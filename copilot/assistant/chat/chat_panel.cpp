@@ -49,6 +49,10 @@ struct CMD_TYPE_TRAITS
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( CMD_TYPE_TRAITS, type )
 };
 
+inline void CHAT_PANEL::append_msg(wxString const& msg)
+{
+    m_chat_ctrl->AppendText( msg);
+}
 
 CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
         _previous_msg_type(), CHAT_PANEL_BASE( parent ),
@@ -71,7 +75,7 @@ void CHAT_PANEL::fire_cmd( const char* cmd )
 {
     if( _previous_msg_type == MEG_TYPE::CONTENT )
     {
-        m_chat_ctrl->AppendText( "小助手正忙,请稍后再试" );
+        append_msg( "小助手正忙,请稍后再试" );
         return;
     }
 
@@ -99,7 +103,7 @@ void CHAT_PANEL::fire_cmd( const char* cmd )
     }
 
     if( !cmd_desc.empty() )
-        m_chat_ctrl->AppendText( "Q:" + cmd_desc );
+        append_msg( "Q:" + cmd_desc );
 
     _cmds.Post( std::string( cmd ) );
 
@@ -133,10 +137,11 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
     const auto usr_input = m_usr_input->GetValue();
 
     if( !m_chat_ctrl->GetValue().empty() )
-        m_chat_ctrl->AppendText( "\n" );
+        append_msg( "\n" );
 
-    m_chat_ctrl->AppendText( "Q:" + usr_input );
+    append_msg( "Q:" + usr_input );
     GENERIC_CHAT chat{ {}, { {}, usr_input.ToUTF8().data() } };
+
     if( get_global_context_hdl )
     {
         try
@@ -168,14 +173,14 @@ void CHAT_PANEL::on_websocket_event( const WEBSOCKET_EVENT& event )
     {
     case MEG_TYPE::CONTENT:
     {
-        m_chat_ctrl->AppendText( payload.msg );
+        append_msg( payload.msg );
         break;
     }
     case MEG_TYPE::END_OF_CHAT:
     {
         if( _previous_msg_type == MEG_TYPE::CONTENT )
         {
-            m_chat_ctrl->AppendText( "\n" );
+            append_msg( "\n" );
         }
 
         m_btn_send->Enable( true );

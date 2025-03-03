@@ -70,10 +70,10 @@ public:
             std::string assistant_full_path = exe_path + "/assistant";
             _assistant = std::make_unique<dylib>( assistant_full_path );
             _create_chat_panel_handel =
-                    _assistant->get_function<wxPanel*( wxWindow* )>( "create_chat_panel" );
+                    _assistant->get_function<wxPanel*( wxWindow* )>( "create_assistant_panel" );
             if( !_create_chat_panel_handel )
             {
-                wxLogError( "Failed to load function: create_chat_panel" );
+                wxLogError( "Failed to load function: create_assistant_panel" );
                 _assistant.reset();
                 return false;
             }
@@ -100,7 +100,7 @@ public:
 
     void close() { _assistant.reset(); }
 
-    wxPanel* create_chat_panel( wxWindow* parent )
+    wxPanel* create_assistant_panel( wxWindow* parent )
     {
         if( !_assistant )
         {

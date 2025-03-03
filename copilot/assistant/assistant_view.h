@@ -22,17 +22,21 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef CHAT_CONTEXT_H
-#define CHAT_CONTEXT_H
+#ifndef ASSISTANT_VIEW_H
+#define ASSISTANT_VIEW_H
 
-class CHAT_CONTEXT
+
+#include <wx/panel.h>
+
+
+class ASSISTANT_VIEW 
 {
 public:
-    CHAT_CONTEXT();
-    ~CHAT_CONTEXT();
+    virtual ~ASSISTANT_VIEW() = default;
+
+    virtual void append_msg(wxString const& msg) = 0;
 
 private:
-
 };
 
 #endif
