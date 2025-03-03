@@ -23,7 +23,6 @@
  */
 
 #include "assistant_launcher.h"
-#include "assistant.h"
 #include "chat/chat_panel.h"
 
 wxPanel* create_assistant_panel( wxWindow* parent )
@@ -33,5 +32,5 @@ wxPanel* create_assistant_panel( wxWindow* parent )
 
 void fire_cmd( wxPanel* target, const char* cmd )
 {
-    reinterpret_cast<ASSISTANT*>( target )->fire_cmd( cmd );
+    static_cast<CHAT_PANEL*>( target )->fire_cmd( cmd );
 }
