@@ -25,6 +25,8 @@
 #ifndef SCH_COPILOT_CONTEXT_H
 #define SCH_COPILOT_CONTEXT_H
 
+#include <cstddef>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <netlist_exporter_xml.h>
 #include "sch_copilot_context_cache.h"
@@ -64,10 +66,13 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                           wxString tmp_file_path =
                                   wxFileName::CreateTempFileName( wxFileName::GetTempDir() + "/" );
 
+                          std::shared_ptr<nullptr_t> on_leave( nullptr,
+                                                               [=]( auto it )
+                                                               {
+                                                                   wxRemoveFile( tmp_file_path );
+                                                               } );
                           if( !helper.WriteNetlist( tmp_file_path, 0, reporter ) )
                               return {};
-
-
                           {
                               wxFile tmp_file( tmp_file_path, wxFile::read );
 
@@ -79,7 +84,6 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                                   return content;
                               }
                           }
-                          wxRemoveFile( tmp_file_path );
                           return {};
                       } )() )
                     .ToStdString() );
