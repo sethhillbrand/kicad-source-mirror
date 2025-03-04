@@ -34,6 +34,7 @@
 #include "sch_copilot_context_cache.h"
 
 extern KICAD_VERSION_INFO get_kicad_version_info();
+
 void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
 {
     if( !m_copilotPanel )
@@ -49,7 +50,7 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     case COPILOT_CMD_TYPE::DESIGN_INTENTION:
     case COPILOT_CMD_TYPE::CORE_COMPONENTS:
         cmd = nlohmann::json( CORE_COMPONENTS{
-                { { m_copilotContextCache.net_list }, { get_kicad_version_info() } } } );
+                { { m_copilotContextCache->net_list , }, { get_kicad_version_info() } } } );
         break;
 
     case COPILOT_CMD_TYPE::CURRENT_COMPONENT:

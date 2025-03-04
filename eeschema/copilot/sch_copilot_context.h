@@ -33,12 +33,10 @@
 #include <tool/tool_manager.h>
 #include <sch_edit_frame.h>
 #include <fields_data_model.h>
-#include <copilot_context.h>
-
-
+#include <context/copilot_context.h>
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {
-    if( m_copilotContextCache.is_newest )
+    if( m_copilotContextCache->is_newest )
         return;
 
     SCH_REFERENCE_LIST referenceList;
@@ -52,14 +50,14 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
     }
 
     dataModel.ApplyBomPreset( BOM_PRESET::GroupedByValueFootprint() );
-    m_copilotContextCache.bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
-    m_copilotContextCache.net_list =
+    m_copilotContextCache->bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
+    m_copilotContextCache->net_list =
             ( (
                       [&]() -> wxString
                       {
                           Schematic().Hierarchy().AnnotatePowerSymbols();
-                          SCHEMATIC*               sch = &Schematic();
-                          WX_STRING_REPORTER       reporter;
+                          SCHEMATIC*           sch = &Schematic();
+                          WX_STRING_REPORTER   reporter;
                           NETLIST_EXPORTER_XML helper( sch );
 
                           wxString tmp_file_path =
@@ -85,34 +83,33 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                       } )() )
                     .ToStdString();
 
-    m_copilotContextCache.is_newest = true;
+    m_copilotContextCache->is_newest = true;
 }
 wxString SCH_EDIT_FRAME::GetBomList()
 {
     UpdateCopilotContextCache();
-    return m_copilotContextCache.bom;
+    return m_copilotContextCache->bom;
 }
 
 wxString SCH_EDIT_FRAME::GetNetList()
 {
     UpdateCopilotContextCache();
-    return m_copilotContextCache.net_list;
+    return m_copilotContextCache->net_list;
 }
 
-SYMBOL_CMD_CONTEXT SCH_EDIT_FRAME::GetSelectedSymbolContext()
+SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
 {
-    EE_SELECTION_TOOL* selTool = GetToolManager()->GetTool<EE_SELECTION_TOOL>();
-    EE_SELECTION&      selection = selTool->GetSelection();
-    SCH_SYMBOL*        symbol = dynamic_cast<SCH_SYMBOL*>( selection.Front() );
+    EE_SELECTION_TOOL*        selTool = GetToolManager()->GetTool<EE_SELECTION_TOOL>();
+    EE_SELECTION&             selection = selTool->GetSelection();
+    SCH_SYMBOL*               symbol = dynamic_cast<SCH_SYMBOL*>( selection.Front() );
 
     if( !symbol )
-        return {};
+        return *m_symbolCmdContext;
 
-    SYMBOL_CMD_CONTEXT ctx;
-    const auto         ref = symbol->GetRefProp();
-    ctx.symbol_ctx.designator = ref;
-    ctx.global_ctx.optional_ctx = GetGlobalContext();
-    ctx.symbol_ctx.symbol_properties = {
+    const wxString ref = symbol->GetRefProp();
+    m_symbolCmdContext->symbol_ctx.designator = ref;
+    m_symbolCmdContext->global_ctx.optional_ctx = GetGlobalContext();
+    m_symbolCmdContext->symbol_ctx.symbol_properties = {
         symbol->GetValueProp().ToStdString(),
         symbol->GetDescription().ToStdString(),
         symbol->GetFootprintFieldText( true, &Schematic().CurrentSheet(), false ).ToStdString(),
@@ -121,17 +118,18 @@ SYMBOL_CMD_CONTEXT SCH_EDIT_FRAME::GetSelectedSymbolContext()
 
     for( const auto& pin : symbol->GetPins() )
     {
-        ctx.symbol_ctx.symbol_properties.pins.push_back(
+        m_symbolCmdContext->symbol_ctx.symbol_properties.pins.push_back(
                 { pin->GetNumber().ToStdString(), pin->GetName().ToStdString(),
                   PinShapeGetText( pin->GetShape() ).ToStdString() } );
     }
 
 
-    return ctx;
+    return *m_symbolCmdContext;
 }
-DESIGN_GLOBAL_CONTEXT SCH_EDIT_FRAME::GetGlobalContext()
+DESIGN_GLOBAL_CONTEXT const& SCH_EDIT_FRAME::GetGlobalContext()
 {
-    return { GetNetList().ToStdString() };
+    UpdateCopilotContextCache();
+    return *m_copilotContextCache;
 }
 
 wxString SCH_EDIT_FRAME::GetSymbolNetList( wxString const& aDesignator )
@@ -144,7 +142,7 @@ const char* SCH_EDIT_FRAME::GetCopilotContextCache()
 {
     static std::string ptr;
     UpdateCopilotContextCache();
-    ptr = nlohmann::json( m_copilotContextCache ).dump();
+    ptr = nlohmann::json( *m_copilotContextCache ).dump();
     return ptr.c_str();
 }
 #endif

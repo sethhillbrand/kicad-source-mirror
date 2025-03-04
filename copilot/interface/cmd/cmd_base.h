@@ -22,43 +22,25 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CMD_H
-#define COPILOT_CMD_H
+#ifndef CMD_BASE_H
+#define CMD_BASE_H
 
-#include "cmd_base.h"
-#include <context/copilot_context.h>
+#include "copilot_cmd_type.h"
+#include <context/optional_context.h>
+#include <nlohmann/json.hpp>
+#include <kicad_version_info.h>
 
-struct DESIGN_INTENTION : CMD_BASE<COPILOT_CMD_TYPE::DESIGN_INTENTION, DESIGN_GLOBAL_CONTEXT>
+
+static const char kKiCadVersionInfo[] = "kicad_version_info";
+using ADDITIONAL_INFO = OPTIONAL_CONTEXT<kKiCadVersionInfo, KICAD_VERSION_INFO>;
+
+template <auto CMD, typename CONTEXT>
+struct CMD_BASE
 {
+    CONTEXT                context;
+    ADDITIONAL_INFO        additional;
+    const COPILOT_CMD_TYPE type = CMD;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CMD_BASE, additional, context, type )
 };
 
-struct CORE_COMPONENTS : CMD_BASE<COPILOT_CMD_TYPE::CORE_COMPONENTS, DESIGN_GLOBAL_CONTEXT>
-{
-};
-
-struct CURRENT_COMPONENT : CMD_BASE<COPILOT_CMD_TYPE::CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct SIMILAR_COMPONENTS : CMD_BASE<COPILOT_CMD_TYPE::SIMILAR_COMPONENTS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct CHECK_SYMBOL_CONNECTIONS
-        : CMD_BASE<COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct COMPONENT_PINS_DETAILS
-        : CMD_BASE<COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct SYMBOL_UNCONNECTED_PINS
-        : CMD_BASE<COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-
-
-#endif // COPILOT_CMD_H
+#endif

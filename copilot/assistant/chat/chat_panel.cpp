@@ -23,9 +23,10 @@
  */
 
 #include "chat_panel.h"
-#include <copilot_global_ctx_hdl.h>
+#include <context/copilot_global_ctx_hdl.h>
 #include "assistant/client/websocket_event.h"
-#include "copilot_context.h"
+#include <context/copilot_context.h>
+#include <cmd/generic_chat_cmd.h>
 #include "copilot_global.h"
 #include <exception>
 #include <nlohmann/json.hpp>
@@ -49,9 +50,9 @@ struct CMD_TYPE_TRAITS
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( CMD_TYPE_TRAITS, type )
 };
 
-inline void CHAT_PANEL::append_msg(wxString const& msg)
+inline void CHAT_PANEL::append_msg( wxString const& msg )
 {
-    m_chat_ctrl->AppendText( msg);
+    m_chat_ctrl->AppendText( msg );
 }
 
 CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
@@ -148,17 +149,17 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         try
         {
             DESIGN_GLOBAL_CONTEXT ctx;
-            auto ctx_str = get_global_context_hdl();
+            auto                  ctx_str = get_global_context_hdl();
             nlohmann::json::parse( ctx_str ).get_to( ctx );
             chat.context.global_ctx.optional_ctx = ctx;
         }
         catch( std::exception const& e )
         {
-            wxLogError(e.what());
+            wxLogError( e.what() );
         }
     }
 
-   
+
     _cmds.Post( nlohmann::json( chat ).dump() );
     m_usr_input->Clear();
     m_btn_send->Enable( false );

@@ -22,30 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef OPTIONAL_CONTEXT_H
-#define OPTIONAL_CONTEXT_H
+#ifndef GENERIC_CHAT_CMD_H
+#define GENERIC_CHAT_CMD_H
 
-#include <optional>
-#include <nlohmann/json.hpp>
+#include "cmd_base.h"
+#include <context/generic_chat/generic_chat_context.h>
 
-
-template <auto KEY, typename T>
-struct OPTIONAL_CONTEXT
+struct GENERIC_CHAT : CMD_BASE<COPILOT_CMD_TYPE::GENERIC_CHAT, GENERIC_CHAT_CONTEXT>
 {
-    std::optional<T> optional_ctx;
-    friend void to_json( nlohmann ::json& nlohmann_json_j, const OPTIONAL_CONTEXT& nlohmann_json_t )
-    {
-        if( nlohmann_json_t.optional_ctx )
-            nlohmann_json_j[KEY] = *nlohmann_json_t.optional_ctx;
-    }
-    friend void from_json( const nlohmann ::json& nlohmann_json_j, OPTIONAL_CONTEXT& nlohmann_json_t )
-    {
-        if( auto it = nlohmann_json_j.find( KEY ); it != nlohmann_json_j.end() )
-        {
-            nlohmann_json_t.optional_ctx = T{};
-            it->get_to( *nlohmann_json_t.optional_ctx );
-        }
-    }
 };
 
 

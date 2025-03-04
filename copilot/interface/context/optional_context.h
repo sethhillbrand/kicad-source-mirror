@@ -22,43 +22,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CMD_H
-#define COPILOT_CMD_H
+#ifndef OPTIONAL_CONTEXT_H
+#define OPTIONAL_CONTEXT_H
 
-#include "cmd_base.h"
-#include <context/copilot_context.h>
+#include <optional>
+#include <nlohmann/json.hpp>
 
-struct DESIGN_INTENTION : CMD_BASE<COPILOT_CMD_TYPE::DESIGN_INTENTION, DESIGN_GLOBAL_CONTEXT>
+
+template <auto KEY, typename T>
+struct OPTIONAL_CONTEXT
 {
-};
-
-struct CORE_COMPONENTS : CMD_BASE<COPILOT_CMD_TYPE::CORE_COMPONENTS, DESIGN_GLOBAL_CONTEXT>
-{
-};
-
-struct CURRENT_COMPONENT : CMD_BASE<COPILOT_CMD_TYPE::CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct SIMILAR_COMPONENTS : CMD_BASE<COPILOT_CMD_TYPE::SIMILAR_COMPONENTS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct CHECK_SYMBOL_CONNECTIONS
-        : CMD_BASE<COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct COMPONENT_PINS_DETAILS
-        : CMD_BASE<COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct SYMBOL_UNCONNECTED_PINS
-        : CMD_BASE<COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS, SYMBOL_CMD_CONTEXT>
-{
+    std::optional<T> optional_ctx;
+    friend void to_json( nlohmann ::json& nlohmann_json_j, const OPTIONAL_CONTEXT& nlohmann_json_t )
+    {
+        if( nlohmann_json_t.optional_ctx )
+            nlohmann_json_j[KEY] = *nlohmann_json_t.optional_ctx;
+    }
+    friend void from_json( const nlohmann ::json& nlohmann_json_j,
+                           OPTIONAL_CONTEXT&      nlohmann_json_t )
+    {
+        if( auto it = nlohmann_json_j.find( KEY ); it != nlohmann_json_j.end() )
+        {
+            nlohmann_json_t.optional_ctx = T{};
+            it->get_to( *nlohmann_json_t.optional_ctx );
+        }
+    }
 };
 
 
-
-#endif // COPILOT_CMD_H
+#endif

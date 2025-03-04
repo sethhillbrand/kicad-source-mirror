@@ -29,12 +29,20 @@
 #include "sch/symbol_properties.h"
 #include <nlohmann/json.hpp>
 #include <string>
+#include <chrono>
 
 
 struct DESIGN_GLOBAL_CONTEXT
 {
     std::string net_list;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, net_list )
+    long long   timestamp{ (
+            []
+            {
+                return std::chrono::duration_cast<std::chrono::milliseconds>(
+                               std::chrono::system_clock::now().time_since_epoch() )
+                        .count();
+            } )() };
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, timestamp, net_list )
 };
 
 
@@ -45,22 +53,9 @@ struct SYMBOL_CMD_CONTEXT_BASE
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CMD_CONTEXT_BASE, designator, symbol_properties )
 };
 
-struct GENERAL_CHAT_CONTEXT_BASE
-{
-    std::string user_input;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( GENERAL_CHAT_CONTEXT_BASE, user_input )
-};
-
 
 static const char kDesignGlobalCtx[] = "design_global_ctx";
 using OPTIONAL_DESIGN_GLOBAL_CONTEXT = OPTIONAL_CONTEXT<kDesignGlobalCtx, DESIGN_GLOBAL_CONTEXT>;
-
-struct GENERAL_CHAT_CONTEXT
-{
-    GENERAL_CHAT_CONTEXT_BASE      chat;
-    OPTIONAL_DESIGN_GLOBAL_CONTEXT global_ctx;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( GENERAL_CHAT_CONTEXT, global_ctx, chat )
-};
 
 struct SYMBOL_CMD_CONTEXT
 {

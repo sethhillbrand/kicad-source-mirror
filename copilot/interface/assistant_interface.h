@@ -33,7 +33,7 @@
 #include <wx/stdpaths.h>
 #include <wx/panel.h>
 #include <nlohmann/json.hpp>
-#include <copilot_global_ctx_hdl.h>
+#include <context/copilot_global_ctx_hdl.h>
 
 
 using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
