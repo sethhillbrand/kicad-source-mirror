@@ -48,8 +48,6 @@ public:
     void append_msg( wxString const& msg ) override;
 
 private:
-    void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;
-    void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) override;
     void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
     void m_cb_netlistOnCheckBox( wxCommandEvent& event ) override;
     void m_cb_bomOnCheckBox( wxCommandEvent& event ) override;

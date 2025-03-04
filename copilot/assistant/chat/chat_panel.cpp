@@ -112,17 +112,6 @@ void CHAT_PANEL::fire_cmd( const char* cmd )
     _previous_msg_type = MEG_TYPE::END_OF_CHAT;
 }
 
-
-void CHAT_PANEL::m_chat_ctrlOnTextMaxLen( wxCommandEvent& event )
-{
-    event.Skip();
-}
-
-void CHAT_PANEL::m_chat_ctrlOnTextURL( wxTextUrlEvent& event )
-{
-    event.Skip();
-}
-
 void CHAT_PANEL::m_btn_sendOnButtonClick( wxCommandEvent& event )
 {
     on_send_button_clicked( event );
@@ -202,6 +191,7 @@ void CHAT_PANEL::on_websocket_event( const WEBSOCKET_EVENT& event )
     case MEG_TYPE::CONTENT:
     {
         append_msg( payload.msg );
+        m_btn_send->Enable( false );
         break;
     }
     case MEG_TYPE::END_OF_CHAT:
