@@ -29,6 +29,7 @@
 #include <kiplatform/app.h>
 #include <font/version_info.h>
 #include <build_version.h>
+#include "copilot/get_kicad_version_info.h"
 
 #include <tuple>
 

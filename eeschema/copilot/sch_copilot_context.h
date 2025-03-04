@@ -80,7 +80,6 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                                   return content;
                               }
                           }
-
                           wxRemoveFile( tmp_file_path );
                           return {};
                       } )() )
