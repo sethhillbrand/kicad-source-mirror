@@ -34,6 +34,7 @@
 #include <sch_edit_frame.h>
 #include <fields_data_model.h>
 #include <context/copilot_context.h>
+#include <base64.hpp>
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {
     if( m_copilotContextCache->is_newest )
@@ -51,7 +52,7 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 
     dataModel.ApplyBomPreset( BOM_PRESET::GroupedByValueFootprint() );
     m_copilotContextCache->bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
-    m_copilotContextCache->net_list =
+    m_copilotContextCache->net_list = base64::to_base64(
             ( (
                       [&]() -> wxString
                       {
@@ -81,7 +82,7 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                           wxRemoveFile( tmp_file_path );
                           return {};
                       } )() )
-                    .ToStdString();
+                    .ToStdString() );
 
     m_copilotContextCache->is_newest = true;
 }
@@ -99,9 +100,9 @@ wxString SCH_EDIT_FRAME::GetNetList()
 
 SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
 {
-    EE_SELECTION_TOOL*        selTool = GetToolManager()->GetTool<EE_SELECTION_TOOL>();
-    EE_SELECTION&             selection = selTool->GetSelection();
-    SCH_SYMBOL*               symbol = dynamic_cast<SCH_SYMBOL*>( selection.Front() );
+    EE_SELECTION_TOOL* selTool = GetToolManager()->GetTool<EE_SELECTION_TOOL>();
+    EE_SELECTION&      selection = selTool->GetSelection();
+    SCH_SYMBOL*        symbol = dynamic_cast<SCH_SYMBOL*>( selection.Front() );
 
     if( !symbol )
         return *m_symbolCmdContext;
