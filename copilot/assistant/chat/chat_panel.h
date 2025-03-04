@@ -38,7 +38,7 @@ class WEBSOCKET_WORKER;
 enum class MEG_TYPE;
 class WEBSOCKET_EVENT;
 
-class CHAT_PANEL : public  CHAT_PANEL_BASE, public ASSISTANT, public  ASSISTANT_VIEW
+class CHAT_PANEL : public CHAT_PANEL_BASE, public ASSISTANT, public ASSISTANT_VIEW
 {
 public:
     CHAT_PANEL( wxWindow* parent );
@@ -51,6 +51,9 @@ private:
     void m_chat_ctrlOnTextMaxLen( wxCommandEvent& event ) override;
     void m_chat_ctrlOnTextURL( wxTextUrlEvent& event ) override;
     void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
+    void m_cb_netlistOnCheckBox( wxCommandEvent& event ) override;
+    void m_cb_bomOnCheckBox( wxCommandEvent& event ) override;
+
     void on_send_button_clicked( wxCommandEvent& event );
     void on_websocket_event( const WEBSOCKET_EVENT& event );
 
@@ -59,6 +62,8 @@ private:
     MEG_TYPE                          _previous_msg_type;
     CHAT_CMDS                         _cmds;
     std::unique_ptr<WEBSOCKET_WORKER> _client_worker;
+    bool                              _bom_checked{};
+    bool                              _netlist_checked{};
 };
 
 #endif

@@ -128,6 +128,18 @@ void CHAT_PANEL::m_btn_sendOnButtonClick( wxCommandEvent& event )
     on_send_button_clicked( event );
 }
 
+void CHAT_PANEL::m_cb_netlistOnCheckBox( wxCommandEvent& event )
+{
+    event.Skip();
+    _netlist_checked = m_cb_netlist->IsChecked();
+}
+
+void CHAT_PANEL::m_cb_bomOnCheckBox( wxCommandEvent& event )
+{
+    event.Skip();
+    _bom_checked = m_cb_bom->IsChecked();
+}
+
 
 void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
 {
@@ -142,7 +154,22 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         append_msg( "\n" );
 
     append_msg( "Q:" + usr_input );
-    GENERIC_CHAT chat{ { usr_input.ToUTF8().data() } };
+    GENERIC_CHAT chat{ { { usr_input.ToUTF8().data(),
+                           { { (
+                                   [&]
+                                   {
+                                       std::set<BUILTIN_REFERENCE> refs;
+
+                                       if( _netlist_checked )
+                                           refs.insert( BUILTIN_REFERENCE::NET_LIST );
+
+                                       if( _bom_checked )
+                                           refs.insert( BUILTIN_REFERENCE::BOM );
+
+                                       return refs;
+                                   } )() }
+
+                           } } } };
 
     if( get_global_context_hdl )
     {
