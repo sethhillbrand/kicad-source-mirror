@@ -48,21 +48,23 @@ TOOL_ACTION EE_ACTIONS::showCopilotPanel(
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Show copilot" ) )
                 .Tooltip( _( "Show copilot panel" ) )
-                .Icon( BITMAPS::copilot ) );
+                .Icon( BITMAPS::copilot ));
 
 
 TOOL_ACTION EE_ACTIONS::copilotDesignIntention(
         TOOL_ACTION_ARGS()
                 .Name( "eeschema.SchDesignBlockControl.copilotDesignIntention" )
                 .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Explain design intention" ) ) );
+                .FriendlyName( _( "Explain design intention" ) )
+                .Icon( BITMAPS::copilot ));
 
 
 TOOL_ACTION EE_ACTIONS::copilotCoreComponents(
         TOOL_ACTION_ARGS()
                 .Name( "eeschema.SchDesignBlockControl.copilotCoreComponents" )
                 .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Explain core components" ) ) );
+                .FriendlyName( _( "Explain core components" ) )
+                .Icon( BITMAPS::copilot ));
 
 
 TOOL_ACTION EE_ACTIONS::copilotCurrentSymbol(
