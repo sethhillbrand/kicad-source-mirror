@@ -143,22 +143,22 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
         append_msg( "\n" );
 
     append_msg( "Q:" + usr_input );
-    GENERIC_CHAT chat{ { { usr_input.ToUTF8().data(),
-                           { { (
-                                   [&]
-                                   {
-                                       std::set<BUILTIN_REFERENCE> refs;
 
-                                       if( _netlist_checked )
-                                           refs.insert( BUILTIN_REFERENCE::NET_LIST );
+    const auto get_buildint_refs = [&]
+    {
+        std::set<BUILTIN_REFERENCE> refs;
 
-                                       if( _bom_checked )
-                                           refs.insert( BUILTIN_REFERENCE::BOM );
+        if( _netlist_checked )
+            refs.insert( BUILTIN_REFERENCE::NET_LIST );
 
-                                       return refs;
-                                   } )() }
+        if( _bom_checked )
+            refs.insert( BUILTIN_REFERENCE::BOM );
 
-                           } } } };
+        return refs;
+    };
+
+
+    GENERIC_CHAT chat{ { {}, { usr_input.ToUTF8().data(), get_buildint_refs() } } };
 
     if( chat.context.chat.options.builtin_refs.size() && get_global_context_hdl )
     {
@@ -167,7 +167,8 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
             DESIGN_GLOBAL_CONTEXT ctx;
             auto                  ctx_str = get_global_context_hdl();
             nlohmann::json::parse( ctx_str ).get_to( ctx );
-            chat.context.global_ctx.optional_ctx = ctx;
+            chat.design_global_context = ctx;
+            chat.global_context_uuid = ctx.uuid;
         }
         catch( std::exception const& e )
         {

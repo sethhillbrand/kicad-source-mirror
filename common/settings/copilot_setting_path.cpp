@@ -22,30 +22,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CONTEXT_H
-#define COPILOT_CONTEXT_H
+#include "copilot_setting_path.h"
+#include <settings/json_settings.h>
+#include <wx/filename.h>
+#include <wx/log.h>
+#include <wx/stdpaths.h>
+#include <paths.h>
 
-#include "sch/symbol_properties.h"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <kicad_version_info.h>
-
-struct DESIGN_GLOBAL_CONTEXT
+const char* GetCopilotSettingsPath()
 {
-    std::string        uuid;
-    std::string        bom;
-    std::string        net_list;
-    KICAD_VERSION_INFO kicad_version_info;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, bom, net_list, kicad_version_info, uuid )
-};
+    static const auto kCopilotSettingsPath =([]{
+    wxFileName path;
 
+    path.AssignDir( PATHS::GetUserSettingsPath() );
+    path.AppendDir( wxS( "copilot" ) );
 
-struct SYMBOL_CMD_CONTEXT
-{
-    std::string       designator;
-    SYMBOL_PROPERTIES symbol_properties;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CMD_CONTEXT, designator, symbol_properties )
-};
+    if( !path.DirExists() )
+    {
+        if( !wxMkdir( path.GetPath() ) )
+        {
+            wxLogTrace( traceSettings,
+                        wxT( "GetCopilotSettingsPath(): Path %s missing and could not be created!" ),
+                        path.GetPath() );
+        }
+    }
 
+    return path.GetPath();})();
 
-#endif
+    return kCopilotSettingsPath.c_str();
+}

@@ -21,6 +21,6 @@ target_link_libraries(assistant PRIVATE
 target_compile_definitions(assistant PRIVATE COPILOT_SHARED_LIBRARY)
 
 install( TARGETS assistant
-    DESTINATION ${KICAD_BIN}
+    DESTINATION ${KICAD_BIN}/copilot
     COMPONENT binary
 )

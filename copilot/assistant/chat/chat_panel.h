@@ -32,7 +32,6 @@
 #include "assistant/assistant_view.h"
 
 #include <memory>
-#include <wx/log.h>
 
 class WEBSOCKET_WORKER;
 enum class MEG_TYPE;

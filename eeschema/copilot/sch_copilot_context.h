@@ -29,6 +29,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <netlist_exporter_xml.h>
+#include <kiid.h>
 #include "sch_copilot_context_cache.h"
 #include <ee_selection_tool.h>
 #include <string>
@@ -42,6 +43,7 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
     if( m_copilotContextCache->is_newest )
         return;
 
+    m_copilotContextCache->uuid = KIID().AsStdString();
     SCH_REFERENCE_LIST referenceList;
     Schematic().Hierarchy().GetSymbols( referenceList, false, false );
     FIELDS_EDITOR_GRID_DATA_MODEL dataModel( referenceList );
@@ -112,9 +114,8 @@ SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
         return *m_symbolCmdContext;
 
     const wxString ref = symbol->GetRefProp();
-    m_symbolCmdContext->symbol_ctx.designator = ref;
-    m_symbolCmdContext->global_ctx.optional_ctx = GetGlobalContext();
-    m_symbolCmdContext->symbol_ctx.symbol_properties = {
+    m_symbolCmdContext->designator = ref;
+    m_symbolCmdContext->symbol_properties = {
         symbol->GetValueProp().ToStdString(),
         symbol->GetDescription().ToStdString(),
         symbol->GetFootprintFieldText( true, &Schematic().CurrentSheet(), false ).ToStdString(),
@@ -123,7 +124,7 @@ SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
 
     for( const auto& pin : symbol->GetPins() )
     {
-        m_symbolCmdContext->symbol_ctx.symbol_properties.pins.push_back(
+        m_symbolCmdContext->symbol_properties.pins.push_back(
                 { pin->GetNumber().ToStdString(), pin->GetName().ToStdString(),
                   PinShapeGetText( pin->GetShape() ).ToStdString() } );
     }

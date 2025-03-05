@@ -110,6 +110,7 @@
 #include <copilot/sch_copilot_context.h>
 #include <copilot/sch_copilot_cmd.h>
 #include <copilot/sch_copilot_context_cache.h>
+extern KICAD_VERSION_INFO get_kicad_version_info();
 
 
 #ifdef KICAD_IPC_API
@@ -156,6 +157,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_copilotContextCache(new SCH_COPILOT_CONTEXT_CACHE ),
     m_symbolCmdContext(new SYMBOL_CMD_CONTEXT)
 {
+    m_copilotContextCache->kicad_version_info = get_kicad_version_info();
     m_maximizeByDefault = true;
     m_schematic = new SCHEMATIC( nullptr );
 

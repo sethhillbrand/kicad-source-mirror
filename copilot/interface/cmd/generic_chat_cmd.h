@@ -28,7 +28,7 @@
 #include "cmd_base.h"
 #include <context/generic_chat/generic_chat_context.h>
 
-struct GENERIC_CHAT : CMD_BASE<COPILOT_CMD_TYPE::GENERIC_CHAT, GENERIC_CHAT_CONTEXT>
+struct GENERIC_CHAT : CMD_WITH_CONTEXT<COPILOT_CMD_TYPE::GENERIC_CHAT, GENERIC_CHAT_CONTEXT>
 {
 };
 

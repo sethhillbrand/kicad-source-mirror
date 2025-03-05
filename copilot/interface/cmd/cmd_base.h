@@ -26,21 +26,59 @@
 #define CMD_BASE_H
 
 #include "copilot_cmd_type.h"
-#include <context/optional_context.h>
 #include <nlohmann/json.hpp>
 #include <kicad_version_info.h>
+#include <optional>
+#include <string>
+#include <context/copilot_context.h>
 
 
-static const char kKiCadVersionInfo[] = "kicad_version_info";
-using ADDITIONAL_INFO = OPTIONAL_CONTEXT<kKiCadVersionInfo, KICAD_VERSION_INFO>;
-
-template <auto CMD, typename CONTEXT>
-struct CMD_BASE
+template <auto CMD_TYPE>
+struct CMD_NO_CONTEXT
 {
-    CONTEXT                context;
-    ADDITIONAL_INFO        additional;
-    const COPILOT_CMD_TYPE type = CMD;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CMD_BASE, additional, context, type )
+    std::string                          global_context_uuid;
+    std::optional<DESIGN_GLOBAL_CONTEXT> design_global_context;
+    COPILOT_CMD_TYPE                     type = CMD_TYPE;
+    friend void to_json( nlohmann ::json& nlohmann_json_j, const CMD_NO_CONTEXT& nlohmann_json_t )
+    {
+        nlohmann_json_j["global_context_uuid"] = nlohmann_json_t.global_context_uuid;
+
+        if( nlohmann_json_t.design_global_context )
+            nlohmann_json_j["design_global_context"] = *nlohmann_json_t.design_global_context;
+
+        nlohmann_json_j["type"] = nlohmann_json_t.type;
+    }
+    friend void from_json( const nlohmann ::json& nlohmann_json_j, CMD_NO_CONTEXT& nlohmann_json_t )
+    {
+        nlohmann_json_j.at( "global_context_uuid" ).get_to( nlohmann_json_t.global_context_uuid );
+
+        if( nlohmann_json_j.contains( "design_global_context" ) )
+        {
+            nlohmann_json_t.design_global_context =
+                    nlohmann_json_j.at( "design_global_context" ).get<DESIGN_GLOBAL_CONTEXT>();
+        }
+
+        nlohmann_json_j.at( "type" ).get_to( nlohmann_json_t.type );
+    }
 };
+
+
+template <auto CMD_TYPE, typename CONTEXT>
+struct CMD_WITH_CONTEXT : CMD_NO_CONTEXT<CMD_TYPE>
+{
+    CONTEXT     context;
+    friend void to_json( nlohmann ::json& nlohmann_json_j, const CMD_WITH_CONTEXT& nlohmann_json_t )
+    {
+        CMD_NO_CONTEXT<CMD_TYPE>::to_json( nlohmann_json_j, nlohmann_json_t );
+        nlohmann_json_j["context"] = nlohmann_json_t.context;
+    }
+    friend void from_json( const nlohmann ::json& nlohmann_json_j,
+                           CMD_WITH_CONTEXT&      nlohmann_json_t )
+    {
+        CMD_NO_CONTEXT<CMD_TYPE>::from_json( nlohmann_json_j, nlohmann_json_t );
+        nlohmann_json_j.at( "context" ).get_to( nlohmann_json_t.context );
+    }
+};
+
 
 #endif

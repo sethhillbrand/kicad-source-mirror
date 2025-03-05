@@ -32,6 +32,7 @@
 #include <websocketpp/client.hpp>
 #include <memory>
 #include <wx/event.h>
+#include <set>
 
 
 typedef websocketpp::client<websocketpp::config::asio_client> client;
@@ -51,11 +52,14 @@ using ON_CLOSE = std::function<void()>;
 class connection_metadata
 {
     ON_CLOSE _on_close;
+
 public:
     typedef websocketpp::lib::shared_ptr<connection_metadata> ptr;
 
-    connection_metadata( int id, websocketpp::connection_hdl hdl, std::string uri  ,ON_CLOSE on_close) :
-            m_id( id ), m_hdl( hdl ), m_uri( uri ), m_server( "N/A" ),_on_close(std::move(on_close))
+    connection_metadata( int id, websocketpp::connection_hdl hdl, std::string uri,
+                         ON_CLOSE on_close ) :
+            m_id( id ), m_hdl( hdl ), m_uri( uri ), m_server( "N/A" ),
+            _on_close( std::move( on_close ) )
     {
     }
 
@@ -114,7 +118,7 @@ class WEBSOCKET_ENDPOINT
     };
 
 public:
-    WEBSOCKET_ENDPOINT( wxEvtHandler* eventSink ,std::atomic_bool& should_quit);
+    WEBSOCKET_ENDPOINT( wxEvtHandler* eventSink, std::atomic_bool& should_quit );
     ~WEBSOCKET_ENDPOINT();
 
     void send( std::string const& msg );
@@ -148,9 +152,10 @@ private:
     client                                                 m_endpoint;
     websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
 
-    con_list m_connection_list;
-    int      m_next_id;
-    std::atomic_bool& _should_quit;
+    con_list              m_connection_list;
+    int                   m_next_id;
+    std::atomic_bool&     _should_quit;
+    std::set<std::string> _consumed_context_ids;
 };
 
 #endif

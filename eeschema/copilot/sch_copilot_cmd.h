@@ -29,11 +29,9 @@
 #include <sch_edit_frame.h>
 #include <cmd/copilot_cmd.h>
 #include <assistant_interface.h>
-#include "kicad_version_info.h"
 #include <build_version.h>
 #include "sch_copilot_context_cache.h"
 
-extern KICAD_VERSION_INFO get_kicad_version_info();
 
 void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
 {
@@ -49,8 +47,8 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     case COPILOT_CMD_TYPE::GENERIC_CHAT: break;
     case COPILOT_CMD_TYPE::DESIGN_INTENTION:
     case COPILOT_CMD_TYPE::CORE_COMPONENTS:
-        cmd = nlohmann::json( CORE_COMPONENTS{
-                { { m_copilotContextCache->net_list , }, { get_kicad_version_info() } } } );
+        cmd = nlohmann::json(
+                DESIGN_INTENTION{ m_copilotContextCache->uuid, *m_copilotContextCache } );
         break;
 
     case COPILOT_CMD_TYPE::CURRENT_COMPONENT:
@@ -62,8 +60,10 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     case COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS:
 
     case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS:
-        cmd = nlohmann::json(
-                CURRENT_COMPONENT{ { GetSelectedSymbolContext(), { get_kicad_version_info() } } } );
+        cmd = nlohmann::json( CURRENT_COMPONENT{ m_copilotContextCache->uuid,
+                                                 *m_copilotContextCache,
+                                                 {},
+                                                 GetSelectedSymbolContext() } );
         break;
     }
 

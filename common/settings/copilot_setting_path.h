@@ -22,30 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CONTEXT_H
-#define COPILOT_CONTEXT_H
+#ifndef COPILOT_SETTING_PATH_H
+#define COPILOT_SETTING_PATH_H
 
-#include "sch/symbol_properties.h"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <kicad_version_info.h>
+#include <kicommon.h>
 
-struct DESIGN_GLOBAL_CONTEXT
+extern "C"
 {
-    std::string        uuid;
-    std::string        bom;
-    std::string        net_list;
-    KICAD_VERSION_INFO kicad_version_info;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, bom, net_list, kicad_version_info, uuid )
-};
-
-
-struct SYMBOL_CMD_CONTEXT
-{
-    std::string       designator;
-    SYMBOL_PROPERTIES symbol_properties;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CMD_CONTEXT, designator, symbol_properties )
-};
+    KICOMMON_API const char* GetCopilotSettingsPath();
+}
 
 
 #endif

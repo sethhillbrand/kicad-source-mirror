@@ -27,6 +27,7 @@
 #include "websocket_uri.h"
 #include <exception>
 #include <nlohmann/json.hpp>
+#include <string>
 #include <websocketpp/close.hpp>
 #include <wx/log.h>
 #include <iostream>
@@ -120,21 +121,40 @@ WEBSOCKET_ENDPOINT::~WEBSOCKET_ENDPOINT()
 
 void WEBSOCKET_ENDPOINT::send( std::string const& msg )
 {
-    for( const auto [k, v] : m_connection_list )
+    try
     {
-        if( v->get_status() == CONNECTION_STATE::OPEN )
+        auto       j = nlohmann::json::parse( msg );
+        const auto ctx_id = j["global_context_uuid"].get<std::string>();
+
+        if( _consumed_context_ids.contains( ctx_id ) )
         {
-            websocketpp::lib::error_code ec;
-            m_endpoint.send( v->get_hdl(), msg, websocketpp::frame::opcode::text, ec );
-
-            if( ec )
-            {
-                const auto er_msg = ec.message();
-                wxLogError( "Echo failed because: ", er_msg );
-            }
-
-            return;
+            j["design_global_context"] = nlohmann::json::object();
         }
+        else
+        {
+            _consumed_context_ids.insert( ctx_id );
+        }
+
+
+        for( const auto [k, v] : m_connection_list )
+        {
+            if( v->get_status() == CONNECTION_STATE::OPEN )
+            {
+                websocketpp::lib::error_code ec;
+                m_endpoint.send( v->get_hdl(), j.dump(), websocketpp::frame::opcode::text, ec );
+
+                if( ec )
+                {
+                    const auto er_msg = ec.message();
+                    wxLogError( "Echo failed because: ", er_msg );
+                }
+
+                return;
+            }
+        }
+    }
+    catch( ... )
+    {
     }
 }
 
