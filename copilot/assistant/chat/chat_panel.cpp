@@ -160,7 +160,7 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
 
                            } } } };
 
-    if( get_global_context_hdl )
+    if( chat.context.chat.options.builtin_refs.size() && get_global_context_hdl )
     {
         try
         {
