@@ -22,37 +22,36 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_AUI_INFO_H
-#define COPILOT_AUI_INFO_H
+#ifndef SCH_COPILOT_SYMBOL_CTX_MENU_H
+#define SCH_COPILOT_SYMBOL_CTX_MENU_H
 
-#include <wx/aui/aui.h>
-#include <wx/aui/framemanager.h>
-#include <wx/aui/auibook.h>
-#include <wx/aui/auibar.h>
-#include <wx/aui/auibook.h>
-#include <wx/chartype.h>
-#include <copilot_panel_name.h>
 
-const wxAuiPaneInfo& defaultCopilotPaneInfo( wxWindow* aWindow )
+#include "bitmaps/bitmaps_list.h"
+#include <ee_actions.h>
+#include <functional>
+#include <tool/action_menu.h>
+#include <vector>
+
+
+class SCH_COPILOT_SYMBOL_CTX_MENU : public ACTION_MENU
 {
-    static wxAuiPaneInfo paneInfo;
+public:
+    SCH_COPILOT_SYMBOL_CTX_MENU( TOOL_INTERACTIVE* aTool ) : ACTION_MENU( true, aTool )
+    {
+        SetIcon( BITMAPS::copilot );
+        SetTitle( _( "Copilot" ) );
+        for( const auto act : std::vector<std::reference_wrapper<TOOL_ACTION>>{
+                     EE_ACTIONS::copilotCurrentSymbol, EE_ACTIONS::copilotSimilarComponents,
+                     EE_ACTIONS::copilotCheckSymbolConnections,
+                     EE_ACTIONS::copilotComponentPinsDetails,
+                     EE_ACTIONS::copilotSymbolUnconnectedPins } )
 
-    paneInfo.Name( CopilotPanelName() )
-            .Caption( _("Copilot") )
-            .CaptionVisible( true )
-            .PaneBorder( true )
-            .Right().Layer( 3 ).Position( 2 )
-            .TopDockable( false )
-            .BottomDockable( false )
-            .CloseButton( true )
-            .MinSize( aWindow->FromDIP( wxSize( 240, 60 ) ) )
-            .BestSize( aWindow->FromDIP( wxSize( 300, 200 ) ) )
-            .FloatingSize( aWindow->FromDIP( wxSize( 800, 600 ) ) )
-            .FloatingPosition( aWindow->FromDIP( wxPoint( 50, 200 ) ) )
-            .Show( true );
+            Add( act );
+    }
 
-    return paneInfo;
-}
+protected:
+    ACTION_MENU* create() const override { return new SCH_COPILOT_SYMBOL_CTX_MENU( m_tool ); }
+};
 
 
 #endif

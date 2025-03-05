@@ -22,8 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CTX_MENU_H
-#define SCH_COPILOT_CTX_MENU_H
+#ifndef SCH_COPILOT_GLOBAL_CTX_MENU_H
+#define SCH_COPILOT_GLOBAL_CTX_MENU_H
 
 #include "bitmaps/bitmaps_list.h"
 #include <ee_actions.h>
@@ -32,24 +32,23 @@
 #include <vector>
 
 
-class SCH_COPILOT_CTX_MENU : public ACTION_MENU
+class SCH_COPILOT_GLOBAL_CTX_MENU : public ACTION_MENU
 {
 public:
-    SCH_COPILOT_CTX_MENU( TOOL_INTERACTIVE* aTool ) : ACTION_MENU( true, aTool )
+    SCH_COPILOT_GLOBAL_CTX_MENU( ) : ACTION_MENU( true )
     {
         SetIcon( BITMAPS::copilot );
         SetTitle( _( "Copilot" ) );
         for( const auto act : std::vector<std::reference_wrapper<TOOL_ACTION>>{
-                     EE_ACTIONS::copilotCurrentSymbol, EE_ACTIONS::copilotSimilarComponents,
-                     EE_ACTIONS::copilotCheckSymbolConnections,
-                     EE_ACTIONS::copilotComponentPinsDetails,
-                     EE_ACTIONS::copilotSymbolUnconnectedPins } )
+                     EE_ACTIONS::copilotDesignIntention,
+                     EE_ACTIONS::copilotCoreComponents,
+             } )
 
             Add( act );
     }
 
 protected:
-    ACTION_MENU* create() const override { return new SCH_COPILOT_CTX_MENU( m_tool ); }
+    ACTION_MENU* create() const override { return new SCH_COPILOT_GLOBAL_CTX_MENU( ); }
 };
 
 

@@ -66,6 +66,7 @@
 
 #include "assistant_interface.h"
 #include "symb_transforms_utils.h"
+#include "copilot/sch_copilot_global_ctx_menu.h"
 
 
 SELECTION_CONDITION EE_CONDITIONS::SingleSymbol = []( const SELECTION& aSel )
@@ -311,8 +312,7 @@ bool EE_SELECTION_TOOL::Init()
     if(ASSISTANT_INTERFACE::get_instance().is_assistant_available())
     {
         menu.AddSeparator( 100 );
-        menu.AddItem( EE_ACTIONS::copilotDesignIntention,           schEditCondition && EE_CONDITIONS::Empty, 100 );
-        menu.AddItem( EE_ACTIONS::copilotCoreComponents,            schEditCondition && EE_CONDITIONS::Empty, 100 );    
+        menu.AddMenu( new SCH_COPILOT_GLOBAL_CTX_MENU( ), schEditCondition && EE_CONDITIONS::Empty, 100 );
     }
 
     menu.AddSeparator( 100 );

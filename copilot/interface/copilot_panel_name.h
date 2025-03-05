@@ -29,7 +29,7 @@
 #include <wx/string.h>
 
 
-static const wxString CopilotPanelName() { return wxS( "Copilot" ); }
+static const wxString CopilotPanelName() { return ( "Copilot" ); }
 
 
 #endif
