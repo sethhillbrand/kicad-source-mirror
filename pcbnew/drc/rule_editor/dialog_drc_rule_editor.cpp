@@ -62,7 +62,7 @@ const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes,
 
 DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wxWindow* aParent ) :
         RULE_EDITOR_DIALOG_BASE( aParent, _( "Design Rule Editor" ), wxSize( 980, 680 ) ),
-        PROGRESS_REPORTER_BASE( 1 ), 
+        PROGRESS_REPORTER_BASE( 1 ),
         m_reporter( nullptr ),
         m_nodeId( 0 )
 {
@@ -82,7 +82,7 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
         m_infoBar->ShowMessage( _( "Project is missing or read-only. Settings will not be "
                                    "editable." ),
                                 wxICON_WARNING );
-    }   
+    }
 
     PCBNEW_SETTINGS* cfg = m_frame->GetPcbNewSettings();
     m_severities = cfg->m_DrcDialog.severities;
@@ -90,7 +90,7 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
     m_markersProvider = std::make_shared<DRC_ITEMS_PROVIDER>(
             m_currentBoard, MARKER_BASE::MARKER_DRC, MARKER_BASE::MARKER_DRAWING_SHEET );
 
-    m_markerDataView =  new wxDataViewCtrl( this, wxID_ANY, wxDefaultPosition, 
+    m_markerDataView =  new wxDataViewCtrl( this, wxID_ANY, wxDefaultPosition,
             wxDefaultSize, wxDV_ROW_LINES | wxDV_SINGLE );
 
     m_markersTreeModel = new RC_TREE_MODEL( m_frame, m_markerDataView );
@@ -842,11 +842,11 @@ void DIALOG_DRC_RULE_EDITOR::closeRuleEntryView( int aNodeId )
 
 void DIALOG_DRC_RULE_EDITOR::showConditionMatches( int aNodeId )
 {
-    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aNodeId );    
+    RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aNodeId );
     auto m_nodeTypeMap =
             static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( nodeDetail->m_nodeTypeMap.value_or( 0 ) );
 
-    wxString ruleString = R"(  
+    wxString ruleString = R"(
              (version 1)
              (rule )";
 
@@ -876,7 +876,7 @@ void DIALOG_DRC_RULE_EDITOR::showConditionMatches( int aNodeId )
         }
     }
     break;
-    }   
+    }
 
     m_drcTool = m_frame->GetToolManager()->GetTool<DRC_TOOL>();
     std::vector<std::shared_ptr<DRC_RULE>> rules;
@@ -1000,7 +1000,7 @@ void DIALOG_DRC_RULE_EDITOR::UpdateData()
 }
 
 
-void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl, 
+void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl,
     const wxDataViewItem& dataViewItem )
 {
     wxDataViewModel* model = dataViewCtrl->GetModel();
@@ -1046,7 +1046,7 @@ void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl* dataVi
         {
             std::shared_ptr<RC_ITEM> rc_item = childNode->m_RcItem;
             const KIID& itemID = RC_TREE_MODEL::ToUUID( child );
-            BOARD_ITEM* item = m_currentBoard->GetItem( itemID );
+            BOARD_ITEM* item = m_currentBoard->ResolveItem( itemID );
 
             if( !item || item == DELETED_BOARD_ITEM::GetInstance() )
             {
@@ -1055,10 +1055,10 @@ void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl* dataVi
 
             PCB_LAYER_ID principalLayer;
             LSET         violationLayers;
-            BOARD_ITEM*  a = m_currentBoard->GetItem( rc_item->GetMainItemID() );
-            BOARD_ITEM*  b = m_currentBoard->GetItem( rc_item->GetAuxItemID() );
-            BOARD_ITEM*  c = m_currentBoard->GetItem( rc_item->GetAuxItem2ID() );
-            BOARD_ITEM*  d = m_currentBoard->GetItem( rc_item->GetAuxItem3ID() );
+            BOARD_ITEM*  a = m_currentBoard->ResolveItem( rc_item->GetMainItemID() );
+            BOARD_ITEM*  b = m_currentBoard->ResolveItem( rc_item->GetAuxItemID() );
+            BOARD_ITEM*  c = m_currentBoard->ResolveItem( rc_item->GetAuxItem2ID() );
+            BOARD_ITEM*  d = m_currentBoard->ResolveItem( rc_item->GetAuxItem3ID() );
 
              principalLayer = UNDEFINED_LAYER;
 
@@ -1093,7 +1093,7 @@ void DIALOG_DRC_RULE_EDITOR::highlightViolatedBoardItems( wxDataViewCtrl* dataVi
             if( principalLayer > UNDEFINED_LAYER && m_currentBoard->GetVisibleLayers().test( principalLayer ) )
                 m_frame->SetActiveLayer( principalLayer );
 
-            m_violatedBoarditems.push_back( item );            
+            m_violatedBoarditems.push_back( item );
         }
 
         // Recursively traverse the child items

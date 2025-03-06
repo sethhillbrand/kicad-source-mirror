@@ -457,7 +457,6 @@ set( COMMON_DLG_SRCS
     dialogs/panel_toolbar_customization.cpp
     dialogs/panel_toolbar_customization_base.cpp
     dialogs/rule_editor_dialog_base.cpp
-    dialogs/rule_tree_ctrl.cpp
     )
 
 if( KICAD_USE_SENTRY )

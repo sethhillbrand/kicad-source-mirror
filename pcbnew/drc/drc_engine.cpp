@@ -565,7 +565,9 @@ void DRC_ENGINE::InitEngine( const std::shared_ptr<DRC_RULE>& rule )
 
     for( DRC_TEST_PROVIDER* provider : m_testProviders )
     {
-        ReportAux( wxString::Format( wxT( "Create DRC provider: '%s'" ), provider->GetName() ) );
+        if( m_logReporter )
+            m_logReporter->Report( wxString::Format( wxT( "Create DRC provider: '%s'" ), provider->GetName() ) );
+
         provider->SetDRCEngine( this );
     }
 
@@ -584,9 +586,9 @@ void DRC_ENGINE::InitEngine( const std::shared_ptr<DRC_RULE>& rule )
 
     m_board->IncrementTimeStamp(); // Clear board-level caches
 
-    try 
+    try
     {
-        m_rules.push_back( rule );            
+        m_rules.push_back( rule );
         compileRules();
     }
     catch( PARSE_ERROR& original_parse_error )
