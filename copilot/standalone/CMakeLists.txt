@@ -20,6 +20,7 @@ endif()
 target_link_libraries(copilot_standalone PRIVATE 
     ${wxWidgets_LIBRARIES}
     nlohmann_json
+    kicommon
 )
 
 install( TARGETS copilot_standalone

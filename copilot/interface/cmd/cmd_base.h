@@ -69,13 +69,13 @@ struct CMD_WITH_CONTEXT : CMD_NO_CONTEXT<CMD_TYPE>
     CONTEXT     context;
     friend void to_json( nlohmann ::json& nlohmann_json_j, const CMD_WITH_CONTEXT& nlohmann_json_t )
     {
-        CMD_NO_CONTEXT<CMD_TYPE>::to_json( nlohmann_json_j, nlohmann_json_t );
+        to_json( nlohmann_json_j, static_cast<CMD_NO_CONTEXT<CMD_TYPE> const&>( nlohmann_json_t ) );
         nlohmann_json_j["context"] = nlohmann_json_t.context;
     }
     friend void from_json( const nlohmann ::json& nlohmann_json_j,
                            CMD_WITH_CONTEXT&      nlohmann_json_t )
     {
-        CMD_NO_CONTEXT<CMD_TYPE>::from_json( nlohmann_json_j, nlohmann_json_t );
+        from_json( nlohmann_json_j, static_cast<CMD_NO_CONTEXT<CMD_TYPE>&>( nlohmann_json_t ) );
         nlohmann_json_j.at( "context" ).get_to( nlohmann_json_t.context );
     }
 };

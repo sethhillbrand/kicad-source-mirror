@@ -38,7 +38,11 @@
 using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 
-extern const char* GetCopilotSettingsPath();
+extern "C"
+{
+    const char* GetCopilotSettingsPath();
+}
+
 
 class ASSISTANT_PATH_UTILS
 {
