@@ -130,11 +130,6 @@ void WEBSOCKET_ENDPOINT::send( std::string const& msg )
         {
             j["design_global_context"] = nlohmann::json::object();
         }
-        else
-        {
-            _consumed_context_ids.insert( ctx_id );
-        }
-
 
         for( const auto [k, v] : m_connection_list )
         {
@@ -147,8 +142,10 @@ void WEBSOCKET_ENDPOINT::send( std::string const& msg )
                 {
                     const auto er_msg = ec.message();
                     wxLogError( "Echo failed because: ", er_msg );
+                    return;
                 }
 
+                _consumed_context_ids.insert( ctx_id );
                 return;
             }
         }
