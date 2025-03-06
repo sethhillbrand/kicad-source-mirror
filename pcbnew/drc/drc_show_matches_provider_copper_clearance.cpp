@@ -78,11 +78,6 @@ public:
         return wxT( "clearance" );
     };
 
-    virtual const wxString GetDescription() const override
-    {
-        return wxT( "Tests copper item clearance" );
-    }
-
 private:
     /**
      * Checks for track/via/hole <-> clearance
@@ -132,7 +127,6 @@ bool DRC_SHOWMATCHES_PROVIDER_COPPER_CLEARANCE::Run()
 
     if( m_board->m_DRCMaxClearance <= 0 )
     {
-        reportAux( wxT( "No Clearance constraints found. Tests not run." ) );
         return true;   // continue with other tests
     }
 
@@ -191,8 +185,6 @@ bool DRC_SHOWMATCHES_PROVIDER_COPPER_CLEARANCE::Run()
 
         testZonesToZones();
     }
-
-    reportRuleStatistics();
 
     return !m_drcEngine->IsCancelled();
 }
@@ -618,8 +610,6 @@ void DRC_SHOWMATCHES_PROVIDER_COPPER_CLEARANCE::testTrackClearances()
     std::atomic<size_t>                                   done( 0 );
     size_t                                                count = m_board->Tracks().size();
 
-    reportAux( wxT( "Testing %d tracks & vias..." ), count );
-
     LSET boardCopperLayers = LSET::AllCuMask( m_board->GetCopperLayerCount() );
 
     auto testTrack = [&]( const int start_idx, const int end_idx )
@@ -987,8 +977,6 @@ void DRC_SHOWMATCHES_PROVIDER_COPPER_CLEARANCE::testPadClearances( )
     for( FOOTPRINT* footprint : m_board->Footprints() )
         count += footprint->Pads().size();
 
-    reportAux( wxT( "Testing %d pads..." ), count );
-
     std::unordered_map<PTR_PTR_CACHE_KEY, int> checkedPairs;
 
     LSET boardCopperLayers = LSET::AllCuMask( m_board->GetCopperLayerCount() );
@@ -1070,8 +1058,6 @@ void DRC_SHOWMATCHES_PROVIDER_COPPER_CLEARANCE::testGraphicClearances( )
 
     for( FOOTPRINT* footprint : m_board->Footprints() )
         count += footprint->GraphicalItems().size();
-
-    reportAux( wxT( "Testing %d graphics..." ), count );
 
     auto isKnockoutText =
             []( BOARD_ITEM* item )
