@@ -28,6 +28,7 @@
 enum class COPILOT_CMD_TYPE
 {
     GENERIC_CHAT = -1,
+    INVALID = 0,
     DESIGN_INTENTION = 1,
     CORE_COMPONENTS = 2,
 

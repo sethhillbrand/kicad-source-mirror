@@ -25,6 +25,7 @@
 #include "websocket_endpoint.h"
 #include "websocket_event.h"
 #include "websocket_uri.h"
+#include <cmd/cmd_base.h>
 #include <exception>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -124,11 +125,13 @@ void WEBSOCKET_ENDPOINT::send( std::string const& msg )
     try
     {
         auto       j = nlohmann::json::parse( msg );
-        const auto ctx_id = j["global_context_uuid"].get<std::string>();
+        const auto cmd_base = j.get<CMD_BASE>();
 
-        if( _consumed_context_ids.contains( ctx_id ) )
+
+        if( cmd_base.global_context_uuid
+            && _consumed_context_ids.contains( *cmd_base.global_context_uuid ) )
         {
-            j.erase("design_global_context");
+            j.erase( kDesignGlobalContext );
         }
 
         for( const auto [k, v] : m_connection_list )
@@ -145,13 +148,17 @@ void WEBSOCKET_ENDPOINT::send( std::string const& msg )
                     return;
                 }
 
-                _consumed_context_ids.insert( ctx_id );
+                if( cmd_base.global_context_uuid )
+                    _consumed_context_ids.insert( *cmd_base.global_context_uuid );
+                
                 return;
             }
         }
     }
-    catch( ... )
+    catch( std::exception const& e )
     {
+        wxLogError( "error while parsing message: %s\n", msg );
+        wxLogError( e.what() );
     }
 }
 

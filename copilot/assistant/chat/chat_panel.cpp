@@ -167,8 +167,7 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
             DESIGN_GLOBAL_CONTEXT ctx;
             auto                  ctx_str = get_global_context_hdl();
             nlohmann::json::parse( ctx_str ).get_to( ctx );
-            chat.design_global_context = ctx;
-            chat.global_context_uuid = ctx.uuid;
+            fill_cmd(chat,ctx);
         }
         catch( std::exception const& e )
         {

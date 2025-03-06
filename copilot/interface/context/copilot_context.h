@@ -30,6 +30,7 @@
 #include <string>
 #include <kicad_version_info.h>
 
+
 struct DESIGN_GLOBAL_CONTEXT
 {
     std::string        uuid;

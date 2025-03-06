@@ -22,32 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef OPTIONAL_CONTEXT_H
-#define OPTIONAL_CONTEXT_H
-
-#include <optional>
-#include <nlohmann/json.hpp>
+#ifndef CONTEXT_FIELDS_H
+#define CONTEXT_FIELDS_H
 
 
-template <auto KEY, typename T>
-struct OPTIONAL_CONTEXT
-{
-    std::optional<T> optional_ctx;
-    friend void to_json( nlohmann ::json& nlohmann_json_j, const OPTIONAL_CONTEXT& nlohmann_json_t )
-    {
-        if( nlohmann_json_t.optional_ctx )
-            nlohmann_json_j[KEY] = *nlohmann_json_t.optional_ctx;
-    }
-    friend void from_json( const nlohmann ::json& nlohmann_json_j,
-                           OPTIONAL_CONTEXT&      nlohmann_json_t )
-    {
-        if( auto it = nlohmann_json_j.find( KEY ); it != nlohmann_json_j.end() )
-        {
-            nlohmann_json_t.optional_ctx = T{};
-            it->get_to( *nlohmann_json_t.optional_ctx );
-        }
-    }
-};
+static constexpr auto kGlobalContextUUID = "global_context_uuid";
+static constexpr auto kDesignGlobalContext = "design_global_context";
+static constexpr auto kType = "type";
+static constexpr auto kContext = "context";
 
 
 #endif

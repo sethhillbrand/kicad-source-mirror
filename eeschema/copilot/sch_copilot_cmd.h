@@ -30,6 +30,8 @@
 #include <cmd/copilot_cmd.h>
 #include <assistant_interface.h>
 #include <build_version.h>
+#include "context/context_fields.h"
+#include "context/copilot_context.h"
 #include "sch_copilot_context_cache.h"
 
 
@@ -47,29 +49,22 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
     case COPILOT_CMD_TYPE::GENERIC_CHAT: break;
     case COPILOT_CMD_TYPE::DESIGN_INTENTION:
     case COPILOT_CMD_TYPE::CORE_COMPONENTS:
-        cmd = nlohmann::json(
-                DESIGN_INTENTION{ m_copilotContextCache->uuid, *m_copilotContextCache } );
+        cmd = create_cmd<DESIGN_INTENTION>( *m_copilotContextCache );
         break;
 
     case COPILOT_CMD_TYPE::CURRENT_COMPONENT:
-
     case COPILOT_CMD_TYPE::SIMILAR_COMPONENTS:
-
     case COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS:
-
     case COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS:
-
     case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS:
-        cmd = nlohmann::json( CURRENT_COMPONENT{ m_copilotContextCache->uuid,
-                                                 *m_copilotContextCache,
-                                                 {},
-                                                 GetSelectedSymbolContext() } );
+        cmd = create_cmd<CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>( *m_copilotContextCache,
+                                                                 GetSelectedSymbolContext() );
         break;
     }
 
     if( !cmd.empty() )
     {
-        cmd["type"] = aCmdType;
+        cmd[kType] = aCmdType;
         ShowCopilot();
         ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
     }
