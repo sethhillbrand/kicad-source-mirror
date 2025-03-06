@@ -3,10 +3,12 @@
 #ifndef COPILOT_CONFIG_H
 #define COPILOT_CONFIG_H
 
-// Plugins directory
+#ifndef COPILOT_CONFIG_DIR
 #define COPILOT_CONFIG_DIR                 "@COPILOT_CONFIG_DIR@"
+#endif // COPILOT_CONFIG_DIR
 
-/// ngspice version string detected by pkg-config when available.
+#ifndef ASSISTANT_DLL_NAME
 #define ASSISTANT_DLL_NAME      "@ASSISTANT_DLL_NAME@"
+#endif // ASSISTANT_DLL_NAME
 
 #endif  // COPILOT_CONFIG_H
