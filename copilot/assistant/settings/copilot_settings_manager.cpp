@@ -82,19 +82,25 @@ std::string COPILOT_SETTINGS_MANAGER::get_copilot_setting_dir()
 {
     static const auto kCopilotSettingDir = ([]{
         wxFileName path;
+        const auto mk_dir =[&]{        
+            if( !path.DirExists() )
+            {
+                if( !wxMkdir( path.GetPath() ) )
+                {
+                    wxLogTrace( "COPILOT_SETTINGS_MANAGER",
+                                wxT( "get_copilot_setting_dir(): Path %s missing and could not be created!" ),
+                                path.GetPath() );
+                }
+            }
+        };
 
         path.AssignDir(  wxStandardPaths::Get().GetUserConfigDir() );
-        path.AppendDir( wxS( "copilot" ) );
-    
-        if( !path.DirExists() )
-        {
-            if( !wxMkdir( path.GetPath() ) )
-            {
-                wxLogTrace( "COPILOT_SETTINGS_MANAGER",
-                            wxT( "get_copilot_setting_dir(): Path %s missing and could not be created!" ),
-                            path.GetPath() );
-            }
+        
+        for(const auto& dir : { wxS( "kicad" ), wxS( "copilot" ) } ){
+            path.AppendDir( dir );
+            mk_dir();
         }
+        
         return path.GetPath().ToStdString( wxConvUTF8 );
     })();
 
