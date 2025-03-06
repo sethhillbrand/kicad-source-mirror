@@ -25,14 +25,13 @@
 #ifndef COPILOT_SETTINGS_H
 #define COPILOT_SETTINGS_H
 
-class COPILOT_SETTINGS
+#include <string>
+#include <nlohmann/json.hpp>
+struct COPILOT_SETTINGS
 {
-public:
-    COPILOT_SETTINGS();
-    ~COPILOT_SETTINGS();
-
-private:
-
+    std::string websocket_uri = "ws://www.fdatasheets.com/kicad/chat";
+    std::string data_buried_point_url = "https://www.eda.cn/data_buried_point";
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, websocket_uri, data_buried_point_url )
 };
 
 #endif

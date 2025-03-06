@@ -28,11 +28,12 @@
 class COPILOT_SETTINGS_MANAGER
 {
 public:
-    COPILOT_SETTINGS_MANAGER();
     ~COPILOT_SETTINGS_MANAGER();
 
-private:
+    static COPILOT_SETTINGS_MANAGER& get_instance();
 
+private:
+    COPILOT_SETTINGS_MANAGER();
 };
 
 #endif
