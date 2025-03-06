@@ -23,11 +23,13 @@
  */
 
 #include "copilot_setting_path.h"
+#include <macros.h>
 #include <settings/json_settings.h>
 #include <wx/filename.h>
 #include <wx/log.h>
 #include <wx/stdpaths.h>
 #include <paths.h>
+#include <copilot_config.h>
 
 const char* GetCopilotSettingsPath()
 {
@@ -35,7 +37,7 @@ const char* GetCopilotSettingsPath()
     wxFileName path;
 
     path.AssignDir( PATHS::GetUserSettingsPath() );
-    path.AppendDir( wxS( "copilot" ) );
+    path.AppendDir( TO_STR( COPILOT_CONFIG_DIR ) );
 
     if( !path.DirExists() )
     {

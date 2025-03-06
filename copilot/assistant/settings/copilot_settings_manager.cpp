@@ -24,6 +24,7 @@
 
 #include "copilot_settings_manager.h"
 #include "copilot_settings.h"
+#include <macros.h>
 #include <nlohmann/json.hpp>
 #include <wx/filename.h>
 #include <wx/log.h>
@@ -96,7 +97,7 @@ std::string COPILOT_SETTINGS_MANAGER::get_copilot_setting_dir()
 
         path.AssignDir(  wxStandardPaths::Get().GetUserConfigDir() );
         
-        for(const auto& dir : { wxS( "kicad" ), wxS( "copilot" ) } ){
+        for(const auto& dir : { TO_STR( KICAD_CONFIG_DIR ) , TO_STR( COPILOT_CONFIG_DIR ) } ){
             path.AppendDir( dir );
             mk_dir();
         }

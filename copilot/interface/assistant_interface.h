@@ -26,6 +26,7 @@
 #define ASSISTANT_INTERFACE_H
 
 #include <dylib.hpp>
+#include <macros.h>
 #include <optional>
 #include <string>
 #include <wx/app.h>
@@ -34,6 +35,7 @@
 #include <wx/panel.h>
 #include <nlohmann/json.hpp>
 #include <context/copilot_global_ctx_hdl.h>
+#include <copilot_config.h>
 
 using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
@@ -56,13 +58,13 @@ private:
 
     static auto get_copilot_dir( std::string const& prefix )
     {
-        std::string copilot_dir = prefix + "/copilot";
+        std::string copilot_dir = prefix + "/" TO_STR( COPILOT_CONFIG_DIR );
         return copilot_dir;
     }
 
     static auto get_copilot_dll_path( std::string const& copilot_dir )
     {
-        return copilot_dir + "/assistant";
+        return copilot_dir + "/" + TO_STR( ASSISTANT_DLL_NAME );
     }
 
 
