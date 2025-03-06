@@ -37,7 +37,7 @@ class WEBSOCKET_ENDPOINT;
 class WEBSOCKET_WORKER : public wxThread
 {
 public:
-    WEBSOCKET_WORKER( wxEvtHandler* eventSink, CHAT_CMDS& cmds );
+    WEBSOCKET_WORKER( wxEvtHandler* eventSink, CHAT_CMDS& cmds, std::string aUrl );
     ~WEBSOCKET_WORKER();
 
     void* Entry() override;
@@ -51,6 +51,7 @@ private:
     wxEvtHandler*                       _event_sink;
     std::unique_ptr<WEBSOCKET_ENDPOINT> _client;
     std::atomic_bool                    _should_quit{ false };
+    std::string                         _url;
 };
 
 #endif

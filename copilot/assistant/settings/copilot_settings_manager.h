@@ -25,15 +25,33 @@
 #ifndef COPILOT_SETTINGS_MANAGER_H
 #define COPILOT_SETTINGS_MANAGER_H
 
+#include <string>
+#include <memory>
+
+struct COPILOT_SETTINGS;
 class COPILOT_SETTINGS_MANAGER
 {
 public:
     ~COPILOT_SETTINGS_MANAGER();
 
     static COPILOT_SETTINGS_MANAGER& get_instance();
+    
+    static std::string get_copilot_setting_dir();
+
+    static std::string get_copilot_history_db_path();
+
+    static std::string get_copilot_setting_path();
+
+    std::string const& get_websocket_uri() const;
+
+    std::string const& get_data_buried_point_url() const;
 
 private:
     COPILOT_SETTINGS_MANAGER();
+    std::unique_ptr<COPILOT_SETTINGS> _settings;
+
+    // Everytime kicad launches, the uri is updated with a random number
+    std::string _runtime_websocket_uri;
 };
 
 #endif

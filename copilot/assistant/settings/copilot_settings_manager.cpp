@@ -23,9 +23,49 @@
  */
 
 #include "copilot_settings_manager.h"
+#include "copilot_settings.h"
+#include <nlohmann/json.hpp>
+#include <wx/filename.h>
+#include <wx/log.h>
+#include <wx/stdpaths.h>
+#include <wx/file.h>
+#include <fstream>
 
-COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER()
+COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() : _settings( new COPILOT_SETTINGS )
 {
+    // Check if the setting file exists
+    const auto setting_path = get_copilot_setting_path();
+
+    if( !wxFileExists( setting_path ) )
+    {
+        wxLogTrace( "COPILOT_SETTINGS_MANAGER",
+                    wxT( "COPILOT_SETTINGS_MANAGER(): Setting file %s does not exist, creating a "
+                         "new one." ),
+                    setting_path.c_str() );
+
+        std::ofstream out( setting_path );
+        out << ( nlohmann::json( *_settings ) ).dump();
+        out.close();
+    }
+    else
+    {
+        try
+        {
+            std::ifstream in( setting_path );
+            nlohmann::json::parse( in ).get_to( *_settings );
+            in.close();
+        }
+        catch( const std::exception& e )
+        {
+            wxLogTrace( "COPILOT_SETTINGS_MANAGER",
+                        wxT( "COPILOT_SETTINGS_MANAGER(): Failed to parse setting file %s, using "
+                             "default settings." ) );
+        }
+    }
+
+
+    _runtime_websocket_uri =
+            _settings->websocket_uri + "/" + std::to_string( std::rand() % 90000 + 10000 );
 }
 
 COPILOT_SETTINGS_MANAGER::~COPILOT_SETTINGS_MANAGER()
@@ -36,4 +76,49 @@ COPILOT_SETTINGS_MANAGER& COPILOT_SETTINGS_MANAGER::get_instance()
 {
     static COPILOT_SETTINGS_MANAGER instance;
     return instance;
+}
+
+std::string COPILOT_SETTINGS_MANAGER::get_copilot_setting_dir()
+{
+    static const auto kCopilotSettingDir = ([]{
+        wxFileName path;
+
+        path.AssignDir(  wxStandardPaths::Get().GetUserConfigDir() );
+        path.AppendDir( wxS( "copilot" ) );
+    
+        if( !path.DirExists() )
+        {
+            if( !wxMkdir( path.GetPath() ) )
+            {
+                wxLogTrace( "COPILOT_SETTINGS_MANAGER",
+                            wxT( "get_copilot_setting_dir(): Path %s missing and could not be created!" ),
+                            path.GetPath() );
+            }
+        }
+        return path.GetPath().ToStdString( wxConvUTF8 );
+    })();
+
+
+    return kCopilotSettingDir;
+}
+
+std::string COPILOT_SETTINGS_MANAGER::get_copilot_history_db_path()
+{
+    return get_copilot_setting_dir() + "/history.db";
+}
+
+std::string COPILOT_SETTINGS_MANAGER::get_copilot_setting_path()
+{
+    return get_copilot_setting_dir() + "/copilot_settings.json";
+}
+
+
+std::string const& COPILOT_SETTINGS_MANAGER::get_websocket_uri() const
+{
+    return _runtime_websocket_uri;
+}
+
+std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_url() const
+{
+    return _settings->data_buried_point_url;
 }

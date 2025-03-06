@@ -36,6 +36,7 @@
 #include <wx/log.h>
 #include <wx/msgqueue.h>
 #include <wx/string.h>
+#include <assistant/settings/copilot_settings_manager.h>
 
 extern "C"
 
@@ -57,7 +58,8 @@ inline void CHAT_PANEL::append_msg( wxString const& msg )
 
 CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
         _previous_msg_type(), CHAT_PANEL_BASE( parent ),
-        _client_worker( new WEBSOCKET_WORKER( this, _cmds ) )
+        _client_worker( new WEBSOCKET_WORKER(
+                this, _cmds, COPILOT_SETTINGS_MANAGER::get_instance().get_websocket_uri() ) )
 {
     _client_worker->Run();
 

@@ -42,7 +42,7 @@ KICOMMON_API KICAD_VERSION_INFO get_kicad_version_info()
 
     const auto version =
             ( KIPLATFORM::APP::IsOperatingSystemUnsupported() ? wxString( wxS( "(UNSUPPORTED)" ) )
-                                                              : GetBuildVersion() );
+                                                              : GetSemanticVersion() );
 
     wxPlatformInfo platform;
     wxString       osDescription;

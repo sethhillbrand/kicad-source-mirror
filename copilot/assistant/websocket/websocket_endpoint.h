@@ -118,7 +118,8 @@ class WEBSOCKET_ENDPOINT
     };
 
 public:
-    WEBSOCKET_ENDPOINT( wxEvtHandler* eventSink, std::atomic_bool& should_quit );
+    WEBSOCKET_ENDPOINT( wxEvtHandler* eventSink, std::atomic_bool& should_quit,
+                        std::string  websocket_uri );
     ~WEBSOCKET_ENDPOINT();
 
     void send( std::string const& msg );
@@ -148,7 +149,6 @@ private:
 private:
     wxEvtHandler*                                   _eventSink;
     typedef std::map<int, connection_metadata::ptr> con_list;
-
     client                                                 m_endpoint;
     websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
 
@@ -156,6 +156,7 @@ private:
     int                   m_next_id;
     std::atomic_bool&     _should_quit;
     std::set<std::string> _consumed_context_ids;
+    std::string           _websocket_uri;
 };
 
 #endif

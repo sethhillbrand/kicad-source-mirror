@@ -24,11 +24,11 @@
 
 #include "websocket_endpoint.h"
 #include "websocket_event.h"
-#include "websocket_uri.h"
 #include <cmd/cmd_base.h>
 #include <exception>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <utility>
 #include <websocketpp/close.hpp>
 #include <wx/log.h>
 #include <iostream>
@@ -36,8 +36,10 @@
 
 using websocketpp::lib::bind;
 
-WEBSOCKET_ENDPOINT::WEBSOCKET_ENDPOINT( wxEvtHandler* eventSink, std::atomic_bool& should_quit ) :
-        _eventSink( eventSink ), _should_quit( should_quit ), m_next_id( 0 )
+WEBSOCKET_ENDPOINT::WEBSOCKET_ENDPOINT( wxEvtHandler* eventSink, std::atomic_bool& should_quit,
+                                        std::string websocket_uri ) :
+        _eventSink( eventSink ), _should_quit( should_quit ), m_next_id( 0 ),
+        _websocket_uri( std::move( websocket_uri ) )
 {
     m_endpoint.clear_access_channels( websocketpp::log::alevel::all );
     m_endpoint.clear_error_channels( websocketpp::log::elevel::all );
@@ -150,7 +152,7 @@ void WEBSOCKET_ENDPOINT::send( std::string const& msg )
 
                 if( cmd_base.global_context_uuid )
                     _consumed_context_ids.insert( *cmd_base.global_context_uuid );
-                
+
                 return;
             }
         }
@@ -169,7 +171,7 @@ int WEBSOCKET_ENDPOINT::connect()
 
     websocketpp::lib::error_code ec;
 
-    client::connection_ptr con = m_endpoint.get_connection( kUri, ec );
+    client::connection_ptr con = m_endpoint.get_connection( _websocket_uri, ec );
 
     if( ec )
     {
@@ -178,7 +180,8 @@ int WEBSOCKET_ENDPOINT::connect()
     }
 
     int                      new_id = m_next_id++;
-    connection_metadata::ptr metadata_ptr( new connection_metadata( new_id, con->get_handle(), kUri,
+    connection_metadata::ptr metadata_ptr( new connection_metadata( new_id, con->get_handle(),
+                                                                    _websocket_uri,
                                                                     [this]()
                                                                     {
                                                                         // FIXME shall be event driven with queued msg
