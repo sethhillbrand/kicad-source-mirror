@@ -60,11 +60,6 @@ public:
         return wxT( "edge_clearance" );
     }
 
-    virtual const wxString GetDescription() const override
-    {
-        return wxT( "Tests items vs board edge clearance" );
-    }
-
 private:
     bool testAgainstEdge( BOARD_ITEM* item, SHAPE* itemShape, BOARD_ITEM* other,
                           DRC_CONSTRAINT_T aConstraintType, PCB_DRC_CODE aErrorCode );
@@ -157,7 +152,6 @@ bool DRC_SHOWMATCHES_PROVIDER_EDGE_CLEARANCE::Run()
     }
     else
     {
-        reportAux( wxT( "Edge clearance violations ignored. Tests not run." ) );
         return true;         // continue with other tests
     }
 
@@ -168,8 +162,6 @@ bool DRC_SHOWMATCHES_PROVIDER_EDGE_CLEARANCE::Run()
 
     if( m_drcEngine->QueryWorstConstraint( EDGE_CLEARANCE_CONSTRAINT, worstClearanceConstraint ) )
         m_largestEdgeClearance = worstClearanceConstraint.GetValue().Min();
-
-    reportAux( wxT( "Worst clearance : %d nm" ), m_largestEdgeClearance );
 
     /*
      * Build an RTree of the various edges (including NPTH holes) and margins found on the board.
@@ -186,7 +178,7 @@ bool DRC_SHOWMATCHES_PROVIDER_EDGE_CLEARANCE::Run()
                 if( item->IsOnLayer( Edge_Cuts ) )
                     stroke.SetWidth( 0 );
 
-                if( shape->GetShape() == SHAPE_T::RECTANGLE && !shape->IsFilled() )
+                if( shape->GetShape() == SHAPE_T::RECTANGLE && !shape->IsAnyFill() )
                 {
                     // A single rectangle for the board would make the RTree useless, so convert
                     // to 4 edges
@@ -211,7 +203,7 @@ bool DRC_SHOWMATCHES_PROVIDER_EDGE_CLEARANCE::Run()
                     edges.back()->SetStroke( stroke );
                     edges.back()->SetParentGroup( nullptr );
                 }
-                else if( shape->GetShape() == SHAPE_T::POLY && !shape->IsFilled() )
+                else if( shape->GetShape() == SHAPE_T::POLY && !shape->IsAnyFill() )
                 {
                     // A single polygon for the board would make the RTree useless, so convert
                     // to n edges.
@@ -361,8 +353,6 @@ bool DRC_SHOWMATCHES_PROVIDER_EDGE_CLEARANCE::Run()
 
                 return true;
             } );
-
-    reportRuleStatistics();
 
     return !m_drcEngine->IsCancelled();
 }
