@@ -128,7 +128,7 @@ void WEBSOCKET_ENDPOINT::send( std::string const& msg )
 
         if( _consumed_context_ids.contains( ctx_id ) )
         {
-            j["design_global_context"] = nlohmann::json::object();
+            j.erase("design_global_context");
         }
 
         for( const auto [k, v] : m_connection_list )
