@@ -24,13 +24,13 @@
 
 #include "chat_panel.h"
 #include <context/copilot_global_ctx_hdl.h>
-#include "assistant/client/websocket_event.h"
+#include <assistant/websocket/websocket_event.h>
 #include <context/copilot_context.h>
 #include <cmd/generic_chat_cmd.h>
 #include "copilot_global.h"
 #include <exception>
 #include <nlohmann/json.hpp>
-#include <assistant/client/websocket_worker.h>
+#include <assistant/websocket/websocket_worker.h>
 #include <interface/cmd/copilot_cmd.h>
 #include <string>
 #include <wx/log.h>
@@ -167,7 +167,7 @@ void CHAT_PANEL::on_send_button_clicked( wxCommandEvent& event )
             DESIGN_GLOBAL_CONTEXT ctx;
             auto                  ctx_str = get_global_context_hdl();
             nlohmann::json::parse( ctx_str ).get_to( ctx );
-            fill_cmd(chat,ctx);
+            fill_cmd( chat, ctx );
         }
         catch( std::exception const& e )
         {

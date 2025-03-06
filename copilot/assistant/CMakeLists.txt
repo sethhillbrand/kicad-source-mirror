@@ -3,12 +3,13 @@ find_package(websocketpp CONFIG REQUIRED)
 
 add_library( assistant SHARED 
     assistant_launcher.cpp
-    client/websocket_endpoint.cpp
-    client/websocket_event.cpp
-    client/websocket_worker.cpp
     chat/chat_history.cpp
     chat/chat_panel_base.cpp
-    chat/chat_panel.cpp
+    chat/chat_panel.cpp  
+    settings/copilot_settings_manager.cpp  
+    websocket/websocket_endpoint.cpp
+    websocket/websocket_event.cpp
+    websocket/websocket_worker.cpp
     copilot_version.cpp
 )
 

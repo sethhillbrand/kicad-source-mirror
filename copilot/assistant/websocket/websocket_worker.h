@@ -22,45 +22,35 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef CHAT_PANEL_H
-#define CHAT_PANEL_H
+#ifndef WEBSOCKET_WORKER_H
+#define WEBSOCKET_WORKER_H
 
-
-#include "chat_panel_base.h"
-#include "assistant/chat/chat_cmd_queue.h"
-#include "assistant/assistant.h"
-#include "assistant/assistant_view.h"
-
+#include <wx/event.h>
+#include <wx/thread.h>
+#include <string>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <atomic>
+#include "assistant/chat/chat_cmd_queue.h"
 
-class WEBSOCKET_WORKER;
-enum class MEG_TYPE;
-class WEBSOCKET_EVENT;
-
-class CHAT_PANEL : public CHAT_PANEL_BASE, public ASSISTANT, public ASSISTANT_VIEW
+class WEBSOCKET_ENDPOINT;
+class WEBSOCKET_WORKER : public wxThread
 {
 public:
-    CHAT_PANEL( wxWindow* parent );
-    ~CHAT_PANEL();
+    WEBSOCKET_WORKER( wxEvtHandler* eventSink, CHAT_CMDS& cmds );
+    ~WEBSOCKET_WORKER();
 
-    void fire_cmd( const char* cmd ) override;
-    void append_msg( wxString const& msg ) override;
+    void* Entry() override;
 
-private:
-    void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
-    void m_cb_netlistOnCheckBox( wxCommandEvent& event ) override;
-    void m_cb_bomOnCheckBox( wxCommandEvent& event ) override;
+    void send( const std::string& aMessage );
 
-    void on_send_button_clicked( wxCommandEvent& event );
-    void on_websocket_event( const WEBSOCKET_EVENT& event );
-
+    auto quit() { _should_quit.store( true ); }
 
 private:
-    MEG_TYPE                          _previous_msg_type;
-    CHAT_CMDS                         _cmds;
-    std::unique_ptr<WEBSOCKET_WORKER> _client_worker;
-    bool                              _bom_checked{};
-    bool                              _netlist_checked{};
+    CHAT_CMDS&                          _cmds;
+    wxEvtHandler*                       _event_sink;
+    std::unique_ptr<WEBSOCKET_ENDPOINT> _client;
+    std::atomic_bool                    _should_quit{ false };
 };
 
 #endif

@@ -22,45 +22,20 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef CHAT_PANEL_H
-#define CHAT_PANEL_H
+#ifndef DATA_BURIED_POINT_H
+#define DATA_BURIED_POINT_H
+
+#include <nlohmann/json.hpp>
+#include <string>
 
 
-#include "chat_panel_base.h"
-#include "assistant/chat/chat_cmd_queue.h"
-#include "assistant/assistant.h"
-#include "assistant/assistant_view.h"
+// https://prometheus.github.io/client_python/instrumenting/counter/
 
-#include <memory>
-
-class WEBSOCKET_WORKER;
-enum class MEG_TYPE;
-class WEBSOCKET_EVENT;
-
-class CHAT_PANEL : public CHAT_PANEL_BASE, public ASSISTANT, public ASSISTANT_VIEW
+struct DATA_BURIED_POINT
 {
-public:
-    CHAT_PANEL( wxWindow* parent );
-    ~CHAT_PANEL();
-
-    void fire_cmd( const char* cmd ) override;
-    void append_msg( wxString const& msg ) override;
-
-private:
-    void m_btn_sendOnButtonClick( wxCommandEvent& event ) override;
-    void m_cb_netlistOnCheckBox( wxCommandEvent& event ) override;
-    void m_cb_bomOnCheckBox( wxCommandEvent& event ) override;
-
-    void on_send_button_clicked( wxCommandEvent& event );
-    void on_websocket_event( const WEBSOCKET_EVENT& event );
-
-
-private:
-    MEG_TYPE                          _previous_msg_type;
-    CHAT_CMDS                         _cmds;
-    std::unique_ptr<WEBSOCKET_WORKER> _client_worker;
-    bool                              _bom_checked{};
-    bool                              _netlist_checked{};
+    std::string name;
+    std::string doc;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DATA_BURIED_POINT, name, doc )
 };
 
 #endif

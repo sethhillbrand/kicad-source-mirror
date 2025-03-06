@@ -22,35 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBSOCKET_WORKER_H
-#define WEBSOCKET_WORKER_H
+#ifndef COPILOT_SETTINGS_H
+#define COPILOT_SETTINGS_H
 
-#include <wx/event.h>
-#include <wx/thread.h>
-#include <string>
-#include <memory>
-#include <nlohmann/json.hpp>
-#include <atomic>
-#include "assistant/client/chat_cmd_queue.h"
-
-class WEBSOCKET_ENDPOINT;
-class WEBSOCKET_WORKER : public wxThread
+class COPILOT_SETTINGS
 {
 public:
-    WEBSOCKET_WORKER( wxEvtHandler* eventSink, CHAT_CMDS& cmds );
-    ~WEBSOCKET_WORKER();
-
-    void* Entry() override;
-
-    void send( const std::string& aMessage );
-
-    auto quit() { _should_quit.store( true ); }
+    COPILOT_SETTINGS();
+    ~COPILOT_SETTINGS();
 
 private:
-    CHAT_CMDS&                        _cmds;
-    wxEvtHandler*                     _event_sink;
-    std::unique_ptr<WEBSOCKET_ENDPOINT> _client;
-    std::atomic_bool                  _should_quit{ false };
+
 };
 
 #endif
