@@ -75,13 +75,13 @@
 PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType,
         wxString* aConstraintTitle, std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData ) :
-        PANEL_DRC_RULE_EDITOR_BASE( aParent ), 
+        PANEL_DRC_RULE_EDITOR_BASE( aParent ),
         m_board( aBoard ),
         m_constraintTitle( aConstraintTitle ),
         m_basicDetailValidated( false ),
         m_syntaxChecked( false ),
         m_isModified( false ),
-        m_validationSucceeded( false ), 
+        m_validationSucceeded( false ),
         m_constraintType( aConstraintType ),
         m_constraintData( aConstraintData ),
         m_helpWindow( nullptr )
@@ -102,11 +102,11 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
     m_layerListCmbCtrl = new DRC_RE_LAYER_SELECTION_COMBO( this, layerIDs, layerNameGetter );
     m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND , 5 ); // Remove wxEXPAND
 
-    
+
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
     m_btnShowMatches = new wxButton( this, wxID_ANY, "Show Matches" );
     buttonSizer->Add( m_btnShowMatches, 0, wxALL, 5 );
-    
+
     bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
 
     m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
@@ -170,13 +170,13 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
     {
         delete m_constraintPanel;
         m_constraintPanel = nullptr;
-    }   
+    }
 
     if( m_helpWindow )
     {
         delete m_helpWindow;
         m_helpWindow = nullptr;
-    }   
+    }
 
     m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
                               this );
@@ -401,7 +401,7 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
         }
     }
 
-    enum
+    enum class EXPR_CONTEXT_T : int
     {
         NONE,
         STRING,
@@ -415,8 +415,8 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
     wxString             partial;
     wxString             last;
     wxString             constraintType;
-    int                  context = NONE;
-    int                  expr_context = NONE;
+    EXPR_CONTEXT_T       context = EXPR_CONTEXT_T::NONE;
+    EXPR_CONTEXT_T       expr_context = EXPR_CONTEXT_T::NONE;
 
     for( int i = startPos; i < currentPos; ++i )
     {
@@ -426,18 +426,18 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
         {
             i++; // skip escaped char
         }
-        else if( context == STRING )
+        else if( context == EXPR_CONTEXT_T::STRING )
         {
             if( c == '"' )
             {
-                context = NONE;
+                context = EXPR_CONTEXT_T::NONE;
             }
             else
             {
-                if( expr_context == STRING )
+                if( expr_context == EXPR_CONTEXT_T::STRING )
                 {
                     if( c == '\'' )
-                        expr_context = NONE;
+                        expr_context = EXPR_CONTEXT_T::NONE;
                     else
                         partial += c;
                 }
@@ -445,12 +445,12 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
                 {
                     last = partial;
                     partial = wxEmptyString;
-                    expr_context = STRING;
+                    expr_context = EXPR_CONTEXT_T::STRING;
                 }
                 else if( c == '.' )
                 {
                     partial = wxEmptyString;
-                    expr_context = STRUCT_REF;
+                    expr_context = EXPR_CONTEXT_T::STRUCT_REF;
                 }
                 else
                 {
@@ -462,44 +462,44 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
         {
             last = partial;
             partial = wxEmptyString;
-            context = STRING;
+            context = EXPR_CONTEXT_T::STRING;
         }
         else if( c == '(' )
         {
-            if( context == SEXPR_OPEN && !partial.IsEmpty() )
+            if( context == EXPR_CONTEXT_T::SEXPR_OPEN && !partial.IsEmpty() )
             {
                 m_textConditionCtrl->AutoCompCancel();
                 sexprs.push( partial );
             }
 
             partial = wxEmptyString;
-            context = SEXPR_OPEN;
+            context = EXPR_CONTEXT_T::SEXPR_OPEN;
         }
         else if( c == ')' )
         {
-            context = NONE;
+            context = EXPR_CONTEXT_T::NONE;
         }
         else if( c == ' ' )
         {
-            if( context == SEXPR_OPEN && !partial.IsEmpty() )
+            if( context == EXPR_CONTEXT_T::SEXPR_OPEN && !partial.IsEmpty() )
             {
                 m_textConditionCtrl->AutoCompCancel();
                 sexprs.push( partial );
 
                 if( partial == wxT( "condition" ) )
                 {
-                    context = SEXPR_STRING;
+                    context = EXPR_CONTEXT_T::SEXPR_STRING;
                 }
                 else
                 {
-                    context = NONE;
+                    context = EXPR_CONTEXT_T::NONE;
                 }
 
                 partial = wxEmptyString;
                 continue;
             }
 
-            context = NONE;
+            context = EXPR_CONTEXT_T::NONE;
         }
         else
         {
@@ -509,27 +509,27 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
 
     wxString tokens;
 
-    if( context == SEXPR_OPEN )
+    if( context == EXPR_CONTEXT_T::SEXPR_OPEN )
     {
         if( sexprs.empty() )
         {
             tokens = wxT( "condition" );
         }
     }
-    else if( context == SEXPR_TOKEN )
+    else if( context == EXPR_CONTEXT_T::SEXPR_TOKEN )
     {
         if( sexprs.empty() )
         {
             /* badly formed grammar */
         }
     }
-    else if( context == SEXPR_STRING && !sexprs.empty() && sexprs.top() == wxT( "condition" ) )
+    else if( context == EXPR_CONTEXT_T::SEXPR_STRING && !sexprs.empty() && sexprs.top() == wxT( "condition" ) )
     {
         m_textConditionCtrl->AddText( wxT( "\"" ) );
     }
-    else if( context == STRING && !sexprs.empty() && sexprs.top() == wxT( "condition" ) )
+    else if( context == EXPR_CONTEXT_T::STRING && !sexprs.empty() && sexprs.top() == wxT( "condition" ) )
     {
-        if( expr_context == STRUCT_REF )
+        if( expr_context == EXPR_CONTEXT_T::STRUCT_REF )
         {
             PROPERTY_MANAGER&  propMgr = PROPERTY_MANAGER::Instance();
             std::set<wxString> propNames;
@@ -563,7 +563,7 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
                     tokens += wxT( "|" ) + funcSig;
             }
         }
-        else if( expr_context == STRING )
+        else if( expr_context == EXPR_CONTEXT_T::STRING )
         {
             if( m_netClassRegex.Matches( last ) )
             {
@@ -707,12 +707,12 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
     msg.clear();
 
     wxString t =
-#include "dialogs/panel_setup_condition_help_1clauses.h"
+#include <dialogs/panel_setup_condition_help_1clauses.h>
             ;
     msg.emplace_back( t );
 
     t =
-#include "dialogs/panel_setup_rules_help_3items.h"
+#include <dialogs/panel_setup_rules_help_3items.h>
             ;
     msg.emplace_back( t );
 
@@ -773,7 +773,7 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
 void PANEL_DRC_RULE_EDITOR::onCheckSyntax( wxCommandEvent& event )
 {
     m_syntaxErrorReport->Clear();
-     
+
     if( m_textConditionCtrl->GetText().IsEmpty() )
     {
         wxString msg = _( "ERROR: No text provided for validation." );
@@ -886,9 +886,9 @@ void PANEL_DRC_RULE_EDITOR::onContextMenu( wxMouseEvent& event )
 
 
 void PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked( wxCommandEvent& event )
-{ 
+{
     if( m_callBackShowMatches )
     {
-        m_callBackShowMatches( m_constraintData->GetId() ); 
+        m_callBackShowMatches( m_constraintData->GetId() );
     }
 }
