@@ -28,10 +28,9 @@
 #include <kiplatform/app.h>
 #include <font/version_info.h>
 #include <build_version.h>
-#include <kicommon.h>
-#include <kicad_version_info.h>
 
-KICOMMON_API KICAD_VERSION_INFO get_kicad_version_info()
+#include "get_kicad_version_info.h"
+KICAD_VERSION_INFO get_kicad_version_info()
 {
     wxString indent4 = "\t";
 
