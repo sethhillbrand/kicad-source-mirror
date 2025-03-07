@@ -24,6 +24,7 @@
 
 #include "copilot_settings_manager.h"
 #include "copilot_settings.h"
+#include <iostream>
 #include <macros.h>
 #include <nlohmann/json.hpp>
 #include <wx/filename.h>
@@ -32,7 +33,8 @@
 #include <wx/file.h>
 #include <fstream>
 
-COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() : _settings( new COPILOT_SETTINGS )
+COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
+        _settings( new COPILOT_SETTINGS ), _settings_is_valid( true )
 {
     // Check if the setting file exists
     const auto setting_path = get_copilot_setting_path();
@@ -58,6 +60,7 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() : _settings( new COPILOT_SE
         }
         catch( const std::exception& e )
         {
+            _settings_is_valid = false;
             wxLogTrace( "COPILOT_SETTINGS_MANAGER",
                         wxT( "COPILOT_SETTINGS_MANAGER(): Failed to parse setting file %s, using "
                              "default settings." ) );
@@ -65,12 +68,29 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() : _settings( new COPILOT_SE
     }
 
 
-    _runtime_websocket_uri =
-            _settings->websocket_uri + "/" + std::to_string( std::rand() % 90000 + 10000 );
+    _runtime_websocket_uri = _settings->websocket_settings.websocket_uri + "/"
+                             + std::to_string( std::rand() % 90000 + 10000 );
 }
 
 COPILOT_SETTINGS_MANAGER::~COPILOT_SETTINGS_MANAGER()
 {
+    if( !_settings_is_valid )
+    {
+        try
+        {
+            std::ofstream ofs( get_copilot_setting_path() );
+            ofs << nlohmann::json( *_settings ).dump();
+            ofs.close();
+        }
+        catch( std::exception& e )
+        {
+            std::cerr << e.what() << std::endl;
+        }
+        catch( ... )
+        {
+            std::cerr << "unknown exception" << std::endl;
+        }
+    }
 }
 
 COPILOT_SETTINGS_MANAGER& COPILOT_SETTINGS_MANAGER::get_instance()
@@ -125,7 +145,12 @@ std::string const& COPILOT_SETTINGS_MANAGER::get_websocket_uri() const
     return _runtime_websocket_uri;
 }
 
-std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_url() const
+std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_host() const
 {
-    return _settings->data_buried_point_url;
+    return _settings->data_buried_point_settings.host;
+}
+
+std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_endpoint() const
+{
+    return _settings->data_buried_point_settings.endpoint;
 }

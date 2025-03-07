@@ -22,13 +22,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef GET_KICAD_VERSION_INFO_H
-#define GET_KICAD_VERSION_INFO_H
-
-#include <kicad_version_info.h>
-#include <kicommon.h>
+#ifndef HTTP_UTILS_H
+#define HTTP_UTILS_H
 
 
-KICOMMON_API KICAD_VERSION_INFO get_kicad_version_info();
+static constexpr auto kJsonContextType = "application/json";
 
 #endif

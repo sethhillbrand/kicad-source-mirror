@@ -44,14 +44,17 @@ public:
 
     std::string const& get_websocket_uri() const;
 
-    std::string const& get_data_buried_point_url() const;
+    std::string const& get_data_buried_point_host() const;
+
+    std::string const& get_data_buried_point_endpoint() const;
+
 
 private:
     COPILOT_SETTINGS_MANAGER();
     std::unique_ptr<COPILOT_SETTINGS> _settings;
-
     // Everytime kicad launches, the uri is updated with a random number
     std::string _runtime_websocket_uri;
+    bool _settings_is_valid;
 };
 
 #endif
