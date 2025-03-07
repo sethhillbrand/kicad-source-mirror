@@ -22,19 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef GET_KICAD_VERSION_INFO_H
-#define GET_KICAD_VERSION_INFO_H
-
-#include "kicad_version_info.h"
-
-
 #include <wx/wx.h>
 #include <config.h>
 #include <boost/version.hpp>
 #include <kiplatform/app.h>
 #include <font/version_info.h>
 #include <build_version.h>
-
+#include <kicommon.h>
+#include <kicad_version_info.h>
 
 KICOMMON_API KICAD_VERSION_INFO get_kicad_version_info()
 {
@@ -64,5 +59,3 @@ KICOMMON_API KICAD_VERSION_INFO get_kicad_version_info()
              platform.GetPortIdName().ToStdString(),
              wxGetLibraryVersionInfo().GetVersionString().ToStdString() };
 }
-
-#endif

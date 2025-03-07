@@ -29,7 +29,6 @@
 #include <kiplatform/app.h>
 #include <font/version_info.h>
 #include <build_version.h>
-#include "copilot/get_kicad_version_info.h"
 
 #include <tuple>
 
@@ -377,3 +376,6 @@ wxString GetVersionInfoData( const wxString& aTitle, bool aHtml, bool aBrief )
 
     return aMsg;
 }
+
+
+#include "copilot/get_kicad_version_info.cpp"
