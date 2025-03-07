@@ -110,7 +110,7 @@
 #include <copilot/sch_copilot_context.h>
 #include <copilot/sch_copilot_cmd.h>
 #include <copilot/sch_copilot_context_cache.h>
-extern KICAD_VERSION_INFO get_kicad_version_info();
+#include <copilot/get_kicad_version_info.h>
 
 
 #ifdef KICAD_IPC_API

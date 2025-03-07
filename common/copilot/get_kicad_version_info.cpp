@@ -32,8 +32,6 @@
 #include "get_kicad_version_info.h"
 KICAD_VERSION_INFO get_kicad_version_info()
 {
-    wxString indent4 = "\t";
-
     const auto version =
             ( KIPLATFORM::APP::IsOperatingSystemUnsupported() ? wxString( wxS( "(UNSUPPORTED)" ) )
                                                               : GetSemanticVersion() );
