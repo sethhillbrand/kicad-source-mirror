@@ -22,33 +22,29 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "fire_data_buried_point.h"
-#include "assistant/settings/copilot_settings_manager.h"
-#include <httplib.h>
-#include <wx/log.h>
-#include "assistant/utils/http_utils.h"
-#include "data_buried_point.h"
+#ifndef HTTP_CLIENT_H
+#define HTTP_CLIENT_H
 
-FIRE_DATA_BURIED_POINT::FIRE_DATA_BURIED_POINT() :
-        _client( new httplib::Client(
-                COPILOT_SETTINGS_MANAGER::get_instance().get_data_buried_point_host() ) )
+
+#include <memory>
+
+struct DATA_BURIED_POINT;
+
+namespace httplib
 {
+class Client;
 }
-
-FIRE_DATA_BURIED_POINT::~FIRE_DATA_BURIED_POINT()
+class HTTP_CLIENT
 {
-}
+public:
+    HTTP_CLIENT();
+    ~HTTP_CLIENT();
 
-void FIRE_DATA_BURIED_POINT::send_data_buried_point( DATA_BURIED_POINT const& data_buried_point )
-{
-    auto res = _client->Post(
-            COPILOT_SETTINGS_MANAGER::get_instance().get_data_buried_point_endpoint(),
-            nlohmann::json( data_buried_point ).dump(), kJsonContextType );
+    void send_data_buried_point( DATA_BURIED_POINT const& data_buried_point );
 
 
-    if( res->status != HTTP_CODE::SUCCESS )
-    {
-        wxLogDebug( "send data buried point failed", "status :", res->status,
-                    "error: ", res.error() );
-    }
-}
+private:
+    std::unique_ptr<httplib::Client> _client;
+};
+
+#endif

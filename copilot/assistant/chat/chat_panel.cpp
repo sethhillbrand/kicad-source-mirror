@@ -23,11 +23,11 @@
  */
 
 #include "chat_panel.h"
-#include "assistant/data_buried_point/data_buried_point.h"
-#include "assistant/websocket/websocket_event.h"
-#include "assistant/settings/copilot_settings_manager.h"
-#include "assistant/websocket/websocket_worker.h"
-#include "assistant/data_buried_point/fire_data_buried_point.h"
+#include "proto/data_buried_point.h"
+#include "websocket/websocket_event.h"
+#include "settings/copilot_settings_manager.h"
+#include "websocket/websocket_worker.h"
+#include "http/http_client.h"
 
 #include <context/copilot_global_ctx_hdl.h>
 #include <context/copilot_context.h>
@@ -37,6 +37,7 @@
 #include <nlohmann/json.hpp>
 #include <interface/cmd/copilot_cmd.h>
 #include <string>
+#include <thread>
 #include <wx/log.h>
 #include <wx/msgqueue.h>
 #include <wx/string.h>
@@ -70,8 +71,22 @@ CHAT_PANEL::CHAT_PANEL( wxWindow* parent ) :
     Bind( EVT_WEBSOCKET_PAYLOAD, &CHAT_PANEL::on_websocket_event, this );
     m_usr_input->Bind( wxEVT_TEXT_ENTER, &CHAT_PANEL::on_send_button_clicked, this );
     m_usr_input->SetFocus();
-    static FIRE_DATA_BURIED_POINT fire_data_buried_point;
-    fire_data_buried_point.send_data_buried_point( {} );
+
+    // TODO
+    std::thread t(
+            [&]()
+            {
+                try
+                {
+                    HTTP_CLIENT http_client;
+                    http_client.send_data_buried_point( DATA_BURIED_POINT{} );
+                }
+                catch( std::exception const& e )
+                {
+                    wxLogDebug( wxString::Format( "send_data_buried_point error: %s", e.what() ) );
+                }
+            } );
+    t.detach();
 }
 
 CHAT_PANEL::~CHAT_PANEL()
