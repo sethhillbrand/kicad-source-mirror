@@ -6,6 +6,7 @@ add_library( ${ASSISTANT_DLL_NAME} SHARED
     chat/chat_history.cpp
     chat/chat_panel_base.cpp
     chat/chat_panel.cpp  
+    data_buried_point/fire_data_buried_point.cpp
     settings/copilot_settings_manager.cpp  
     websocket/websocket_endpoint.cpp
     websocket/websocket_event.cpp

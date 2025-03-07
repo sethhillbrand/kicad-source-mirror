@@ -22,20 +22,33 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DATA_BURIED_POINT_H
-#define DATA_BURIED_POINT_H
+#include "fire_data_buried_point.h"
+#include "assistant/settings/copilot_settings_manager.h"
+#include <httplib.h>
+#include <wx/log.h>
+#include "assistant/utils/http_utils.h"
+#include "data_buried_point.h"
 
-#include <nlohmann/json.hpp>
-#include <string>
-
-
-// https://prometheus.github.io/client_python/instrumenting/counter/
-
-struct DATA_BURIED_POINT
+FIRE_DATA_BURIED_POINT::FIRE_DATA_BURIED_POINT() :
+        _client( new httplib::Client(
+                COPILOT_SETTINGS_MANAGER::get_instance().get_data_buried_point_host() ) )
 {
-    std::string name = "kicad_client_copilot_launch";
-    std::string doc = "user_launch_copilot";
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DATA_BURIED_POINT, name, doc )
-};
+}
 
-#endif
+FIRE_DATA_BURIED_POINT::~FIRE_DATA_BURIED_POINT()
+{
+}
+
+void FIRE_DATA_BURIED_POINT::send_data_buried_point( DATA_BURIED_POINT const& data_buried_point )
+{
+    auto res = _client->Post(
+            COPILOT_SETTINGS_MANAGER::get_instance().get_data_buried_point_endpoint(),
+            nlohmann::json( data_buried_point ).dump(), kJsonContextType );
+
+
+    if( res->status != HTTP_CODE::SUCCESS )
+    {
+        wxLogDebug( "send data buried point failed", "status :", res->status,
+                    "error: ", res.error() );
+    }
+}

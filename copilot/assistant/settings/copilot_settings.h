@@ -36,8 +36,8 @@ struct COPILOT_WEBSOCKET_SETTINGS{
 
 struct DATA_BURIED_POINT_SETTINGS
 {
-    std::string host = "www.eda.cn";
-    std::string endpoint = "data_buried_point";
+    std::string host = "blog.eda.cn";
+    std::string endpoint = "/data_buried_point";
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( DATA_BURIED_POINT_SETTINGS, host, endpoint)
 };
 

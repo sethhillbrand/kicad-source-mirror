@@ -22,20 +22,27 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DATA_BURIED_POINT_H
-#define DATA_BURIED_POINT_H
+#ifndef FIRE_DATA_BURIED_POINT_H
+#define FIRE_DATA_BURIED_POINT_H
 
-#include <nlohmann/json.hpp>
-#include <string>
+#include <memory>
 
-
-// https://prometheus.github.io/client_python/instrumenting/counter/
-
-struct DATA_BURIED_POINT
+struct DATA_BURIED_POINT;
+namespace httplib
 {
-    std::string name = "kicad_client_copilot_launch";
-    std::string doc = "user_launch_copilot";
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DATA_BURIED_POINT, name, doc )
+class Client;
+}
+class FIRE_DATA_BURIED_POINT
+{
+public:
+    FIRE_DATA_BURIED_POINT();
+    ~FIRE_DATA_BURIED_POINT();
+
+    void send_data_buried_point( DATA_BURIED_POINT const& data_buried_point );
+
+
+private:
+    std::unique_ptr<httplib::Client> _client;
 };
 
 #endif
