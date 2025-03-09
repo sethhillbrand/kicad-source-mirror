@@ -680,17 +680,20 @@ function(callMrkdn2C inFile outFile)
 endfunction()
 
 # Locate all .md files in the specified directory
-file(GLOB markdownFiles ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/panel_setup_rules_help_*.md)
-file(GLOB markdownFiles ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/panel_setup_condition_help_*.md)
+file(GLOB markdownFiles ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/panel_setup_rules_help_*.md ${CMAKE_CURRENT_SOURCE_DIR}/dialogs/panel_setup_condition_help_*.md )
 
 # Create a custom target to generate all .h files
 add_custom_target(generate_headers ALL)
 
 # Loop over all .md files and convert them into .h files in the same directory as the .md files
+
 foreach(file ${markdownFiles})
     # Extract the filename without extension and define output path in the same folder as the .md file
     get_filename_component(filename "${file}" NAME_WE)
     set(outputHeader "${CMAKE_CURRENT_SOURCE_DIR}/dialogs/${filename}.h")
+
+    message(STATUS "Processing markdown file: ${file}")
+    message(STATUS "Output header will be: ${outputHeader}")
 
     # Call the custom function to process the file
     callMrkdn2C("${file}" "${outputHeader}")
@@ -701,6 +704,7 @@ foreach(file ${markdownFiles})
 
     # Mark the output header as a dependency of the source file
     get_source_file_property(existing_depends dialogs/panel_setup_rules.cpp OBJECT_DEPENDS)
+    message(STATUS "Existing OBJECT_DEPENDS for dialogs/panel_setup_rules.cpp: ${existing_depends}")
     if(NOT existing_depends OR existing_depends STREQUAL "NOTFOUND")
         set(existing_depends "")
     else()
@@ -708,6 +712,9 @@ foreach(file ${markdownFiles})
     endif()
     set_source_files_properties(dialogs/panel_setup_rules.cpp
         PROPERTIES OBJECT_DEPENDS "${existing_depends}${outputHeader}")
+    # Print out the new OBJECT_DEPENDS property for verification
+    get_source_file_property(new_depends dialogs/panel_setup_rules.cpp OBJECT_DEPENDS)
+    message(STATUS "New OBJECT_DEPENDS for dialogs/panel_setup_rules.cpp: ${new_depends}")
 endforeach()
 
 if( APPLE )
