@@ -707,12 +707,12 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
     msg.clear();
 
     wxString t =
-#include <dialogs/panel_setup_condition_help_1clauses.h>
+#include <panel_setup_condition_help_1clauses.h>
             ;
     msg.emplace_back( t );
 
     t =
-#include <dialogs/panel_setup_rules_help_3items.h>
+#include <panel_setup_rules_help_3items.h>
             ;
     msg.emplace_back( t );
 
@@ -790,7 +790,7 @@ void PANEL_DRC_RULE_EDITOR::onCheckSyntax( wxCommandEvent& event )
         DRC_RULES_PARSER conditionParser( m_textConditionCtrl->GetText(),
                                           _( "DRC rule condition" ) );
 
-        if( conditionParser.VerifyParseCondition( m_syntaxErrorReport ) )
+        // if( conditionParser.VerifyParseCondition( m_syntaxErrorReport ) )
         {
             wxString ruleTemplate = L"(version 1)\n(rule default\n   %s\n)";
             wxString formattedRule =
