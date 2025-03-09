@@ -26,82 +26,16 @@
 #define ASSISTANT_INTERFACE_H
 
 #include <dylib.hpp>
-#include <macros.h>
-#include <optional>
-#include <string>
-#include <wx/app.h>
-#include <memory>
-#include <wx/stdpaths.h>
+#include <settings/assistant_interface_path.h>
 #include <wx/panel.h>
-#include <nlohmann/json.hpp>
 #include <context/copilot_global_ctx_hdl.h>
-#include <copilot_config.h>
+
 
 using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 
-extern "C"
-{
-    const char* GetCopilotSettingsPath();
-}
-
-
-class ASSISTANT_PATH_UTILS
-{
-private:
-    static auto get_exe_path()
-    {
-        std::string exe_path = wxStandardPaths::Get().GetExecutablePath().ToStdString();
-        exe_path = std::filesystem::path( exe_path ).parent_path().string();
-        return exe_path;
-    }
-
-    static auto get_copilot_dir( std::string const& prefix )
-    {
-        std::string copilot_dir = prefix + "/" TO_STR( COPILOT_CONFIG_DIR );
-        return copilot_dir;
-    }
-
-    static auto get_copilot_dll_path( std::string const& copilot_dir )
-    {
-        return copilot_dir + "/" + TO_STR( ASSISTANT_DLL_NAME );
-    }
-
-
-    static auto get_copilot_dir_under_exe() { return get_copilot_dir( get_exe_path() ); }
-
-    static auto get_copilot_dir_under_cnf() { return GetCopilotSettingsPath(); }
-
-
-    static auto get_copilot_dll_under_exe()
-    {
-        return get_copilot_dll_path( get_copilot_dir_under_exe() );
-    }
-
-    static auto get_copilot_dll_under_cnf()
-    {
-        return get_copilot_dll_path( get_copilot_dir_under_cnf() );
-    }
-
-public:
-    static auto generic_get_assistant_dll_path()
-    {
-        auto assistant_dll_path = get_copilot_dll_under_cnf();
-        if( !std::filesystem::exists( assistant_dll_path ) )
-        {
-            assistant_dll_path = get_copilot_dll_under_exe();
-        }
-
-        return assistant_dll_path;
-    }
-};
-
-
 class ASSISTANT_INTERFACE
 {
-    bool _is_assistant_available = false;
-
-
 public:
     ~ASSISTANT_INTERFACE() {}
 
@@ -127,7 +61,7 @@ public:
         try
         {
             _assistant = std::make_unique<dylib>(
-                    ASSISTANT_PATH_UTILS::generic_get_assistant_dll_path() );
+                    ASSISTANT_INTERFACE_PATH::generic_get_assistant_dll_path() );
             _create_chat_panel_handel =
                     _assistant->get_function<wxPanel*( wxWindow* )>( "create_assistant_panel" );
             if( !_create_chat_panel_handel )
@@ -224,6 +158,7 @@ private:
     CREATE_CHAT_PANEL_HANDEL _create_chat_panel_handel{};
     FIRE_CMD_HANDEL          _fire_cmd_handel{};
     std::string              _assistant_version;
+    bool                     _is_assistant_available = false;
 
     ASSISTANT_INTERFACE() { _is_assistant_available = load(); }
 };
