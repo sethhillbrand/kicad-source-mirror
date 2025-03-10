@@ -160,7 +160,7 @@ private:
     std::string              _assistant_version;
     bool                     _is_assistant_available = false;
 
-    ASSISTANT_INTERFACE() { _is_assistant_available = load(); }
+    ASSISTANT_INTERFACE() : _is_assistant_available(load()) {  }
 };
 
 
