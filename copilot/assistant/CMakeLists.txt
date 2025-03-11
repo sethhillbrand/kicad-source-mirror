@@ -1,5 +1,4 @@
 find_package(wxWidgets CONFIG REQUIRED)
-find_package(websocketpp CONFIG REQUIRED)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -14,7 +13,6 @@ add_library( ${ASSISTANT_DLL_NAME} SHARED
 target_link_libraries(${ASSISTANT_DLL_NAME} PRIVATE 
     nlohmann_json
     ${wxWidgets_LIBRARIES}
-    websocketpp::websocketpp
 )
 
 target_compile_definitions(${ASSISTANT_DLL_NAME} PRIVATE COPILOT_SHARED_LIBRARY)
