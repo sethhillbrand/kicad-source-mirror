@@ -27,7 +27,11 @@
 
 #include <functional>
 
-
+/**
+ * @brief Getting the full netlist and bom from kicad
+ * @return @DESIGN_GLOBAL_CONTEXT
+ * 
+ */
 using COPILOT_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
 
 #endif

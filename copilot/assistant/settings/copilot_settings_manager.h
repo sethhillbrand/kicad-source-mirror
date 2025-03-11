@@ -48,6 +48,8 @@ public:
 
     std::string const& get_data_buried_point_endpoint() const;
 
+    std::string const& get_webview_url() const;
+
 
 private:
     COPILOT_SETTINGS_MANAGER();

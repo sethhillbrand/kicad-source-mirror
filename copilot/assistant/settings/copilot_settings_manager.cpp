@@ -154,3 +154,8 @@ std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_endpoint() co
 {
     return _settings->data_buried_point_settings.endpoint;
 }
+
+std::string const& COPILOT_SETTINGS_MANAGER::get_webview_url() const
+{
+    return _settings->webview_settings.url;
+}

@@ -23,14 +23,38 @@
  */
 
 #include "assistant_launcher.h"
-#include "chat/chat_panel.h"
+#include "webview/webview_container.h"
+#include <thread>
+#include "http/http_client.h"
+#include "proto/data_buried_point.h"
+
+
+inline auto send_data_buried_point()
+{
+    std::thread t(
+            [&]()
+            {
+                try
+                {
+                    HTTP_CLIENT http_client;
+                    http_client.send_data_buried_point( DATA_BURIED_POINT{} );
+                }
+                catch( std::exception const& e )
+                {
+                    wxLogDebug( wxString::Format( "send_data_buried_point error: %s", e.what() ) );
+                }
+            } );
+    t.detach();
+}
+
 
 wxPanel* create_assistant_panel( wxWindow* parent )
 {
-    return new CHAT_PANEL( parent );
+    send_data_buried_point();
+    return new WEBVIEW_CONTAINER( parent );
 }
 
 void fire_cmd( wxPanel* target, const char* cmd )
 {
-    static_cast<CHAT_PANEL*>( target )->fire_cmd( cmd );
+    static_cast<WEBVIEW_CONTAINER*>( target )->fire_cmd( cmd );
 }

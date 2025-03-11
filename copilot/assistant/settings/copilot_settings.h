@@ -43,11 +43,21 @@ struct DATA_BURIED_POINT_SETTINGS
 
 
 
+struct WEBVIEW_SETTINGS {
+    std::string url = "http://localhost:3001";
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBVIEW_SETTINGS, url )
+};
+
+
+
+
 struct COPILOT_SETTINGS
 {
    COPILOT_WEBSOCKET_SETTINGS websocket_settings;
    DATA_BURIED_POINT_SETTINGS data_buried_point_settings;
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, websocket_settings, data_buried_point_settings)
+   WEBVIEW_SETTINGS webview_settings;
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, websocket_settings, data_buried_point_settings ,webview_settings)
 };
 
 #endif

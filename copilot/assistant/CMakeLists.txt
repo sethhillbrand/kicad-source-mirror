@@ -5,14 +5,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_library( ${ASSISTANT_DLL_NAME} SHARED 
     assistant_launcher.cpp
-    chat/chat_history.cpp
-    chat/chat_panel_base.cpp
-    chat/chat_panel.cpp  
     settings/copilot_settings_manager.cpp  
+    webview/webview_container.cpp
     http/http_client.cpp
-    websocket/websocket_endpoint.cpp
-    websocket/websocket_event.cpp
-    websocket/websocket_worker.cpp
     copilot_version.cpp
 )
 
