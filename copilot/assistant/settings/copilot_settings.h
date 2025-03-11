@@ -28,36 +28,26 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-
-struct COPILOT_WEBSOCKET_SETTINGS{
-    std::string websocket_uri = "ws://www.fdatasheets.com/kicad/chat";
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_WEBSOCKET_SETTINGS, websocket_uri );
-};
-
 struct DATA_BURIED_POINT_SETTINGS
 {
     std::string host = "blog.eda.cn";
     std::string endpoint = "/data_buried_point";
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DATA_BURIED_POINT_SETTINGS, host, endpoint)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DATA_BURIED_POINT_SETTINGS, host, endpoint )
 };
 
 
-
-struct WEBVIEW_SETTINGS {
-    std::string url = "http://localhost:3001";
-
+struct WEBVIEW_SETTINGS
+{
+    std::string url = "http://localhost:3000";
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBVIEW_SETTINGS, url )
 };
 
 
-
-
 struct COPILOT_SETTINGS
 {
-   COPILOT_WEBSOCKET_SETTINGS websocket_settings;
-   DATA_BURIED_POINT_SETTINGS data_buried_point_settings;
-   WEBVIEW_SETTINGS webview_settings;
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, websocket_settings, data_buried_point_settings ,webview_settings)
+    DATA_BURIED_POINT_SETTINGS data_buried_point_settings;
+    WEBVIEW_SETTINGS           webview_settings;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, data_buried_point_settings, webview_settings )
 };
 
 #endif

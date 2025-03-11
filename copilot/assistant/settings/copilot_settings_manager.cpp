@@ -67,9 +67,6 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
         }
     }
 
-
-    _runtime_websocket_uri = _settings->websocket_settings.websocket_uri + "/"
-                             + std::to_string( std::rand() % 90000 + 10000 );
 }
 
 COPILOT_SETTINGS_MANAGER::~COPILOT_SETTINGS_MANAGER()
@@ -129,21 +126,11 @@ std::string COPILOT_SETTINGS_MANAGER::get_copilot_setting_dir()
     return kCopilotSettingDir;
 }
 
-std::string COPILOT_SETTINGS_MANAGER::get_copilot_history_db_path()
-{
-    return get_copilot_setting_dir() + "/history.db";
-}
-
 std::string COPILOT_SETTINGS_MANAGER::get_copilot_setting_path()
 {
     return get_copilot_setting_dir() + "/copilot_settings.json";
 }
 
-
-std::string const& COPILOT_SETTINGS_MANAGER::get_websocket_uri() const
-{
-    return _runtime_websocket_uri;
-}
 
 std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_host() const
 {

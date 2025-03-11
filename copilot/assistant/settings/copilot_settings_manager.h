@@ -38,11 +38,7 @@ public:
     
     static std::string get_copilot_setting_dir();
 
-    static std::string get_copilot_history_db_path();
-
     static std::string get_copilot_setting_path();
-
-    std::string const& get_websocket_uri() const;
 
     std::string const& get_data_buried_point_host() const;
 

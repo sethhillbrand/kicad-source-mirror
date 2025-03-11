@@ -35,6 +35,10 @@
 #include <context/copilot_context.h>
 #include <copilot_global.h>
 
+#if wxUSE_WEBVIEW_EDGE
+#include <wx/msw/webview_edge.h>
+#endif
+
 extern "C"
 
 {
@@ -106,6 +110,19 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
     Bind( wxEVT_WEBVIEW_SCRIPT_RESULT, &WEBVIEW_CONTAINER::OnScriptResult, this,
           m_browser->GetId() );
 
+#ifdef DEBUG
+
+#if wxUSE_WEBVIEW_EDGE
+
+    if( auto edge = dynamic_cast<wxWebViewEdge*>( m_browser ) )
+    {
+        edge->EnableAccessToDevTools( true );
+    }
+
+#endif
+
+
+#endif // DEBUG
 }
 
 WEBVIEW_CONTAINER::~WEBVIEW_CONTAINER()
@@ -199,4 +216,3 @@ void WEBVIEW_CONTAINER::OnError( wxWebViewEvent& evt )
     wxLogMessage( "%s", "Error; url='" + evt.GetURL() + "', error='" + category + " ("
                                 + evt.GetString() + ")'" );
 }
-
