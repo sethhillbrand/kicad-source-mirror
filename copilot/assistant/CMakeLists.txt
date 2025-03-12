@@ -9,6 +9,7 @@ add_library( ${ASSISTANT_DLL_NAME} SHARED
     webview/webview_container.cpp
     http/http_client.cpp
     copilot_version.cpp
+    copilot.rc
 )
 
 target_link_libraries(${ASSISTANT_DLL_NAME} PRIVATE 
