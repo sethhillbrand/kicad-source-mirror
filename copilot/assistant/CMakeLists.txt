@@ -1,7 +1,8 @@
 find_package(wxWidgets CONFIG REQUIRED)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 20)
 add_library( ${ASSISTANT_DLL_NAME} SHARED 
     assistant_launcher.cpp
     settings/copilot_settings_manager.cpp  

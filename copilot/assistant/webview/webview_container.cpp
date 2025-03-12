@@ -25,6 +25,7 @@
 #include "webview_container.h"
 #include "settings/copilot_settings_manager.h"
 
+#include <wx/log.h>
 #include <wx/sizer.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
@@ -34,6 +35,7 @@
 #include <context/copilot_global_ctx_hdl.h>
 #include <context/copilot_context.h>
 #include <copilot_global.h>
+#include <format>
 
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
@@ -131,12 +133,16 @@ WEBVIEW_CONTAINER::~WEBVIEW_CONTAINER()
 
 void WEBVIEW_CONTAINER::fire_cmd( const char* cmd )
 {
+    wxString out;
+    wxLogDebug( "WEBVIEW_CONTAINER::fire_cmd: ", out );
+    // m_browser->RunScriptAsync(fmt::format( R"(window.postMessage({"cmd": "{}"}))", cmd ))
 }
 
 void WEBVIEW_CONTAINER::OnNavigationRequest( wxWebViewEvent& evt )
 {
     wxLogMessage( "%s", "Navigation request to '" + evt.GetURL() + "' (target='" + evt.GetTarget()
                                 + "')" );
+    m_browser->RunScriptAsync(std::format( " console.log(JSON.stringify({}));", evt.GetURL().ToStdString() ));
 }
 
 

@@ -40,17 +40,15 @@ public:
 
     void fire_cmd( const char* cmd ) override;
 
-    void OnNavigationRequest(wxWebViewEvent& evt);
-    void OnNavigationComplete(wxWebViewEvent& evt);
-    void OnDocumentLoaded(wxWebViewEvent& evt);
-    void OnNewWindow(wxWebViewEvent& evt);
-    void OnTitleChanged(wxWebViewEvent& evt);
-    void OnFullScreenChanged(wxWebViewEvent& evt);
-    void OnScriptMessage(wxWebViewEvent& evt);
-    void OnScriptResult(wxWebViewEvent& evt);
-    void OnError(wxWebViewEvent& evt);
-
-
+    void OnNavigationRequest( wxWebViewEvent& evt );
+    void OnNavigationComplete( wxWebViewEvent& evt );
+    void OnDocumentLoaded( wxWebViewEvent& evt );
+    void OnNewWindow( wxWebViewEvent& evt );
+    void OnTitleChanged( wxWebViewEvent& evt );
+    void OnFullScreenChanged( wxWebViewEvent& evt );
+    void OnScriptMessage( wxWebViewEvent& evt );
+    void OnScriptResult( wxWebViewEvent& evt );
+    void OnError( wxWebViewEvent& evt );
 
 
 private:
