@@ -22,41 +22,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBVIEW_CONTAINER_H
-#define WEBVIEW_CONTAINER_H
+#ifndef WEBVIEW_CONSTANT_H
+#define WEBVIEW_CONSTANT_H
 
 
-#include "assistant/assistant.h"
-#include <wx/panel.h>
-#include <wx/log.h>
-#include <wx/webview.h>
-
-
-class WEBVIEW_CONTAINER : public wxPanel, public ASSISTANT
+enum class WEBVIEW_MSG_HANDLES
 {
-public:
-    WEBVIEW_CONTAINER( wxWindow* parent );
-    ~WEBVIEW_CONTAINER();
-
-    void fire_cmd( const char* cmd ) override;
-
-    void OnNavigationRequest( wxWebViewEvent& evt );
-    void OnNavigationComplete( wxWebViewEvent& evt );
-    void OnDocumentLoaded( wxWebViewEvent& evt );
-    void OnNewWindow( wxWebViewEvent& evt );
-    void OnTitleChanged( wxWebViewEvent& evt );
-    void OnFullScreenChanged( wxWebViewEvent& evt );
-    void OnScriptMessage( wxWebViewEvent& evt );
-    void OnScriptResult( wxWebViewEvent& evt );
-    void OnError( wxWebViewEvent& evt );
+    kicad_desktop,
+};
 
 
-private:
-    wxWebView* m_browser;
-
-    
-
-
+enum class WEBVIEW_FUNCTIONS
+{
+    fire_cmd,
 };
 
 #endif

@@ -29,13 +29,14 @@
 #include <memory>
 
 struct COPILOT_SETTINGS;
+struct WEBVIEW_PATH;
 class COPILOT_SETTINGS_MANAGER
 {
 public:
     ~COPILOT_SETTINGS_MANAGER();
 
     static COPILOT_SETTINGS_MANAGER& get_instance();
-    
+
     static std::string get_copilot_setting_dir();
 
     static std::string get_copilot_setting_path();
@@ -46,13 +47,16 @@ public:
 
     std::string const& get_webview_url() const;
 
+    WEBVIEW_PATH const& get_webview_path() const;
+
+    std::string const& get_webview_chat_path() const;
+
 
 private:
     COPILOT_SETTINGS_MANAGER();
     std::unique_ptr<COPILOT_SETTINGS> _settings;
-    // Everytime kicad launches, the uri is updated with a random number
-    std::string _runtime_websocket_uri;
-    bool _settings_is_valid;
+    bool                              _settings_is_valid;
+    std::string                       _webview_chat_path;
 };
 
 #endif

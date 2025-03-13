@@ -24,6 +24,8 @@
 
 #include "copilot_settings_manager.h"
 #include "copilot_settings.h"
+
+#include <format>
 #include <iostream>
 #include <macros.h>
 #include <nlohmann/json.hpp>
@@ -67,6 +69,8 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
         }
     }
 
+    _webview_chat_path = std::format( "{}/#{}", _settings->webview_settings.url,
+                                      _settings->webview_settings.path.chat );
 }
 
 COPILOT_SETTINGS_MANAGER::~COPILOT_SETTINGS_MANAGER()
@@ -145,4 +149,14 @@ std::string const& COPILOT_SETTINGS_MANAGER::get_data_buried_point_endpoint() co
 std::string const& COPILOT_SETTINGS_MANAGER::get_webview_url() const
 {
     return _settings->webview_settings.url;
+}
+
+WEBVIEW_PATH const& COPILOT_SETTINGS_MANAGER::get_webview_path() const
+{
+    return _settings->webview_settings.path;
+}
+
+std::string const& COPILOT_SETTINGS_MANAGER::get_webview_chat_path() const
+{
+    return _webview_chat_path;
 }

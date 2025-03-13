@@ -24,6 +24,7 @@
 
 #include "webview_container.h"
 #include "settings/copilot_settings_manager.h"
+#include "webview_constant.h"
 
 #include <wx/log.h>
 #include <wx/sizer.h>
@@ -36,6 +37,7 @@
 #include <context/copilot_context.h>
 #include <copilot_global.h>
 #include <format>
+#include <magic_enum.hpp>
 
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
@@ -69,7 +71,8 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
     m_browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 #endif
-    m_browser->Create( this, wxID_ANY, COPILOT_SETTINGS_MANAGER::get_instance().get_webview_url(),
+    m_browser->Create( this, wxID_ANY,
+                       COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),
                        wxDefaultPosition, wxDefaultSize );
     top_sizer->Add( m_browser, wxSizerFlags().Expand().Proportion( 1 ) );
 
@@ -86,12 +89,12 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
     m_browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 #endif
-    if( !m_browser->AddScriptMessageHandler( "wx" ) )
+    if( !m_browser->AddScriptMessageHandler(
+                magic_enum::enum_name( WEBVIEW_MSG_HANDLES::kicad_desktop ).data() ) )
         wxLogError( "Could not add script message handler" );
 
 
     SetSizer( top_sizer );
-
     //Set a more sensible size for web browsing
     SetSize( FromDIP( wxSize( START_UP_SIZE::WIDTH, START_UP_SIZE::HEIGHT ) ) );
 
@@ -134,15 +137,16 @@ WEBVIEW_CONTAINER::~WEBVIEW_CONTAINER()
 void WEBVIEW_CONTAINER::fire_cmd( const char* cmd )
 {
     wxString out;
-    wxLogDebug( "WEBVIEW_CONTAINER::fire_cmd: ", out );
-    // m_browser->RunScriptAsync(fmt::format( R"(window.postMessage({"cmd": "{}"}))", cmd ))
+    m_browser->RunScriptAsync(
+            std::format( " {}({});", magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_cmd ), cmd ),
+            &out );
+    wxLogDebug( "WEBVIEW_CONTAINER::fire_cmd result : ", out );
 }
 
 void WEBVIEW_CONTAINER::OnNavigationRequest( wxWebViewEvent& evt )
 {
     wxLogMessage( "%s", "Navigation request to '" + evt.GetURL() + "' (target='" + evt.GetTarget()
                                 + "')" );
-    m_browser->RunScriptAsync(std::format( " console.log(JSON.stringify({}));", evt.GetURL().ToStdString() ));
 }
 
 

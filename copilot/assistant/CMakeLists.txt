@@ -12,6 +12,10 @@ add_library( ${ASSISTANT_DLL_NAME} SHARED
     copilot.rc
 )
 
+target_include_directories( ${ASSISTANT_DLL_NAME} PRIVATE
+    $<TARGET_PROPERTY:magic_enum,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+
 target_link_libraries(${ASSISTANT_DLL_NAME} PRIVATE 
     nlohmann_json
     ${wxWidgets_LIBRARIES}
