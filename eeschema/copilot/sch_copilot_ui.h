@@ -71,7 +71,7 @@ void SCH_EDIT_FRAME::CopilotPanelShowChangedLanguage()
 void SCH_EDIT_FRAME::ToggleCopilot()
 {
     wxAuiPaneInfo& copilot_pane = m_auimgr.GetPane( CopilotPanelName() );
-    ShowCopilot(!copilot_pane.IsShown());
+    ShowCopilot( !copilot_pane.IsShown() );
 }
 
 void SCH_EDIT_FRAME::ShowCopilot( bool show )
@@ -81,6 +81,11 @@ void SCH_EDIT_FRAME::ShowCopilot( bool show )
     wxCHECK( cfg, /* void */ );
 
     wxAuiPaneInfo& copilot_pane = m_auimgr.GetPane( CopilotPanelName() );
+
+    bool now_shown = copilot_pane.IsShown();
+
+    if( now_shown == show )
+        return;
 
     copilot_pane.Show( show );
 
