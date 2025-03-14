@@ -22,22 +22,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBVIEW_CONSTANT_H
-#define WEBVIEW_CONSTANT_H
+#ifndef SESSION_CMD_H
+#define SESSION_CMD_H
 
+#include "cmd_base.h"
 
-enum class WEBVIEW_MSG_HANDLES
+struct SESSION_CMD : CMD_BASE
 {
-    kicad_desktop,
-};
-
-
-enum class WEBVIEW_FUNCTIONS
-{
-    fire_copilot_cmd,
-    fire_session_cmd,
-    new_session,
-    get_current_session_id
 };
 
 #endif

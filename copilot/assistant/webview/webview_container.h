@@ -38,7 +38,8 @@ public:
     WEBVIEW_CONTAINER( wxWindow* parent );
     ~WEBVIEW_CONTAINER();
 
-    void fire_cmd( const char* cmd ) override;
+    void fire_copilot_cmd( const char* cmd ) override;
+    void fire_session_cmd( const char* cmd ) override;
 
     void OnNavigationRequest( wxWebViewEvent& evt );
     void OnNavigationComplete( wxWebViewEvent& evt );
@@ -53,10 +54,6 @@ public:
 
 private:
     wxWebView* m_browser;
-
-    
-
-
 };
 
 #endif

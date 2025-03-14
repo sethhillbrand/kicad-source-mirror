@@ -62,7 +62,6 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
 #ifdef DEBUG
     new wxLogWindow( this, _( "Logging" ), true, false );
 #endif // DEBUG
-
     auto top_sizer = new wxBoxSizer( wxVERTICAL );
 #ifdef __WXMAC__
     // With WKWebView handlers need to be registered before creation
@@ -134,13 +133,17 @@ WEBVIEW_CONTAINER::~WEBVIEW_CONTAINER()
 {
 }
 
-void WEBVIEW_CONTAINER::fire_cmd( const char* cmd )
+void WEBVIEW_CONTAINER::fire_copilot_cmd( const char* cmd )
 {
     wxString out;
     m_browser->RunScriptAsync(
-            std::format( " {}({});", magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_cmd ), cmd ),
+            std::format( " {}({});", magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_copilot_cmd ),
+                         cmd ),
             &out );
-    wxLogDebug( "WEBVIEW_CONTAINER::fire_cmd result : ", out );
+}
+
+void WEBVIEW_CONTAINER::fire_session_cmd( const char* cmd )
+{
 }
 
 void WEBVIEW_CONTAINER::OnNavigationRequest( wxWebViewEvent& evt )
@@ -156,11 +159,12 @@ void WEBVIEW_CONTAINER::OnNavigationComplete( wxWebViewEvent& evt )
 }
 
 void WEBVIEW_CONTAINER::OnDocumentLoaded( wxWebViewEvent& evt )
-{ //Only notify if the document is the main frame, not a subframe
+{
     if( evt.GetURL() == m_browser->GetCurrentURL() )
     {
         wxLogMessage( "%s", "Document loaded; url='" + evt.GetURL() + "'" );
     }
+
 }
 
 void WEBVIEW_CONTAINER::OnNewWindow( wxWebViewEvent& evt )

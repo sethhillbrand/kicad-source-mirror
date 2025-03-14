@@ -56,5 +56,10 @@ wxPanel* create_assistant_panel( wxWindow* parent )
 
 void fire_cmd( wxPanel* target, const char* cmd )
 {
-    static_cast<WEBVIEW_CONTAINER*>( target )->fire_cmd( cmd );
+
+
+
+
+    
+    static_cast<WEBVIEW_CONTAINER*>( target )->fire_copilot_cmd( cmd );
 }
