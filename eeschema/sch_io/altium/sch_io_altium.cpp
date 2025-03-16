@@ -36,6 +36,7 @@
 #include <project_sch.h>
 #include <project/project_file.h>
 #include <project/net_settings.h>
+#include <libraries/symbol_library_manager_adapter.h>
 
 #include <lib_id.h>
 #include <sch_pin.h>
@@ -51,7 +52,6 @@
 #include <sch_sheet.h>
 #include <sch_sheet_pin.h>
 #include <sch_textbox.h>
-#include <symbol_lib_table.h>
 
 #include <bezier_curves.h>
 #include <compoundfilereader.h>
@@ -501,17 +501,10 @@ SCH_SHEET* SCH_IO_ALTIUM::LoadSchematicFile( const wxString& aFileName, SCHEMATI
 
     rootScreen->m_sheetInstances.emplace_back( sheetInstance );
 
-    // TODO(JE) library tables
-#if 0
-    SYMBOL_LIB_TABLE* libTable = PROJECT_SCH::SchSymbolLibTable( &m_schematic->Project() );
-
-    wxCHECK_MSG( libTable, nullptr, "Could not load symbol lib table." );
-
     if( aFileName.empty() )
         LoadSchematicProject( aSchematic, aProperties );
     else
         ParseAltiumSch( aFileName );
-#endif
 
     if( m_reporter )
     {
@@ -4843,8 +4836,8 @@ void SCH_IO_ALTIUM::doEnumerateSymbolLib( const wxString& aLibraryPath,
     ensureLoadedLibrary( aLibraryPath, aProperties );
 
     bool powerSymbolsOnly = ( aProperties &&
-                              aProperties->find( SYMBOL_LIB_TABLE::PropPowerSymsOnly ) != aProperties->end() );
-
+                              aProperties->find( SYMBOL_LIBRARY_MANAGER_ADAPTER::PropPowerSymsOnly )
+                                != aProperties->end() );
     auto it = m_libCache.find( aLibraryPath );
 
     if( it != m_libCache.end() )
