@@ -27,10 +27,11 @@
 
 
 #include "assistant/assistant.h"
+#include <string>
 #include <wx/panel.h>
 #include <wx/log.h>
 #include <wx/webview.h>
-
+#include <set>
 
 class WEBVIEW_CONTAINER : public wxPanel, public ASSISTANT
 {
@@ -54,6 +55,7 @@ public:
 
 private:
     wxWebView* m_browser;
+    std::set<std::string> _consumed_global_ctx_keys;
 };
 
 #endif

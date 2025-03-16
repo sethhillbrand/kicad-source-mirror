@@ -219,11 +219,18 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
                 break;
             }
 
+            const auto global_ctx = get_global_context_hdl();
+
+            // auto j = nlohmann::json::parse( global_ctx ).get<DESIGN_GLOBAL_CONTEXT>();
+
+            // if( _consumed_global_ctx_keys.contains( j.uuid ) )
+            //     break;
+
             wxString out;
             m_browser->RunScriptAsync(
                     std::format( " {}({});",
                                  magic_enum::enum_name( WEBVIEW_FUNCTIONS::update_global_ctx ),
-                                 get_global_context_hdl() ),
+                                 global_ctx ),
                     &out );
             break;
         }
