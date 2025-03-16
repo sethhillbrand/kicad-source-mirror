@@ -57,7 +57,13 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
         try
         {
             std::ifstream in( setting_path );
-            nlohmann::json::parse( in ).get_to( *_settings );
+            auto          cnf = nlohmann::json::parse( in ).get<COPILOT_SETTINGS>();
+
+            if( cnf.version == kConfigVersion )
+            {
+                _settings = std::make_unique<COPILOT_SETTINGS>( cnf );
+            }
+
             in.close();
         }
         catch( const std::exception& e )
