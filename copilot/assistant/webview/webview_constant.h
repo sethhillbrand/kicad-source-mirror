@@ -24,7 +24,8 @@
 
 #ifndef WEBVIEW_CONSTANT_H
 #define WEBVIEW_CONSTANT_H
-
+#include <nlohmann/json.hpp>
+#include <string>
 
 enum class WEBVIEW_MSG_HANDLES
 {
@@ -37,7 +38,21 @@ enum class WEBVIEW_FUNCTIONS
     fire_copilot_cmd,
     fire_session_cmd,
     new_session,
-    get_current_session_id
+    get_current_session_id,
+    update_global_ctx
+};
+
+
+enum class KICAD_DESKTOP_CMD_TYPE
+{
+    update_global_context,
+};
+
+
+struct KICAD_DESKTOP_CMD
+{
+    std::string type;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( KICAD_DESKTOP_CMD, type )
 };
 
 #endif

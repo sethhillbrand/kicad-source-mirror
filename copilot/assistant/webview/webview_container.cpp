@@ -23,6 +23,7 @@
  */
 
 #include "webview_container.h"
+#include "nlohmann/json.hpp"
 #include "settings/copilot_settings_manager.h"
 #include "webview_constant.h"
 
@@ -164,7 +165,6 @@ void WEBVIEW_CONTAINER::OnDocumentLoaded( wxWebViewEvent& evt )
     {
         wxLogMessage( "%s", "Document loaded; url='" + evt.GetURL() + "'" );
     }
-
 }
 
 void WEBVIEW_CONTAINER::OnNewWindow( wxWebViewEvent& evt )
@@ -199,6 +199,40 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
 {
     wxLogMessage( "Script message received; value = %s, handler = %s", evt.GetString(),
                   evt.GetMessageHandler() );
+
+    try
+    {
+        const auto cmd =
+                nlohmann::json::parse( evt.GetString().ToStdString() ).get<KICAD_DESKTOP_CMD>();
+        auto t = magic_enum::enum_cast<KICAD_DESKTOP_CMD_TYPE>( cmd.type );
+
+        if( !t.has_value() )
+            return;
+
+        switch( *t )
+        {
+        case KICAD_DESKTOP_CMD_TYPE::update_global_context:
+        {
+            if( !get_global_context_hdl )
+            {
+                wxLogError( "No global context handler set" );
+                break;
+            }
+
+            wxString out;
+            m_browser->RunScriptAsync(
+                    std::format( " {}({});",
+                                 magic_enum::enum_name( WEBVIEW_FUNCTIONS::update_global_ctx ),
+                                 get_global_context_hdl() ),
+                    &out );
+            break;
+        }
+        }
+    }
+    catch( const std::exception& e )
+    {
+        wxLogError( "Invalid message received: %s , %s", evt.GetString(), e.what() );
+    }
 }
 
 void WEBVIEW_CONTAINER::OnScriptResult( wxWebViewEvent& evt )
