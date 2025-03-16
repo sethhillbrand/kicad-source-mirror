@@ -56,9 +56,14 @@ struct WEBVIEW_PATH
 
 struct WEBVIEW_SETTINGS
 {
-    std::string  url = "http://localhost:3000";
+    std::string  url = "http://192.168.50.230:3000";
     WEBVIEW_PATH path;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBVIEW_SETTINGS, url, path )
+};
+
+struct FORCE_UPDATE_SETTING{
+    std::string v_0_0_0 = "0.0.0";
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( FORCE_UPDATE_SETTING, v_0_0_0 )
 };
 
 
@@ -66,7 +71,8 @@ struct COPILOT_SETTINGS
 {
     DATA_BURIED_POINT_SETTINGS data_buried_point_settings;
     WEBVIEW_SETTINGS           webview_settings;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, data_buried_point_settings, webview_settings )
+    FORCE_UPDATE_SETTING          force_update_seting;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, data_buried_point_settings, webview_settings , force_update_seting)
 };
 
 #endif
