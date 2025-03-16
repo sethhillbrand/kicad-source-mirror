@@ -71,8 +71,8 @@ struct COPILOT_SETTINGS
 {
     DATA_BURIED_POINT_SETTINGS data_buried_point_settings;
     WEBVIEW_SETTINGS           webview_settings;
-    FORCE_UPDATE_SETTING          force_update_seting;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, data_buried_point_settings, webview_settings , force_update_seting)
+    FORCE_UPDATE_SETTING          force_update_setting;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_SETTINGS, data_buried_point_settings, webview_settings , force_update_setting)
 };
 
 #endif
