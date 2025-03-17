@@ -76,11 +76,6 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
                        wxDefaultPosition, wxDefaultSize );
     top_sizer->Add( m_browser, wxSizerFlags().Expand().Proportion( 1 ) );
 
-    // Log backend information
-    wxLogMessage( "Backend: %s Version: %s", m_browser->GetClassInfo()->GetClassName(),
-                  wxWebView::GetBackendVersionInfo().ToString() );
-    wxLogMessage( "User Agent: %s", m_browser->GetUserAgent() );
-
 #ifndef __WXMAC__
     //We register the wxfs:// protocol for testing purposes
     m_browser->RegisterHandler(
@@ -149,21 +144,17 @@ void WEBVIEW_CONTAINER::fire_session_cmd( const char* cmd )
 
 void WEBVIEW_CONTAINER::OnNavigationRequest( wxWebViewEvent& evt )
 {
-    wxLogMessage( "%s", "Navigation request to '" + evt.GetURL() + "' (target='" + evt.GetTarget()
-                                + "')" );
 }
 
 
 void WEBVIEW_CONTAINER::OnNavigationComplete( wxWebViewEvent& evt )
 {
-    wxLogMessage( "%s", "Navigation complete; url='" + evt.GetURL() + "'" );
 }
 
 void WEBVIEW_CONTAINER::OnDocumentLoaded( wxWebViewEvent& evt )
 {
     if( evt.GetURL() == m_browser->GetCurrentURL() )
     {
-        wxLogMessage( "%s", "Document loaded; url='" + evt.GetURL() + "'" );
     }
 }
 
@@ -176,7 +167,6 @@ void WEBVIEW_CONTAINER::OnNewWindow( wxWebViewEvent& evt )
         flag = " (user)";
     }
 
-    wxLogMessage( "%s", "New window; url='" + evt.GetURL() + "'" + flag );
 
     //If we handle new window events then just load them in this window as we
     //are a single window browser
@@ -185,21 +175,16 @@ void WEBVIEW_CONTAINER::OnNewWindow( wxWebViewEvent& evt )
 
 void WEBVIEW_CONTAINER::OnTitleChanged( wxWebViewEvent& evt )
 {
-    wxLogMessage( "%s", "Title changed; title='" + evt.GetString() + "'" );
 }
 
 void WEBVIEW_CONTAINER::OnFullScreenChanged( wxWebViewEvent& evt )
 {
-    wxLogMessage( "Full screen changed; status = %d", evt.GetInt() );
     // TODO
     // ShowFullScreen( evt.GetInt() != 0 );
 }
 
 void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
 {
-    wxLogMessage( "Script message received; value = %s, handler = %s", evt.GetString(),
-                  evt.GetMessageHandler() );
-
     try
     {
         const auto cmd =
