@@ -231,8 +231,6 @@ void WEBVIEW_CONTAINER::OnScriptResult( wxWebViewEvent& evt )
 {
     if( evt.IsError() )
         wxLogError( "Async script execution failed: %s", evt.GetString() );
-    else
-        wxLogMessage( "Async script result received; value = %s", evt.GetString() );
 }
 
 void WEBVIEW_CONTAINER::OnError( wxWebViewEvent& evt )
