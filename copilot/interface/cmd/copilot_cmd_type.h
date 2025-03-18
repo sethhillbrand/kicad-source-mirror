@@ -25,24 +25,19 @@
 #ifndef COPILOT_CMD_TYPE_H
 #define COPILOT_CMD_TYPE_H
 
-enum class COPILOT_CMD_TYPE
+
+namespace COPILOT_CMD_TYPE
 {
-    GENERIC_CHAT = -1,
-    INVALID = 0,
-    DESIGN_INTENTION = 1,
-    CORE_COMPONENTS = 2,
+    
+static const char DESIGN_INTENTION[] = "chat.design.intention";
+static const char CORE_COMPONENTS[] = "chat.design.core_components";
+static const char CURRENT_COMPONENT[] = "chat.components.current_component";
+static const char SIMILAR_COMPONENTS[] = "chat.components.similar_components";
+static const char CHECK_SYMBOL_CONNECTIONS[] = "chat.components.check_symbol_connections";
+static const char COMPONENT_PINS_DETAILS[] = "chat.components.component_pins_details";
+static const char SYMBOL_UNCONNECTED_PINS[] = "chat.components.symbol_unconnected_pins";
 
-    CURRENT_COMPONENT = 3,
-    SIMILAR_COMPONENTS = 4,
-
-    CHECK_SYMBOL_CONNECTIONS = 5,
-    COMPONENT_PINS_DETAILS = 6,
-    SYMBOL_UNCONNECTED_PINS = 7,
-
-
-    COPILOT_CMD_TYPE_END = 1000,
-
-};
+}; // namespace COPILOT_CMD_TYPE
 
 
 #endif

@@ -25,6 +25,7 @@
 #ifndef SCH_COPILOT_CMD_H
 #define SCH_COPILOT_CMD_H
 
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <sch_edit_frame.h>
 #include <cmd/copilot_cmd.h>
@@ -35,7 +36,7 @@
 #include "sch_copilot_context_cache.h"
 
 
-void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
+void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )
 {
     if( !m_copilotPanel )
         return;
@@ -44,22 +45,18 @@ void SCH_EDIT_FRAME::FireCopilotCommand( COPILOT_CMD_TYPE aCmdType )
 
     nlohmann::json cmd;
 
-    switch( aCmdType )
+    if(aCmdType.starts_with("chat.design"))
     {
-    case COPILOT_CMD_TYPE::GENERIC_CHAT: break;
-    case COPILOT_CMD_TYPE::DESIGN_INTENTION:
-    case COPILOT_CMD_TYPE::CORE_COMPONENTS:
         cmd = create_cmd<DESIGN_INTENTION>( *m_copilotContextCache );
-        break;
 
-    case COPILOT_CMD_TYPE::CURRENT_COMPONENT:
-    case COPILOT_CMD_TYPE::SIMILAR_COMPONENTS:
-    case COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS:
-    case COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS:
-    case COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS:
+    }
+    else if (aCmdType.starts_with("chat.symbol"))
+    {
         cmd = create_cmd<CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>( *m_copilotContextCache,
-                                                                 GetSelectedSymbolContext() );
-        break;
+            GetSelectedSymbolContext() );
+    }
+    else {
+        std::cerr << "Unknown command type: " << aCmdType << std::endl;
     }
 
     if( !cmd.empty() )

@@ -91,7 +91,7 @@ T create_cmd( DESIGN_GLOBAL_CONTEXT const& design_global_context, C const& conte
 template <auto CMD_TYPE>
 struct CONCRETE_TYPE_COPILOT_CMD : COPILOT_CMD_BASE
 {
-    COPILOT_CMD_TYPE type = CMD_TYPE;
+    std::string type = CMD_TYPE;
     friend void      to_json( nlohmann ::json&         nlohmann_json_j,
                               const CONCRETE_TYPE_COPILOT_CMD& nlohmann_json_t )
     {

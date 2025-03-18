@@ -67,7 +67,6 @@ class RESCUER;
 class HIERARCHY_PANE;
 class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
-enum class COPILOT_CMD_TYPE;
 struct SCH_COPILOT_CONTEXT_CACHE;
 struct DESIGN_GLOBAL_CONTEXT;
 struct SYMBOL_CMD_CONTEXT;
@@ -956,7 +955,7 @@ public:
      * Copilot Commands
      */
     
-    void FireCopilotCommand(COPILOT_CMD_TYPE aCmdType) ;
+    void FireCopilotCommand(std::string const& aCmdType) ;
 
     void DesignIntention();
     void CoreComponents();
