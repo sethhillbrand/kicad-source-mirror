@@ -50,7 +50,7 @@ void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )
         cmd = create_cmd<DESIGN_INTENTION>( *m_copilotContextCache );
 
     }
-    else if (aCmdType.starts_with("chat.symbol"))
+    else if (aCmdType.starts_with("chat.components"))
     {
         cmd = create_cmd<CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>( *m_copilotContextCache,
             GetSelectedSymbolContext() );

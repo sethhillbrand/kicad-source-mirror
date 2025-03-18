@@ -41,7 +41,13 @@ inline auto send_data_buried_point()
                 }
                 catch( std::exception const& e )
                 {
-                    wxLogDebug( wxString::Format( "send_data_buried_point error: %s", e.what() ) );
+                    wxLogTrace( wxString::Format( "send_data_buried_point error: %s", e.what() ),
+                                "send_data_buried_point" );
+                }
+                catch( ... )
+                {
+                    wxLogTrace( wxString::Format( "send_data_buried_point error: unknown" ),
+                                "send_data_buried_point" );
                 }
             } );
     t.detach();
@@ -56,10 +62,5 @@ wxPanel* create_assistant_panel( wxWindow* parent )
 
 void fire_cmd( wxPanel* target, const char* cmd )
 {
-
-
-
-
-    
     static_cast<WEBVIEW_CONTAINER*>( target )->fire_copilot_cmd( cmd );
 }
