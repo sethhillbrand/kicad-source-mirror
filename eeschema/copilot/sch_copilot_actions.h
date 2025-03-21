@@ -34,22 +34,6 @@
 #undef _
 #define _( s ) s
 
-TOOL_ACTION EE_ACTIONS::toggleCopilotPanel(
-        TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.toggleCopilotPanel" )
-                .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Copilot" ) )
-                .Tooltip( _( "Show/hide copilot panel" ) )
-                .Icon( BITMAPS::copilot ) );
-
-TOOL_ACTION EE_ACTIONS::showCopilotPanel(
-        TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.showCopilotPanel" )
-                .Scope( AS_GLOBAL )
-                .FriendlyName( _( "Show copilot" ) )
-                .Tooltip( _( "Show copilot panel" ) )
-                .Icon( BITMAPS::copilot ));
-
 
 TOOL_ACTION EE_ACTIONS::copilotDesignIntention(
         TOOL_ACTION_ARGS()

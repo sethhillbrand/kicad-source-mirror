@@ -29,7 +29,7 @@
 #include <kicad_version_info.h>
 #include <optional>
 #include <string>
-#include <context/design_global_context.h>
+#include <context/copilot_global_context.h>
 #include <context/context_fields.h>
 #include "cmd_base.h"
 
@@ -37,7 +37,7 @@
 struct COPILOT_CMD_BASE : CMD_BASE
 {
     std::optional<std::string>           global_context_uuid;
-    std::optional<DESIGN_GLOBAL_CONTEXT> design_global_context;
+    std::optional<COPILOT_GLOBAL_CONTEXT> design_global_context;
     friend void to_json( nlohmann ::json& nlohmann_json_j, const COPILOT_CMD_BASE& nlohmann_json_t )
     {
         if( nlohmann_json_t.global_context_uuid )
@@ -57,20 +57,20 @@ struct COPILOT_CMD_BASE : CMD_BASE
         if( nlohmann_json_j.contains( kDesignGlobalContext ) )
         {
             nlohmann_json_t.design_global_context =
-                    nlohmann_json_j.at( kDesignGlobalContext ).get<DESIGN_GLOBAL_CONTEXT>();
+                    nlohmann_json_j.at( kDesignGlobalContext ).get<COPILOT_GLOBAL_CONTEXT>();
         }
     }
 };
 
 
-inline auto fill_cmd( COPILOT_CMD_BASE& cmd, DESIGN_GLOBAL_CONTEXT const& design_global_context )
+inline auto fill_cmd( COPILOT_CMD_BASE& cmd, COPILOT_GLOBAL_CONTEXT const& design_global_context )
 {
     cmd.global_context_uuid = design_global_context.uuid;
     cmd.design_global_context = design_global_context;
 }
 
 template <class T>
-T create_cmd( DESIGN_GLOBAL_CONTEXT const& design_global_context )
+T create_cmd( COPILOT_GLOBAL_CONTEXT const& design_global_context )
 {
     T it;
     fill_cmd( it, design_global_context );
@@ -78,7 +78,7 @@ T create_cmd( DESIGN_GLOBAL_CONTEXT const& design_global_context )
 }
 
 template <class T, class C>
-T create_cmd( DESIGN_GLOBAL_CONTEXT const& design_global_context, C const& context )
+T create_cmd( COPILOT_GLOBAL_CONTEXT const& design_global_context, C const& context )
 {
     T it;
     fill_cmd( it, design_global_context );

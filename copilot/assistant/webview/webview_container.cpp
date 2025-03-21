@@ -34,8 +34,8 @@
 #include <wx/webview.h>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
-#include <context/design_global_context_handle.h>
-#include <context/design_global_context.h>
+#include <context/copilot_global_context_handle.h>
+#include <context/copilot_global_context.h>
 #include <copilot_global.h>
 #include <format>
 #include <magic_enum.hpp>
@@ -47,7 +47,7 @@
 extern "C"
 
 {
-    COPILOT_API DESIGN_GLOBAL_CONTEXT_HDL get_design_global_context_hdl = nullptr;
+    COPILOT_API COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context_hdl = nullptr;
 }
 
 
@@ -206,7 +206,7 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
 
             const auto global_ctx = get_design_global_context_hdl();
 
-            auto j = nlohmann::json::parse( global_ctx ).get<DESIGN_GLOBAL_CONTEXT>();
+            auto j = nlohmann::json::parse( global_ctx ).get<COPILOT_GLOBAL_CONTEXT>();
 
             if( _consumed_global_ctx_keys.contains( j.uuid ) )
                 break;

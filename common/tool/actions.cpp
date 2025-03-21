@@ -29,6 +29,7 @@
 #include <tool/actions.h>
 #include <tool/tool_action.h>
 #include <tool/tool_event.h>
+#include <copilot/copilot_common_action.h>
 
 // Actions, being statically-defined, require specialized I18N handling.  We continue to
 // use the _() macro so that string harvesting by the I18N framework doesn't have to be

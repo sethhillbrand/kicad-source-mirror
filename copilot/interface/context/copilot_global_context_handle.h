@@ -22,15 +22,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CONTEXT_CACHE_H
-#define SCH_COPILOT_CONTEXT_CACHE_H
+#ifndef COPILOT_GLOBAL_CONTEXT_HANDLE_H
+#define COPILOT_GLOBAL_CONTEXT_HANDLE_H
 
-#include <context/design_global_context.h>
+#include <functional>
 
-
-struct SCH_COPILOT_CONTEXT_CACHE : DESIGN_GLOBAL_CONTEXT
-{
-    bool        is_newest{};
-};
+/**
+ * @brief Getting the full netlist and bom from kicad
+ * @return @COPILOT_GLOBAL_CONTEXT
+ * 
+ */
+using COPILOT_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
 
 #endif

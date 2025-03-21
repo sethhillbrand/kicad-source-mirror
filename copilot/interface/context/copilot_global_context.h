@@ -22,8 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DESIGN_GLOBAL_CONTEXT_H
-#define DESIGN_GLOBAL_CONTEXT_H
+#ifndef COPILOT_GLOBAL_CONTEXT_H
+#define COPILOT_GLOBAL_CONTEXT_H
 
 #include <nlohmann/json.hpp>
 #include <string>
@@ -52,39 +52,16 @@ struct PROJECT_CONTEXT
 };
 
 
-struct NET_DETAIL
-{
-    std::string name;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( NET_DETAIL, name )
-};
-
-
-struct NETLIST_DETAILS
-{
-    std::list<std::string> designators;
-    std::list<NET_DETAIL>  nets;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( NETLIST_DETAILS, designators, nets )
-};
-
-
-struct DESIGN_GLOBAL_CONTEXT_TRAITS
-{
-    NETLIST_DETAILS net_list_details;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT_TRAITS, net_list_details )
-};
-
 }; // namespace copilot
 
 
-struct DESIGN_GLOBAL_CONTEXT
+struct COPILOT_GLOBAL_CONTEXT
 {
-    std::string                           uuid;
-    std::string                           net_list;
-    KICAD_VERSION_INFO                    kicad_version_info;
-    copilot::PROJECT_CONTEXT              project_context;
-    copilot::DESIGN_GLOBAL_CONTEXT_TRAITS traits;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, uuid, net_list, kicad_version_info,
-                                    project_context, traits )
+    std::string              uuid;
+    KICAD_VERSION_INFO       kicad_version_info;
+    copilot::PROJECT_CONTEXT project_context;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_GLOBAL_CONTEXT, uuid, kicad_version_info,
+                                    project_context )
 };
 
 

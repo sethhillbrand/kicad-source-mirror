@@ -32,7 +32,7 @@
 #include <assistant_interface.h>
 #include <build_version.h>
 #include <context/context_fields.h>
-#include "sch_copilot_context_cache.h"
+#include "sch_copilot_global_context.h"
 
 
 void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )

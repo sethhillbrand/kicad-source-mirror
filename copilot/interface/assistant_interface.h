@@ -28,7 +28,7 @@
 #include <dylib.hpp>
 #include <settings/assistant_interface_path.h>
 #include <wx/panel.h>
-#include <context/design_global_context_handle.h>
+#include <context/copilot_global_context_handle.h>
 
 
 using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
@@ -47,12 +47,12 @@ public:
 
     auto is_assistant_available() const { return _is_assistant_available; }
 
-    auto set_copilot_global_ctx_hdl( DESIGN_GLOBAL_CONTEXT_HDL hdl )
+    auto set_copilot_global_ctx_hdl( COPILOT_GLOBAL_CONTEXT_HDL hdl )
     {
         if( !is_assistant_available() )
             return;
 
-        _assistant->get_variable<DESIGN_GLOBAL_CONTEXT_HDL>( "get_design_global_context_hdl" ) = hdl;
+        _assistant->get_variable<COPILOT_GLOBAL_CONTEXT_HDL>( "get_design_global_context_hdl" ) = hdl;
     }
 
 

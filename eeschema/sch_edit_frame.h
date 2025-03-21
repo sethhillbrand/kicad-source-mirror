@@ -67,8 +67,8 @@ class RESCUER;
 class HIERARCHY_PANE;
 class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
-struct SCH_COPILOT_CONTEXT_CACHE;
-struct DESIGN_GLOBAL_CONTEXT;
+struct SCH_COPILOT_GLOBAL_CONTEXT;
+struct COPILOT_GLOBAL_CONTEXT;
 struct SYMBOL_CMD_CONTEXT;
 
 
@@ -943,7 +943,7 @@ public:
 
     SYMBOL_CMD_CONTEXT const& GetSelectedSymbolContext() ;
 
-    DESIGN_GLOBAL_CONTEXT const& GetGlobalContext() ;
+    COPILOT_GLOBAL_CONTEXT const& GetGlobalContext() ;
 
     wxString GetSymbolNetList(wxString const& aDesignator) ;
 
@@ -1196,8 +1196,8 @@ private:
 
     wxPanel* m_copilotPanel {};
 
-    std::unique_ptr< SCH_COPILOT_CONTEXT_CACHE > m_copilotContextCache;
-    std::unique_ptr<SYMBOL_CMD_CONTEXT> m_symbolCmdContext;
+    std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
+    std::unique_ptr<SYMBOL_CMD_CONTEXT>        m_symbolCmdContext;
 
 #ifdef KICAD_IPC_API
     std::unique_ptr<API_HANDLER_SCH> m_apiHandler;

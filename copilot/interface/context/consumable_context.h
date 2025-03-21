@@ -22,16 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef DESIGN_GLOBAL_CONTEXT_HANDLE_H
-#define DESIGN_GLOBAL_CONTEXT_HANDLE_H
+#ifndef CONSUMABLE_CONTEXT_H
+#define CONSUMABLE_CONTEXT_H
 
-#include <functional>
 
-/**
- * @brief Getting the full netlist and bom from kicad
- * @return @DESIGN_GLOBAL_CONTEXT
- * 
- */
-using DESIGN_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
+#include <nlohmann/json.hpp>
+
+
+struct CONSUMABLE_CONTEXT
+{
+    std::string uuid;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CONSUMABLE_CONTEXT, uuid)
+};
 
 #endif

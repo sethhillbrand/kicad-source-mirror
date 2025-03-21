@@ -22,45 +22,34 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CMD_H
-#define COPILOT_CMD_H
+#include <bitmaps/bitmaps_list.h>
+#include <common.h>
+#include <eda_units.h>
+#include <frame_type.h>
+#include <tool/actions.h>
+#include <tool/tool_action.h>
+#include <tool/tool_event.h>
 
-#include "copilot_cmd_base.h"
-#include <context/copilot_global_context.h>
-#include <context/symbol_context.h>
-#include <cmd/copilot_cmd_type.h>
+#ifndef COPILOT_COMMON_ACTION_H
+#define COPILOT_COMMON_ACTION_H
 
-struct DESIGN_INTENTION : CONCRETE_TYPE_COPILOT_CMD<COPILOT_CMD_TYPE::DESIGN_INTENTION>
-{
-};
+#undef _
+#define _( s ) s
 
-struct CORE_COMPONENTS : CONCRETE_TYPE_COPILOT_CMD<COPILOT_CMD_TYPE::CORE_COMPONENTS>
-{
-};
+TOOL_ACTION ACTIONS::toggleCopilotPanel(
+        TOOL_ACTION_ARGS()
+                .Name( "eeschema.SchDesignBlockControl.toggleCopilotPanel" )
+                .Scope( AS_GLOBAL )
+                .FriendlyName( _( "Copilot" ) )
+                .Tooltip( _( "Show/hide copilot panel" ) )
+                .Icon( BITMAPS::copilot ) );
 
-struct CURRENT_COMPONENT : COPILOT_CMD_WITH_CONTEXT<COPILOT_CMD_TYPE::CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>
-{
-};
+TOOL_ACTION ACTIONS::showCopilotPanel(
+        TOOL_ACTION_ARGS()
+                .Name( "eeschema.SchDesignBlockControl.showCopilotPanel" )
+                .Scope( AS_GLOBAL )
+                .FriendlyName( _( "Show copilot" ) )
+                .Tooltip( _( "Show copilot panel" ) )
+                .Icon( BITMAPS::copilot ) );
 
-struct SIMILAR_COMPONENTS
-        : COPILOT_CMD_WITH_CONTEXT<COPILOT_CMD_TYPE::SIMILAR_COMPONENTS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct CHECK_SYMBOL_CONNECTIONS
-        : COPILOT_CMD_WITH_CONTEXT<COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct COMPONENT_PINS_DETAILS
-        : COPILOT_CMD_WITH_CONTEXT<COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-struct SYMBOL_UNCONNECTED_PINS
-        : COPILOT_CMD_WITH_CONTEXT<COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS, SYMBOL_CMD_CONTEXT>
-{
-};
-
-
-#endif // COPILOT_CMD_H
+#endif

@@ -22,15 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CONTEXT_H
-#define SCH_COPILOT_CONTEXT_H
+#ifndef SCH_COPILOT_CONTEXT_INTERFACE_H
+#define SCH_COPILOT_CONTEXT_INTERFACE_H
 
 #include <cstddef>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <netlist_exporter_xml.h>
 #include <kiid.h>
-#include "sch_copilot_context_cache.h"
+#include "sch_copilot_global_context.h"
 #include <ee_selection_tool.h>
 #include <string>
 #include <tool/tool_manager.h>
@@ -130,7 +130,7 @@ SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
 
     return *m_symbolCmdContext;
 }
-DESIGN_GLOBAL_CONTEXT const& SCH_EDIT_FRAME::GetGlobalContext()
+COPILOT_GLOBAL_CONTEXT const& SCH_EDIT_FRAME::GetGlobalContext()
 {
     UpdateCopilotContextCache();
     return *m_copilotContextCache;
@@ -149,4 +149,5 @@ const char* SCH_EDIT_FRAME::GetCopilotContextCache()
     ptr = nlohmann::json( *m_copilotContextCache ).dump();
     return ptr.c_str();
 }
+
 #endif

@@ -245,6 +245,10 @@ public:
     static TOOL_ACTION extractFile;
     static TOOL_ACTION removeFile;
 
+    // Copilot
+    static TOOL_ACTION toggleCopilotPanel;
+    static TOOL_ACTION showCopilotPanel;
+
     ///< Cursor control event types
     enum CURSOR_EVENT_TYPE
     {
