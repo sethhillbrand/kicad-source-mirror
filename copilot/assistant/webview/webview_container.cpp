@@ -217,6 +217,8 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
                                  magic_enum::enum_name( WEBVIEW_FUNCTIONS::update_global_ctx ),
                                  global_ctx ),
                     &out );
+
+            _consumed_global_ctx_keys.insert( j.uuid );
             break;
         }
         }

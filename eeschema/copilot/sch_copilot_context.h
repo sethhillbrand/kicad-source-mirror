@@ -44,18 +44,6 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
         return;
 
     m_copilotContextCache->uuid = KIID().AsStdString();
-    SCH_REFERENCE_LIST referenceList;
-    Schematic().Hierarchy().GetSymbols( referenceList, false, false );
-    FIELDS_EDITOR_GRID_DATA_MODEL dataModel( referenceList );
-
-    for( int fieldId : MANDATORY_FIELDS )
-    {
-        dataModel.AddColumn( GetCanonicalFieldName( fieldId ),
-                             GetDefaultFieldName( fieldId, DO_TRANSLATE ), false );
-    }
-
-    dataModel.ApplyBomPreset( BOM_PRESET::GroupedByValueFootprint() );
-    m_copilotContextCache->bom = dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
     m_copilotContextCache->net_list = base64::to_base64(
             ( (
                       [&]() -> wxString
@@ -94,8 +82,18 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 }
 wxString SCH_EDIT_FRAME::GetBomList()
 {
-    UpdateCopilotContextCache();
-    return m_copilotContextCache->bom;
+    SCH_REFERENCE_LIST referenceList;
+    Schematic().Hierarchy().GetSymbols( referenceList, false, false );
+    FIELDS_EDITOR_GRID_DATA_MODEL dataModel( referenceList );
+
+    for( int fieldId : MANDATORY_FIELDS )
+    {
+        dataModel.AddColumn( GetCanonicalFieldName( fieldId ),
+                             GetDefaultFieldName( fieldId, DO_TRANSLATE ), false );
+    }
+
+    dataModel.ApplyBomPreset( BOM_PRESET::GroupedByValueFootprint() );
+    return dataModel.Export( BOM_FMT_PRESET::CSV() ).ToStdString();
 }
 
 wxString SCH_EDIT_FRAME::GetNetList()
