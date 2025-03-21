@@ -26,7 +26,9 @@
 #define COPILOT_CMD_H
 
 #include "copilot_cmd_base.h"
-#include <context/copilot_context.h>
+#include <context/design_global_context.h>
+#include <context/symbol_context.h>
+#include <cmd/copilot_cmd_type.h>
 
 struct DESIGN_INTENTION : CONCRETE_TYPE_COPILOT_CMD<COPILOT_CMD_TYPE::DESIGN_INTENTION>
 {

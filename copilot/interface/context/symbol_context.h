@@ -22,15 +22,20 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_CONTEXT_CACHE_H
-#define SCH_COPILOT_CONTEXT_CACHE_H
+#ifndef SYMBOL_CONTEXT_H
+#define SYMBOL_CONTEXT_H
 
-#include <context/design_global_context.h>
+#include "sch/symbol_properties.h"
+#include <nlohmann/json.hpp>
+#include <string>
 
 
-struct SCH_COPILOT_CONTEXT_CACHE : DESIGN_GLOBAL_CONTEXT
+struct SYMBOL_CMD_CONTEXT
 {
-    bool        is_newest{};
+    std::string       designator;
+    SYMBOL_PROPERTIES symbol_properties;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CMD_CONTEXT, designator, symbol_properties )
 };
+
 
 #endif

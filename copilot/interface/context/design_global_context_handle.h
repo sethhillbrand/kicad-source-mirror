@@ -22,8 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_GLOBAL_CTX_HDL_H
-#define COPILOT_GLOBAL_CTX_HDL_H
+#ifndef DESIGN_GLOBAL_CONTEXT_HANDLE_H
+#define DESIGN_GLOBAL_CONTEXT_HANDLE_H
 
 #include <functional>
 
@@ -32,6 +32,6 @@
  * @return @DESIGN_GLOBAL_CONTEXT
  * 
  */
-using COPILOT_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
+using DESIGN_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
 
 #endif

@@ -36,7 +36,7 @@
 #include <tool/tool_manager.h>
 #include <sch_edit_frame.h>
 #include <fields_data_model.h>
-#include <context/copilot_context.h>
+#include <context/symbol_context.h>
 #include <base64.hpp>
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {

@@ -31,8 +31,7 @@
 #include <cmd/copilot_cmd.h>
 #include <assistant_interface.h>
 #include <build_version.h>
-#include "context/context_fields.h"
-#include "context/copilot_context.h"
+#include <context/context_fields.h>
 #include "sch_copilot_context_cache.h"
 
 

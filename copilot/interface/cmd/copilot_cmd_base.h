@@ -25,12 +25,11 @@
 #ifndef COPILOT_CMD_BASE_H
 #define COPILOT_CMD_BASE_H
 
-#include "copilot_cmd_type.h"
 #include <nlohmann/json.hpp>
 #include <kicad_version_info.h>
 #include <optional>
 #include <string>
-#include <context/copilot_context.h>
+#include <context/design_global_context.h>
 #include <context/context_fields.h>
 #include "cmd_base.h"
 

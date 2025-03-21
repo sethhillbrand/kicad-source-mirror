@@ -34,8 +34,8 @@
 #include <wx/webview.h>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
-#include <context/copilot_global_ctx_hdl.h>
-#include <context/copilot_context.h>
+#include <context/design_global_context_handle.h>
+#include <context/design_global_context.h>
 #include <copilot_global.h>
 #include <format>
 #include <magic_enum.hpp>
@@ -47,7 +47,7 @@
 extern "C"
 
 {
-    COPILOT_API COPILOT_GLOBAL_CONTEXT_HDL get_global_context_hdl = nullptr;
+    COPILOT_API DESIGN_GLOBAL_CONTEXT_HDL get_design_global_context_hdl = nullptr;
 }
 
 
@@ -198,13 +198,13 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
         {
         case KICAD_DESKTOP_CMD_TYPE::update_global_context:
         {
-            if( !get_global_context_hdl )
+            if( !get_design_global_context_hdl )
             {
                 wxLogError( "No global context handler set" );
                 break;
             }
 
-            const auto global_ctx = get_global_context_hdl();
+            const auto global_ctx = get_design_global_context_hdl();
 
             auto j = nlohmann::json::parse( global_ctx ).get<DESIGN_GLOBAL_CONTEXT>();
 

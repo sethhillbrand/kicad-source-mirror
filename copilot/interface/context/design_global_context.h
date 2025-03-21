@@ -22,10 +22,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CONTEXT_H
-#define COPILOT_CONTEXT_H
+#ifndef DESIGN_GLOBAL_CONTEXT_H
+#define DESIGN_GLOBAL_CONTEXT_H
 
-#include "sch/symbol_properties.h"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <kicad_version_info.h>
@@ -86,13 +85,6 @@ struct DESIGN_GLOBAL_CONTEXT
     copilot::DESIGN_GLOBAL_CONTEXT_TRAITS traits;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGN_GLOBAL_CONTEXT, uuid, net_list, kicad_version_info,
                                     project_context, traits )
-};
-
-struct SYMBOL_CMD_CONTEXT
-{
-    std::string       designator;
-    SYMBOL_PROPERTIES symbol_properties;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CMD_CONTEXT, designator, symbol_properties )
 };
 
 
