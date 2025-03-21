@@ -130,11 +130,6 @@ SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
 
     return *m_symbolCmdContext;
 }
-COPILOT_GLOBAL_CONTEXT const& SCH_EDIT_FRAME::GetGlobalContext()
-{
-    UpdateCopilotContextCache();
-    return *m_copilotContextCache;
-}
 
 wxString SCH_EDIT_FRAME::GetSymbolNetList( wxString const& aDesignator )
 {

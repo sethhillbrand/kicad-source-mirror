@@ -22,28 +22,42 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef SCH_COPILOT_GLOBAL_CONTEXT_H
-#define SCH_COPILOT_GLOBAL_CONTEXT_H
+#ifndef PCB_COPILOT_UI_H
+#define PCB_COPILOT_UI_H
 
-#include <context/copilot_global_context.h>
-#include <context/variable_context.h>
+#include <pcb_edit_frame.h>
 
 
-struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT, VARIABLE_CONTEXT
+void PCB_EDIT_FRAME::InitCopilotPanel()
 {
-    std::string net_list;
-    friend void to_json( nlohmann ::json&                  nlohmann_json_j,
-                         const SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
-    {
-        to_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT const&>( nlohmann_json_t ) );
-        nlohmann_json_j["net_list"] = nlohmann_json_t.net_list;
-    }
-    friend void from_json( const nlohmann ::json&      nlohmann_json_j,
-                           SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
-    {
-        from_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT&>( nlohmann_json_t ) );
-        nlohmann_json_j.at( "net_list" ).get_to( nlohmann_json_t.net_list );
-    }
-};
+}
+
+void PCB_EDIT_FRAME::InitCopilotAui()
+{
+}
+
+void PCB_EDIT_FRAME::RecreateCopilotToolBar()
+{
+}
+
+void PCB_EDIT_FRAME::CopilotPanelShowChangedLanguage()
+{
+}
+
+void PCB_EDIT_FRAME::ToggleCopilot()
+{
+}
+
+void PCB_EDIT_FRAME::ShowCopilot( bool show )
+{
+}
+
+void PCB_EDIT_FRAME::SaveCopilotCnf()
+{
+}
+
+void PCB_EDIT_FRAME::LoadCopilotCnf()
+{
+}
 
 #endif

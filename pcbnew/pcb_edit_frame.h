@@ -60,6 +60,8 @@ class ACTION_MENU;
 class TOOL_ACTION;
 class DIALOG_BOARD_SETUP;
 
+struct PCB_COPILOT_GLOBAL_CONTEXT;
+
 #ifdef KICAD_IPC_API
 class KICAD_API_SERVER;
 class API_HANDLER_PCB;
@@ -890,6 +892,44 @@ private:
     std::unique_ptr<API_HANDLER_PCB> m_apiHandler;
     std::unique_ptr<API_HANDLER_COMMON> m_apiHandlerCommon;
 #endif
+
+public:
+    /**
+     * Copilot UI interfaces
+     */
+    void InitCopilotPanel();
+
+    void InitCopilotAui();
+
+    void RecreateCopilotToolBar();
+
+    void CopilotPanelShowChangedLanguage();
+
+    void ToggleCopilot();
+
+    void ShowCopilot( bool show = true );
+
+    void SaveCopilotCnf();
+
+    void LoadCopilotCnf();
+
+    /**
+      * Copilot context interfaces
+      */
+
+    void UpdateCopilotContextCache();
+
+    const char* GetCopilotContextCache();
+
+    /**
+      * Copilot Commands
+      */
+
+    void FireCopilotCommand( std::string const& aCmdType );
+
+private:
+    wxPanel*                                    m_copilotPanel{};
+    std::unique_ptr<PCB_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
 };
 
 #endif  // __PCB_EDIT_FRAME_H__

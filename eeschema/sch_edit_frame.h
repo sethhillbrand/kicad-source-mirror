@@ -68,7 +68,6 @@ class HIERARCHY_PANE;
 class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
 struct SCH_COPILOT_GLOBAL_CONTEXT;
-struct COPILOT_GLOBAL_CONTEXT;
 struct SYMBOL_CMD_CONTEXT;
 
 
@@ -914,58 +913,6 @@ public:
 
     void ToggleLibraryTree() override;
 
-    /**
-     * Copilot UI interfaces
-     */
-    void InitCopilotPanel();
-
-    void InitCopilotAui();
-
-    void RecreateCopilotToolBar();
-
-    void CopilotPanelShowChangedLanguage();
-
-    void ToggleCopilot();
-
-    void ShowCopilot( bool show = true );
-
-    void SaveCopilotCnf();
-
-    void LoadCopilotCnf();
-
-    /**
-     * Copilot context interfaces
-     */
-     
-    wxString GetBomList() ;
-
-    wxString GetNetList() ;
-
-    SYMBOL_CMD_CONTEXT const& GetSelectedSymbolContext() ;
-
-    COPILOT_GLOBAL_CONTEXT const& GetGlobalContext() ;
-
-    wxString GetSymbolNetList(wxString const& aDesignator) ;
-
-    void UpdateCopilotContextCache();
-
-    const char* GetCopilotContextCache();
-     
-    /**
-     * Copilot Commands
-     */
-    
-    void FireCopilotCommand(std::string const& aCmdType) ;
-
-    void DesignIntention();
-    void CoreComponents();
-    void CurrentComponent();
-    void SimilarComponents();
-    void CheckSymbolConnections();
-    void ComponentPinsDetails();
-    void SymbolUnconnectedPins();
-
-
     DIALOG_BOOK_REPORTER* GetSymbolDiffDialog();
 
     DIALOG_ERC* GetErcDialog();
@@ -1194,14 +1141,70 @@ private:
 
     DESIGN_BLOCK_PANE* m_designBlocksPane ;
 
-    wxPanel* m_copilotPanel {};
-
-    std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
-    std::unique_ptr<SYMBOL_CMD_CONTEXT>        m_symbolCmdContext;
-
 #ifdef KICAD_IPC_API
     std::unique_ptr<API_HANDLER_SCH> m_apiHandler;
 #endif
+
+public:
+    /**
+     * Copilot UI interfaces
+     */
+    void InitCopilotPanel();
+
+    void InitCopilotAui();
+
+    void RecreateCopilotToolBar();
+
+    void CopilotPanelShowChangedLanguage();
+
+    void ToggleCopilot();
+
+    void ShowCopilot( bool show = true );
+
+    void SaveCopilotCnf();
+
+    void LoadCopilotCnf();
+
+    /**
+      * Copilot context interfaces
+      */
+
+    void UpdateCopilotContextCache();
+
+    const char* GetCopilotContextCache();
+
+    wxString GetBomList();
+
+    wxString GetNetList();
+
+    SYMBOL_CMD_CONTEXT const& GetSelectedSymbolContext();
+
+    wxString GetSymbolNetList( wxString const& aDesignator );
+
+    /**
+      * Copilot Commands
+      */
+
+    void FireCopilotCommand( std::string const& aCmdType );
+
+    void DesignIntention();
+
+    void CoreComponents();
+
+    void CurrentComponent();
+
+    void SimilarComponents();
+
+    void CheckSymbolConnections();
+
+    void ComponentPinsDetails();
+
+    void SymbolUnconnectedPins();
+
+private:
+    wxPanel*                                    m_copilotPanel{};
+    std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
+    std::unique_ptr<SYMBOL_CMD_CONTEXT>         m_symbolCmdContext;
 };
 
 
