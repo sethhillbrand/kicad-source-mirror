@@ -37,47 +37,47 @@
 
 TOOL_ACTION EE_ACTIONS::copilotDesignIntention(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotDesignIntention" )
+                .Name( "eeschema.copilot.copilotDesignIntention" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Explain design intention" ) ) );
 
 
 TOOL_ACTION EE_ACTIONS::copilotCoreComponents(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotCoreComponents" )
+                .Name( "eeschema.copilot.copilotCoreComponents" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Explain core components" ) ) );
 
 
 TOOL_ACTION EE_ACTIONS::copilotCurrentSymbol(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotCurrentSymbol" )
+                .Name( "eeschema.copilot.copilotCurrentSymbol" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Explain current symbol" ) ) );
 
 
 TOOL_ACTION EE_ACTIONS::copilotSimilarComponents(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotSimilarComponents" )
+                .Name( "eeschema.copilot.copilotSimilarComponents" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Find similar components" ) ) );
 
 
 TOOL_ACTION EE_ACTIONS::copilotCheckSymbolConnections(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotCheckSymbolConnections" )
+                .Name( "eeschema.copilot.copilotCheckSymbolConnections" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Check symbol connections" ) ) );
 
 TOOL_ACTION EE_ACTIONS::copilotComponentPinsDetails(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotComponentPinsDetails" )
+                .Name( "eeschema.copilot.copilotComponentPinsDetails" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Explain pins details" ) ) );
 
 TOOL_ACTION EE_ACTIONS::copilotSymbolUnconnectedPins(
         TOOL_ACTION_ARGS()
-                .Name( "eeschema.SchDesignBlockControl.copilotSymbolUnconnectedPins" )
+                .Name( "eeschema.copilot.copilotSymbolUnconnectedPins" )
                 .Scope( AS_GLOBAL )
                 .FriendlyName( _( "Check unconnected pins" ) ) );
 
