@@ -25,6 +25,17 @@
 #ifndef PCB_COPILOT_CONTEXT_INTERFACE_H
 #define PCB_COPILOT_CONTEXT_INTERFACE_H
 
+#include <pcb_edit_frame.h>
+
+
+void PCB_EDIT_FRAME::UpdateCopilotContextCache()
+{
+}
+
+const char*  PCB_EDIT_FRAME::GetCopilotContextCache()
+{
+    return nullptr;
+}
 
 
 #endif

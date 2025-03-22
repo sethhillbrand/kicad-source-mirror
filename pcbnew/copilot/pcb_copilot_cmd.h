@@ -25,6 +25,12 @@
 #ifndef PCB_COPILOT_CMD_H
 #define PCB_COPILOT_CMD_H
 
+#include <pcb_edit_frame.h>
+
+
+void PCB_EDIT_FRAME::FireCopilotCommand( std::string const& aCmdType )
+{
+}
 
 
 #endif

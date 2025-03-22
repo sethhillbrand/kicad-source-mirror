@@ -117,6 +117,12 @@
 #include <footprint_viewer_frame.h>
 #include <footprint_chooser_frame.h>
 
+
+#include "copilot/pcb_copilot_cmd.h"
+#include "copilot/pcb_copilot_context_interface.h"
+#include "copilot/pcb_copilot_global_context.h"
+#include "copilot/pcb_copilot_ui.h"
+
 #ifdef KICAD_IPC_API
 #include <api/api_server.h>
 #include <api/api_handler_pcb.h>
