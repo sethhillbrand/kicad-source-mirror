@@ -46,13 +46,12 @@ void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )
 
     if(aCmdType.starts_with("chat.design"))
     {
-        cmd = create_cmd<DESIGN_INTENTION>( *m_copilotContextCache );
-
+        cmd = create_cmd<DESIGN_INTENTION<SCH_COPILOT_GLOBAL_CONTEXT>>( *m_copilotContextCache );
     }
     else if (aCmdType.starts_with("chat.components"))
     {
-        cmd = create_cmd<CURRENT_COMPONENT, SYMBOL_CMD_CONTEXT>( *m_copilotContextCache,
-            GetSelectedSymbolContext() );
+        cmd = create_cmd<CURRENT_COMPONENT<SCH_COPILOT_GLOBAL_CONTEXT>, SYMBOL_CMD_CONTEXT>(
+                *m_copilotContextCache, GetSelectedSymbolContext() );
     }
     else {
         std::cerr << "Unknown command type: " << aCmdType << std::endl;
