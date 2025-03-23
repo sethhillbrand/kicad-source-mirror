@@ -60,8 +60,9 @@ struct COPILOT_GLOBAL_CONTEXT
     std::string              uuid;
     KICAD_VERSION_INFO       kicad_version_info;
     copilot::PROJECT_CONTEXT project_context;
+    std::string net_list;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_GLOBAL_CONTEXT, uuid, kicad_version_info,
-                                    project_context )
+                                    project_context ,net_list )
 };
 
 
