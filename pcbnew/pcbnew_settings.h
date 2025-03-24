@@ -153,6 +153,7 @@ public:
 
         bool copilot_panel_show;
         int  copilot_panel_docked_width;
+        int  copilot_panel_docked_height;
         int  copilot_panel_float_width;
         int  copilot_panel_float_height;
     };

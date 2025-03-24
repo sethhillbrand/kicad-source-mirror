@@ -36,6 +36,9 @@ void PCBNEW_SETTINGS::initCopilotSettings()
     m_params.emplace_back( new PARAM<int>( "aui.copilot_panel_docked_width",
                                            &m_AuiPanels.copilot_panel_docked_width, -1 ) );
 
+    m_params.emplace_back( new PARAM<int>( "aui.copilot_panel_docked_height",
+                                           &m_AuiPanels.copilot_panel_docked_height, -1 ) );
+
     m_params.emplace_back( new PARAM<int>( "aui.copilot_panel_float_width",
                                            &m_AuiPanels.copilot_panel_float_width, -1 ) );
 
