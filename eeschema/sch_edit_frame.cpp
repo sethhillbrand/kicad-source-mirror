@@ -27,6 +27,7 @@
 #include <api/api_server.h>
 #include <base_units.h>
 #include <bitmaps.h>
+#include <memory>
 #include <symbol_library.h>
 #include <confirm.h>
 #include <connection_graph.h>
@@ -155,7 +156,8 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_highlightedConnChanged( false ),
     m_designBlocksPane( nullptr ),
     m_copilotContextCache(new SCH_COPILOT_GLOBAL_CONTEXT ),
-    m_symbolCmdContext(new SYMBOL_CMD_CONTEXT)
+    m_symbolCmdContext(new SYMBOL_CMD_CONTEXT),
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } ))
 {
     m_copilotContextCache->kicad_version_info = get_kicad_version_info();
     m_maximizeByDefault = true;
@@ -197,9 +199,6 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     root.push_back( &Schematic().Root() );
     SetCurrentSheet( root );
 
-    ASSISTANT_INTERFACE::get_instance().set_copilot_global_ctx_hdl([&]{
-        return this->GetCopilotContextCache();
-    });
     InitCopilotPanel();
     setupTools();
     setupUIConditions();

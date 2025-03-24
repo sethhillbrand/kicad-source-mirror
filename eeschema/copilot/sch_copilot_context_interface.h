@@ -137,12 +137,4 @@ wxString SCH_EDIT_FRAME::GetSymbolNetList( wxString const& aDesignator )
     return GetNetList();
 }
 
-const char* SCH_EDIT_FRAME::GetCopilotContextCache()
-{
-    static std::string ptr;
-    UpdateCopilotContextCache();
-    ptr = nlohmann::json( *m_copilotContextCache ).dump();
-    return ptr.c_str();
-}
-
 #endif

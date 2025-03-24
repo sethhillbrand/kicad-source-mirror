@@ -32,6 +32,7 @@
 
 struct PCB_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT, VARIABLE_CONTEXT
 {
+    std::string dump() const override { return nlohmann::json( *this ).dump(); }
 };
 
 #endif

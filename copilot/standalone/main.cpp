@@ -40,7 +40,7 @@ bool MyApp::OnInit()
 MyDialog::MyDialog( const wxString& title ) : wxFrame( NULL, wxID_ANY, title )
 {
     wxSizer* const sizerTop = new wxBoxSizer( wxVERTICAL );
-    sizerTop->Add( ASSISTANT_INTERFACE::get_instance().create_assistant_panel( this ),
+    sizerTop->Add( ASSISTANT_INTERFACE::get_instance().create_assistant_panel( this , {}),
                    wxSizerFlags( 1 ).Expand().Border() );
     SetSizerAndFit( sizerTop );
     SetSize( wxSize( 800, 600 ) );

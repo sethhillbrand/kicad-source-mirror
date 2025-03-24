@@ -54,10 +54,11 @@ inline auto send_data_buried_point()
 }
 
 
-wxPanel* create_assistant_panel( wxWindow* parent )
+wxPanel* create_assistant_panel( wxWindow*                  parent,
+                                 COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context )
 {
     send_data_buried_point();
-    return new WEBVIEW_CONTAINER( parent );
+    return new WEBVIEW_CONTAINER( parent, get_design_global_context );
 }
 
 void fire_cmd( wxPanel* target, const char* cmd )

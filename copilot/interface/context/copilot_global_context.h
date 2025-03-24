@@ -25,6 +25,8 @@
 #ifndef COPILOT_GLOBAL_CONTEXT_H
 #define COPILOT_GLOBAL_CONTEXT_H
 
+#include "cmd/copilot_cmd_base.h"
+#include "nlohmann/json_fwd.hpp"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <kicad_version_info.h>
@@ -62,7 +64,12 @@ struct COPILOT_GLOBAL_CONTEXT
     copilot::PROJECT_CONTEXT project_context;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_GLOBAL_CONTEXT, uuid, kicad_version_info,
                                     project_context )
+
+
+    virtual std::string dump() const = 0;
+    virtual ~COPILOT_GLOBAL_CONTEXT() = default;
 };
+;
 
 
 #endif

@@ -26,6 +26,7 @@
 #include <mail_type.h>
 #include <settings/app_settings.h>
 #include <variant>
+#include <context/copilot_global_context_handle.h>
 
 class ACTION_PLUGIN;
 class PCB_SCREEN;
@@ -919,8 +920,6 @@ public:
 
     void UpdateCopilotContextCache();
 
-    const char* GetCopilotContextCache();
-
     /**
       * Copilot Commands
       */
@@ -930,6 +929,7 @@ public:
 private:
     wxPanel*                                    m_copilotPanel{};
     std::unique_ptr<PCB_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
+    COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
 };
 
 #endif  // __PCB_EDIT_FRAME_H__

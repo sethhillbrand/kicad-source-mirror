@@ -32,10 +32,5 @@ void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 {
 }
 
-const char*  PCB_EDIT_FRAME::GetCopilotContextCache()
-{
-    return nullptr;
-}
-
 
 #endif

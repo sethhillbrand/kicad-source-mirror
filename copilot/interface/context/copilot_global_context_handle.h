@@ -26,12 +26,19 @@
 #define COPILOT_GLOBAL_CONTEXT_HANDLE_H
 
 #include <functional>
+#include <memory>
+
+
+struct COPILOT_GLOBAL_CONTEXT;
 
 /**
  * @brief Getting the full netlist and bom from kicad
  * @return @COPILOT_GLOBAL_CONTEXT
  * 
  */
-using COPILOT_GLOBAL_CONTEXT_HDL = std::function<const char*()>;
+using COPILOT_GLOBAL_CONTEXT_HDL = std::weak_ptr<std::function<COPILOT_GLOBAL_CONTEXT const&()>>;
+using COPILOT_GLOBAL_CONTEXT_OWNED_HDL =
+        std::shared_ptr<std::function<COPILOT_GLOBAL_CONTEXT const&()>>;
+
 
 #endif

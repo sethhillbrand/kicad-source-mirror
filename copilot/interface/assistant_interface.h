@@ -31,7 +31,8 @@
 #include <context/copilot_global_context_handle.h>
 
 
-using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow* );
+using CREATE_CHAT_PANEL_HANDEL =
+        wxPanel* (*) ( wxWindow*, COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 
 class ASSISTANT_INTERFACE
@@ -47,15 +48,6 @@ public:
 
     auto is_assistant_available() const { return _is_assistant_available; }
 
-    auto set_copilot_global_ctx_hdl( COPILOT_GLOBAL_CONTEXT_HDL hdl )
-    {
-        if( !is_assistant_available() )
-            return;
-
-        _assistant->get_variable<COPILOT_GLOBAL_CONTEXT_HDL>( "get_design_global_context_hdl" ) = hdl;
-    }
-
-
     auto load()
     {
         try
@@ -63,7 +55,9 @@ public:
             _assistant = std::make_unique<dylib>(
                     ASSISTANT_INTERFACE_PATH::generic_get_assistant_dll_path() );
             _create_chat_panel_handel =
-                    _assistant->get_function<wxPanel*( wxWindow* )>( "create_assistant_panel" );
+                    _assistant->get_function<wxPanel*( wxWindow*, COPILOT_GLOBAL_CONTEXT_HDL )>(
+                            "create_assistant_panel" );
+
             if( !_create_chat_panel_handel )
             {
                 wxLogError( "Failed to load function: create_assistant_panel" );
@@ -73,6 +67,7 @@ public:
 
             _fire_cmd_handel =
                     _assistant->get_function<void( wxPanel*, const char* )>( "fire_cmd" );
+
             if( !_fire_cmd_handel )
             {
                 wxLogError( "Failed to load function: fire_cmd" );
@@ -93,7 +88,8 @@ public:
 
     void close() { _assistant.reset(); }
 
-    wxPanel* create_assistant_panel( wxWindow* parent )
+    wxPanel* create_assistant_panel( wxWindow*                  parent,
+                                     COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context )
     {
         if( !_assistant )
         {
@@ -109,7 +105,7 @@ public:
             return nullptr;
         }
 
-        return _create_chat_panel_handel( parent );
+        return _create_chat_panel_handel( parent, get_design_global_context );
     }
 
     void fire_cmd( wxPanel* target, const std::string& cmd )
@@ -160,7 +156,7 @@ private:
     std::string              _assistant_version;
     bool                     _is_assistant_available = false;
 
-    ASSISTANT_INTERFACE() : _is_assistant_available(load()) {  }
+    ASSISTANT_INTERFACE() : _is_assistant_available( load() ) {}
 };
 
 

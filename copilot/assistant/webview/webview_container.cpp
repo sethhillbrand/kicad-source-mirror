@@ -44,12 +44,6 @@
 #include <wx/msw/webview_edge.h>
 #endif
 
-extern "C"
-
-{
-    COPILOT_API COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context_hdl = nullptr;
-}
-
 
 enum START_UP_SIZE
 {
@@ -57,8 +51,10 @@ enum START_UP_SIZE
     HEIGHT = 1040
 };
 
-WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
-        wxPanel( parent ), m_browser( wxWebView::New() )
+WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*                  parent,
+                                      COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context_hdl ) :
+        wxPanel( parent ), _browser( wxWebView::New() ),
+        _get_design_global_context_hdl( std::move( get_design_global_context_hdl ) )
 {
 #ifdef DEBUG
     new wxLogWindow( this, _( "Logging" ), true, false );
@@ -66,25 +62,25 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
     auto top_sizer = new wxBoxSizer( wxVERTICAL );
 #ifdef __WXMAC__
     // With WKWebView handlers need to be registered before creation
-    m_browser->RegisterHandler(
+    _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewArchiveHandler( "wxfs" ) ) );
-    m_browser->RegisterHandler(
+    _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 #endif
-    m_browser->Create( this, wxID_ANY,
-                       COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),
-                       wxDefaultPosition, wxDefaultSize );
-    top_sizer->Add( m_browser, wxSizerFlags().Expand().Proportion( 1 ) );
+    _browser->Create( this, wxID_ANY,
+                      COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),
+                      wxDefaultPosition, wxDefaultSize );
+    top_sizer->Add( _browser, wxSizerFlags().Expand().Proportion( 1 ) );
 
 #ifndef __WXMAC__
     //We register the wxfs:// protocol for testing purposes
-    m_browser->RegisterHandler(
+    _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewArchiveHandler( "wxfs" ) ) );
     //And the memory: file system
-    m_browser->RegisterHandler(
+    _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 #endif
-    if( !m_browser->AddScriptMessageHandler(
+    if( !_browser->AddScriptMessageHandler(
                 magic_enum::enum_name( WEBVIEW_MSG_HANDLES::kicad_desktop ).data() ) )
         wxLogError( "Could not add script message handler" );
 
@@ -95,26 +91,26 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow* parent ) :
 
     // Connect the webview events
     Bind( wxEVT_WEBVIEW_NAVIGATING, &WEBVIEW_CONTAINER::OnNavigationRequest, this,
-          m_browser->GetId() );
+          _browser->GetId() );
     Bind( wxEVT_WEBVIEW_NAVIGATED, &WEBVIEW_CONTAINER::OnNavigationComplete, this,
-          m_browser->GetId() );
-    Bind( wxEVT_WEBVIEW_LOADED, &WEBVIEW_CONTAINER::OnDocumentLoaded, this, m_browser->GetId() );
-    Bind( wxEVT_WEBVIEW_ERROR, &WEBVIEW_CONTAINER::OnError, this, m_browser->GetId() );
-    Bind( wxEVT_WEBVIEW_NEWWINDOW, &WEBVIEW_CONTAINER::OnNewWindow, this, m_browser->GetId() );
+          _browser->GetId() );
+    Bind( wxEVT_WEBVIEW_LOADED, &WEBVIEW_CONTAINER::OnDocumentLoaded, this, _browser->GetId() );
+    Bind( wxEVT_WEBVIEW_ERROR, &WEBVIEW_CONTAINER::OnError, this, _browser->GetId() );
+    Bind( wxEVT_WEBVIEW_NEWWINDOW, &WEBVIEW_CONTAINER::OnNewWindow, this, _browser->GetId() );
     Bind( wxEVT_WEBVIEW_TITLE_CHANGED, &WEBVIEW_CONTAINER::OnTitleChanged, this,
-          m_browser->GetId() );
+          _browser->GetId() );
     Bind( wxEVT_WEBVIEW_FULLSCREEN_CHANGED, &WEBVIEW_CONTAINER::OnFullScreenChanged, this,
-          m_browser->GetId() );
+          _browser->GetId() );
     Bind( wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &WEBVIEW_CONTAINER::OnScriptMessage, this,
-          m_browser->GetId() );
+          _browser->GetId() );
     Bind( wxEVT_WEBVIEW_SCRIPT_RESULT, &WEBVIEW_CONTAINER::OnScriptResult, this,
-          m_browser->GetId() );
+          _browser->GetId() );
 
 #ifdef DEBUG
 
 #if wxUSE_WEBVIEW_EDGE
 
-    if( auto edge = dynamic_cast<wxWebViewEdge*>( m_browser ) )
+    if( auto edge = dynamic_cast<wxWebViewEdge*>( _browser ) )
     {
         edge->EnableAccessToDevTools( true );
     }
@@ -132,7 +128,7 @@ WEBVIEW_CONTAINER::~WEBVIEW_CONTAINER()
 void WEBVIEW_CONTAINER::fire_copilot_cmd( const char* cmd )
 {
     wxString out;
-    m_browser->RunScriptAsync(
+    _browser->RunScriptAsync(
             std::format( " {}({});", magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_copilot_cmd ),
                          cmd ),
             &out );
@@ -153,7 +149,7 @@ void WEBVIEW_CONTAINER::OnNavigationComplete( wxWebViewEvent& evt )
 
 void WEBVIEW_CONTAINER::OnDocumentLoaded( wxWebViewEvent& evt )
 {
-    if( evt.GetURL() == m_browser->GetCurrentURL() )
+    if( evt.GetURL() == _browser->GetCurrentURL() )
     {
     }
 }
@@ -170,7 +166,7 @@ void WEBVIEW_CONTAINER::OnNewWindow( wxWebViewEvent& evt )
 
     //If we handle new window events then just load them in this window as we
     //are a single window browser
-    m_browser->LoadURL( evt.GetURL() );
+    _browser->LoadURL( evt.GetURL() );
 }
 
 void WEBVIEW_CONTAINER::OnTitleChanged( wxWebViewEvent& evt )
@@ -198,27 +194,25 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
         {
         case KICAD_DESKTOP_CMD_TYPE::update_global_context:
         {
-            if( !get_design_global_context_hdl )
+            if( _get_design_global_context_hdl.expired() )
             {
-                wxLogError( "No global context handler set" );
+                wxLogError( "Get design global context handle expired" );
                 break;
             }
 
-            const auto global_ctx = get_design_global_context_hdl();
+            auto& global_ctx = ( *( _get_design_global_context_hdl.lock().get() ) )();
 
-            auto j = nlohmann::json::parse( global_ctx ).get<COPILOT_GLOBAL_CONTEXT>();
-
-            if( _consumed_global_ctx_keys.contains( j.uuid ) )
+            if( _consumed_global_ctx_keys.contains( global_ctx.uuid ) )
                 break;
 
             wxString out;
-            m_browser->RunScriptAsync(
+            _browser->RunScriptAsync(
                     std::format( " {}({});",
                                  magic_enum::enum_name( WEBVIEW_FUNCTIONS::update_global_ctx ),
-                                 global_ctx ),
+                                 global_ctx.dump() ),
                     &out );
 
-            _consumed_global_ctx_keys.insert( j.uuid );
+            _consumed_global_ctx_keys.insert( global_ctx.uuid );
             break;
         }
         }

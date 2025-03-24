@@ -23,6 +23,7 @@
 #include <advanced_config.h>
 #include <kiface_base.h>
 #include <kiway.h>
+#include <memory>
 #include <pgm_base.h>
 #include <pcb_edit_frame.h>
 #include <3d_viewer/eda_3d_viewer_frame.h>
@@ -215,7 +216,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_footprintDiffDlg( nullptr ),
     m_boardSetupDlg( nullptr ),
     m_importProperties( nullptr ),
-    m_eventCounterTimer( nullptr )
+    m_eventCounterTimer( nullptr ),
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } ))
 {
     m_maximizeByDefault = true;
     m_showBorderAndTitleBlock = true;   // true to display sheet references

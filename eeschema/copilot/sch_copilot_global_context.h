@@ -44,6 +44,7 @@ struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT, VARIABLE_CONTEXT
         from_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT&>( nlohmann_json_t ) );
         nlohmann_json_j.at( "net_list" ).get_to( nlohmann_json_t.net_list );
     }
+    std::string dump() const override { return nlohmann::json( *this ).dump(); }
 };
 
 #endif

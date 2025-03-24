@@ -43,6 +43,7 @@
 #include <math/box2.h>
 #include <sch_base_frame.h>
 #include <template_fieldnames.h>
+#include <context/copilot_global_context_handle.h>
 
 class SCH_ITEM;
 class EDA_ITEM;
@@ -1171,8 +1172,6 @@ public:
 
     void UpdateCopilotContextCache();
 
-    const char* GetCopilotContextCache();
-
     wxString GetBomList();
 
     wxString GetNetList();
@@ -1205,6 +1204,8 @@ private:
     wxPanel*                                    m_copilotPanel{};
     std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
     std::unique_ptr<SYMBOL_CMD_CONTEXT>         m_symbolCmdContext;
+    COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
+    
 };
 
 
