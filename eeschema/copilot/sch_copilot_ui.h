@@ -26,11 +26,10 @@
 #define SCH_COPILOT_UI_H
 
 #include <tool/action_toolbar.h>
-#include <tools/ee_actions.h>
+#include <tool/actions.h>
 #include <sch_edit_frame.h>
 #include <widgets/wx_aui_utils.h>
 #include <copilot_panel_name.h>
-#include <assistant_interface.h>
 #include <assistant_interface.h>
 #include <copilot_aui_info.h>
 
@@ -54,7 +53,7 @@ void SCH_EDIT_FRAME::RecreateCopilotToolBar()
     if( m_copilotPanel )
     {
         m_mainToolBar->AddScaledSeparator( this );
-        m_mainToolBar->Add( EE_ACTIONS::toggleCopilotPanel );
+        m_mainToolBar->Add( ACTIONS::toggleCopilotPanel );
     }
 }
 

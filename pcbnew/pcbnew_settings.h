@@ -150,6 +150,11 @@ public:
         bool  show_properties;
         bool  show_search;
         bool  show_net_inspector;
+
+        bool copilot_panel_show;
+        int  copilot_panel_docked_width;
+        int  copilot_panel_float_width;
+        int  copilot_panel_float_height;
     };
 
     struct DIALOG_CLEANUP
@@ -474,6 +479,9 @@ protected:
 
     virtual std::string getLegacyFrameName() const override { return "PcbFrame"; }
 
+
+private:
+    void initCopilotSettings();
 };
 
 #endif

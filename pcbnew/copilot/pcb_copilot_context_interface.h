@@ -26,10 +26,15 @@
 #define PCB_COPILOT_CONTEXT_INTERFACE_H
 
 #include <pcb_edit_frame.h>
-
+#include "pcb_copilot_global_context.h"
 
 void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 {
+    if( m_copilotContextCache->is_newest )
+        return;
+
+    m_copilotContextCache->uuid = KIID().AsStdString();
+    m_copilotContextCache->is_newest = true;
 }
 
 

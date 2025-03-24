@@ -41,7 +41,6 @@ public:
     ~WEBVIEW_CONTAINER();
 
     void fire_copilot_cmd( const char* cmd ) override;
-    void fire_session_cmd( const char* cmd ) override;
 
     void OnNavigationRequest( wxWebViewEvent& evt );
     void OnNavigationComplete( wxWebViewEvent& evt );

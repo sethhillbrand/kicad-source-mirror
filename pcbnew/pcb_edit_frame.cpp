@@ -118,11 +118,11 @@
 #include <footprint_viewer_frame.h>
 #include <footprint_chooser_frame.h>
 
-
-#include "copilot/pcb_copilot_cmd.h"
-#include "copilot/pcb_copilot_context_interface.h"
+#include <copilot/pcb_copilot_cmd.h>
+#include <copilot/pcb_copilot_context_interface.h>
 #include "copilot/pcb_copilot_global_context.h"
-#include "copilot/pcb_copilot_ui.h"
+#include <copilot/pcb_copilot_ui.h>
+#include <copilot/get_kicad_version_info.h>
 
 #ifdef KICAD_IPC_API
 #include <api/api_server.h>
@@ -217,8 +217,14 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_boardSetupDlg( nullptr ),
     m_importProperties( nullptr ),
     m_eventCounterTimer( nullptr ),
-    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } ))
+    m_copilotContextCache(new PCB_COPILOT_GLOBAL_CONTEXT ),
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]{ 
+         UpdateCopilotContextCache();
+        //  FIXME
+        return *m_copilotContextCache;  
+    } ))
 {
+    m_copilotContextCache->kicad_version_info = get_kicad_version_info();
     m_maximizeByDefault = true;
     m_showBorderAndTitleBlock = true;   // true to display sheet references
     m_SelTrackWidthBox = nullptr;
@@ -277,6 +283,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     // PCB drawings start in the upper left corner.
     GetScreen()->m_Center = false;
 
+    InitCopilotPanel();
     setupTools();
     setupUIConditions();
 
@@ -344,6 +351,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
                       .BestSize( FromDIP( 180 ), -1 )
                       .FloatingSize( FromDIP( 180 ), -1 )
                       .CloseButton( false ) );
+    InitCopilotAui();
+
 
     m_auimgr.AddPane( m_propertiesPanel, EDA_PANE().Name( PropertiesPaneName() )
                       .Left().Layer( 5 )
@@ -421,6 +430,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         }
 
         m_appearancePanel->SetTabIndex( settings->m_AuiPanels.appearance_panel_tab );
+
+        LoadCopilotCnf();
     }
 
     {
@@ -1712,6 +1723,8 @@ void PCB_EDIT_FRAME::ShowChangedLanguage()
 {
     // call my base class
     PCB_BASE_EDIT_FRAME::ShowChangedLanguage();
+
+    CopilotPanelShowChangedLanguage();
 
     m_auimgr.GetPane( m_appearancePanel ).Caption( _( "Appearance" ) );
     m_auimgr.GetPane( m_selectionFilterPanel ).Caption( _( "Selection Filter" ) );

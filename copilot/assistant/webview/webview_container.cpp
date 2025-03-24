@@ -134,10 +134,6 @@ void WEBVIEW_CONTAINER::fire_copilot_cmd( const char* cmd )
             &out );
 }
 
-void WEBVIEW_CONTAINER::fire_session_cmd( const char* cmd )
-{
-}
-
 void WEBVIEW_CONTAINER::OnNavigationRequest( wxWebViewEvent& evt )
 {
 }

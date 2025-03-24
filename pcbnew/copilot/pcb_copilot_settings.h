@@ -25,6 +25,23 @@
 #ifndef PCB_COPILOT_SETTINGS_H
 #define PCB_COPILOT_SETTINGS_H
 
+#include <pcbnew_settings.h>
+#include <settings/parameters.h>
+
+void PCBNEW_SETTINGS::initCopilotSettings()
+{
+    m_params.emplace_back(
+            new PARAM<bool>( "aui.copilot_panel_show", &m_AuiPanels.copilot_panel_show, true ) );
+
+    m_params.emplace_back( new PARAM<int>( "aui.copilot_panel_docked_width",
+                                           &m_AuiPanels.copilot_panel_docked_width, -1 ) );
+
+    m_params.emplace_back( new PARAM<int>( "aui.copilot_panel_float_width",
+                                           &m_AuiPanels.copilot_panel_float_width, -1 ) );
+
+    m_params.emplace_back( new PARAM<int>( "aui.copilot_panel_float_height",
+                                           &m_AuiPanels.copilot_panel_float_height, -1 ) );
+}
 
 
 #endif
