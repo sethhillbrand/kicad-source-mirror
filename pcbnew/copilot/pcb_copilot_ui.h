@@ -54,9 +54,14 @@ void PCB_EDIT_FRAME::InitCopilotAui()
                                                   .Layer( 4 )
                                                   .Position( 3 )
                                                   .PaneBorder( false )
-                                                  .MinSize( FromDIP( 180 ), -1 )
-                                                  .BestSize( FromDIP( 180 ), -1 )
-                                                  .FloatingSize( FromDIP( 180 ), -1 ) );
+                                                  .TopDockable( false )
+                                                  .BottomDockable( false )
+                                                  .CloseButton( true )
+                                                  .MinSize( FromDIP( wxSize( 240, 60 ) ) )
+                                                  .BestSize( FromDIP( wxSize( 300, 200 ) ) )
+                                                  .FloatingSize( FromDIP( wxSize( 800, 600 ) ) )
+                                                  .FloatingPosition( FromDIP( wxPoint( 50, 200 ) ) )
+                                                  .Show( true ) );
     }
 }
 
@@ -109,10 +114,13 @@ void PCB_EDIT_FRAME::ShowCopilot( bool show )
                                        cfg->m_AuiPanels.copilot_panel_float_height );
             m_auimgr.Update();
         }
-        else if( cfg->m_AuiPanels.copilot_panel_docked_width > 0 )
+        else
         {
             // SetAuiPaneSize also updates m_auimgr
-            SetAuiPaneSize( m_auimgr, copilot_pane, cfg->m_AuiPanels.copilot_panel_docked_width,
+            SetAuiPaneSize( m_auimgr, copilot_pane,
+                            cfg->m_AuiPanels.copilot_panel_docked_width > 0
+                                    ? cfg->m_AuiPanels.copilot_panel_docked_width
+                                    : -1,
                             cfg->m_AuiPanels.copilot_panel_docked_height );
         }
     }
@@ -126,7 +134,7 @@ void PCB_EDIT_FRAME::ShowCopilot( bool show )
         else
         {
             cfg->m_AuiPanels.copilot_panel_docked_width = m_copilotPanel->GetSize().x;
-            cfg->m_AuiPanels.copilot_panel_docked_width = m_copilotPanel->GetSize().y;
+            cfg->m_AuiPanels.copilot_panel_docked_height = m_copilotPanel->GetSize().y;
         }
 
         m_auimgr.Update();
@@ -145,7 +153,10 @@ void PCB_EDIT_FRAME::SaveCopilotCnf()
         cfg->m_AuiPanels.copilot_panel_show = copilotPane.IsShown();
 
         if( copilotPane.IsDocked() )
+        {
             cfg->m_AuiPanels.copilot_panel_docked_width = m_copilotPanel->GetSize().x;
+            cfg->m_AuiPanels.copilot_panel_docked_height = m_copilotPanel->GetSize().y;
+        }
         else
         {
             cfg->m_AuiPanels.copilot_panel_float_height = copilotPane.floating_size.y;
@@ -164,10 +175,11 @@ void PCB_EDIT_FRAME::LoadCopilotCnf()
     {
         wxAuiPaneInfo& copilotPane = m_auimgr.GetPane( CopilotPanelName() );
         copilotPane.Show( cfg->m_AuiPanels.copilot_panel_show );
+
         if( cfg->m_AuiPanels.copilot_panel_show )
         {
             SetAuiPaneSize( m_auimgr, copilotPane, cfg->m_AuiPanels.copilot_panel_docked_width,
-                            -1 );
+                            cfg->m_AuiPanels.copilot_panel_docked_height );
         }
     }
 }

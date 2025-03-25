@@ -218,7 +218,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_importProperties( nullptr ),
     m_eventCounterTimer( nullptr ),
     m_copilotContextCache(new PCB_COPILOT_GLOBAL_CONTEXT ),
-    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]{ 
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]()->COPILOT_GLOBAL_CONTEXT const&{ 
          UpdateCopilotContextCache();
         //  FIXME
         return *m_copilotContextCache;  
@@ -1495,6 +1495,9 @@ void PCB_EDIT_FRAME::SaveSettings( APP_SETTINGS_BASE* aCfg )
             cfg->m_AuiPanels.appearance_expand_layer_display = m_appearancePanel->IsLayerOptionsExpanded();
             cfg->m_AuiPanels.appearance_expand_net_display   = m_appearancePanel->IsNetOptionsExpanded();
         }
+
+        if( m_copilotPanel )
+            SaveCopilotCnf();
     }
 }
 

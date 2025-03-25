@@ -199,6 +199,8 @@ void PCB_EDIT_FRAME::ReCreateHToolbar()
     m_mainToolBar->AddScaledSeparator( this );
     m_mainToolBar->Add( PCB_ACTIONS::showEeschema );
 
+    RecreateCopilotToolBar();
+
     // Add SWIG and API plugins
     bool scriptingAvailable = SCRIPTING::IsWxAvailable();
 #ifdef KICAD_IPC_API

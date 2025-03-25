@@ -22,53 +22,33 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_GLOBAL_CONTEXT_H
-#define COPILOT_GLOBAL_CONTEXT_H
+#ifndef PCB_COPILOT_CONTROL_H
+#define PCB_COPILOT_CONTROL_H
 
-#include "nlohmann/json_fwd.hpp"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <kicad_version_info.h>
-#include <vector>
+#include "tools/pcb_control.h"
 
 
-namespace copilot
+int PCB_CONTROL::ToggleCopilot( const TOOL_EVENT& aEvent )
 {
+    PCB_EDIT_FRAME* editFrame = dynamic_cast<PCB_EDIT_FRAME*>( m_frame );
 
-struct PROJECT_FILE
+    if( !editFrame )
+        return 1;
+
+    editFrame->ToggleCopilot();
+    return 0;
+}
+
+int PCB_CONTROL::ShowCopilot( const TOOL_EVENT& aEvent )
 {
-    std::string name;
-    std::string ext;
-    std::string path;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PROJECT_FILE, path, name, ext )
-};
+    PCB_EDIT_FRAME* editFrame = dynamic_cast<PCB_EDIT_FRAME*>( m_frame );
 
+    if( !editFrame )
+        return 1;
 
-struct PROJECT_CONTEXT
-{
-    std::string               project_name;
-    std::string               project_path;
-    std::vector<PROJECT_FILE> files;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PROJECT_CONTEXT, project_name, project_path )
-};
-
-
-}; // namespace copilot
-
-
-struct COPILOT_GLOBAL_CONTEXT
-{
-    std::string              uuid;
-    KICAD_VERSION_INFO       kicad_version_info;
-    copilot::PROJECT_CONTEXT project_context;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_GLOBAL_CONTEXT, uuid, kicad_version_info,
-                                    project_context )
-
-
-    virtual std::string dump() const { return nlohmann::json( *this ).dump(); }
-    virtual ~COPILOT_GLOBAL_CONTEXT() = default;
-};
-;
+    editFrame->ShowCopilot();
+    return 0;
+}
 
 
 #endif

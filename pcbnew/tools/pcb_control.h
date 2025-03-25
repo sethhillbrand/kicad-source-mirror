@@ -154,6 +154,10 @@ private:
     BOARD_ITEM* m_pickerItem;
 
     std::unique_ptr<STATUS_TEXT_POPUP> m_statusPopup;
+
+public:
+    int ToggleCopilot( const TOOL_EVENT& aEvent );
+    int ShowCopilot( const TOOL_EVENT& aEvent );
 };
 
 #endif

@@ -57,7 +57,7 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*                  parent,
         _get_design_global_context_hdl( std::move( get_design_global_context_hdl ) )
 {
 #ifdef DEBUG
-    new wxLogWindow( this, _( "Logging" ), true, false );
+    // new wxLogWindow( this, _( "Logging" ), true, false );
 #endif // DEBUG
     auto top_sizer = new wxBoxSizer( wxVERTICAL );
 #ifdef __WXMAC__
@@ -184,7 +184,10 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
         auto t = magic_enum::enum_cast<KICAD_DESKTOP_CMD_TYPE>( cmd.type );
 
         if( !t.has_value() )
+        {
+            wxLogError( "Invalid message received: %s", evt.GetString() );
             return;
+        }
 
         switch( *t )
         {
@@ -196,7 +199,9 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
                 break;
             }
 
-            auto& global_ctx = ( *( _get_design_global_context_hdl.lock().get() ) )();
+            auto context_function = _get_design_global_context_hdl.lock();
+
+            auto& global_ctx = ( *context_function )();
 
             if( _consumed_global_ctx_keys.contains( global_ctx.uuid ) )
                 break;

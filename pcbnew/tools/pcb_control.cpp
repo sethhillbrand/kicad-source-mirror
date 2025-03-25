@@ -71,6 +71,7 @@
 #include <widgets/wx_progress_reporters.h>
 #include <widgets/wx_infobar.h>
 #include <wx/hyperlink.h>
+#include "copilot/pcb_copilot_control.h"
 
 
 using namespace std::placeholders;
@@ -2073,5 +2074,9 @@ void PCB_CONTROL::setTransitions()
     // Add library by dropping file
     Go( &PCB_CONTROL::DdAddLibrary,         ACTIONS::ddAddLibrary.MakeEvent() );
     Go( &PCB_CONTROL::DdImportFootprint,    PCB_ACTIONS::ddImportFootprint.MakeEvent() );
+
+    // Copilot
+    Go( &PCB_CONTROL::ToggleCopilot,         ACTIONS::toggleCopilotPanel.MakeEvent() );
+    Go( &PCB_CONTROL::ShowCopilot,    ACTIONS::showCopilotPanel.MakeEvent() );    
 }
 // clang-format on
