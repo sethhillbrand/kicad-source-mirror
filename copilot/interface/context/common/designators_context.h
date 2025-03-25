@@ -22,14 +22,18 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef VARIABLE_CONTEXT_H
-#define VARIABLE_CONTEXT_H
+#ifndef DESIGNATORS_CONTEXT_H
+#define DESIGNATORS_CONTEXT_H
 
-struct VARIABLE_CONTEXT
+#include <nlohmann/json.hpp>
+
+struct DESIGNATORS_CONTEXT
 {
-    bool is_newest{};
+    std::list<std::string> designators;
 
-    virtual ~VARIABLE_CONTEXT() = default;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGNATORS_CONTEXT, designators )
+
+    virtual ~DESIGNATORS_CONTEXT() = default;
 };
 
 #endif

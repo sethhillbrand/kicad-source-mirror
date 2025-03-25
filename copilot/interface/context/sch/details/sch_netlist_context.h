@@ -22,14 +22,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef VARIABLE_CONTEXT_H
-#define VARIABLE_CONTEXT_H
+#ifndef SCH_NETLIST_CONTEXT_H
+#define SCH_NETLIST_CONTEXT_H
 
-struct VARIABLE_CONTEXT
+#include <nlohmann/json.hpp>
+
+struct SCH_NETLIST_CONTEXT
 {
-    bool is_newest{};
-
-    virtual ~VARIABLE_CONTEXT() = default;
+    std::string net_list;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SCH_NETLIST_CONTEXT, net_list )
+    virtual ~SCH_NETLIST_CONTEXT() = default;
 };
 
 #endif

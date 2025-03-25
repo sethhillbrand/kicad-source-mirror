@@ -25,50 +25,18 @@
 #ifndef COPILOT_GLOBAL_CONTEXT_H
 #define COPILOT_GLOBAL_CONTEXT_H
 
-#include "nlohmann/json_fwd.hpp"
 #include <nlohmann/json.hpp>
-#include <string>
-#include <kicad_version_info.h>
-#include <vector>
-
-
-namespace copilot
-{
-
-struct PROJECT_FILE
-{
-    std::string name;
-    std::string ext;
-    std::string path;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PROJECT_FILE, path, name, ext )
-};
-
-
-struct PROJECT_CONTEXT
-{
-    std::string               project_name;
-    std::string               project_path;
-    std::vector<PROJECT_FILE> files;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PROJECT_CONTEXT, project_name, project_path )
-};
-
-
-}; // namespace copilot
-
+#include <host_version_info.h>
 
 struct COPILOT_GLOBAL_CONTEXT
 {
-    std::string              uuid;
-    KICAD_VERSION_INFO       kicad_version_info;
-    copilot::PROJECT_CONTEXT project_context;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_GLOBAL_CONTEXT, uuid, kicad_version_info,
-                                    project_context )
+    std::string        uuid;
+    HOST_VERSION_INFO host_version_info;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( COPILOT_GLOBAL_CONTEXT, uuid, host_version_info )
 
-
-    virtual std::string dump() const { return nlohmann::json( *this ).dump(); }
     virtual ~COPILOT_GLOBAL_CONTEXT() = default;
+    virtual std::string dump() const = 0;
 };
-;
 
 
 #endif

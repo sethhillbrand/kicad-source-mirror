@@ -224,7 +224,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         return *m_copilotContextCache;  
     } ))
 {
-    m_copilotContextCache->kicad_version_info = get_kicad_version_info();
+    m_copilotContextCache->host_version_info.details = get_kicad_version_info();
     m_maximizeByDefault = true;
     m_showBorderAndTitleBlock = true;   // true to display sheet references
     m_SelTrackWidthBox = nullptr;
@@ -638,6 +638,7 @@ void PCB_EDIT_FRAME::SetBoard( BOARD* aBoard, bool aBuildConnectivity,
 
     // reload the drawing-sheet
     SetPageSettings( aBoard->GetPageSettings() );
+    m_copilotContextCache->is_newest = false;
 }
 
 
@@ -1781,6 +1782,7 @@ void PCB_EDIT_FRAME::OnModify()
         UpdateTitle();
 
     m_ZoneFillsDirty = true;
+    m_copilotContextCache->is_newest = false;
 }
 
 

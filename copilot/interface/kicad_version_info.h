@@ -39,7 +39,7 @@ struct KICAD_VERSION_INFO
     std::string PortIdName;
     std::string wxWidgets;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( KICAD_VERSION_INFO, KiCadBuildVersion, osDescription,
-                                    BitnessName, EndiannessName, PortIdName ,wxWidgets)
+                                    BitnessName, EndiannessName, PortIdName ,wxWidgets )
 };
 
 

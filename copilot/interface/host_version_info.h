@@ -22,14 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef VARIABLE_CONTEXT_H
-#define VARIABLE_CONTEXT_H
+#ifndef HOST_VERSION_INFO_H
+#define HOST_VERSION_INFO_H
 
-struct VARIABLE_CONTEXT
+#include <kicad_version_info.h>
+
+struct HOST_VERSION_INFO
 {
-    bool is_newest{};
+    std::string host_name = "kicad_desktop";
+    KICAD_VERSION_INFO details;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HOST_VERSION_INFO, host_name, details )
 
-    virtual ~VARIABLE_CONTEXT() = default;
 };
 
 #endif

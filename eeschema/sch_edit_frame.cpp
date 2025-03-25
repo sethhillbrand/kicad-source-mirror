@@ -159,7 +159,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_symbolCmdContext(new SYMBOL_CMD_CONTEXT),
     m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]() -> COPILOT_GLOBAL_CONTEXT const&{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } ))
 {
-    m_copilotContextCache->kicad_version_info = get_kicad_version_info();
+    m_copilotContextCache->host_version_info.details = get_kicad_version_info();
     m_maximizeByDefault = true;
     m_schematic = new SCHEMATIC( nullptr );
 
