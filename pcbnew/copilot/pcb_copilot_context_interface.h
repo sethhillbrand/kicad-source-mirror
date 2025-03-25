@@ -26,7 +26,7 @@
 #define PCB_COPILOT_CONTEXT_INTERFACE_H
 
 #include <pcb_edit_frame.h>
-#include "pcb_copilot_global_context.h"
+#include <context/pcb/pcb_copilot_global_context.h>
 
 void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 {

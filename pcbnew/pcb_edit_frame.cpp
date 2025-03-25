@@ -120,7 +120,7 @@
 
 #include <copilot/pcb_copilot_cmd.h>
 #include <copilot/pcb_copilot_context_interface.h>
-#include "copilot/pcb_copilot_global_context.h"
+#include <context/pcb/pcb_copilot_global_context.h>
 #include <copilot/pcb_copilot_ui.h>
 #include <copilot/get_kicad_version_info.h>
 

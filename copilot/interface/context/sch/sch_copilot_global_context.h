@@ -27,22 +27,28 @@
 
 #include <context/copilot_global_context.h>
 #include <context/variable_context.h>
+#include <context/context_fields.h>
+#include <string>
 
 
 struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT, VARIABLE_CONTEXT
 {
     std::string net_list;
+    std::list<std::string> designators;
+
     friend void to_json( nlohmann ::json&                  nlohmann_json_j,
                          const SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
     {
         to_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT const&>( nlohmann_json_t ) );
-        nlohmann_json_j["net_list"] = nlohmann_json_t.net_list;
+        nlohmann_json_j[kNetList] = nlohmann_json_t.net_list;
+        nlohmann_json_j[kDesignators] = nlohmann_json_t.designators;
     }
     friend void from_json( const nlohmann ::json&      nlohmann_json_j,
                            SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
     {
         from_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT&>( nlohmann_json_t ) );
-        nlohmann_json_j.at( "net_list" ).get_to( nlohmann_json_t.net_list );
+        nlohmann_json_j.at( kNetList ).get_to( nlohmann_json_t.net_list );
+        nlohmann_json_j.at( kDesignators ).get_to( nlohmann_json_t.designators );
     }
     std::string dump() const override { return nlohmann::json( *this ).dump(); }
 };

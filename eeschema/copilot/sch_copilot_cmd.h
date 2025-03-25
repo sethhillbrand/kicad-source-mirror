@@ -33,8 +33,8 @@
 #include <context/context_fields.h>
 #include <cmd/copilot_cmd_type.h>
 #include "cmd/copilot_cmd_base.h"
+#include <context/sch/sch_copilot_global_context.h>
 #include "context/symbol_context.h"
-#include "sch_copilot_global_context.h"
 
 
 void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )

@@ -30,7 +30,6 @@
 #include <nlohmann/json.hpp>
 #include <netlist_exporter_xml.h>
 #include <kiid.h>
-#include "sch_copilot_global_context.h"
 #include <ee_selection_tool.h>
 #include <string>
 #include <tool/tool_manager.h>
@@ -38,6 +37,8 @@
 #include <fields_data_model.h>
 #include <context/symbol_context.h>
 #include <base64.hpp>
+#include <context/sch/sch_copilot_global_context.h>
+
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {
     if( m_copilotContextCache->is_newest )

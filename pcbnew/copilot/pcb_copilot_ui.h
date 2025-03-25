@@ -47,13 +47,14 @@ void PCB_EDIT_FRAME::InitCopilotAui()
 {
     if( m_copilotPanel )
     {
-        m_auimgr.AddPane( m_copilotPanel, EDA_PANE()
+        m_auimgr.AddPane( m_copilotPanel, wxAuiPaneInfo()
                                                   .Name( CopilotPanelName() )
                                                   .Caption( _( "Copilot" ) )
                                                   .Right()
-                                                  .Layer( 4 )
-                                                  .Position( 3 )
+                                                  .Layer( 5 )
                                                   .PaneBorder( false )
+                                                  .RightDockable()
+                                                  .LeftDockable()                                                  
                                                   .TopDockable( false )
                                                   .BottomDockable( false )
                                                   .CloseButton( true )
@@ -61,7 +62,7 @@ void PCB_EDIT_FRAME::InitCopilotAui()
                                                   .BestSize( FromDIP( wxSize( 300, 200 ) ) )
                                                   .FloatingSize( FromDIP( wxSize( 800, 600 ) ) )
                                                   .FloatingPosition( FromDIP( wxPoint( 50, 200 ) ) )
-                                                  .Show( true ) );
+                                                  .Show( false ) );
     }
 }
 

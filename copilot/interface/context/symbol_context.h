@@ -25,7 +25,7 @@
 #ifndef SYMBOL_CONTEXT_H
 #define SYMBOL_CONTEXT_H
 
-#include "sch/symbol_properties.h"
+#include "sch/details/symbol_properties.h"
 #include <nlohmann/json.hpp>
 #include <string>
 

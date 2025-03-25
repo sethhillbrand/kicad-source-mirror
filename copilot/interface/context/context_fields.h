@@ -30,6 +30,9 @@ static constexpr auto kGlobalContextUUID = "global_context_uuid";
 static constexpr auto kDesignGlobalContext = "design_global_context";
 static constexpr auto kType = "type";
 static constexpr auto kContext = "context";
+static constexpr auto kNetList = "net_list";
+static constexpr auto kBom = "bom";
+static constexpr auto kDesignators = "designators";
 
 
 #endif

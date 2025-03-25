@@ -22,17 +22,33 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef CONSUMABLE_CONTEXT_H
-#define CONSUMABLE_CONTEXT_H
+#ifndef PCB_COPILOT_GLOBAL_CONTEXT_H
+#define PCB_COPILOT_GLOBAL_CONTEXT_H
 
 
-#include <nlohmann/json.hpp>
+#include <context/copilot_global_context.h>
+#include <context/variable_context.h>
+#include <context/context_fields.h>
 
 
-struct CONSUMABLE_CONTEXT
+
+struct PCB_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT, VARIABLE_CONTEXT
 {
-    std::string uuid;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( CONSUMABLE_CONTEXT, uuid)
+    std::list<std::string> designators;
+    friend void to_json( nlohmann ::json&                  nlohmann_json_j,
+                         const PCB_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
+    {
+        to_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT const&>( nlohmann_json_t ) );
+        nlohmann_json_j[kDesignators] = nlohmann_json_t.designators;
+
+    }
+    friend void from_json( const nlohmann ::json&      nlohmann_json_j,
+                           PCB_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
+    {
+        from_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT&>( nlohmann_json_t ) );
+        nlohmann_json_j.at( kDesignators ).get_to( nlohmann_json_t.designators );
+    }
+    std::string dump() const override { return nlohmann::json( *this ).dump(); }
 };
 
 #endif
