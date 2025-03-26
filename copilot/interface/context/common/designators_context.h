@@ -26,10 +26,11 @@
 #define DESIGNATORS_CONTEXT_H
 
 #include <nlohmann/json.hpp>
+#include <vector>
 
 struct DESIGNATORS_CONTEXT
 {
-    std::list<std::string> designators;
+    std::vector<std::string> designators;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGNATORS_CONTEXT, designators )
 

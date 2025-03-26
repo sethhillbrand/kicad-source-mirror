@@ -25,8 +25,13 @@
 #ifndef PCB_COPILOT_CONTEXT_INTERFACE_H
 #define PCB_COPILOT_CONTEXT_INTERFACE_H
 
+#include <string_utils.h>
+#include <algorithm>
 #include <pcb_edit_frame.h>
 #include <context/pcb/pcb_copilot_global_context.h>
+#include <string>
+#include <board.h>
+#include <footprint.h>
 
 void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 {
@@ -35,6 +40,19 @@ void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 
     m_copilotContextCache->uuid = KIID().AsStdString();
     m_copilotContextCache->is_newest = true;
+    m_copilotContextCache->designators = ([this](){
+
+        std::vector<std::string> designators;
+
+        for(const auto& fp : GetBoard()->Footprints())        
+            designators.push_back(UnescapeString(fp->Reference().GetText()).ToStdString());        
+        std::sort(designators.begin(), designators.end(),[&](const std::string& a, const std::string& b){
+            return StrNumCmp(a, b) < 0;
+        });
+
+        return designators;
+
+    })();
 }
 
 

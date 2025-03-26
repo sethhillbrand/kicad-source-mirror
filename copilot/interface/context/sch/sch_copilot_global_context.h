@@ -31,6 +31,7 @@
 #include <string>
 #include <context/common/designators_context.h>
 #include <context/sch/details/sch_netlist_context.h>
+#include <vector>
 
 
 struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT,
@@ -38,7 +39,7 @@ struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT,
                                     SCH_NETLIST_CONTEXT,
                                     DESIGNATORS_CONTEXT
 {
-    std::list<std::string> designators;
+    std::vector<std::string> designators;
 
     friend void to_json( nlohmann ::json&                  nlohmann_json_j,
                          const SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )

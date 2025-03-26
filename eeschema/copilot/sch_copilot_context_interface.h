@@ -38,6 +38,8 @@
 #include <context/symbol_context.h>
 #include <base64.hpp>
 #include <context/sch/sch_copilot_global_context.h>
+#include <string_utils.h>
+#include <algorithm>
 
 void SCH_EDIT_FRAME::UpdateCopilotContextCache()
 {
@@ -78,6 +80,23 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                           return {};
                       } )() )
                     .ToStdString() );
+
+    m_copilotContextCache->designators = ([this]{
+        decltype( m_copilotContextCache->designators)   designators;
+        SCH_REFERENCE_LIST referenceList;
+        Schematic().Hierarchy().GetSymbols( referenceList, false, false );
+        const auto instances = referenceList.GetSymbolInstances();
+
+        for( const auto& instance : instances )
+            designators.push_back( instance.m_Reference.ToStdString() );
+    
+        std::sort(designators.begin(), designators.end(),[&](const std::string& a, const std::string& b){
+                return StrNumCmp(a, b) < 0;
+            });
+
+        return designators;
+
+    })();
 
     m_copilotContextCache->is_newest = true;
 }
