@@ -33,16 +33,17 @@
 #include <wx/chartype.h>
 #include <copilot_panel_name.h>
 
-const wxAuiPaneInfo& defaultCopilotPaneInfo( wxWindow* aWindow )
+wxAuiPaneInfo defaultCopilotPaneInfo( wxWindow* aWindow )
 {
-    static wxAuiPaneInfo paneInfo;
-
-    paneInfo.Name( CopilotPanelName() )
-            .Caption( _("Copilot") )
+    return wxAuiPaneInfo()
+            .Name( CopilotPanelName() )
+            .Caption( _( "Copilot" ) )
             .PaneBorder( false )
-            .Right().Layer( 3 ).Position( 2 )
+            .Right()
+            .Layer( 3 )
+            .Position( 2 )
             .RightDockable()
-            .LeftDockable()                                                  
+            .LeftDockable()
             .TopDockable( false )
             .BottomDockable( false )
             .CloseButton( true )
@@ -50,9 +51,7 @@ const wxAuiPaneInfo& defaultCopilotPaneInfo( wxWindow* aWindow )
             .BestSize( aWindow->FromDIP( wxSize( 300, 200 ) ) )
             .FloatingSize( aWindow->FromDIP( wxSize( 800, 600 ) ) )
             .FloatingPosition( aWindow->FromDIP( wxPoint( 50, 200 ) ) )
-            .Show( true );
-
-    return paneInfo;
+            .Show( false );
 }
 
 
