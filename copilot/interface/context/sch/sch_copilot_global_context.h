@@ -39,15 +39,12 @@ struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT,
                                     SCH_NETLIST_CONTEXT,
                                     DESIGNATORS_CONTEXT
 {
-    std::vector<std::string> designators;
-
     friend void to_json( nlohmann ::json&                  nlohmann_json_j,
                          const SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
     {
         to_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT const&>( nlohmann_json_t ) );
         to_json( nlohmann_json_j, static_cast<SCH_NETLIST_CONTEXT const&>( nlohmann_json_t ) );
         to_json( nlohmann_json_j, static_cast<DESIGNATORS_CONTEXT const&>( nlohmann_json_t ) );
-        nlohmann_json_j[kDesignators] = nlohmann_json_t.designators;
     }
     friend void from_json( const nlohmann ::json&      nlohmann_json_j,
                            SCH_COPILOT_GLOBAL_CONTEXT& nlohmann_json_t )
@@ -55,7 +52,6 @@ struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT,
         from_json( nlohmann_json_j, static_cast<COPILOT_GLOBAL_CONTEXT&>( nlohmann_json_t ) );
         from_json( nlohmann_json_j, static_cast<SCH_NETLIST_CONTEXT&>( nlohmann_json_t ) );
         from_json( nlohmann_json_j, static_cast<DESIGNATORS_CONTEXT&>( nlohmann_json_t ) );
-        nlohmann_json_j.at( kDesignators ).get_to( nlohmann_json_t.designators );
     }
     std::string dump() const override { return nlohmann::json( *this ).dump(); }
 };

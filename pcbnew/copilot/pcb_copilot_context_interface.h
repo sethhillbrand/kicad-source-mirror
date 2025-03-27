@@ -25,6 +25,7 @@
 #ifndef PCB_COPILOT_CONTEXT_INTERFACE_H
 #define PCB_COPILOT_CONTEXT_INTERFACE_H
 
+#include <board_design_settings.h>
 #include <string_utils.h>
 #include <algorithm>
 #include <pcb_edit_frame.h>
@@ -52,6 +53,15 @@ void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 
         return designators;
 
+    })();
+
+    m_copilotContextCache->fab_settings.distance_settings = ([this](){
+
+        return  PCB_FAB_DISTANCE_SETTINGS{
+            GetBoard()->GetDesignSettings().m_TrackMinWidth,
+            GetBoard()->GetDesignSettings().m_MinClearance,
+             std::min(GetBoard()->GetDesignSettings().m_MinThroughDrill, GetBoard()->GetDesignSettings().m_ViasMinSize),
+        };
     })();
 }
 
