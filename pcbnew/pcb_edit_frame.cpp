@@ -225,6 +225,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     } ))
 {
     m_copilotContextCache->host_version_info.details = get_kicad_version_info();
+    m_copilotContextCache->host_version_info.editor_name = "pcb";
     m_maximizeByDefault = true;
     m_showBorderAndTitleBlock = true;   // true to display sheet references
     m_SelTrackWidthBox = nullptr;
