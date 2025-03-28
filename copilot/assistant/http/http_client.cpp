@@ -24,7 +24,7 @@
 
 #include "http_client.h"
 #include "assistant/settings/copilot_settings_manager.h"
-#include <httplib.h>
+#include <utils/httplib.h>
 #include <wx/log.h>
 #include "http_utils.h"
 #include "proto/data_buried_point.h"

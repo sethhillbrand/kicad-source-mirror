@@ -25,7 +25,7 @@
 #ifndef ASSISTANT_INTERFACE_H
 #define ASSISTANT_INTERFACE_H
 
-#include <dylib.hpp>
+#include <utils/dylib.hpp>
 #include <settings/assistant_interface_path.h>
 #include <wx/panel.h>
 #include <context/copilot_global_context_handle.h>

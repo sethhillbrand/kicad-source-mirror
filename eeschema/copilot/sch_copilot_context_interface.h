@@ -36,7 +36,7 @@
 #include <sch_edit_frame.h>
 #include <fields_data_model.h>
 #include <context/symbol_context.h>
-#include <base64.hpp>
+#include <utils/base64.hpp>
 #include <context/sch/sch_copilot_global_context.h>
 #include <string_utils.h>
 #include <algorithm>
