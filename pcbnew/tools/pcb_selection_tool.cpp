@@ -41,6 +41,7 @@ using namespace std::placeholders;
 #include <footprint.h>
 #include <pad.h>
 #include <pcb_group.h>
+#include <pcb_point.h>
 #include <pcb_shape.h>
 #include <pcb_text.h>
 #include <pcb_textbox.h>
@@ -2961,6 +2962,12 @@ bool PCB_SELECTION_TOOL::Selectable( const BOARD_ITEM* aItem, bool checkVisibili
                 return true;
         }
 
+        for( const PCB_POINT* point: footprint->Points() )
+        {
+            if( Selectable( point, true ) )
+                return true;
+        }
+
         return false;
     }
     else if( aItem->Type() == PCB_GROUP_T )
@@ -3145,6 +3152,15 @@ bool PCB_SELECTION_TOOL::Selectable( const BOARD_ITEM* aItem, bool checkVisibili
         marker = static_cast<const PCB_MARKER*>( aItem );
 
         if( marker && marker->IsExcluded() && !board()->IsElementVisible( LAYER_DRC_EXCLUSION ) )
+            return false;
+
+        break;
+
+    case PCB_POINT_T:
+        if( !layerVisible( aItem->GetLayer() ) )
+            return false;
+
+        if( !board()->IsElementVisible( LAYER_POINTS ) )
             return false;
 
         break;

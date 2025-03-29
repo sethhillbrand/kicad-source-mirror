@@ -396,6 +396,7 @@ void BOARD_COMMIT::Push( const wxString& aMessage, int aCommitFlags )
             case PCB_DIM_RADIAL_T:
             case PCB_DIM_ORTHOGONAL_T:
             case PCB_DIM_LEADER_T:       // a leader dimension
+            case PCB_POINT_T:            // a point (non-physical item)
             case PCB_TARGET_T:           // a target (graphic item)
             case PCB_MARKER_T:           // a marker used to show something
             case PCB_ZONE_T:

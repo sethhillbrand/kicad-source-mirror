@@ -46,6 +46,7 @@
 #include <pcb_marker.h>
 #include <pcb_group.h>
 #include <pcb_generator.h>
+#include <pcb_point.h>
 #include <pcb_target.h>
 #include <pcb_shape.h>
 #include <pcb_text.h>
@@ -164,6 +165,7 @@ BOARD::~BOARD()
     m_tracks.clear();
     m_drawings.clear();
     m_groups.clear();
+    m_points.clear();
 
     // Generators not currently returned by GetItemSet
     for( PCB_GENERATOR* g : m_generators )
@@ -553,6 +555,12 @@ bool BOARD::ResolveTextVar( wxString* token, int aDepth ) const
 }
 
 
+bool BOARD::IsEmpty() const
+{
+    return m_drawings.empty() && m_footprints.empty() && m_tracks.empty() && m_zones.empty() && m_points.empty();
+}
+
+
 VECTOR2I BOARD::GetPosition() const
 {
     return ZeroOffset;
@@ -602,6 +610,9 @@ void BOARD::RunOnChildren( const std::function<void( BOARD_ITEM* )>& aFunction, 
 
         for( PCB_GROUP* group : m_groups )
             aFunction( group );
+
+        for( PCB_POINT* point : m_points )
+            aFunction( point );
 
         for( FOOTPRINT* footprint : m_footprints )
         {
@@ -1248,6 +1259,11 @@ void BOARD::Add( BOARD_ITEM* aBoardItem, ADD_MODE aMode, bool aSkipConnectivity 
         break;
     }
 
+    case PCB_POINT_T:
+        // These aren't graphics as they have no physical presence
+        m_points.push_back( static_cast<PCB_POINT*>( aBoardItem ) );
+        break;
+
     case PCB_TABLECELL_T:
         // Handled by parent table
         break;
@@ -1332,6 +1348,10 @@ void BOARD::Remove( BOARD_ITEM* aBoardItem, REMOVE_MODE aRemoveMode )
 
     case PCB_ZONE_T:
         alg::delete_matching( m_zones, aBoardItem );
+        break;
+
+    case PCB_POINT_T:
+        alg::delete_matching( m_points, aBoardItem );
         break;
 
     case PCB_GENERATOR_T:
@@ -1429,6 +1449,11 @@ void BOARD::RemoveAll( std::initializer_list<KICAD_T> aTypes )
         case PCB_GROUP_T:
             std::copy( m_groups.begin(), m_groups.end(), std::back_inserter( removed ) );
             m_groups.clear();
+            break;
+
+        case PCB_POINT_T:
+            std::copy( m_points.begin(), m_points.end(), std::back_inserter( removed ) );
+            m_points.clear();
             break;
 
         case PCB_ZONE_T:
@@ -1664,6 +1689,12 @@ BOARD_ITEM* BOARD::ResolveItem( const KIID& aID, bool aAllowNullptrReturn ) cons
             return marker;
     }
 
+    for( PCB_POINT* point : m_points )
+    {
+        if( point->m_Uuid == aID )
+            return point;
+    }
+
     for( NETINFO_ITEM* netInfo : m_NetInfo )
     {
         if( netInfo->m_Uuid == aID )
@@ -1714,6 +1745,9 @@ void BOARD::FillItemMap( std::map<KIID, EDA_ITEM*>& aMap )
 
     for( PCB_GROUP* group : m_groups )
         aMap[ group->m_Uuid ] = group;
+
+    for( PCB_POINT* point : m_points )
+        aMap[ point->m_Uuid ] = point;
 
     for( PCB_GENERATOR* generator : m_generators )
         aMap[ generator->m_Uuid ] = generator;
@@ -1894,6 +1928,11 @@ BOX2I BOARD::ComputeBoundingBox( bool aBoardEdgesOnly ) const
             if( ( aZone->GetLayerSet() & visible ).any() )
                 bbox.Merge( aZone->GetBoundingBox() );
         }
+
+        for( PCB_POINT* point : m_points )
+        {
+            bbox.Merge( point->GetBoundingBox() );
+        }
     }
 
     return bbox;
@@ -2024,6 +2063,15 @@ INSPECT_RESULT BOARD::Visit( INSPECTOR inspector, void* testData,
             for( PCB_MARKER* marker : m_markers )
             {
                 if( marker->Visit( inspector, testData, { scanType } ) == INSPECT_RESULT::QUIT )
+                    return INSPECT_RESULT::QUIT;
+            }
+
+            break;
+
+        case PCB_POINT_T:
+            for( PCB_POINT* point : m_points )
+            {
+                if( point->Visit( inspector, testData, { scanType } ) == INSPECT_RESULT::QUIT )
                     return INSPECT_RESULT::QUIT;
             }
 
@@ -3107,6 +3155,7 @@ const BOARD_ITEM_SET BOARD::GetItemSet()
     std::copy( m_drawings.begin(), m_drawings.end(), std::inserter( items, items.end() ) );
     std::copy( m_markers.begin(), m_markers.end(), std::inserter( items, items.end() ) );
     std::copy( m_groups.begin(), m_groups.end(), std::inserter( items, items.end() ) );
+    std::copy( m_points.begin(), m_points.end(), std::inserter( items, items.end() ) );
 
     return items;
 }

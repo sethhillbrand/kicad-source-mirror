@@ -47,8 +47,9 @@ class PCB_IO_KICAD_SEXPR_PARSER;
 class NETINFO_MAPPING;
 class BOARD_DESIGN_SETTINGS;
 class PCB_DIMENSION_BASE;
-class PCB_SHAPE;
+class PCB_POINT;
 class PCB_REFERENCE_IMAGE;
+class PCB_SHAPE;
 class PCB_TARGET;
 class PAD;
 class PADSTACK;
@@ -64,6 +65,7 @@ class SHAPE_LINE_CHAIN;
 class TEARDROP_PARAMETERS;
 class PCB_IO_KICAD_SEXPR;   // forward decl
 
+// clang-format off
 /// Current s-expression file format version.  2 was the last legacy format version.
 
 //#define SEXPR_BOARD_FILE_VERSION    3         // first s-expression format, used legacy cu stack
@@ -183,14 +185,15 @@ class PCB_IO_KICAD_SEXPR;   // forward decl
 //#define SEXPR_BOARD_FILE_VERSION    20250309  // Component class dynamic assignment rules
 //#define SEXPR_BOARD_FILE_VERSION    20250324  // Jumper pads
 //#define SEXPR_BOARD_FILE_VERSION    20250401  // Time domain length tuning
-#define SEXPR_BOARD_FILE_VERSION      20250513  // Groups can have design block lib_id
+//#define SEXPR_BOARD_FILE_VERSION    20250513  // Groups can have design block lib_id
+#define SEXPR_BOARD_FILE_VERSION      20250520  // PCB points
 
 #define BOARD_FILE_HOST_VERSION       20200825  ///< Earlier files than this include the host tag
 #define LEGACY_ARC_FORMATTING         20210925  ///< These were the last to use old arc formatting
 #define LEGACY_NET_TIES               20220815  ///< These were the last to use the keywords field
                                                 ///<   to indicate a net-tie.
 #define FIRST_NORMALIZED_VERISON      20230924  ///< Earlier files did not have normalized bools
-
+// clang-format on
 
 // common combinations of the above:
 
@@ -442,6 +445,7 @@ private:
     void format( const PCB_SHAPE* aSegment ) const;
 
     void format( const PCB_TARGET* aTarget ) const;
+    void format( const PCB_POINT* aPoint ) const;
 
     void format( const FOOTPRINT* aFootprint ) const;
 
