@@ -22,41 +22,21 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBVIEW_CONTAINER_H
-#define WEBVIEW_CONTAINER_H
+#ifndef WEB_HOST_H
+#define WEB_HOST_H
 
+#include <nlohmann/json.hpp>
 
-#include "assistant/assistant.h"
-#include <context/copilot_global_context_handle.h>
-#include <string>
-#include <wx/panel.h>
-#include <wx/log.h>
-#include <wx/webview.h>
-#include <set>
-
-class WEBVIEW_CONTAINER : public wxPanel, public ASSISTANT
+enum class WEB_HOST_INTERNAL_CMD_TYPE
 {
-public:
-    WEBVIEW_CONTAINER( wxWindow* parent, COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context_hdl );
-    ~WEBVIEW_CONTAINER();
-
-    void fire_host_active_cmd( const char* cmd ) override;
-
-    void OnNavigationRequest( wxWebViewEvent& evt );
-    void OnNavigationComplete( wxWebViewEvent& evt );
-    void OnDocumentLoaded( wxWebViewEvent& evt );
-    void OnNewWindow( wxWebViewEvent& evt );
-    void OnTitleChanged( wxWebViewEvent& evt );
-    void OnFullScreenChanged( wxWebViewEvent& evt );
-    void OnScriptMessage( wxWebViewEvent& evt );
-    void OnScriptResult( wxWebViewEvent& evt );
-    void OnError( wxWebViewEvent& evt );
+    fetch_global_context_from_host,
+};
 
 
-private:
-    std::set<std::string>      _consumed_global_ctx_keys{};
-    wxWebView*                 _browser;
-    COPILOT_GLOBAL_CONTEXT_HDL _get_design_global_context_hdl;
+struct WEB_HOST_INTERNAL_CMD
+{
+    std::string type;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEB_HOST_INTERNAL_CMD, type )
 };
 
 #endif

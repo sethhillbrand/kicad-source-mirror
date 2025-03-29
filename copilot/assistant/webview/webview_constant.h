@@ -24,34 +24,22 @@
 
 #ifndef WEBVIEW_CONSTANT_H
 #define WEBVIEW_CONSTANT_H
-#include <nlohmann/json.hpp>
-#include <string>
+
+// Edge only supports a single message handler
 
 enum class WEBVIEW_MSG_HANDLES
 {
-    kicad_desktop,
+    eda_host,
 };
 
 
 enum class WEBVIEW_FUNCTIONS
 {
-    fire_copilot_cmd,
+    fire_host_active_cmd,
     new_session,
     get_current_session_id,
-    update_global_ctx
+    update_copilot_global_context
 };
 
-
-enum class KICAD_DESKTOP_CMD_TYPE
-{
-    update_global_context,
-};
-
-
-struct KICAD_DESKTOP_CMD
-{
-    std::string type;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( KICAD_DESKTOP_CMD, type )
-};
 
 #endif

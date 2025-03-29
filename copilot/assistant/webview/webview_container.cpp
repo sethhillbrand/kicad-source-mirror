@@ -23,14 +23,15 @@
  */
 
 #include "webview_container.h"
-#include "nlohmann/json.hpp"
 #include "settings/copilot_settings_manager.h"
 #include "webview_constant.h"
+#include "internal/web_host.h"
 
 #include <wx/log.h>
 #include <wx/sizer.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <wx/string.h>
 #include <wx/webview.h>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
@@ -80,10 +81,13 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*                  parent,
     _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 #endif
-    if( !_browser->AddScriptMessageHandler(
-                magic_enum::enum_name( WEBVIEW_MSG_HANDLES::kicad_desktop ).data() ) )
-        wxLogError( "Could not add script message handler" );
 
+
+    if( !_browser->AddScriptMessageHandler(
+                magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() ) )
+    {
+        wxLogError( "Could not add script message handler " );
+    }
 
     SetSizer( top_sizer );
     //Set a more sensible size for web browsing
@@ -125,12 +129,12 @@ WEBVIEW_CONTAINER::~WEBVIEW_CONTAINER()
 {
 }
 
-void WEBVIEW_CONTAINER::fire_copilot_cmd( const char* cmd )
+void WEBVIEW_CONTAINER::fire_host_active_cmd( const char* cmd )
 {
     wxString out;
     _browser->RunScriptAsync(
-            std::format( " {}({});", magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_copilot_cmd ),
-                         cmd ),
+            std::format( " {}({});",
+                         magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_host_active_cmd ), cmd ),
             &out );
 }
 
@@ -180,8 +184,8 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
     try
     {
         const auto cmd =
-                nlohmann::json::parse( evt.GetString().ToStdString() ).get<KICAD_DESKTOP_CMD>();
-        auto t = magic_enum::enum_cast<KICAD_DESKTOP_CMD_TYPE>( cmd.type );
+                nlohmann::json::parse( evt.GetString().ToStdString() ).get<WEB_HOST_INTERNAL_CMD>();
+        auto t = magic_enum::enum_cast<WEB_HOST_INTERNAL_CMD_TYPE>( cmd.type );
 
         if( !t.has_value() )
         {
@@ -191,7 +195,7 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
 
         switch( *t )
         {
-        case KICAD_DESKTOP_CMD_TYPE::update_global_context:
+        case WEB_HOST_INTERNAL_CMD_TYPE::fetch_global_context_from_host:
         {
             if( _get_design_global_context_hdl.expired() )
             {
@@ -209,7 +213,8 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
             wxString out;
             _browser->RunScriptAsync(
                     std::format( " {}({});",
-                                 magic_enum::enum_name( WEBVIEW_FUNCTIONS::update_global_ctx ),
+                                 magic_enum::enum_name(
+                                         WEBVIEW_FUNCTIONS::update_copilot_global_context ),
                                  global_ctx.dump() ),
                     &out );
 

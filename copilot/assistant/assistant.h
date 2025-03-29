@@ -29,8 +29,7 @@ class ASSISTANT
 {
 public:
     virtual ~ASSISTANT() = default;
-    virtual void fire_copilot_cmd( const char* cmd ) = 0;
-
+    virtual void fire_host_active_cmd( const char* cmd ) = 0;
 };
 
 #endif
