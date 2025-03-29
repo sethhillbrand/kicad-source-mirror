@@ -25,8 +25,8 @@
 #include "webview_container.h"
 #include "settings/copilot_settings_manager.h"
 #include "webview_constant.h"
-#include "internal/web_host.h"
 
+#include <passive_action/web/web_host.h>
 #include <wx/log.h>
 #include <wx/sizer.h>
 #include <wx/filename.h>

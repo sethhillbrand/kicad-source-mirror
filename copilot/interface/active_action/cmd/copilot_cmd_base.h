@@ -30,11 +30,10 @@
 #include <optional>
 #include <string>
 #include <context/context_fields.h>
-#include "cmd_base.h"
 
 
 template <class GLOBAL_CONTEXT>
-struct COPILOT_CMD_BASE : CMD_BASE
+struct COPILOT_CMD_BASE
 {
     std::optional<std::string>    global_context_uuid;
     std::optional<GLOBAL_CONTEXT> design_global_context;

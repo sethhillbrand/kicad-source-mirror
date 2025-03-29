@@ -22,15 +22,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef AGENT_ACTION_H
-#define AGENT_ACTION_H
+#ifndef PASSIVE_ACTION_CATEGORY_H
+#define PASSIVE_ACTION_CATEGORY_H
 
-
-#include <string>
-struct AGENT_ACTION
+class PASSIVE_ACTION_CATEGORY
 {
-    std::string action;
-};
+public:
+    PASSIVE_ACTION_CATEGORY();
+    ~PASSIVE_ACTION_CATEGORY();
 
+private:
+};
 
 #endif

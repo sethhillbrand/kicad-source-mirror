@@ -31,13 +31,13 @@
 #include <assistant_interface.h>
 #include <build_version.h>
 #include <context/context_fields.h>
-#include <cmd/copilot_cmd_type.h>
-#include "cmd/copilot_cmd_base.h"
+#include <active_action/cmd/copilot_cmd_base.h>
+#include <active_action/cmd/copilot_cmd_type.h>
 #include <context/sch/sch_copilot_global_context.h>
 #include "context/symbol_context.h"
 
 
-void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )
+void SCH_EDIT_FRAME::FireCopilotCommand( std::string const& aCmdType )
 {
     if( !m_copilotPanel )
         return;
@@ -46,16 +46,18 @@ void SCH_EDIT_FRAME::FireCopilotCommand( std::string const&  aCmdType )
 
     nlohmann::json cmd;
 
-    if(aCmdType.starts_with("chat.design"))
+    if( aCmdType.starts_with( "chat.design" ) )
     {
-        cmd = create_cmd<CONCRETE_TYPE_COPILOT_CMD<SCH_COPILOT_GLOBAL_CONTEXT>>( *m_copilotContextCache );
+        cmd = create_cmd<CONCRETE_TYPE_COPILOT_CMD<SCH_COPILOT_GLOBAL_CONTEXT>>(
+                *m_copilotContextCache );
     }
-    else if (aCmdType.starts_with("chat.components"))
+    else if( aCmdType.starts_with( "chat.components" ) )
     {
-        cmd = create_cmd<COPILOT_CMD_WITH_CONTEXT<SCH_COPILOT_GLOBAL_CONTEXT,SYMBOL_CMD_CONTEXT> ,SYMBOL_CMD_CONTEXT>(
-                *m_copilotContextCache, GetSelectedSymbolContext() );
+        cmd = create_cmd<COPILOT_CMD_WITH_CONTEXT<SCH_COPILOT_GLOBAL_CONTEXT, SYMBOL_CMD_CONTEXT>,
+                         SYMBOL_CMD_CONTEXT>( *m_copilotContextCache, GetSelectedSymbolContext() );
     }
-    else {
+    else
+    {
         std::cerr << "Unknown command type: " << aCmdType << std::endl;
     }
 

@@ -22,19 +22,22 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef AGENT_ACTION_TYPE_H
-#define AGENT_ACTION_TYPE_H
+#ifndef AGENT_ACTION_CONTEXT_H
+#define AGENT_ACTION_CONTEXT_H
 
+#include <string>
+#include <nlohmann/json.hpp>
 
-enum AGENT_ACTION_TYPE
+struct DESIGNATOR_CONTEXT
 {
-    part_detail,
-    part_replace,
-    link_check,
-    foot_detail,
-    foot_unconnected
+    std::string d1;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGNATOR_CONTEXT, d1 )
+};
 
-
+struct SYMBOL_CONNECTION_CONTEXT
+{
+    std::string f1;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( SYMBOL_CONNECTION_CONTEXT, f1 )
 };
 
 

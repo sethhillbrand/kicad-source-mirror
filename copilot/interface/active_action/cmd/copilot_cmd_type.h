@@ -28,13 +28,13 @@
 
 namespace COPILOT_CMD_TYPE
 {
-    constexpr auto DESIGN_INTENTION = "chat.design.intention";
-    constexpr auto CORE_COMPONENTS = "chat.design.core_components";
-    constexpr auto CURRENT_COMPONENT = "chat.components.current_component";
-    constexpr auto SIMILAR_COMPONENTS = "chat.components.similar_components";
-    constexpr auto CHECK_SYMBOL_CONNECTIONS = "chat.components.check_symbol_connections";
-    constexpr auto COMPONENT_PINS_DETAILS = "chat.components.component_pins_details";
-    constexpr auto SYMBOL_UNCONNECTED_PINS = "chat.components.symbol_unconnected_pins";
+constexpr auto DESIGN_INTENTION = "chat.design.intention";
+constexpr auto CORE_COMPONENTS = "chat.design.core_components";
+constexpr auto CURRENT_COMPONENT = "chat.components.current_component";
+constexpr auto SIMILAR_COMPONENTS = "chat.components.similar_components";
+constexpr auto CHECK_SYMBOL_CONNECTIONS = "chat.components.check_symbol_connections";
+constexpr auto COMPONENT_PINS_DETAILS = "chat.components.component_pins_details";
+constexpr auto SYMBOL_UNCONNECTED_PINS = "chat.components.symbol_unconnected_pins";
 }; // namespace COPILOT_CMD_TYPE
 
 
