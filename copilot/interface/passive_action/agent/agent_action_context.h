@@ -25,13 +25,33 @@
 #ifndef AGENT_ACTION_CONTEXT_H
 #define AGENT_ACTION_CONTEXT_H
 
+#include <optional>
 #include <string>
 #include <nlohmann/json.hpp>
 
 struct DESIGNATOR_CONTEXT
 {
-    std::string d1;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DESIGNATOR_CONTEXT, d1 )
+    std::optional<std::string> d1;
+    std::optional<std::string> f1;
+
+    friend void to_json( nlohmann::json&           nlohmann_json_j,
+                         const DESIGNATOR_CONTEXT& nlohmann_json_t )
+    {
+        if( nlohmann_json_t.d1.has_value() )
+            nlohmann_json_j["d1"] = nlohmann_json_t.d1.value();
+        if( nlohmann_json_t.f1.has_value() )
+            nlohmann_json_j["f1"] = nlohmann_json_t.f1.value();
+    }
+
+    // Deserialize JSON to DESIGNATOR_CONTEXT
+    friend void from_json( const nlohmann::json& nlohmann_json_j,
+                           DESIGNATOR_CONTEXT&   nlohmann_json_t )
+    {
+        if( nlohmann_json_j.contains( "d1" ) )
+            nlohmann_json_t.d1 = nlohmann_json_j.at( "d1" );
+        if( nlohmann_json_j.contains( "f1" ) )
+            nlohmann_json_t.f1 = nlohmann_json_j.at( "f1" );
+    }
 };
 
 struct SYMBOL_CONNECTION_CONTEXT

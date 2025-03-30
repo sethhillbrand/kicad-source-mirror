@@ -137,8 +137,16 @@ void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
         case AGENT_ACTION_TYPE::part_replace:
         case AGENT_ACTION_TYPE::link_check:
         case AGENT_ACTION_TYPE::foot_unconnected:
-            process_component_action( aAction.context.get<DESIGNATOR_CONTEXT>().d1, *t );
-            break;
+        {
+            const auto cxt = aAction.context.get<DESIGNATOR_CONTEXT>();
+            
+            if( cxt.d1 )
+                process_component_action( cxt.d1.value(), *t );
+
+            if( cxt.f1 )
+                process_component_action( cxt.f1.value(), *t );
+        }
+        break;
         }
     }
     catch( std::exception const& e )
