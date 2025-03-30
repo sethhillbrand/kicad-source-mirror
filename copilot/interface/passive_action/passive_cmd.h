@@ -22,17 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef AGENT_ACTION_BASE_H
-#define AGENT_ACTION_BASE_H
+#ifndef PASSIVE_CMD_H
+#define PASSIVE_CMD_H
 
-#include <string>
 #include <nlohmann/json.hpp>
 
 
-struct AGENT_ACTION_BASE
+struct PASSIVE_CMD
 {
-    std::string action;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( AGENT_ACTION_BASE, action )
+    bool triggered_by_passive_action = true;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PASSIVE_CMD, triggered_by_passive_action )
 };
 
 #endif

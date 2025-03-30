@@ -25,7 +25,7 @@
 #ifndef AGENT_ACTION_TYPE_H
 #define AGENT_ACTION_TYPE_H
 
-enum AGENT_ACTION_TYPE
+enum class AGENT_ACTION_TYPE
 {
     part_detail,     //器件的详细信息
     part_replace,    //相似器件推荐

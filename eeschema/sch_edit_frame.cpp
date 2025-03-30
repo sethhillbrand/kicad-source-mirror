@@ -22,6 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include "passive_action/agent/agent_action.h"
+#include "passive_action/agent/agent_action_handle.h"
 #include <algorithm>
 #include <api/api_handler_sch.h>
 #include <api/api_server.h>
@@ -109,6 +111,7 @@
 #include <assistant_interface.h>
 #include <context/sch/sch_copilot_global_context.h>
 #include <copilot/sch_copilot_ui.h>
+#include <copilot/sch_agent_action_executor.h>
 #include <copilot/sch_copilot_cmd.h>
 #include <copilot/get_kicad_version_info.h>
 #include <copilot/sch_copilot_context_interface.h>
@@ -157,7 +160,8 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_designBlocksPane( nullptr ),
     m_copilotContextCache(new SCH_COPILOT_GLOBAL_CONTEXT ),
     m_symbolCmdContext(new SYMBOL_CMD_CONTEXT),
-    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]() -> COPILOT_GLOBAL_CONTEXT const&{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } ))
+    m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]() -> COPILOT_GLOBAL_CONTEXT const&{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } )),
+    m_agentActionHandle(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);}))
 {
     m_copilotContextCache->host_version_info.details = get_kicad_version_info();
     m_maximizeByDefault = true;

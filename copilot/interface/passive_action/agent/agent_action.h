@@ -25,14 +25,13 @@
 #ifndef AGENT_ACTION_H
 #define AGENT_ACTION_H
 
-#include "agent_action_base.h"
 #include <nlohmann/json.hpp>
 
 
-template <typename CONTEXT>
-struct AGENT_ACTION : AGENT_ACTION_BASE
+struct AGENT_ACTION
 {
-    CONTEXT context;
+    std::string    action;
+    nlohmann::json context;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( AGENT_ACTION, action, context )
 };
 

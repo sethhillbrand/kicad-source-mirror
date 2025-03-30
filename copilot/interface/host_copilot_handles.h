@@ -22,41 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBVIEW_CONTAINER_H
-#define WEBVIEW_CONTAINER_H
+#ifndef HOST_COPILOT_HANDLES_H
+#define HOST_COPILOT_HANDLES_H
+
+#include <passive_action/agent/agent_action_handle.h>
+#include <context/copilot_global_context_handle.h>
 
 
-#include "assistant/assistant.h"
-#include <host_copilot_handles.h>
-#include <string>
-#include <wx/panel.h>
-#include <wx/log.h>
-#include <wx/webview.h>
-#include <set>
-
-class WEBVIEW_CONTAINER : public wxPanel, public ASSISTANT
+struct HOST_COPILOT_HANDLES
 {
-public:
-    WEBVIEW_CONTAINER( wxWindow* parent, HOST_COPILOT_HANDLES host_copilot_handles );
-    ~WEBVIEW_CONTAINER();
-
-    void fire_host_active_cmd( const char* cmd ) override;
-
-    void OnNavigationRequest( wxWebViewEvent& evt );
-    void OnNavigationComplete( wxWebViewEvent& evt );
-    void OnDocumentLoaded( wxWebViewEvent& evt );
-    void OnNewWindow( wxWebViewEvent& evt );
-    void OnTitleChanged( wxWebViewEvent& evt );
-    void OnFullScreenChanged( wxWebViewEvent& evt );
-    void OnScriptMessage( wxWebViewEvent& evt );
-    void OnScriptResult( wxWebViewEvent& evt );
-    void OnError( wxWebViewEvent& evt );
-
-
-private:
-    std::set<std::string>      _consumed_global_ctx_keys{};
-    wxWebView*                 _browser;
-    HOST_COPILOT_HANDLES       _host_copilot_handles;
+    COPILOT_GLOBAL_CONTEXT_HDL global_context_handle;
+    AGENT_ACTION_HANDLE        agent_action_handle;
 };
 
 #endif

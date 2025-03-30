@@ -27,6 +27,7 @@
 #include <settings/app_settings.h>
 #include <variant>
 #include <context/copilot_global_context_handle.h>
+#include <passive_action/agent/agent_action_handle.h>
 
 class ACTION_PLUGIN;
 class PCB_SCREEN;
@@ -930,6 +931,7 @@ private:
     wxPanel*                                    m_copilotPanel{};
     std::unique_ptr<PCB_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
     COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
+    AGENT_ACTION_OWNED_HANDLE                   m_copilotAgentActionHdl;
 };
 
 #endif  // __PCB_EDIT_FRAME_H__

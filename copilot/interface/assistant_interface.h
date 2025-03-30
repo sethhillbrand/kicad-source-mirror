@@ -28,11 +28,11 @@
 #include <utils/dylib.hpp>
 #include <settings/assistant_interface_path.h>
 #include <wx/panel.h>
-#include <context/copilot_global_context_handle.h>
+#include <host_copilot_handles.h>
 
 
-using CREATE_CHAT_PANEL_HANDEL =
-        wxPanel* (*) ( wxWindow*, COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context );
+using CREATE_CHAT_PANEL_HANDEL = wxPanel* (*) ( wxWindow*,
+                                                HOST_COPILOT_HANDLES host_copilot_handles );
 using FIRE_CMD_HANDEL = void ( * )( wxPanel*, const char* );
 
 class ASSISTANT_INTERFACE
@@ -55,7 +55,7 @@ public:
             _assistant = std::make_unique<dylib>(
                     ASSISTANT_INTERFACE_PATH::generic_get_assistant_dll_path() );
             _create_chat_panel_handel =
-                    _assistant->get_function<wxPanel*( wxWindow*, COPILOT_GLOBAL_CONTEXT_HDL )>(
+                    _assistant->get_function<wxPanel*( wxWindow*, HOST_COPILOT_HANDLES )>(
                             "create_assistant_panel" );
 
             if( !_create_chat_panel_handel )
@@ -88,8 +88,7 @@ public:
 
     void close() { _assistant.reset(); }
 
-    wxPanel* create_assistant_panel( wxWindow*                  parent,
-                                     COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context )
+    wxPanel* create_assistant_panel( wxWindow* parent, HOST_COPILOT_HANDLES host_copilot_handles )
     {
         if( !_assistant )
         {
@@ -105,7 +104,7 @@ public:
             return nullptr;
         }
 
-        return _create_chat_panel_handel( parent, get_design_global_context );
+        return _create_chat_panel_handel( parent, host_copilot_handles );
     }
 
     void fire_cmd( wxPanel* target, const std::string& cmd )

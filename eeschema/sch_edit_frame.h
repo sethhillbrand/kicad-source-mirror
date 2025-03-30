@@ -44,6 +44,7 @@
 #include <sch_base_frame.h>
 #include <template_fieldnames.h>
 #include <context/copilot_global_context_handle.h>
+#include <passive_action/agent/agent_action_handle.h>
 
 class SCH_ITEM;
 class EDA_ITEM;
@@ -1186,6 +1187,8 @@ public:
 
     void FireCopilotCommand( std::string const& aCmdType );
 
+    void ExecuteAgentAction( AGENT_ACTION const& aAction );
+
     void DesignIntention();
 
     void CoreComponents();
@@ -1205,7 +1208,7 @@ private:
     std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
     std::unique_ptr<SYMBOL_CMD_CONTEXT>         m_symbolCmdContext;
     COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
-    
+    AGENT_ACTION_OWNED_HANDLE                   m_agentActionHandle;
 };
 
 

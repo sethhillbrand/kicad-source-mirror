@@ -25,7 +25,7 @@
 #ifndef ASSISTANT_LAUNCHER_H
 #define ASSISTANT_LAUNCHER_H
 
-#include <context/copilot_global_context_handle.h>
+#include <host_copilot_handles.h>
 #include "copilot_global.h"
 class wxPanel;
 class ASSISTANT;
@@ -38,9 +38,8 @@ extern "C"
 #endif
 
 
-    COPILOT_API wxPanel*
-    create_assistant_panel( wxWindow*                  parent,
-                            COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context );
+    COPILOT_API wxPanel* create_assistant_panel( wxWindow*            parent,
+                                                 HOST_COPILOT_HANDLES host_copilot_handles );
 
     COPILOT_API void fire_cmd( wxPanel* target, const char* cmd );
 

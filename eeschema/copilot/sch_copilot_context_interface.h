@@ -129,7 +129,10 @@ SYMBOL_CMD_CONTEXT const& SCH_EDIT_FRAME::GetSelectedSymbolContext()
     SCH_SYMBOL*        symbol = dynamic_cast<SCH_SYMBOL*>( selection.Front() );
 
     if( !symbol )
+    {
+        // NOTE shall not come here
         return *m_symbolCmdContext;
+    }
 
     const wxString ref = symbol->GetRefProp();
     m_symbolCmdContext->designator = ref;

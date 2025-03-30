@@ -27,6 +27,10 @@
 #include "webview_constant.h"
 
 #include <passive_action/web/web_host.h>
+#include <passive_action/passive_action_container.h>
+#include <passive_action/agent/agent_action_context.h>
+#include <passive_action/agent/agent_action.h>
+#include <passive_action/agent/agent_action_type.h>
 #include <wx/log.h>
 #include <wx/sizer.h>
 #include <wx/filename.h>
@@ -52,10 +56,10 @@ enum START_UP_SIZE
     HEIGHT = 1040
 };
 
-WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*                  parent,
-                                      COPILOT_GLOBAL_CONTEXT_HDL get_design_global_context_hdl ) :
+WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
+                                      HOST_COPILOT_HANDLES host_copilot_handles ) :
         wxPanel( parent ), _browser( wxWebView::New() ),
-        _get_design_global_context_hdl( std::move( get_design_global_context_hdl ) )
+        _host_copilot_handles( std::move( host_copilot_handles ) )
 {
 #ifdef DEBUG
     // new wxLogWindow( this, _( "Logging" ), true, false );
@@ -183,44 +187,62 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
 {
     try
     {
-        const auto cmd =
-                nlohmann::json::parse( evt.GetString().ToStdString() ).get<WEB_HOST_INTERNAL_CMD>();
-        auto t = magic_enum::enum_cast<WEB_HOST_INTERNAL_CMD_TYPE>( cmd.type );
+        const auto act_container = nlohmann::json::parse( evt.GetString().ToStdString() )
+                                           .get<PASSIVE_ACTION_CONTAINER>();
+        switch( act_container.category )
+        {
+        case INVALID: throw std::runtime_error( "Invalid message received" );
+        case PA_WEB_HOST:
+        {
+            const auto cmd = act_container.action.get<WEB_HOST_INTERNAL_CMD>();
+            auto       t = magic_enum::enum_cast<WEB_HOST_INTERNAL_CMD_TYPE>( cmd.type );
 
-        if( !t.has_value() )
-        {
-            wxLogError( "Invalid message received: %s", evt.GetString() );
-            return;
-        }
-
-        switch( *t )
-        {
-        case WEB_HOST_INTERNAL_CMD_TYPE::fetch_global_context_from_host:
-        {
-            if( _get_design_global_context_hdl.expired() )
+            if( !t.has_value() )
             {
-                wxLogError( "Get design global context handle expired" );
-                break;
+                wxLogError( "Invalid message received: %s", evt.GetString() );
+                return;
             }
 
-            auto context_function = _get_design_global_context_hdl.lock();
+            switch( *t )
+            {
+            case WEB_HOST_INTERNAL_CMD_TYPE::fetch_global_context_from_host:
+            {
+                if( _host_copilot_handles.global_context_handle.expired() )
+                {
+                    wxLogError( "Get design global context handle expired" );
+                    break;
+                }
 
-            auto& global_ctx = ( *context_function )();
+                auto context_function = _host_copilot_handles.global_context_handle.lock();
 
-            if( _consumed_global_ctx_keys.contains( global_ctx.uuid ) )
+                auto& global_ctx = ( *context_function )();
+
+                if( _consumed_global_ctx_keys.contains( global_ctx.uuid ) )
+                    break;
+
+                wxString out;
+                _browser->RunScriptAsync(
+                        std::format( " {}({});",
+                                     magic_enum::enum_name(
+                                             WEBVIEW_FUNCTIONS::update_copilot_global_context ),
+                                     global_ctx.dump() ),
+                        &out );
+
+                _consumed_global_ctx_keys.insert( global_ctx.uuid );
                 break;
-
-            wxString out;
-            _browser->RunScriptAsync(
-                    std::format( " {}({});",
-                                 magic_enum::enum_name(
-                                         WEBVIEW_FUNCTIONS::update_copilot_global_context ),
-                                 global_ctx.dump() ),
-                    &out );
-
-            _consumed_global_ctx_keys.insert( global_ctx.uuid );
-            break;
+            }
+            }
         }
+        break;
+        case PA_AGENT:
+        {
+            if( !_host_copilot_handles.agent_action_handle.expired() )
+            {
+                auto context_function = _host_copilot_handles.agent_action_handle.lock();
+                ( *context_function )( act_container.action );
+            }
+        }
+        break;
         }
     }
     catch( const std::exception& e )
