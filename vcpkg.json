@@ -48,8 +48,7 @@
     },
     "nng",
     "protobuf",
-    "zstd",
-    "websocketpp"
+    "zstd"
   ],
   "overrides": [
     {
