@@ -22,17 +22,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef PASSIVE_CMD_H
-#define PASSIVE_CMD_H
+#ifndef PCB_COPILOT_CMD_TYPE_H
+#define PCB_COPILOT_CMD_TYPE_H
 
-#include <nlohmann/json.hpp>
-
-
-struct PASSIVE_CMD
+namespace PCB_COPILOT_CMD_TYPE
 {
-    bool triggered_by_passive_action = false;
-
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PASSIVE_CMD, triggered_by_passive_action )
-};
+constexpr auto COST_SUGGESTION = "chat.fab.cost_suggestion";
+}; // namespace PCB_COPILOT_CMD_TYPE
 
 #endif

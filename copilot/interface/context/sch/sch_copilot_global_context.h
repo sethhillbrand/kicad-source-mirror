@@ -31,7 +31,6 @@
 #include <string>
 #include <context/common/designators_context.h>
 #include <context/sch/details/sch_netlist_context.h>
-#include <vector>
 
 
 struct SCH_COPILOT_GLOBAL_CONTEXT : COPILOT_GLOBAL_CONTEXT,

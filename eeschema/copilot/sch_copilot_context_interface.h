@@ -94,6 +94,9 @@ void SCH_EDIT_FRAME::UpdateCopilotContextCache()
                 return StrNumCmp(a, b) < 0;
             });
 
+        designators.erase( std::unique( designators.begin(), designators.end() ),
+                           designators.end() );
+
         return designators;
 
     })();

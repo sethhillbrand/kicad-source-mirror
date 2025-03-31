@@ -36,7 +36,7 @@
 #include <fstream>
 
 COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
-        _settings( new COPILOT_SETTINGS ), _settings_is_valid( true )
+        _settings( new COPILOT_SETTINGS ), _settings_is_valid( false )
 {
     // Check if the setting file exists
     const auto setting_path = get_copilot_setting_path();
@@ -62,13 +62,13 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
             if( cnf.version == kConfigVersion )
             {
                 _settings = std::make_unique<COPILOT_SETTINGS>( cnf );
+                _settings_is_valid = true;
             }
 
             in.close();
         }
         catch( const std::exception& e )
         {
-            _settings_is_valid = false;
             wxLogTrace( "COPILOT_SETTINGS_MANAGER",
                         wxT( "COPILOT_SETTINGS_MANAGER(): Failed to parse setting file %s, using "
                              "default settings." ) );

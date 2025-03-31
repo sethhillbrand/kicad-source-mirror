@@ -28,7 +28,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-static constexpr auto kConfigVersion = "0.0.1";
+static constexpr auto kConfigVersion = "0.0.2";
 
 struct DATA_BURIED_POINT_SETTINGS
 {
@@ -42,23 +42,12 @@ struct WEBVIEW_PATH
 {
     std::string home = "/";
     std::string chat = "/chat";
-    std::string settings = "/settings";
-    std::string new_chat = "/new-chat";
-    std::string masks = "/masks";
-    std::string plugins = "/plugins";
-    std::string auth = "/auth";
-    std::string sd = "/sd";
-    std::string sd_new = "/sd-new";
-    std::string artifacts = "/artifacts";
-    std::string search_chat = "/search-chat";
-    std::string mcp_market = "/mcp-market";
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBVIEW_PATH, home, chat, settings, new_chat, masks, plugins,
-                                    auth, sd, sd_new, artifacts, search_chat, mcp_market )
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBVIEW_PATH, home, chat )
 };
 
 struct WEBVIEW_SETTINGS
 {
-    std::string  url = "http://192.168.50.230:3000";
+    std::string  url = "http://47.100.5.151:8080/";
     WEBVIEW_PATH path;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( WEBVIEW_SETTINGS, url, path )
 };

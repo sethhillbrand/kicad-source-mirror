@@ -39,17 +39,17 @@
 #include <string>
 #include <wx/log.h>
 #include <assistant_interface.h>
-#include <active_action/cmd/copilot_cmd_type.h>
+#include <active_action/cmd/sch/sch_copilot_cmd_type.h>
 
 
 void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
 {
     static const auto kComponentActMapping = std::unordered_map<AGENT_ACTION_TYPE, std::string>{
-        { AGENT_ACTION_TYPE::part_detail, COPILOT_CMD_TYPE::CURRENT_COMPONENT },
-        { AGENT_ACTION_TYPE::part_replace, COPILOT_CMD_TYPE::SIMILAR_COMPONENTS },
-        { AGENT_ACTION_TYPE::link_check, COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS },
-        { AGENT_ACTION_TYPE::foot_detail, COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS },
-        { AGENT_ACTION_TYPE::foot_unconnected, COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS },
+        { AGENT_ACTION_TYPE::part_detail, SCH_COPILOT_CMD_TYPE::CURRENT_COMPONENT },
+        { AGENT_ACTION_TYPE::part_replace, SCH_COPILOT_CMD_TYPE::SIMILAR_COMPONENTS },
+        { AGENT_ACTION_TYPE::link_check, SCH_COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS },
+        { AGENT_ACTION_TYPE::foot_detail, SCH_COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS },
+        { AGENT_ACTION_TYPE::foot_unconnected, SCH_COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS },
     };
 
     const auto process_component_action =

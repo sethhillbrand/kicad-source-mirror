@@ -32,7 +32,7 @@
 #include <build_version.h>
 #include <context/context_fields.h>
 #include <active_action/cmd/copilot_cmd_base.h>
-#include <active_action/cmd/copilot_cmd_type.h>
+#include <active_action/cmd/sch/sch_copilot_cmd_type.h>
 #include <context/sch/sch_copilot_global_context.h>
 #include "context/symbol_context.h"
 
@@ -72,31 +72,31 @@ void SCH_EDIT_FRAME::FireCopilotCommand( std::string const& aCmdType )
 
 void SCH_EDIT_FRAME::DesignIntention()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::DESIGN_INTENTION );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::DESIGN_INTENTION );
 }
 void SCH_EDIT_FRAME::CoreComponents()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::CORE_COMPONENTS );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::CORE_COMPONENTS );
 }
 void SCH_EDIT_FRAME::CurrentComponent()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::CURRENT_COMPONENT );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::CURRENT_COMPONENT );
 }
 void SCH_EDIT_FRAME::SimilarComponents()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::SIMILAR_COMPONENTS );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::SIMILAR_COMPONENTS );
 }
 void SCH_EDIT_FRAME::CheckSymbolConnections()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS );
 }
 void SCH_EDIT_FRAME::ComponentPinsDetails()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS );
 }
 void SCH_EDIT_FRAME::SymbolUnconnectedPins()
 {
-    FireCopilotCommand( COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS );
+    FireCopilotCommand( SCH_COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS );
 }
 
 

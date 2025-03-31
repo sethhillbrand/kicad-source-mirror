@@ -22,13 +22,28 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef FOOTPRINT_CONTEXT_H
-#define FOOTPRINT_CONTEXT_H
+#ifndef OPTIONAL_SCH_NETLIST_H
+#define OPTIONAL_SCH_NETLIST_H
 
-struct FOOTPRINT_CONTEXT
+#include <optional>
+#include <string>
+#include <nlohmann/json.hpp>
+
+struct OPTIONAL_SCH_NETLIST
 {
-
-
+    std::optional<std::string> net_list;
+    friend void                to_json( nlohmann ::json&            nlohmann_json_j,
+                                        const OPTIONAL_SCH_NETLIST& nlohmann_json_t )
+    {
+        if( nlohmann_json_t.net_list.has_value() )
+            nlohmann_json_j["net_list"] = *nlohmann_json_t.net_list;
+    }
+    friend void from_json( const nlohmann ::json& nlohmann_json_j,
+                           OPTIONAL_SCH_NETLIST&  nlohmann_json_t )
+    {
+        if( !nlohmann_json_j.contains( "net_list" ) )
+            nlohmann_json_t.net_list = nlohmann_json_j.at( "net_list" );
+    }
 };
 
 #endif

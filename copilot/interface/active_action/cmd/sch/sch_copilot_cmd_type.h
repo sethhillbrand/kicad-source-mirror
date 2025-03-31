@@ -22,11 +22,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef COPILOT_CMD_TYPE_H
-#define COPILOT_CMD_TYPE_H
+#ifndef SCH_COPILOT_CMD_TYPE_H
+#define SCH_COPILOT_CMD_TYPE_H
 
-
-namespace COPILOT_CMD_TYPE
+namespace SCH_COPILOT_CMD_TYPE
 {
 constexpr auto DESIGN_INTENTION = "chat.design.intention";
 constexpr auto CORE_COMPONENTS = "chat.design.core_components";
@@ -35,7 +34,7 @@ constexpr auto SIMILAR_COMPONENTS = "chat.components.similar_components";
 constexpr auto CHECK_SYMBOL_CONNECTIONS = "chat.components.check_symbol_connections";
 constexpr auto COMPONENT_PINS_DETAILS = "chat.components.component_pins_details";
 constexpr auto SYMBOL_UNCONNECTED_PINS = "chat.components.symbol_unconnected_pins";
-}; // namespace COPILOT_CMD_TYPE
+}; // namespace SCH_COPILOT_CMD_TYPE
 
 
 #endif
