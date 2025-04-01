@@ -1,4 +1,4 @@
-find_package(wxWidgets CONFIG REQUIRED)
+find_package( wxWidgets ${wxWidgets_REQ_VERSION} COMPONENTS  core base webview REQUIRED )
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
