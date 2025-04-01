@@ -28,7 +28,6 @@
 
 #include <passive_action/web/web_host.h>
 #include <passive_action/passive_action_container.h>
-#include <passive_action/agent/agent_action_context.h>
 #include <passive_action/agent/agent_action.h>
 #include <passive_action/agent/agent_action_type.h>
 #include <wx/log.h>
@@ -194,7 +193,7 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
         case INVALID: throw std::runtime_error( "Invalid message received" );
         case PA_WEB_HOST:
         {
-            const auto cmd = act_container.action.get<WEB_HOST_INTERNAL_CMD>();
+            const auto cmd = act_container.data.get<WEB_HOST_INTERNAL_CMD>();
             auto       t = magic_enum::enum_cast<WEB_HOST_INTERNAL_CMD_TYPE>( cmd.type );
 
             if( !t.has_value() )
@@ -239,7 +238,7 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
             if( !_host_copilot_handles.agent_action_handle.expired() )
             {
                 auto context_function = _host_copilot_handles.agent_action_handle.lock();
-                ( *context_function )( act_container.action );
+                ( *context_function )( act_container.data );
             }
         }
         break;

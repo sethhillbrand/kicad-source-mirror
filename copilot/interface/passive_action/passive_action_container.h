@@ -32,8 +32,8 @@
 struct PASSIVE_ACTION_CONTAINER
 {
     PASSIVE_ACTION_CATEGORY category;
-    nlohmann::json          action;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PASSIVE_ACTION_CONTAINER, category, action )
+    nlohmann::json          data;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PASSIVE_ACTION_CONTAINER, category, data )
 };
 
 #endif

@@ -33,14 +33,15 @@
 #include <exception>
 #include <passive_action/agent/agent_action.h>
 #include <passive_action/agent/agent_action_type.h>
-#include <passive_action/agent/agent_action_context.h>
+#include <passive_action/agent/context/component_agent_action_context.h>
+#include <passive_action/agent/context/highlight_symbol_context.h>
 #include <sch_edit_frame.h>
 #include <magic_enum.hpp>
 #include <string>
 #include <wx/log.h>
 #include <assistant_interface.h>
 #include <active_action/cmd/sch/sch_copilot_cmd_type.h>
-
+#include <utils/copilot_utils.h>
 
 void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
 {
@@ -52,73 +53,12 @@ void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
         { AGENT_ACTION_TYPE::foot_unconnected, SCH_COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS },
     };
 
-    const auto process_component_action =
-            [&]( std::string const& designator, AGENT_ACTION_TYPE act )
+    const auto hight_symbol = [&]( std::string const& designator )
     {
-        if( !m_copilotPanel || kComponentActMapping.find( act ) == kComponentActMapping.end() )
-            return;
-        const auto build_cxt = [&]() -> SYMBOL_CMD_CONTEXT const&
-        {
-            SCH_SYMBOL* symbol{};
-
-            SCH_REFERENCE_LIST referenceList;
-            Schematic().Hierarchy().GetSymbols( referenceList, false, false );
-
-            for( const auto& ref : referenceList )
-            {
-                if( ref.GetRef() == designator )
-                {
-                    symbol = ref.GetSymbol();
-                    break;
-                }
-            }
-
-            if( !symbol )
-            {
-                // NOTE shall not come here
-                return *m_symbolCmdContext;
-            }
-
-            const wxString ref = symbol->GetRefProp();
-            m_symbolCmdContext->designator = ref;
-            m_symbolCmdContext->symbol_properties = {
-                symbol->GetValueProp().ToStdString(),
-                symbol->GetDescription().ToStdString(),
-                symbol->GetFootprintFieldText( true, &Schematic().CurrentSheet(), false )
-                        .ToStdString(),
-            };
-
-
-            for( const auto& pin : symbol->GetPins() )
-            {
-                m_symbolCmdContext->symbol_properties.pins.push_back(
-                        { pin->GetNumber().ToStdString(), pin->GetName().ToStdString(),
-                          PinShapeGetText( pin->GetShape() ).ToStdString() } );
-            }
-
-
-            return *m_symbolCmdContext;
-        };
-
         wxString            part_ref{ designator };
         SCH_EDITOR_CONTROL* editor = m_toolManager->GetTool<SCH_EDITOR_CONTROL>();
         editor->FindSymbolAndItem( nullptr, &part_ref, true, HIGHLIGHT_SYMBOL, {} );
-
-
-        UpdateCopilotContextCache();
-
-
-        auto cc =
-                create_cmd<COPILOT_CMD_WITH_CONTEXT<SCH_COPILOT_GLOBAL_CONTEXT, SYMBOL_CMD_CONTEXT>,
-                           SYMBOL_CMD_CONTEXT>( *m_copilotContextCache, build_cxt() );
-        cc.triggered_by_passive_action = true;
-
-        nlohmann::json cmd = cc;
-        cmd[kType] = kComponentActMapping.at( act );
-        ShowCopilot();
-        ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
     };
-
 
     try
     {
@@ -138,8 +78,75 @@ void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
         case AGENT_ACTION_TYPE::link_check:
         case AGENT_ACTION_TYPE::foot_unconnected:
         {
-            const auto cxt = aAction.context.get<DESIGNATOR_CONTEXT>();
-            
+            const auto process_component_action =
+                    [&]( std::string designator, AGENT_ACTION_TYPE act )
+            {
+                convert_to_upper( designator );
+
+                if( !m_copilotPanel
+                    || kComponentActMapping.find( act ) == kComponentActMapping.end() )
+                    return;
+                const auto build_cxt = [&]() -> SYMBOL_CMD_CONTEXT const&
+                {
+                    SCH_SYMBOL* symbol{};
+
+                    SCH_REFERENCE_LIST referenceList;
+                    Schematic().Hierarchy().GetSymbols( referenceList, false, false );
+
+                    for( const auto& ref : referenceList )
+                    {
+                        if( ref.GetRef() == designator )
+                        {
+                            symbol = ref.GetSymbol();
+                            break;
+                        }
+                    }
+
+                    if( !symbol )
+                    {
+                        // NOTE shall not come here
+                        return *m_symbolCmdContext;
+                    }
+
+                    const wxString ref = symbol->GetRefProp();
+                    m_symbolCmdContext->designator = ref;
+                    m_symbolCmdContext->symbol_properties = {
+                        symbol->GetValueProp().ToStdString(),
+                        symbol->GetDescription().ToStdString(),
+                        symbol->GetFootprintFieldText( true, &Schematic().CurrentSheet(), false )
+                                .ToStdString(),
+                    };
+
+
+                    for( const auto& pin : symbol->GetPins() )
+                    {
+                        m_symbolCmdContext->symbol_properties.pins.push_back(
+                                { pin->GetNumber().ToStdString(), pin->GetName().ToStdString(),
+                                  PinShapeGetText( pin->GetShape() ).ToStdString() } );
+                    }
+
+
+                    return *m_symbolCmdContext;
+                };
+
+                hight_symbol( designator );
+
+                UpdateCopilotContextCache();
+
+
+                auto cc = create_cmd<
+                        COPILOT_CMD_WITH_CONTEXT<SCH_COPILOT_GLOBAL_CONTEXT, SYMBOL_CMD_CONTEXT>,
+                        SYMBOL_CMD_CONTEXT>( *m_copilotContextCache, build_cxt() );
+                cc.triggered_by_passive_action = true;
+
+                nlohmann::json cmd = cc;
+                cmd[kType] = kComponentActMapping.at( act );
+                ShowCopilot();
+                ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
+            };
+
+            const auto cxt = aAction.context.get<COMPONENT_AGENT_ACTION_CONTEXT>();
+
             if( cxt.d1 )
                 process_component_action( cxt.d1.value(), *t );
 
@@ -147,6 +154,12 @@ void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
                 process_component_action( cxt.f1.value(), *t );
         }
         break;
+        case AGENT_ACTION_TYPE::highlight_symbol:
+        {
+            hight_symbol( aAction.context.get<HIGHLIGHT_SYMBOL_CONTEXT>().designator );
+        }
+        break;
+        default: wxLogWarning( "Unknown action received: %s", aAction.action.c_str() ); break;
         }
     }
     catch( std::exception const& e )

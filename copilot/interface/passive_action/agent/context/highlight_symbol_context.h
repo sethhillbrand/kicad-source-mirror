@@ -22,19 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef AGENT_ACTION_TYPE_H
-#define AGENT_ACTION_TYPE_H
+#ifndef HIGHLIGHT_SYMBOL_CONTEXT_H
+#define HIGHLIGHT_SYMBOL_CONTEXT_H
 
-enum class AGENT_ACTION_TYPE
+#include <nlohmann/json.hpp>
+
+struct HIGHLIGHT_SYMBOL_CONTEXT
 {
-    INVALID,
-    highlight_symbol,
-    part_detail,     //器件的详细信息
-    part_replace,    //相似器件推荐
-    link_check,      //某个位号对应器件与其他器件引脚之间的链接状况
-    foot_detail,     //器件的引脚的详细信息
-    foot_unconnected, //器件的引脚中未跟任何其他器件相连时的具体情况
+    std::string designator;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HIGHLIGHT_SYMBOL_CONTEXT, designator )
 };
-
 
 #endif
