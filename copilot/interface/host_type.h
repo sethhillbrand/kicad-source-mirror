@@ -22,16 +22,18 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef HOST_VERSION_INFO_H
-#define HOST_VERSION_INFO_H
+#ifndef HOST_TYPE_H
+#define HOST_TYPE_H
 
-#include <kicad_version_info.h>
-#include "host_type.h"
+#include <string>
+#include <nlohmann/json.hpp>
 
-struct HOST_VERSION_INFO : HOST_TYPE
+
+struct HOST_TYPE
 {
-    KICAD_VERSION_INFO details;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HOST_VERSION_INFO, host_name, editor_name, details )
+    std::string host_name = "kicad_desktop";
+    std::string editor_name;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HOST_TYPE, host_name, editor_name )
 };
 
 #endif

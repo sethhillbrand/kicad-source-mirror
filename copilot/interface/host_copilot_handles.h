@@ -25,12 +25,14 @@
 #ifndef HOST_COPILOT_HANDLES_H
 #define HOST_COPILOT_HANDLES_H
 
+#include "host_type.h"
 #include <passive_action/agent/agent_action_handle.h>
 #include <context/copilot_global_context_handle.h>
-
+#include <optional>
 
 struct HOST_COPILOT_HANDLES
 {
+    std::optional<HOST_TYPE>   host_type;
     COPILOT_GLOBAL_CONTEXT_HDL global_context_handle;
     AGENT_ACTION_HANDLE        agent_action_handle;
 };

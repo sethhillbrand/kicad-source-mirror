@@ -22,16 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef HOST_VERSION_INFO_H
-#define HOST_VERSION_INFO_H
+#ifndef KICAD_COPILOT_EDITORS_H
+#define KICAD_COPILOT_EDITORS_H
 
-#include <kicad_version_info.h>
-#include "host_type.h"
-
-struct HOST_VERSION_INFO : HOST_TYPE
+enum class KICAD_COPILOT_EDITORS
 {
-    KICAD_VERSION_INFO details;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HOST_VERSION_INFO, host_name, editor_name, details )
-};
+    schematic,
+    pcb,
+    footprint,
+    symbol
 
+};
 #endif

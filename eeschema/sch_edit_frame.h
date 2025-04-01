@@ -1171,6 +1171,8 @@ public:
       * Copilot context interfaces
       */
 
+    void InitCopilotContext();
+
     void UpdateCopilotContextCache();
 
     wxString GetBomList();

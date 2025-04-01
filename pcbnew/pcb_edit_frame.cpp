@@ -122,7 +122,7 @@
 #include <copilot/pcb_copilot_context_interface.h>
 #include <context/pcb/pcb_copilot_global_context.h>
 #include <copilot/pcb_copilot_ui.h>
-#include <copilot/get_kicad_version_info.h>
+#include <copilot/pcb_copilot_context_initialization.h>
 
 #ifdef KICAD_IPC_API
 #include <api/api_server.h>
@@ -224,8 +224,7 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         return *m_copilotContextCache;  
     } ))
 {
-    m_copilotContextCache->host_version_info.details = get_kicad_version_info();
-    m_copilotContextCache->host_version_info.editor_name = "pcb";
+    InitCopilotContext();
     m_maximizeByDefault = true;
     m_showBorderAndTitleBlock = true;   // true to display sheet references
     m_SelTrackWidthBox = nullptr;

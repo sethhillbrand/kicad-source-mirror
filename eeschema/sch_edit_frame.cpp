@@ -22,6 +22,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include "magic_enum.hpp"
 #include "passive_action/agent/agent_action.h"
 #include "passive_action/agent/agent_action_handle.h"
 #include <algorithm>
@@ -113,8 +114,8 @@
 #include <copilot/sch_copilot_ui.h>
 #include <copilot/sch_agent_action_executor.h>
 #include <copilot/sch_copilot_cmd.h>
-#include <copilot/get_kicad_version_info.h>
 #include <copilot/sch_copilot_context_interface.h>
+#include <copilot/sch_copilot_context_initialization.h>
 
 
 #ifdef KICAD_IPC_API
@@ -163,7 +164,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]() -> COPILOT_GLOBAL_CONTEXT const&{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } )),
     m_agentActionHandle(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);}))
 {
-    m_copilotContextCache->host_version_info.details = get_kicad_version_info();
+    InitCopilotContext();
     m_maximizeByDefault = true;
     m_schematic = new SCHEMATIC( nullptr );
 

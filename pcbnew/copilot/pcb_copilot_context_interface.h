@@ -70,4 +70,3 @@ void PCB_EDIT_FRAME::UpdateCopilotContextCache()
 
 
 #endif
-
