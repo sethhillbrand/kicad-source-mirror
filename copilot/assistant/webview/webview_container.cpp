@@ -24,6 +24,7 @@
 
 #include "webview_container.h"
 #include "settings/copilot_settings_manager.h"
+#include "web_utils.h"
 #include "webview_constant.h"
 
 #include <passive_action/web/web_host.h>
@@ -71,9 +72,11 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
     _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 #endif
-    _browser->Create( this, wxID_ANY,
-                      COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),
-                      wxDefaultPosition, wxDefaultSize );
+    const auto url =
+            add_parameter_to_url( COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),
+                                  _host_copilot_handles.host_type );
+
+    _browser->Create( this, wxID_ANY, url, wxDefaultPosition, wxDefaultSize );
     top_sizer->Add( _browser, wxSizerFlags().Expand().Proportion( 1 ) );
 
 #ifndef __WXMAC__

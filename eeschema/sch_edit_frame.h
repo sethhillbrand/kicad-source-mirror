@@ -1148,9 +1148,7 @@ private:
 #endif
 
 public:
-    /**
-     * Copilot UI interfaces
-     */
+    // Copilot UI interfaces
     void InitCopilotPanel();
 
     void InitCopilotAui();
@@ -1167,10 +1165,7 @@ public:
 
     void LoadCopilotCnf();
 
-    /**
-      * Copilot context interfaces
-      */
-
+    // Copilot context interfaces
     void InitCopilotContext();
 
     void UpdateCopilotContextCache();
@@ -1183,14 +1178,10 @@ public:
 
     wxString GetSymbolNetList( wxString const& aDesignator );
 
-    /**
-      * Copilot Commands
-      */
-
+    // Copilot commands Dispatcher
     void FireCopilotCommand( std::string const& aCmdType );
 
-    void ExecuteAgentAction( AGENT_ACTION const& aAction );
-
+    // Concreate cmd handlers
     void DesignIntention();
 
     void CoreComponents();
@@ -1204,6 +1195,12 @@ public:
     void ComponentPinsDetails();
 
     void SymbolUnconnectedPins();
+
+    // Agent execution entrypoint
+    void ExecuteAgentAction( AGENT_ACTION const& aAction );
+
+    // Agent APIS
+    void HighlightSymbol(std::string const & aDesignator);
 
 private:
     wxPanel*                                    m_copilotPanel{};

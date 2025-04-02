@@ -123,6 +123,8 @@
 #include <context/pcb/pcb_copilot_global_context.h>
 #include <copilot/pcb_copilot_ui.h>
 #include <copilot/pcb_copilot_context_initialization.h>
+#include <copilot/pcb_agent_action_executor.h>
+#include <copilot/pcb_agent_api.h>
 
 #ifdef KICAD_IPC_API
 #include <api/api_server.h>
@@ -220,7 +222,6 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_copilotContextCache(new PCB_COPILOT_GLOBAL_CONTEXT ),
     m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]()->COPILOT_GLOBAL_CONTEXT const&{ 
          UpdateCopilotContextCache();
-        //  FIXME
         return *m_copilotContextCache;  
     } ))
 {

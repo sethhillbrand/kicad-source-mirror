@@ -116,7 +116,7 @@
 #include <copilot/sch_copilot_cmd.h>
 #include <copilot/sch_copilot_context_interface.h>
 #include <copilot/sch_copilot_context_initialization.h>
-
+#include <copilot/sch_agent_api.h>
 
 #ifdef KICAD_IPC_API
 #include <api/api_plugin_manager.h>
