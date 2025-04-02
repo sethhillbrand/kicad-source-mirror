@@ -1,4 +1,4 @@
-find_package(wxWidgets CONFIG REQUIRED)
+find_package( wxWidgets ${wxWidgets_REQ_VERSION} COMPONENTS  core base REQUIRED )
 
 add_executable( copilot_standalone  
     main.cpp
