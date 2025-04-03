@@ -37,7 +37,6 @@ struct LAUNCH_PCB_PLUGIN_CONTEXT_BASE
 
 struct LAUNCH_PCB_PLUGIN_CONTEXT : LAUNCH_PCB_PLUGIN_CONTEXT_BASE, OPTIONAL_PARAM_CONTEXT
 {
-    std::string type;
     friend void to_json( nlohmann ::json&                 nlohmann_json_j,
                          const LAUNCH_PCB_PLUGIN_CONTEXT& nlohmann_json_t )
     {

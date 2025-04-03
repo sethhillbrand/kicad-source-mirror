@@ -40,7 +40,8 @@ void PCB_EDIT_FRAME::InitCopilotPanel()
     if( ASSISTANT_INTERFACE::get_instance().is_assistant_available() )
     {
         m_copilotPanel = ASSISTANT_INTERFACE::get_instance().create_assistant_panel(
-                this, {m_copilotContextCache->host_version_info, m_copilotGlobalContextHdl, {} } );
+                this, { m_copilotContextCache->host_version_info, m_copilotGlobalContextHdl,
+                        m_copilotAgentActionHdl } );
     }
 }
 

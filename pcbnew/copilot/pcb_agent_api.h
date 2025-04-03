@@ -33,6 +33,18 @@
 void PCB_EDIT_FRAME::LaunchPlugin( std::string const&            aPluginName,
                                    std::optional<nlohmann::json> aParams )
 {
+    static const auto kSupportedPlugins =
+            std::unordered_map<std::string, std::string>{ { "dfm", "HQ DFM" } };
+
+    if( !kSupportedPlugins.contains( aPluginName ) )
+    {
+        wxLogError( wxT( "Plugin %s is not supported" ), aPluginName );
+        return;
+    }
+
+
+    const auto plugin_name = kSupportedPlugins.at( aPluginName );
+
     if( ACTION_PLUGINS::IsActionRunning() )
     {
         wxLogError( wxT( "Another plugin is running" ) );
@@ -42,17 +54,17 @@ void PCB_EDIT_FRAME::LaunchPlugin( std::string const&            aPluginName,
 
     for( auto i = 0; i < ACTION_PLUGINS::GetActionsCount(); i++ )
     {
-        const auto act_name =
-                ACTION_PLUGINS::GetActionByPath( aPluginName )->GetName().ToStdString();
+        const auto plugin = ACTION_PLUGINS::GetAction( i );
+        const auto act_name = plugin->GetName().ToStdString();
 
-        if( act_name == aPluginName )
+        if( act_name == plugin_name )
         {
-            ACTION_PLUGINS::GetActionByPath( aPluginName )->Run();
+            plugin->Run();
             return;
         }
     }
-    
-    wxLogError( wxT( "Action plugin %s not found" ), aPluginName );
+
+    wxLogError( wxT( "Action plugin %s not installed" ), aPluginName );
 }
 
 
