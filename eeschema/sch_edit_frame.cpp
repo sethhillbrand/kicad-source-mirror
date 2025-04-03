@@ -162,7 +162,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_copilotContextCache(new SCH_COPILOT_GLOBAL_CONTEXT ),
     m_symbolCmdContext(new SYMBOL_CMD_CONTEXT),
     m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]() -> COPILOT_GLOBAL_CONTEXT const&{  UpdateCopilotContextCache(); return *m_copilotContextCache;  } )),
-    m_agentActionHandle(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);}))
+    m_copilotAgentActionHdl(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);}))
 {
     InitCopilotContext();
     m_maximizeByDefault = true;

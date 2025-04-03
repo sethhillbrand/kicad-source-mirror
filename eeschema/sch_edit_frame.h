@@ -1207,7 +1207,7 @@ private:
     std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
     std::unique_ptr<SYMBOL_CMD_CONTEXT>         m_symbolCmdContext;
     COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
-    AGENT_ACTION_OWNED_HANDLE                   m_agentActionHandle;
+    AGENT_ACTION_OWNED_HANDLE                   m_copilotAgentActionHdl;
 };
 
 

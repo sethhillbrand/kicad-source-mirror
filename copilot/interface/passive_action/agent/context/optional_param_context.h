@@ -22,32 +22,31 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef AGENT_ACTION_TYPE_H
-#define AGENT_ACTION_TYPE_H
+#ifndef OPTIONAL_PARAM_CONTEXT_H
+#define OPTIONAL_PARAM_CONTEXT_H
 
-/**
- * @brief All the types are converted from sting using magic enum , so actual enum int value doesn't matter
- * 
- */
-enum class AGENT_ACTION_TYPE
+#include <optional>
+#include <nlohmann/json.hpp>
+
+
+struct OPTIONAL_PARAM_CONTEXT
 {
-    INVALID,
+    std::optional<nlohmann::json> params;
 
-    SCH_BEGIN,
+    friend void to_json( nlohmann::json&               nlohmann_json_j,
+                         const OPTIONAL_PARAM_CONTEXT& nlohmann_json_t )
+    {
+        if( nlohmann_json_t.params.has_value() )
+            nlohmann_json_j["params"] = nlohmann_json_t.params.value();
 
-    highlight_symbol,
-    part_detail,      //器件的详细信息
-    part_replace,     //相似器件推荐
-    link_check,       //某个位号对应器件与其他器件引脚之间的链接状况
-    foot_detail,      //器件的引脚的详细信息
-    foot_unconnected, //器件的引脚中未跟任何其他器件相连时的具体情况
+    }
+    friend void from_json( const nlohmann::json&   nlohmann_json_j,
+                           OPTIONAL_PARAM_CONTEXT& nlohmann_json_t )
+    {
+        if( nlohmann_json_j.contains( "params" ) )
+            nlohmann_json_t.params = nlohmann_json_j.at( "params" );
 
-    PCB_BEGIN,
-
-    basic_run, //比如启动PCB里的DMF插件
-
-
+    }
 };
-
 
 #endif

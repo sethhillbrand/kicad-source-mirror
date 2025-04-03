@@ -25,34 +25,20 @@
 #ifndef PCB_AGENT_ACTION_EXECUTOR_H
 #define PCB_AGENT_ACTION_EXECUTOR_H
 
-#include "active_action/cmd/copilot_cmd_base.h"
-#include "context/sch/sch_copilot_global_context.h"
-#include "tool/tool_manager.h"
+
 #include <context/symbol_context.h>
 #include <exception>
 #include <passive_action/agent/agent_action.h>
 #include <passive_action/agent/agent_action_type.h>
-#include <passive_action/agent/context/component_agent_action_context.h>
-#include <passive_action/agent/context/highlight_symbol_context.h>
+#include <passive_action/agent/context/launch_pcb_plugin_context.h>
 #include <pcb_edit_frame.h>
 #include <magic_enum.hpp>
 #include <string>
 #include <wx/log.h>
 #include <assistant_interface.h>
-#include <active_action/cmd/sch/sch_copilot_cmd_type.h>
-#include <utils/copilot_utils.h>
 
 void PCB_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
 {
-    static const auto kComponentActMapping = std::unordered_map<AGENT_ACTION_TYPE, std::string>{
-        { AGENT_ACTION_TYPE::part_detail, SCH_COPILOT_CMD_TYPE::CURRENT_COMPONENT },
-        { AGENT_ACTION_TYPE::part_replace, SCH_COPILOT_CMD_TYPE::SIMILAR_COMPONENTS },
-        { AGENT_ACTION_TYPE::link_check, SCH_COPILOT_CMD_TYPE::CHECK_SYMBOL_CONNECTIONS },
-        { AGENT_ACTION_TYPE::foot_detail, SCH_COPILOT_CMD_TYPE::COMPONENT_PINS_DETAILS },
-        { AGENT_ACTION_TYPE::foot_unconnected, SCH_COPILOT_CMD_TYPE::SYMBOL_UNCONNECTED_PINS },
-    };
-
-
     try
     {
         auto t = magic_enum::enum_cast<AGENT_ACTION_TYPE>( aAction.action );
@@ -65,14 +51,14 @@ void PCB_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
 
         switch( *t )
         {
-        case AGENT_ACTION_TYPE::foot_detail:
-        case AGENT_ACTION_TYPE::part_detail:
-        case AGENT_ACTION_TYPE::part_replace:
-        case AGENT_ACTION_TYPE::link_check:
-        case AGENT_ACTION_TYPE::foot_unconnected:
+        case AGENT_ACTION_TYPE::basic_run:
+        {
+            const auto plugin_context = aAction.context.get<LAUNCH_PCB_PLUGIN_CONTEXT>();
+            LaunchPlugin( plugin_context.type, plugin_context.params );
+        }
+
         break;
-        case AGENT_ACTION_TYPE::highlight_symbol:
-        break;
+
         default: wxLogWarning( "Unknown action received: %s", aAction.action.c_str() ); break;
         }
     }

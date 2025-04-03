@@ -41,7 +41,7 @@ void SCH_EDIT_FRAME::InitCopilotPanel()
     {
         m_copilotPanel = ASSISTANT_INTERFACE::get_instance().create_assistant_panel(
                 this, { m_copilotContextCache->host_version_info, m_copilotGlobalContextHdl,
-                        m_agentActionHandle } );
+                        m_copilotAgentActionHdl } );
     }
 }
 

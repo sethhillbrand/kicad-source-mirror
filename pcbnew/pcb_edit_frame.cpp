@@ -223,7 +223,8 @@ PCB_EDIT_FRAME::PCB_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_copilotGlobalContextHdl(std::make_shared<std::function<COPILOT_GLOBAL_CONTEXT const&()>>( [&]()->COPILOT_GLOBAL_CONTEXT const&{ 
          UpdateCopilotContextCache();
         return *m_copilotContextCache;  
-    } ))
+    } )),
+    m_copilotAgentActionHdl(std::make_shared<AGENT_ACTION_HANDLE_T>([&](AGENT_ACTION const& act ){ ExecuteAgentAction(act);}))
 {
     InitCopilotContext();
     m_maximizeByDefault = true;

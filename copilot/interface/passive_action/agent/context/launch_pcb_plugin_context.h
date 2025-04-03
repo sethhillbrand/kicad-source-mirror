@@ -22,38 +22,36 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef PCB_AGENT_API_H
-#define PCB_AGENT_API_H
+#ifndef LAUNCH_PCB_PLUGIN_CONTEXT_H
+#define LAUNCH_PCB_PLUGIN_CONTEXT_H
 
-#include <pcb_edit_frame.h>
-#include <action_plugin.h>
-#include <wx/log.h>
-#include <wx/msgdlg.h>
 
-void PCB_EDIT_FRAME::LaunchPlugin( std::string const&            aPluginName,
-                                   std::optional<nlohmann::json> aParams )
+#include "optional_param_context.h"
+#include <nlohmann/json.hpp>
+
+struct LAUNCH_PCB_PLUGIN_CONTEXT_BASE
 {
-    if( ACTION_PLUGINS::IsActionRunning() )
+    std::string type;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( LAUNCH_PCB_PLUGIN_CONTEXT_BASE, type )
+};
+
+struct LAUNCH_PCB_PLUGIN_CONTEXT : LAUNCH_PCB_PLUGIN_CONTEXT_BASE, OPTIONAL_PARAM_CONTEXT
+{
+    std::string type;
+    friend void to_json( nlohmann ::json&                 nlohmann_json_j,
+                         const LAUNCH_PCB_PLUGIN_CONTEXT& nlohmann_json_t )
     {
-        wxLogError( wxT( "Another plugin is running" ) );
-        return;
+        to_json( nlohmann_json_j,
+                 static_cast<const LAUNCH_PCB_PLUGIN_CONTEXT_BASE&>( nlohmann_json_t ) );
+        to_json( nlohmann_json_j, static_cast<const OPTIONAL_PARAM_CONTEXT&>( nlohmann_json_t ) );
     }
-
-
-    for( auto i = 0; i < ACTION_PLUGINS::GetActionsCount(); i++ )
+    friend void from_json( const nlohmann ::json&     nlohmann_json_j,
+                           LAUNCH_PCB_PLUGIN_CONTEXT& nlohmann_json_t )
     {
-        const auto act_name =
-                ACTION_PLUGINS::GetActionByPath( aPluginName )->GetName().ToStdString();
-
-        if( act_name == aPluginName )
-        {
-            ACTION_PLUGINS::GetActionByPath( aPluginName )->Run();
-            return;
-        }
+        from_json( nlohmann_json_j,
+                   static_cast<LAUNCH_PCB_PLUGIN_CONTEXT_BASE&>( nlohmann_json_t ) );
+        from_json( nlohmann_json_j, static_cast<OPTIONAL_PARAM_CONTEXT&>( nlohmann_json_t ) );
     }
-    
-    wxLogError( wxT( "Action plugin %s not found" ), aPluginName );
-}
-
+};
 
 #endif
