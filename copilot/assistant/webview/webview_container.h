@@ -25,22 +25,21 @@
 #ifndef WEBVIEW_CONTAINER_H
 #define WEBVIEW_CONTAINER_H
 
-
-#include "assistant/assistant.h"
 #include <host_copilot_handles.h>
 #include <string>
 #include <wx/panel.h>
 #include <wx/log.h>
 #include <wx/webview.h>
 #include <set>
+#include <kicommon.h>
 
-class WEBVIEW_CONTAINER : public wxPanel, public ASSISTANT
+class KICOMMON_API WEBVIEW_CONTAINER : public wxPanel
 {
 public:
     WEBVIEW_CONTAINER( wxWindow* parent, HOST_COPILOT_HANDLES host_copilot_handles );
     ~WEBVIEW_CONTAINER();
 
-    void fire_host_active_cmd( const char* cmd ) override;
+    void fire_host_active_cmd( const char* cmd );
 
     void OnNavigationRequest( wxWebViewEvent& evt );
     void OnNavigationComplete( wxWebViewEvent& evt );
@@ -54,9 +53,9 @@ public:
 
 
 private:
-    std::set<std::string>      _consumed_global_ctx_keys{};
-    wxWebView*                 _browser;
-    HOST_COPILOT_HANDLES       _host_copilot_handles;
+    std::set<std::string> _consumed_global_ctx_keys{};
+    wxWebView*            _browser;
+    HOST_COPILOT_HANDLES  _host_copilot_handles;
 };
 
 #endif

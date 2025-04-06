@@ -41,13 +41,41 @@
 #include <wx/webviewfshandler.h>
 #include <context/copilot_global_context_handle.h>
 #include <context/copilot_global_context.h>
-#include <copilot_global.h>
 #include <format>
 #include <magic_enum.hpp>
 
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
 #endif
+
+#include <thread>
+#include "http/http_client.h"
+#include "proto/data_buried_point.h"
+
+
+inline auto send_data_buried_point()
+{
+    std::thread t(
+            [&]()
+            {
+                try
+                {
+                    HTTP_CLIENT http_client;
+                    http_client.send_data_buried_point( DATA_BURIED_POINT{} );
+                }
+                catch( std::exception const& e )
+                {
+                    wxLogTrace( wxString::Format( "send_data_buried_point error: %s", e.what() ),
+                                "send_data_buried_point" );
+                }
+                catch( ... )
+                {
+                    wxLogTrace( wxString::Format( "send_data_buried_point error: unknown" ),
+                                "send_data_buried_point" );
+                }
+            } );
+    t.detach();
+}
 
 
 enum START_UP_SIZE
@@ -61,6 +89,8 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
         wxPanel( parent ), _browser( wxWebView::New() ),
         _host_copilot_handles( std::move( host_copilot_handles ) )
 {
+
+    send_data_buried_point();
 #ifdef DEBUG
     // new wxLogWindow( this, _( "Logging" ), true, false );
 #endif // DEBUG
