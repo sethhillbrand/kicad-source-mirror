@@ -725,6 +725,7 @@ target_link_libraries( pcbnew_kiface_objects
         Boost::boost
         ZLIB::ZLIB
         ${OCC_LIBRARIES}
+        assistant
     )
 
 add_library( pcbnew_kiface MODULE )
