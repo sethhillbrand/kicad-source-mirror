@@ -1174,6 +1174,7 @@ add_subdirectory( thirdparty )
 add_subdirectory( libs )
 add_subdirectory( scripting )
 add_subdirectory( common )
+add_subdirectory( copilot )
 add_subdirectory( 3d-viewer )
 add_subdirectory( eeschema )
 add_subdirectory( gerbview )
@@ -1223,5 +1224,3 @@ if( APPLE )
 endif()
 
 
-# Copilot
-add_subdirectory( copilot )
