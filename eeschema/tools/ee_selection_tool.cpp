@@ -64,7 +64,6 @@
 #include <view/view_controls.h>
 #include <wx/log.h>
 
-#include "assistant_interface.h"
 #include "symb_transforms_utils.h"
 #include "copilot/sch_copilot_global_ctx_menu.h"
 
@@ -309,7 +308,7 @@ bool EE_SELECTION_TOOL::Init()
     menu.AddItem( EE_ACTIONS::drawWire,           schEditCondition && EE_CONDITIONS::Empty, 100 );
     menu.AddItem( EE_ACTIONS::drawBus,            schEditCondition && EE_CONDITIONS::Empty, 100 );
 
-    if(ASSISTANT_INTERFACE::get_instance().is_assistant_available())
+    if( true )
     {
         menu.AddSeparator( 100 );
         menu.AddMenu( new SCH_COPILOT_GLOBAL_CTX_MENU( ), schEditCondition && EE_CONDITIONS::Empty, 100 );

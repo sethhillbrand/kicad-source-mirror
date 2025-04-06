@@ -28,13 +28,14 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <sch_edit_frame.h>
-#include <assistant_interface.h>
 #include <build_version.h>
 #include <context/context_fields.h>
 #include <active_action/cmd/copilot_cmd_base.h>
 #include <active_action/cmd/sch/sch_copilot_cmd_type.h>
 #include <context/sch/sch_copilot_global_context.h>
+#include <webview/webview_container.h>
 #include "context/symbol_context.h"
+
 
 
 void SCH_EDIT_FRAME::FireCopilotCommand( std::string const& aCmdType )
@@ -65,7 +66,7 @@ void SCH_EDIT_FRAME::FireCopilotCommand( std::string const& aCmdType )
     {
         cmd[kType] = aCmdType;
         ShowCopilot();
-        ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
+        m_copilotPanel->fire_host_active_cmd( cmd.dump().c_str() );
     }
 }
 

@@ -39,9 +39,9 @@
 #include <magic_enum.hpp>
 #include <string>
 #include <wx/log.h>
-#include <assistant_interface.h>
 #include <active_action/cmd/sch/sch_copilot_cmd_type.h>
 #include <utils/copilot_utils.h>
+#include <webview/webview_container.h>
 
 void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
 {
@@ -142,7 +142,7 @@ void SCH_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
                 nlohmann::json cmd = cc;
                 cmd[kType] = kComponentActMapping.at( act );
                 ShowCopilot();
-                ASSISTANT_INTERFACE::get_instance().fire_cmd( m_copilotPanel, cmd.dump() );
+                m_copilotPanel->fire_host_active_cmd( cmd.dump().c_str() );
             };
 
             const auto cxt = aAction.context.get<COMPONENT_AGENT_ACTION_CONTEXT>();

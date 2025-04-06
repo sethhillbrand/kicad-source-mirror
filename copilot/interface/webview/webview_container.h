@@ -22,49 +22,40 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef PCB_AGENT_ACTION_EXECUTOR_H
-#define PCB_AGENT_ACTION_EXECUTOR_H
+#ifndef WEBVIEW_CONTAINER_H
+#define WEBVIEW_CONTAINER_H
 
-
-#include <context/symbol_context.h>
-#include <exception>
-#include <passive_action/agent/agent_action.h>
-#include <passive_action/agent/agent_action_type.h>
-#include <passive_action/agent/context/launch_pcb_plugin_context.h>
-#include <pcb_edit_frame.h>
-#include <magic_enum.hpp>
+#include <host_copilot_handles.h>
 #include <string>
+#include <wx/panel.h>
 #include <wx/log.h>
+#include <wx/webview.h>
+#include <set>
+#include <copilot_global.h>
 
-void PCB_EDIT_FRAME::ExecuteAgentAction( AGENT_ACTION const& aAction )
+class COPILOT_API WEBVIEW_CONTAINER : public wxPanel
 {
-    try
-    {
-        auto t = magic_enum::enum_cast<AGENT_ACTION_TYPE>( aAction.action );
+public:
+    WEBVIEW_CONTAINER( wxWindow* parent, HOST_COPILOT_HANDLES host_copilot_handles );
+    ~WEBVIEW_CONTAINER();
 
-        if( !t.has_value() )
-        {
-            wxLogWarning( "Unknown action received: %s", aAction.action.c_str() );
-            return;
-        }
+    void fire_host_active_cmd( const char* cmd );
 
-        switch( *t )
-        {
-        case AGENT_ACTION_TYPE::basic_run:
-        {
-            const auto plugin_context = aAction.context.get<LAUNCH_PCB_PLUGIN_CONTEXT>();
-            LaunchPlugin( plugin_context.type, plugin_context.params );
-        }
+    void OnNavigationRequest( wxWebViewEvent& evt );
+    void OnNavigationComplete( wxWebViewEvent& evt );
+    void OnDocumentLoaded( wxWebViewEvent& evt );
+    void OnNewWindow( wxWebViewEvent& evt );
+    void OnTitleChanged( wxWebViewEvent& evt );
+    void OnFullScreenChanged( wxWebViewEvent& evt );
+    void OnScriptMessage( wxWebViewEvent& evt );
+    void OnScriptResult( wxWebViewEvent& evt );
+    void OnError( wxWebViewEvent& evt );
 
-        break;
 
-        default: wxLogWarning( "Unknown action received: %s", aAction.action.c_str() ); break;
-        }
-    }
-    catch( std::exception const& e )
-    {
-        wxLogWarning( "Exception caught: %s", e.what() );
-    }
-}
+private:
+    std::set<std::string> _consumed_global_ctx_keys{};
+    wxWebView*            _browser;
+    HOST_COPILOT_HANDLES  _host_copilot_handles;
+};
 
 #endif

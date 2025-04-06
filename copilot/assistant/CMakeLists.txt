@@ -1,13 +1,13 @@
 add_library( assistant SHARED 
-    assistant_launcher.cpp
+    common/assistant_version.cpp
     settings/copilot_settings_manager.cpp  
     webview/webview_container.cpp
     http/http_client.cpp
-    copilot_version.cpp
-    copilot.rc
 )
 
-target_include_directories( assistant PRIVATE
+target_include_directories( assistant
+    PUBLIC
+    .
     $<TARGET_PROPERTY:magic_enum,INTERFACE_INCLUDE_DIRECTORIES>
     )
 

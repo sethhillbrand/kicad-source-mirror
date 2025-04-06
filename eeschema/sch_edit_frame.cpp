@@ -109,7 +109,6 @@
 #include <drawing_sheet/ds_proxy_view_item.h>
 #include <project/project_local_settings.h>
 
-#include <assistant_interface.h>
 #include <context/sch/sch_copilot_global_context.h>
 #include <copilot/sch_copilot_ui.h>
 #include <copilot/sch_agent_action_executor.h>

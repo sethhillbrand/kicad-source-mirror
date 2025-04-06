@@ -30,19 +30,16 @@
 #include <tool/action_toolbar.h>
 #include <widgets/wx_aui_utils.h>
 #include <copilot_panel_name.h>
-#include <assistant_interface.h>
 #include <tool/actions.h>
 #include <copilot_aui_info.h>
 #include <context/pcb/pcb_copilot_global_context.h>
+#include <webview/webview_container.h>
 
 void PCB_EDIT_FRAME::InitCopilotPanel()
 {
-    if( ASSISTANT_INTERFACE::get_instance().is_assistant_available() )
-    {
-        m_copilotPanel = ASSISTANT_INTERFACE::get_instance().create_assistant_panel(
-                this, { m_copilotContextCache->host_version_info, m_copilotGlobalContextHdl,
-                        m_copilotAgentActionHdl } );
-    }
+    m_copilotPanel =  new WEBVIEW_CONTAINER(
+            this, { m_copilotContextCache->host_version_info, m_copilotGlobalContextHdl,
+                    m_copilotAgentActionHdl } );
 }
 
 void PCB_EDIT_FRAME::InitCopilotAui()

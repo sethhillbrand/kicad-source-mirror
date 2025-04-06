@@ -22,40 +22,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#ifndef WEBVIEW_CONTAINER_H
-#define WEBVIEW_CONTAINER_H
+ #pragma once
 
-#include <host_copilot_handles.h>
-#include <string>
-#include <wx/panel.h>
-#include <wx/log.h>
-#include <wx/webview.h>
-#include <set>
-#include <kicommon.h>
-
-class KICOMMON_API WEBVIEW_CONTAINER : public wxPanel
-{
-public:
-    WEBVIEW_CONTAINER( wxWindow* parent, HOST_COPILOT_HANDLES host_copilot_handles );
-    ~WEBVIEW_CONTAINER();
-
-    void fire_host_active_cmd( const char* cmd );
-
-    void OnNavigationRequest( wxWebViewEvent& evt );
-    void OnNavigationComplete( wxWebViewEvent& evt );
-    void OnDocumentLoaded( wxWebViewEvent& evt );
-    void OnNewWindow( wxWebViewEvent& evt );
-    void OnTitleChanged( wxWebViewEvent& evt );
-    void OnFullScreenChanged( wxWebViewEvent& evt );
-    void OnScriptMessage( wxWebViewEvent& evt );
-    void OnScriptResult( wxWebViewEvent& evt );
-    void OnError( wxWebViewEvent& evt );
-
-
-private:
-    std::set<std::string> _consumed_global_ctx_keys{};
-    wxWebView*            _browser;
-    HOST_COPILOT_HANDLES  _host_copilot_handles;
-};
-
-#endif
+ #include <import_export.h>
+ 
+ #ifndef SWIG
+     #if defined( COPILOT_SHARED_LIBRARY )
+         #define COPILOT_API APIEXPORT
+     #else
+         #define COPILOT_API APIIMPORT
+     #endif
+ #else
+ #define COPILOT_API
+ #endif

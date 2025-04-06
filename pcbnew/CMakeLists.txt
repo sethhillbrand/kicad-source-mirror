@@ -691,6 +691,7 @@ set_source_files_properties( ${CMAKE_SOURCE_DIR}/common/single_top.cpp pcbnew.cp
 target_link_libraries( pcbnew
     kicommon
     ${wxWidgets_LIBRARIES}
+    assistant
     )
 
 target_link_options( pcbnew PRIVATE
@@ -767,6 +768,7 @@ set( PCBNEW_KIFACE_LIBRARIES
     ${PYTHON_LIBRARIES}
     Boost::headers
     ${PCBNEW_EXTRA_LIBS}    # -lrt must follow Boost
+    assistant
     )
 
 target_link_libraries( pcbnew_kiface

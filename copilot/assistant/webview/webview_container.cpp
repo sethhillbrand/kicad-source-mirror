@@ -22,7 +22,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "webview_container.h"
+#include <webview/webview_container.h>
 #include "settings/copilot_settings_manager.h"
 #include "web_utils.h"
 #include "webview_constant.h"

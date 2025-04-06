@@ -22,10 +22,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include "copilot_global.h"
 
-#include <copilot_global.h>
-
-extern "C"
+COPILOT_GLOBAL::COPILOT_GLOBAL()
 {
-    COPILOT_API const char* COPILOT_VERSION = "0.0.1";
-} // extern "C"
+
+}
+
+COPILOT_GLOBAL::~COPILOT_GLOBAL()
+{
+
+}

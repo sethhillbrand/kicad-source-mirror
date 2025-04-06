@@ -71,6 +71,7 @@ class API_HANDLER_SCH;
 class DIALOG_SCHEMATIC_SETUP;
 struct SCH_COPILOT_GLOBAL_CONTEXT;
 struct SYMBOL_CMD_CONTEXT;
+class WEBVIEW_CONTAINER;
 
 
 /// Schematic search type used by the socket link with Pcbnew
@@ -817,7 +818,7 @@ public:
 
     DESIGN_BLOCK_PANE* GetDesignBlockPane() const { return m_designBlocksPane; }
 
-    wxPanel* GetCopilotPane() const { return m_copilotPanel; }
+    WEBVIEW_CONTAINER* GetCopilotPane() const { return m_copilotPanel; }
 
 
     /**
@@ -1203,7 +1204,7 @@ public:
     void HighlightSymbol(std::string const & aDesignator);
 
 private:
-    wxPanel*                                    m_copilotPanel{};
+    WEBVIEW_CONTAINER*                          m_copilotPanel{};
     std::unique_ptr<SCH_COPILOT_GLOBAL_CONTEXT> m_copilotContextCache;
     std::unique_ptr<SYMBOL_CMD_CONTEXT>         m_symbolCmdContext;
     COPILOT_GLOBAL_CONTEXT_OWNED_HDL            m_copilotGlobalContextHdl;
