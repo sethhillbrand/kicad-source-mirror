@@ -41,7 +41,7 @@
 #include <wx/webviewfshandler.h>
 #include <context/copilot_global_context_handle.h>
 #include <context/copilot_global_context.h>
-#include <format>
+#include <fmt/format.h>
 #include <magic_enum.hpp>
 
 #if wxUSE_WEBVIEW_EDGE
@@ -169,7 +169,7 @@ void WEBVIEW_CONTAINER::fire_host_active_cmd( const char* cmd )
 {
     wxString out;
     _browser->RunScriptAsync(
-            std::format( " {}({});",
+            fmt::format( " {}({});",
                          magic_enum::enum_name( WEBVIEW_FUNCTIONS::fire_host_active_cmd ), cmd ),
             &out );
 }
@@ -254,7 +254,7 @@ void WEBVIEW_CONTAINER::OnScriptMessage( wxWebViewEvent& evt )
 
                 wxString out;
                 _browser->RunScriptAsync(
-                        std::format( " {}({});",
+                        fmt::format( " {}({});",
                                      magic_enum::enum_name(
                                              WEBVIEW_FUNCTIONS::update_copilot_global_context ),
                                      global_ctx.dump() ),

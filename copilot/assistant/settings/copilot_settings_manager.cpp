@@ -25,7 +25,7 @@
 #include "copilot_settings_manager.h"
 #include "copilot_settings.h"
 
-#include <format>
+#include <fmt/format.h>
 #include <iostream>
 #include <macros.h>
 #include <nlohmann/json.hpp>
@@ -75,7 +75,7 @@ COPILOT_SETTINGS_MANAGER::COPILOT_SETTINGS_MANAGER() :
         }
     }
 
-    _webview_chat_path = std::format( "{}/#{}", _settings->webview_settings.url,
+    _webview_chat_path = fmt::format( "{}/#{}", _settings->webview_settings.url,
                                       _settings->webview_settings.path.chat );
 }
 

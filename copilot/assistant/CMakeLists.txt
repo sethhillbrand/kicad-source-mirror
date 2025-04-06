@@ -13,6 +13,7 @@ target_include_directories( assistant
 
 target_link_libraries(assistant PRIVATE 
     nlohmann_json
+    fmt::fmt
     ${wxWidgets_LIBRARIES}
 )
 
