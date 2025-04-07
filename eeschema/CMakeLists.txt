@@ -595,6 +595,8 @@ add_subdirectory( navlib )
 
 target_link_libraries( eeschema_kiface_objects PUBLIC eeschema_navlib)
 
+target_link_libraries( eeschema_kiface_objects PUBLIC assistant)
+
 add_dependencies( eeschema_kiface_objects eeschema_navlib )
 
 add_library( eeschema_kiface MODULE
