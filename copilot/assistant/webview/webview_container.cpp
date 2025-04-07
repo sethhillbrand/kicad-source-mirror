@@ -86,10 +86,9 @@ enum START_UP_SIZE
 
 WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
                                       HOST_COPILOT_HANDLES host_copilot_handles ) :
-        wxPanel( parent ), _browser( wxWebView::New() ),
-        _host_copilot_handles( std::move( host_copilot_handles ) )
+        wxPanel( parent ),
+        _browser( wxWebView::New() ), _host_copilot_handles( std::move( host_copilot_handles ) )
 {
-
     send_data_buried_point();
 #ifdef DEBUG
     // new wxLogWindow( this, _( "Logging" ), true, false );
@@ -119,11 +118,16 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
 #endif
 
 
-    if( !_browser->AddScriptMessageHandler(
-                magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() ) )
+    const auto add_handle = [&]( wxString const& name )
     {
-        wxLogError( "Could not add script message handler " );
-    }
+        wxString js =
+                wxString::Format( "window.%s = window.webkit.messageHandlers.%s;", name, name );
+        _browser->AddUserScript( js );
+        _browser->RunScriptAsync( js );
+    };
+
+
+    add_handle( magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() );
 
     SetSizer( top_sizer );
     //Set a more sensible size for web browsing
