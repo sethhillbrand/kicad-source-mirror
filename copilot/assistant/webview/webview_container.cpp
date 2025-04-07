@@ -86,21 +86,22 @@ enum START_UP_SIZE
 
 WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
                                       HOST_COPILOT_HANDLES host_copilot_handles ) :
-        wxPanel( parent ),
-        _browser( wxWebView::New() ), _host_copilot_handles( std::move( host_copilot_handles ) )
+        wxPanel( parent ), _browser( wxWebView::New() ),
+        _host_copilot_handles( std::move( host_copilot_handles ) )
 {
     send_data_buried_point();
-#ifdef DEBUG
-    // new wxLogWindow( this, _( "Logging" ), true, false );
-#endif // DEBUG
     auto top_sizer = new wxBoxSizer( wxVERTICAL );
+
 #ifdef __WXMAC__
+
     // With WKWebView handlers need to be registered before creation
     _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewArchiveHandler( "wxfs" ) ) );
     _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
+
 #endif
+
     const auto url =
             add_parameter_to_url( COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),
                                   _host_copilot_handles.host_type );
@@ -109,15 +110,17 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
     top_sizer->Add( _browser, wxSizerFlags().Expand().Proportion( 1 ) );
 
 #ifndef __WXMAC__
+
     //We register the wxfs:// protocol for testing purposes
     _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewArchiveHandler( "wxfs" ) ) );
     //And the memory: file system
     _browser->RegisterHandler(
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
+
 #endif
 
-
+#ifdef __WXMAC__
     const auto add_handle = [&]( wxString const& name )
     {
         wxString js =
@@ -126,8 +129,17 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
         _browser->RunScriptAsync( js );
     };
 
-
     add_handle( magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() );
+
+#else
+
+    if( !_browser->AddScriptMessageHandler(
+                magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() ) )
+    {
+        wxLogError( "Could not add script message handler " );
+    }
+
+#endif // __WXMAC__
 
     SetSizer( top_sizer );
     //Set a more sensible size for web browsing
