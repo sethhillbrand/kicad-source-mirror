@@ -5,6 +5,9 @@ add_library( assistant SHARED
     http/http_client.cpp
 )
 
+set_target_properties(assistant PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
+
 target_include_directories( assistant
     PUBLIC
     .

@@ -46,6 +46,7 @@ ${CMAKE_BINARY_DIR}/common/gal/;\
 ${CMAKE_BINARY_DIR}/pcbnew/;\
 ${CMAKE_BINARY_DIR}/eeschema/;\
 ${CMAKE_BINARY_DIR}/cvpcb/;\
+${CMAKE_BINARY_DIR}/copilot/assistant;\
 " )
 
 set( EXTRA_PYTEST_ENVIRONMENT "" )
