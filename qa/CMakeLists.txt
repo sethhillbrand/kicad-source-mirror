@@ -33,6 +33,7 @@ if( MSVC )
       "PATH=path_list_prepend:${CMAKE_BINARY_DIR}/common/gal/"
       "PATH=path_list_prepend:${CMAKE_BINARY_DIR}/pcbnew/"
       "PATH=path_list_prepend:${CMAKE_BINARY_DIR}/eeschema/"
+      "PATH=path_list_prepend:${CMAKE_BINARY_DIR}/copilot/assistant/"
       "PATH=path_list_prepend:${CMAKE_BINARY_DIR}/cvpcb/" )
     set_tests_properties( ${target_name}
         PROPERTIES
