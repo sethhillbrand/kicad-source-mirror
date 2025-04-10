@@ -8658,7 +8658,7 @@ msgstr "层次标签 %s 在父图纸内没有匹配的图纸引脚"
 
 #: eeschema/copilot/sch_copilot_actions.h:41 eeschema/copilot/sch_copilot_ctx_menu.h:41 eeschema/copilot/sch_copilot_ui.h:66
 msgid "Copilot"
-msgstr "电路小助手"
+msgstr "华秋小助手"
 
 #: eeschema/copilot/sch_copilot_actions.h:42
 msgid "Show/hide copilot panel"
