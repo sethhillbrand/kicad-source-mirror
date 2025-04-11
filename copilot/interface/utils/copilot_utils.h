@@ -28,6 +28,28 @@
 #include <algorithm>
 #include <string>
 
+#include <random>
+#include <sstream>
+#include <iomanip>
+
+// Helper function to generate a UUID
+std::string generate_uuid() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dis(0, 0xFFFFFFFF);
+
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0')
+        << std::setw(8) << dis(gen) << "-"
+        << std::setw(4) << (dis(gen) & 0xFFFF) << "-"
+        << std::setw(4) << ((dis(gen) & 0x0FFF) | 0x4000) << "-" // Version 4
+        << std::setw(4) << ((dis(gen) & 0x3FFF) | 0x8000) << "-" // Variant 1
+        << std::setw(12) << dis(gen) << dis(gen);
+
+    return oss.str();
+}
+
+// Modify the session_id assignment
 
 inline auto convert_to_upper( std::string& str )
 {

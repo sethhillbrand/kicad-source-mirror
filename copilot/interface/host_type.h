@@ -33,7 +33,8 @@ struct HOST_TYPE
 {
     std::string host_name = "kicad_desktop";
     std::string editor_name;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HOST_TYPE, host_name, editor_name )
+    std::string session_id;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( HOST_TYPE, host_name, editor_name, session_id )
 };
 
 #endif

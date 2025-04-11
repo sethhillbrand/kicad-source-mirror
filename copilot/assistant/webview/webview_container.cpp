@@ -26,7 +26,7 @@
 #include "settings/copilot_settings_manager.h"
 #include "web_utils.h"
 #include "webview_constant.h"
-
+#include <utils/copilot_utils.h>
 #include <passive_action/web/web_host.h>
 #include <passive_action/passive_action_container.h>
 #include <passive_action/agent/agent_action.h>
@@ -101,6 +101,13 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
             wxSharedPtr<wxWebViewHandler>( new wxWebViewFSHandler( "memory" ) ) );
 
 #endif
+
+    // ADHOC : force client generate a new session
+    if( _host_copilot_handles.host_type )
+    {
+        // Generate a uid 
+        _host_copilot_handles.host_type->session_id = generate_uuid();
+    }
 
     const auto url =
             add_parameter_to_url( COPILOT_SETTINGS_MANAGER::get_instance().get_webview_chat_path(),

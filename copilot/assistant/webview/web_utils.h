@@ -56,7 +56,7 @@ inline auto add_parameter_to_url( std::string const& url, std::optional<HOST_TYP
         return url;
 
     return add_parameter_to_url(
-            url, { { "host_name", host->host_name }, { "editor_name", host->editor_name } } );
+            url, { { "host_name", host->host_name }, { "editor_name", host->editor_name }  , { "session_id", host->session_id }   } );
 }
 
 
