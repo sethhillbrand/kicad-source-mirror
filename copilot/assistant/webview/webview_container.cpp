@@ -105,7 +105,7 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
     // ADHOC : force client generate a new session
     if( _host_copilot_handles.host_type )
     {
-        // Generate a uid 
+        // Generate a uid
         _host_copilot_handles.host_type->session_id = generate_uuid();
     }
 
@@ -199,6 +199,15 @@ void WEBVIEW_CONTAINER::fire_host_active_cmd( const char* cmd )
 
 void WEBVIEW_CONTAINER::OnNavigationRequest( wxWebViewEvent& evt )
 {
+    const auto url = evt.GetURL();
+
+    if( !url.Contains( COPILOT_SETTINGS_MANAGER::get_instance().get_webview_url() ) )
+    {
+        // Launch the url in the system default browser
+        wxLaunchDefaultBrowser( url );
+        evt.Veto();
+        return;
+    }
 }
 
 
