@@ -127,26 +127,11 @@ WEBVIEW_CONTAINER::WEBVIEW_CONTAINER( wxWindow*            parent,
 
 #endif
 
-#ifdef __WXMAC__
-    const auto add_handle = [&]( wxString const& name )
-    {
-        wxString js =
-                wxString::Format( "window.%s = window.webkit.messageHandlers.%s;", name, name );
-        _browser->AddUserScript( js );
-        _browser->RunScriptAsync( js );
-    };
-
-    add_handle( magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() );
-
-#else
-
     if( !_browser->AddScriptMessageHandler(
                 magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() ) )
     {
         wxLogError( "Could not add script message handler " );
     }
-
-#endif // __WXMAC__
 
     SetSizer( top_sizer );
     //Set a more sensible size for web browsing
