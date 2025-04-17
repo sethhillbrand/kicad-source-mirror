@@ -42,6 +42,7 @@
       - build/linux/3d-viewer/
       - build/linux/api/libkiapi.so*
       - build/linux/common/libkicommon.so*
+      - build/linux/copilot/assistant/libassistant.so*
       - build/linux/common/gal/libkigal.so*
       - build/linux/eeschema/_eeschema.kiface
       - build/linux/cvpcb/_cvpcb.kiface
