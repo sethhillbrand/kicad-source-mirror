@@ -52,7 +52,6 @@ public:
     void OnError( wxWebViewEvent& evt );
 
 
-private:
     std::set<std::string> _consumed_global_ctx_keys{};
     wxWebView*            _browser;
     HOST_COPILOT_HANDLES  _host_copilot_handles;

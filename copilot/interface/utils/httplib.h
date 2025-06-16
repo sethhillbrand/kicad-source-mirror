@@ -214,6 +214,7 @@ using socket_t = SOCKET;
 #include <netinet/in.h>
 #ifdef __linux__
 #include <resolv.h>
+#undef ADD
 #endif
 #include <netinet/tcp.h>
 #ifdef CPPHTTPLIB_USE_POLL

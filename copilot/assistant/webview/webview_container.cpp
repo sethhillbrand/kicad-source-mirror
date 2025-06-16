@@ -202,24 +202,56 @@ void WEBVIEW_CONTAINER::OnNavigationComplete( wxWebViewEvent& evt )
 
 void WEBVIEW_CONTAINER::OnDocumentLoaded( wxWebViewEvent& evt )
 {
-    if( evt.GetURL() == _browser->GetCurrentURL() )
+    static bool handler_added = false;
+
+    if( !handler_added )
     {
+        // Defer handler registration to avoid running during modal dialog/yield
+        CallAfter([this]() {
+            static bool handler_added_inner = false;
+            if (!handler_added_inner) {
+                if( !_browser->AddScriptMessageHandler(
+                            magic_enum::enum_name( WEBVIEW_MSG_HANDLES::eda_host ).data() ) )
+                {
+                    wxLogDebug( "Could not add script message handler " );
+                }
+                handler_added_inner = true;
+            }
+
+            // Inject navigation hook for SPA/JS navigation to prevent webkit crashing without new window
+            _browser->RunScriptAsync(R"(
+                (function() {
+                    // Change window.open to navigate in the same window
+                    window.open = function(url) { if (url) window.location.href = url; return null; };
+                    window.showModalDialog = function() { return null; };
+
+                    if (window.external && window.external.invoke) {
+                        function notifyHost() {
+                            window.external.invoke('navigation:' + window.location.href);
+                        }
+                        window.addEventListener('popstate', notifyHost);
+                        window.addEventListener('pushstate', notifyHost);
+                        window.addEventListener('replacestate', notifyHost);
+                        ['pushState', 'replaceState'].forEach(function(type) {
+                            var orig = history[type];
+                            history[type] = function() {
+                                var rv = orig.apply(this, arguments);
+                                window.dispatchEvent(new Event(type.toLowerCase()));
+                                return rv;
+                            };
+                        });
+                    }
+                })();
+            )");
+        });
+        handler_added = true;
     }
 }
 
 void WEBVIEW_CONTAINER::OnNewWindow( wxWebViewEvent& evt )
 {
-    wxString flag = " (other)";
-
-    if( evt.GetNavigationAction() == wxWEBVIEW_NAV_ACTION_USER )
-    {
-        flag = " (user)";
-    }
-
-
-    //If we handle new window events then just load them in this window as we
-    //are a single window browser
     _browser->LoadURL( evt.GetURL() );
+    evt.Veto(); // Prevent WebKit from creating a new page
 }
 
 void WEBVIEW_CONTAINER::OnTitleChanged( wxWebViewEvent& evt )
