@@ -431,9 +431,6 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     Bind( EDA_EVT_CLOSE_DIALOG_BOOK_REPORTER, &SCH_EDIT_FRAME::onCloseSymbolDiffDialog, this );
     Bind( EDA_EVT_CLOSE_ERC_DIALOG, &SCH_EDIT_FRAME::onCloseErcDialog, this );
     Bind( EDA_EVT_CLOSE_DIALOG_SYMBOL_FIELDS_TABLE, &SCH_EDIT_FRAME::onCloseSymbolFieldsTableDialog, this );
-
-    // TODO(JE) should this happen later?
-    PreloadLibraries();
 }
 
 
@@ -1296,6 +1293,13 @@ void SCH_EDIT_FRAME::LoadProject()
         OpenProjectFiles( std::vector<wxString>( 1, dlg.GetPath() ) );
         m_mruPath = Prj().GetProjectPath();
     }
+
+    // Since we know we're single-top here: trigger library reload
+    CallAfter( [&]()
+        {
+            KIFACE *schface = Kiway().KiFACE( KIWAY::FACE_SCH );
+            schface->PreloadLibraries( &Prj() );
+        } );
 }
 
 
