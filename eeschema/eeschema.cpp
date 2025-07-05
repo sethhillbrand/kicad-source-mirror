@@ -68,7 +68,6 @@
 #include <panel_eeschema_display_options.h>
 #include <panel_sym_display_options.h>
 #include <sim/simulator_frame.h>
-#include "startwizard_provider_schlib.h"
 
 #include <dialogs/panel_toolbar_customization.h>
 #include <toolbars_sch_editor.h>
@@ -181,10 +180,6 @@ static struct IFACE : public KIFACE_BASE, public UNITS_PROVIDER
             {
                 // only run this under single_top, not under a project manager.
                 frame->CreateServer( KICAD_SCH_PORT_SERVICE_NUMBER );
-
-                // Preload libraries, since this won't have been started by the manager
-                wxCHECK( aKiway, frame );
-                Kiface().PreloadLibraries( &aKiway->Prj() );
             }
 
             return frame;
@@ -395,8 +390,6 @@ static struct IFACE : public KIFACE_BASE, public UNITS_PROVIDER
 
     void PreloadLibraries( PROJECT* aProject ) override;
     void ProjectChanged() override;
-
-    void GetStartupProviders( std::vector<std::unique_ptr<STARTWIZARD_PROVIDER>>& aProviders ) override;
 
 private:
     bool loadGlobalLibTable();
@@ -807,10 +800,4 @@ int IFACE::HandleJob( JOB* aJob, REPORTER* aReporter, PROGRESS_REPORTER* aProgre
 bool IFACE::HandleJobConfig( JOB* aJob, wxWindow* aParent )
 {
     return m_jobHandler->HandleJobConfig( aJob, aParent );
-}
-
-
-void IFACE::GetStartupProviders( std::vector<std::unique_ptr<STARTWIZARD_PROVIDER>>& aProviders )
-{
-    aProviders.push_back( std::make_unique<STARTWIZARD_PROVIDER_SCHLIB>() );
 }
