@@ -505,6 +505,11 @@ void IFACE::PreloadLibraries( PROJECT* aProject )
                     if( progress >= 1 )
                         break;
                 }
+                else
+                {
+                    reporter->SetCurrentProgress( 1 );
+                    break;
+                }
 
                 elapsed += interval;
 
