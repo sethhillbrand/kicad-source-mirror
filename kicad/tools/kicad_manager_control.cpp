@@ -48,7 +48,6 @@
 #include <paths.h>
 #include <wx/dir.h>
 #include <wx/filedlg.h>
-#include <design_block_lib_table.h>
 #include "dialog_pcm.h"
 #include <project/project_archiver.h>
 #include <project_tree_pane.h>
