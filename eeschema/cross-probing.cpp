@@ -43,7 +43,7 @@
 #include <advanced_config.h>
 
 #include <pgm_base.h>
-#include <libraries/symbol_library_manager_adapter.h>
+#include <libraries/symbol_library_adapter.h>
 #include <widgets/sch_design_block_pane.h>
 #include <wx/log.h>
 
@@ -885,7 +885,7 @@ void SCH_EDIT_FRAME::KiwayMailIn( KIWAY_EXPRESS& mail )
                                     aError.message );
                     } );
 
-                SYMBOL_LIBRARY_MANAGER_ADAPTER* adapter = PROJECT_SCH::SymbolLibManager( &Prj() );
+                SYMBOL_LIBRARY_ADAPTER* adapter = PROJECT_SCH::SymbolLibAdapter( &Prj() );
                 adapter->LoadOne( fn.GetName() );
             }
         }

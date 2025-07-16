@@ -36,7 +36,7 @@
 #include <project_sch.h>
 #include <project/project_file.h>
 #include <project/net_settings.h>
-#include <libraries/symbol_library_manager_adapter.h>
+#include <libraries/symbol_library_adapter.h>
 
 #include <lib_id.h>
 #include <sch_pin.h>
@@ -4836,7 +4836,7 @@ void SCH_IO_ALTIUM::doEnumerateSymbolLib( const wxString& aLibraryPath,
     ensureLoadedLibrary( aLibraryPath, aProperties );
 
     bool powerSymbolsOnly = ( aProperties &&
-                              aProperties->find( SYMBOL_LIBRARY_MANAGER_ADAPTER::PropPowerSymsOnly )
+                              aProperties->find( SYMBOL_LIBRARY_ADAPTER::PropPowerSymsOnly )
                                 != aProperties->end() );
     auto it = m_libCache.find( aLibraryPath );
 
