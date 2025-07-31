@@ -89,8 +89,8 @@ bool DRC_RULE_EDITOR_UTILS::ValidateNumericCtrl( wxTextCtrl* aTextCtrl, std::str
                                                  bool aCanBeZero, int* aErrorCount,
                                                  std::string* aValidationMessage )
 {
-    auto* validator = new VALIDATOR_NUMERIC_CTRL( aCanBeZero );
-    aTextCtrl->SetValidator( *validator );
+    VALIDATOR_NUMERIC_CTRL validator( aCanBeZero );
+    aTextCtrl->SetValidator( validator );
 
     if( !aTextCtrl->Validate() )
     {
@@ -132,8 +132,8 @@ bool DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl( wxTextCtrl* aTextCtrl, std::str
                                                  bool aCanBeZero, int* aErrorCount,
                                                  std::string* aValidationMessage )
 {
-    auto* validator = new VALIDATOR_NUMERIC_CTRL( aCanBeZero, true );
-    aTextCtrl->SetValidator( *validator );
+    VALIDATOR_NUMERIC_CTRL validator( aCanBeZero, true );
+    aTextCtrl->SetValidator( validator );
 
     if( !aTextCtrl->Validate() )
     {
@@ -174,8 +174,8 @@ bool DRC_RULE_EDITOR_UTILS::ValidateIntegerCtrl( wxTextCtrl* aTextCtrl, std::str
 bool DRC_RULE_EDITOR_UTILS::ValidateComboCtrl( wxComboBox* aComboBox, std::string aLabel,
                                                int* aErrorCount, std::string* aValidationMessage )
 {
-    auto* cmbCtrlValidator = new VALIDATOR_COMBO_CTRL();
-    aComboBox->SetValidator( *cmbCtrlValidator );
+    VALIDATOR_COMBO_CTRL cmbCtrlValidator;
+    aComboBox->SetValidator( cmbCtrlValidator );
 
     if( !aComboBox->Validate() )
     {
@@ -233,8 +233,8 @@ bool DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl( wxTextCtrl* aMinTextCtrl, wxText
 }
 
 
-bool DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( wxTextCtrl* aMinTextCtrl, 
-        wxTextCtrl* aPreferredTextCtrl, wxTextCtrl* aMaxTextCtrl, std::string aMinLabel, 
+bool DRC_RULE_EDITOR_UTILS::ValidateMinPreferredMaxCtrl( wxTextCtrl* aMinTextCtrl,
+        wxTextCtrl* aPreferredTextCtrl, wxTextCtrl* aMaxTextCtrl, std::string aMinLabel,
         std::string aPreferredLabel, std::string aMaxLabel, int* aErrorCount,
         std::string* aValidationMessage )
 {
@@ -292,9 +292,9 @@ bool DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( const std::vector<wxCheckBox*
                                                    std::string aLabel, int* aErrorCount,
                                                    std::string* aValidationMessage )
 {
-    auto* validator = new VALIDATE_CHECKBOX_LIST( aCheckboxes );
+    VALIDATE_CHECKBOX_LIST validator( aCheckboxes );
 
-    aCheckboxes[0]->SetValidator( *validator );
+    aCheckboxes[0]->SetValidator( validator );
 
     if( !aCheckboxes[0]->Validate() )
     {

@@ -54,7 +54,7 @@ bool DRC_RE_PERMITTED_LAYERS_PANEL::TransferDataFromWindow()
 {
     m_constraintData->SetTopLayerEnabled( m_topLayerChkCtrl->GetValue() );
     m_constraintData->SetBottomLayerEnabled( m_bottomLayerChkCtrl->GetValue() );
-    return false;
+    return true;
 }
 
 

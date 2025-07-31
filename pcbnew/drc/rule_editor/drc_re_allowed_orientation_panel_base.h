@@ -31,7 +31,7 @@ class DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE : public wxPanel
 	protected:
 		wxBoxSizer* bConstraintImageSizer;
 		wxCheckBox* m_zeroDegreesChkCtrl;
-		wxCheckBox* m_nintyDegreesChkCtrl;
+		wxCheckBox* m_ninetyDegreesChkCtrl;
 		wxCheckBox* m_oneEightyDegreesChkCtrl;
 		wxCheckBox* m_twoSeventyDegreesChkCtrl;
 		wxCheckBox* m_allOrientationsChkCtrl;

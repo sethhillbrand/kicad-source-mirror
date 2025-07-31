@@ -24,7 +24,7 @@
 #include "drc_re_bool_input_panel.h"
 
 
-const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> BoolConstraintBitMapPairs = 
+const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> BoolConstraintBitMapPairs =
 {
     { SHORT_CIRCUIT, BITMAPS::constraint_short_circuit },
     { UNROUTED, BITMAPS::constraint_unrouted },
@@ -68,7 +68,7 @@ bool DRC_RE_BOOL_INPUT_PANEL::TransferDataToWindow()
 bool DRC_RE_BOOL_INPUT_PANEL::TransferDataFromWindow()
 {
     m_constraintData->SetBoolInputValue( m_boolConstraintChkCtrl->GetValue() );
-    return false;
+    return true;
 }
 
 

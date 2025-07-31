@@ -24,7 +24,7 @@
 #include "drc_re_abs_length_two_panel.h"
 
 
-DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent, 
+DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( wxWindow* aParent,
         wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA> aConstraintData ) :
         DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
@@ -47,7 +47,7 @@ bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::TransferDataToWindow()
 
 bool DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL::TransferDataFromWindow()
 {
-    return false;
+    return true;
 }
 
 
