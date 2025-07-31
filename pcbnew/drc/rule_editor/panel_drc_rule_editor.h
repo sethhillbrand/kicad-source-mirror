@@ -46,7 +46,7 @@ class PANEL_DRC_RULE_EDITOR : public PANEL_DRC_RULE_EDITOR_BASE,
 public:
     PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard,
                            DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType,
-                           wxString* aConstraintTitlee,
+                           wxString* aConstraintTitle,
                            std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData );
 
     ~PANEL_DRC_RULE_EDITOR() override;

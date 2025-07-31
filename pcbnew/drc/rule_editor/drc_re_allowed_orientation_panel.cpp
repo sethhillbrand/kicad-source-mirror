@@ -24,23 +24,23 @@
 #include "drc_re_allowed_orientation_panel.h"
 
 
-DRC_RE_ALLOWED_ORIENTATION_PANEL::DRC_RE_ALLOWED_ORIENTATION_PANEL( wxWindow* aParent, 
+DRC_RE_ALLOWED_ORIENTATION_PANEL::DRC_RE_ALLOWED_ORIENTATION_PANEL( wxWindow* aParent,
         wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA> aConstraintData ) :
         DRC_RE_ALLOWED_ORIENTATION_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
 {
-    bConstraintImageSizer->Add( GetConstraintImage( this, BITMAPS::constraint_allowed_orientation ), 
+    bConstraintImageSizer->Add( GetConstraintImage( this, BITMAPS::constraint_allowed_orientation ),
         0, wxALL | wxEXPAND, 10 );
 
     m_zeroDegreesChkCtrl->Bind( wxEVT_CHECKBOX,
                                 &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
-    m_nintyDegreesChkCtrl->Bind( wxEVT_CHECKBOX,
+    m_ninetyDegreesChkCtrl->Bind( wxEVT_CHECKBOX,
                                  &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
     m_oneEightyDegreesChkCtrl->Bind( wxEVT_CHECKBOX,
                                      &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
     m_twoSeventyDegreesChkCtrl->Bind( wxEVT_CHECKBOX,
                                       &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
-    m_allOrientationsChkCtrl->Bind( wxEVT_CHECKBOX, 
+    m_allOrientationsChkCtrl->Bind( wxEVT_CHECKBOX,
                                     &DRC_RE_ALLOWED_ORIENTATION_PANEL::onAllOrientationCheckboxClicked,
                                     this );
 }
@@ -50,13 +50,13 @@ DRC_RE_ALLOWED_ORIENTATION_PANEL::~DRC_RE_ALLOWED_ORIENTATION_PANEL()
 {
     m_zeroDegreesChkCtrl->Unbind( wxEVT_CHECKBOX,
                                   &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
-    m_nintyDegreesChkCtrl->Unbind( wxEVT_CHECKBOX,
+    m_ninetyDegreesChkCtrl->Unbind( wxEVT_CHECKBOX,
                                    &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
     m_oneEightyDegreesChkCtrl->Unbind( wxEVT_CHECKBOX,
                                        &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
-    m_twoSeventyDegreesChkCtrl->Unbind( wxEVT_CHECKBOX, 
+    m_twoSeventyDegreesChkCtrl->Unbind( wxEVT_CHECKBOX,
                                         &DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked, this );
-    m_allOrientationsChkCtrl->Unbind( wxEVT_CHECKBOX, 
+    m_allOrientationsChkCtrl->Unbind( wxEVT_CHECKBOX,
                                       &DRC_RE_ALLOWED_ORIENTATION_PANEL::onAllOrientationCheckboxClicked,
                                       this );
 }
@@ -66,11 +66,11 @@ bool DRC_RE_ALLOWED_ORIENTATION_PANEL::TransferDataToWindow()
 {
     if( m_constraintData )
     {
-        m_zeroDegreesChkCtrl->SetValue( m_constraintData->GetIsZeroDegressAllowed() );
-        m_nintyDegreesChkCtrl->SetValue( m_constraintData->GetIsNintyDegressAllowed() );
-        m_oneEightyDegreesChkCtrl->SetValue( m_constraintData->GetIsOneEightyDegressAllowed() );
-        m_twoSeventyDegreesChkCtrl->SetValue( m_constraintData->GetIsTwoSeventyDegressAllowed() );
-        m_allOrientationsChkCtrl->SetValue( m_constraintData->GetIsAllDegressAllowed() );
+        m_zeroDegreesChkCtrl->SetValue( m_constraintData->GetIsZeroDegreesAllowed() );
+        m_ninetyDegreesChkCtrl->SetValue( m_constraintData->GetIsNinetyDegreesAllowed() );
+        m_oneEightyDegreesChkCtrl->SetValue( m_constraintData->GetIsOneEightyDegreesAllowed() );
+        m_twoSeventyDegreesChkCtrl->SetValue( m_constraintData->GetIsTwoSeventyDegreesAllowed() );
+        m_allOrientationsChkCtrl->SetValue( m_constraintData->GetIsAllDegreesAllowed() );
     }
 
     return true;
@@ -79,18 +79,18 @@ bool DRC_RE_ALLOWED_ORIENTATION_PANEL::TransferDataToWindow()
 
 bool DRC_RE_ALLOWED_ORIENTATION_PANEL::TransferDataFromWindow()
 {
-    m_constraintData->SetIsZeroDegressAllowed( m_zeroDegreesChkCtrl->GetValue() );
-    m_constraintData->SetIsNintyDegressAllowed( m_nintyDegreesChkCtrl->GetValue() );
-    m_constraintData->SetIsOneEightyDegressAllowed( m_oneEightyDegreesChkCtrl->GetValue() );
-    m_constraintData->SetIsTwoSeventyDegressAllowed( m_twoSeventyDegreesChkCtrl->GetValue() );
-    m_constraintData->SetIsAllDegressAllowed( m_allOrientationsChkCtrl->GetValue() );
+    m_constraintData->SetIsZeroDegreesAllowed( m_zeroDegreesChkCtrl->GetValue() );
+    m_constraintData->SetIsNinetyDegreesAllowed( m_ninetyDegreesChkCtrl->GetValue() );
+    m_constraintData->SetIsOneEightyDegreesAllowed( m_oneEightyDegreesChkCtrl->GetValue() );
+    m_constraintData->SetIsTwoSeventyDegreesAllowed( m_twoSeventyDegreesChkCtrl->GetValue() );
+    m_constraintData->SetIsAllDegreesAllowed( m_allOrientationsChkCtrl->GetValue() );
 
-    return false;
+    return true;
 }
 
 void DRC_RE_ALLOWED_ORIENTATION_PANEL::onCheckboxClicked( wxCommandEvent& event )
 {
-    if( !m_zeroDegreesChkCtrl->IsChecked() || !m_nintyDegreesChkCtrl->IsChecked()
+    if( !m_zeroDegreesChkCtrl->IsChecked() || !m_ninetyDegreesChkCtrl->IsChecked()
         || !m_oneEightyDegreesChkCtrl->IsChecked() || !m_twoSeventyDegreesChkCtrl->IsChecked() )
     {
         m_allOrientationsChkCtrl->SetValue( false );
@@ -111,7 +111,7 @@ void DRC_RE_ALLOWED_ORIENTATION_PANEL::onAllOrientationCheckboxClicked( wxComman
     }
 
     m_zeroDegreesChkCtrl->SetValue( enable );
-    m_nintyDegreesChkCtrl->SetValue( enable );
+    m_ninetyDegreesChkCtrl->SetValue( enable );
     m_oneEightyDegreesChkCtrl->SetValue( enable );
     m_twoSeventyDegreesChkCtrl->SetValue( enable );
 }
@@ -120,7 +120,7 @@ void DRC_RE_ALLOWED_ORIENTATION_PANEL::onAllOrientationCheckboxClicked( wxComman
 bool DRC_RE_ALLOWED_ORIENTATION_PANEL::ValidateInputs( int* aErrorCount,
                                                        std::string* aValidationMessage )
 {
-    std::vector<wxCheckBox*> checkboxes = { m_zeroDegreesChkCtrl, m_nintyDegreesChkCtrl,
+    std::vector<wxCheckBox*> checkboxes = { m_zeroDegreesChkCtrl, m_ninetyDegreesChkCtrl,
                                             m_oneEightyDegreesChkCtrl, m_twoSeventyDegreesChkCtrl,
                                             m_allOrientationsChkCtrl };
 

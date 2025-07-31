@@ -57,7 +57,7 @@ bool DRC_RE_SMD_ENTRY_PANEL::TransferDataFromWindow()
     m_constraintData->SetIsCornerAngleEnabled( m_cornerAngleChkCtrl->GetValue() );
     m_constraintData->SetIsAnyAngleEnabled( m_anyAngleChkCtrl->GetValue() );
 
-    return false;
+    return true;
 }
 
 

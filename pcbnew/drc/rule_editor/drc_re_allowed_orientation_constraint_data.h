@@ -39,52 +39,52 @@ public:
     }
 
     explicit DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA(
-            int aId, int aParentId, bool aAllowZeroDegreess, bool aAllowNintyDegreess,
+            int aId, int aParentId, bool aAllowZeroDegreess, bool aAllowNinetyDegreess,
             bool aAllowOneEightyDegreess, bool aAllowTwoSeventyDegreess, bool aAllowAllDegreess,
             wxString aRuleName ) :
             DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
-            m_allowZeroDegreess( aAllowZeroDegreess ), m_allowNintyDegreess( aAllowNintyDegreess ),
-            m_allowOneEightyDegreess( aAllowOneEightyDegreess ),
-            m_allowTwoSeventyDegreess( aAllowTwoSeventyDegreess ),
-            m_allowAllDegreess( aAllowAllDegreess )
+            m_allowZeroDegreess( aAllowZeroDegreess ), m_allowNinetyDegrees( aAllowNinetyDegreess ),
+            m_allowOneEightyDegrees( aAllowOneEightyDegreess ),
+            m_allowTwoSeventyDegrees( aAllowTwoSeventyDegreess ),
+            m_allowAllDegrees( aAllowAllDegreess )
     {
     }
 
     virtual ~DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA() = default;
 
-    bool GetIsZeroDegressAllowed() { return m_allowZeroDegreess; }
+    bool GetIsZeroDegreesAllowed() { return m_allowZeroDegreess; }
 
-    void SetIsZeroDegressAllowed( double aAllowZeroDegreess )
+    void SetIsZeroDegreesAllowed( bool aAllowZeroDegreess )
     {
         m_allowZeroDegreess = aAllowZeroDegreess;
     }
 
-    bool GetIsNintyDegressAllowed() { return m_allowNintyDegreess; }
+    bool GetIsNinetyDegreesAllowed() { return m_allowNinetyDegrees; }
 
-    void SetIsNintyDegressAllowed( double aAllowNintyDegreess )
+    void SetIsNinetyDegreesAllowed( bool aAllowNinetyDegrees )
     {
-        m_allowNintyDegreess = aAllowNintyDegreess;
+        m_allowNinetyDegrees = aAllowNinetyDegrees  ;
     }
 
-    bool GetIsOneEightyDegressAllowed() { return m_allowOneEightyDegreess; }
+    bool GetIsOneEightyDegreesAllowed() { return m_allowOneEightyDegrees; }
 
-    void SetIsOneEightyDegressAllowed( double aAllowOneEightyDegreess )
+    void SetIsOneEightyDegreesAllowed( bool aAllowOneEightyDegrees )
     {
-        m_allowOneEightyDegreess = aAllowOneEightyDegreess;
+        m_allowOneEightyDegrees = aAllowOneEightyDegrees;
     }
 
-    bool GetIsTwoSeventyDegressAllowed() { return m_allowTwoSeventyDegreess; }
+    bool GetIsTwoSeventyDegreesAllowed() { return m_allowTwoSeventyDegrees; }
 
-    void SetIsTwoSeventyDegressAllowed( double aAllowTwoSeventyDegreess )
+    void SetIsTwoSeventyDegreesAllowed( bool aAllowTwoSeventyDegrees )
     {
-        m_allowTwoSeventyDegreess = aAllowTwoSeventyDegreess;
+        m_allowTwoSeventyDegrees = aAllowTwoSeventyDegrees;
     }
 
-    bool GetIsAllDegressAllowed() { return m_allowAllDegreess; }
+    bool GetIsAllDegreesAllowed() { return m_allowAllDegrees; }
 
-    void SetIsAllDegressAllowed( double aAllowAllDegreess )
+    void SetIsAllDegreesAllowed( bool aAllowAllDegrees )
     {
-        m_allowAllDegreess = aAllowAllDegreess;
+        m_allowAllDegrees = aAllowAllDegrees;
     }
 
     void CopyFrom( const ICopyable& aSource ) override
@@ -95,18 +95,18 @@ public:
         DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
         m_allowZeroDegreess = source.m_allowZeroDegreess;
-        m_allowNintyDegreess = source.m_allowNintyDegreess;
-        m_allowOneEightyDegreess = source.m_allowOneEightyDegreess;
-        m_allowTwoSeventyDegreess = source.m_allowTwoSeventyDegreess;
-        m_allowAllDegreess = source.m_allowAllDegreess;
+        m_allowNinetyDegrees = source.m_allowNinetyDegrees;
+        m_allowOneEightyDegrees = source.m_allowOneEightyDegrees;
+        m_allowTwoSeventyDegrees = source.m_allowTwoSeventyDegrees;
+        m_allowAllDegrees = source.m_allowAllDegrees;
     }
 
 private:
     bool m_allowZeroDegreess{ false };
-    bool m_allowNintyDegreess{ false };
-    bool m_allowOneEightyDegreess{ false };
-    bool m_allowTwoSeventyDegreess{ false };
-    bool m_allowAllDegreess{ false };
+    bool m_allowNinetyDegrees{ false };
+    bool m_allowOneEightyDegrees{ false };
+    bool m_allowTwoSeventyDegrees{ false };
+    bool m_allowAllDegrees{ false };
 };
 
 #endif // DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA_H_
