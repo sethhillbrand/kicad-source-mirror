@@ -60,7 +60,7 @@ public:
     }
 
 private:
-    double m_boolInputValue{ false };
+    bool m_boolInputValue{ false };
 };
 
 #endif // DRC_RE_BOOL_INPUT_CONSTRAINT_DATA_H_

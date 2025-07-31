@@ -49,15 +49,15 @@ public:
 
     bool GetIsSideAngleEnabled() { return m_sideAngle; }
 
-    void SetIsSideAngleEnabled( double aSideAngle ) { m_sideAngle = aSideAngle; }
+    void SetIsSideAngleEnabled( bool aSideAngle ) { m_sideAngle = aSideAngle; }
 
     bool GetIsCornerAngleEnabled() { return m_cornerAngle; }
 
-    void SetIsCornerAngleEnabled( double aCornerAngle ) { m_cornerAngle = aCornerAngle; }
+    void SetIsCornerAngleEnabled( bool aCornerAngle ) { m_cornerAngle = aCornerAngle; }
 
     bool GetIsAnyAngleEnabled() { return m_anyAngle; }
 
-    void SetIsAnyAngleEnabled( double aAnyAngle ) { m_anyAngle = aAnyAngle; }
+    void SetIsAnyAngleEnabled( bool aAnyAngle ) { m_anyAngle = aAnyAngle; }
 
     void CopyFrom( const ICopyable& aSource ) override
     {

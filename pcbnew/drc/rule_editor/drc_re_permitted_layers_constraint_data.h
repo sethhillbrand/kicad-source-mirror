@@ -49,11 +49,11 @@ public:
 
     bool GetTopLayerEnabled() { return m_topLayer; }
 
-    void SetTopLayerEnabled( double aTopLayer ) { m_topLayer = aTopLayer; }
+    void SetTopLayerEnabled( bool aTopLayer ) { m_topLayer = aTopLayer; }
 
     bool GetBottomLayerEnabled() { return m_bottomLayer; }
 
-    void SetBottomLayerEnabled( double aBottomLayer ) { m_bottomLayer = aBottomLayer; }
+    void SetBottomLayerEnabled( bool aBottomLayer ) { m_bottomLayer = aBottomLayer; }
 
     void CopyFrom( const ICopyable& aSource ) override
     {

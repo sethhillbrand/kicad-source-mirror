@@ -70,18 +70,18 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                                                   const wxSize& aInitialSize ) :
         DIALOG_SHIM( aParent, wxID_ANY, aTitle, wxDefaultPosition, aInitialSize,
                      wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
-        m_isDragging( false ), 
+        m_isDragging( false ),
         m_enableMoveUp( false ),
-        m_enableMoveDown( false ), 
-        m_enableAddRule( false ), 
+        m_enableMoveDown( false ),
+        m_enableAddRule( false ),
         m_enableDuplicateRule( false ),
-        m_enableDeleteRule( false ), 
-        m_preventSelectionChange( false ), 
-        m_title( aTitle ), 
+        m_enableDeleteRule( false ),
+        m_preventSelectionChange( false ),
+        m_title( aTitle ),
         m_selectedTreeItemData( nullptr ),
-        m_previouslySelectedTreeItemId( nullptr ),    
+        m_previouslySelectedTreeItemId( nullptr ),
         m_draggedItem( nullptr ),
-        m_dragImage( nullptr ) 
+        m_dragImage( nullptr )
 {
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
     SetSizer( mainSizer );
@@ -119,7 +119,7 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     m_ruleTreeCtrl->SetWindowStyleFlag( treeCtrlFlags );
 
     // Add the tree control to its sizer
-    treeCtrlSizer->Add( m_ruleTreeCtrl, 1, wxEXPAND | wxBOTTOM, 5 );
+    treeCtrlSizer->Add( m_ruleTreeCtrl, 3, wxEXPAND | wxBOTTOM, 5 );
 
     // Create a sizer for the action buttons
     wxBoxSizer* actionButtonsSizer = new wxBoxSizer( wxHORIZONTAL );
@@ -223,7 +223,7 @@ void RULE_EDITOR_DIALOG_BASE::finishInitialization()
 
 
 RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
-{    
+{
     m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch,
                             this );
     m_ruleTreeCtrl->Unbind( wxEVT_TREE_ITEM_RIGHT_CLICK,
@@ -525,7 +525,7 @@ void RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick( wxCommandEvent& aEvent )
 void RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick( wxCommandEvent& aEvent )
 {
     if( !m_enableMoveUp )
-        return; 
+        return;
 
     wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
     if( !selectedItem.IsOk() )
@@ -646,7 +646,7 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown( wxMouseEvent& aEvent )
     if( flags & wxTREE_HITTEST_ONITEMBUTTON )
     {
         // Prevent wxEVT_LEFT_DOWN from propagating further
-        aEvent.Skip(); 
+        aEvent.Skip();
         return;
     }
 
@@ -997,7 +997,7 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeItemMoveOptionState()
 
     if( !selectedItem.IsOk() )
         return;
-    
+
     if( selectedItem == m_ruleTreeCtrl->GetRootItem() )
         return;
 
@@ -1021,7 +1021,7 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeItemMoveOptionState()
 }
 
 
-void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState( 
+void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState(
     RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
     wxTreeItemId selectedItem = m_ruleTreeCtrl->GetSelection();
@@ -1074,7 +1074,7 @@ void RULE_EDITOR_DIALOG_BASE::onResize( wxSizeEvent& event )
 
 
 void RULE_EDITOR_DIALOG_BASE::setTreeCtrlSize( int aHeight )
-{   
+{
     // Set the maximum height for wxTreeCtrl to 75% of the available height
     m_ruleTreeCtrl->SetMaxSize( wxSize( -1, ( 75 * aHeight ) / 100.0 ) );
 }
