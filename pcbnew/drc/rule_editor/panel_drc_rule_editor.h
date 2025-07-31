@@ -95,7 +95,7 @@ public:
     void Cancel( wxCommandEvent& aEvent );
 
 private:
-    DRC_RULE_EDITOR_CONTENT_PANEL_BASE* getConstraintPanel( wxWindow* aParent, 
+    DRC_RULE_EDITOR_CONTENT_PANEL_BASE* getConstraintPanel( wxWindow* aParent,
         const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
 
     /**
@@ -162,7 +162,6 @@ private:
     wxButton*         m_btnClose;
     wxButton*         m_btnShowMatches;
     wxComboCtrl*      m_comboCtrl;
-    SCINTILLA_TRICKS* m_scintillaTricks;
     std::vector<int>  m_validLayers;
     LSEQ              m_layerList;
     BOARD*            m_board;
@@ -173,6 +172,7 @@ private:
     bool              m_validationSucceeded;
     std::string       m_validationMessage;
 
+    std::unique_ptr<SCINTILLA_TRICKS>            m_scintillaTricks;
     DRC_RE_LAYER_SELECTION_COMBO*                m_layerListCmbCtrl;
     DRC_RULE_EDITOR_CONSTRAINT_NAME              m_constraintType;
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE*          m_constraintPanel;

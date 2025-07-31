@@ -116,7 +116,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
 
     m_checkSyntaxBtnCtrl->SetBitmap( KiBitmapBundle( BITMAPS::drc ) );
 
-    m_scintillaTricks = new SCINTILLA_TRICKS(
+    m_scintillaTricks = std::make_unique<SCINTILLA_TRICKS>(
             m_textConditionCtrl, wxT( "()" ), false,
             // onAcceptFn
             [this]( wxKeyEvent& aEvent )
@@ -151,32 +151,8 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
 
 PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
 {
-    if( m_scintillaTricks )
-    {
-        delete m_scintillaTricks;
-        m_scintillaTricks = nullptr;
-    }
-
     m_board = nullptr;
     m_constraintTitle = nullptr;
-
-    if( m_layerListCmbCtrl )
-    {
-        delete m_layerListCmbCtrl;
-        m_layerListCmbCtrl = nullptr;
-    }
-
-    if( m_constraintPanel )
-    {
-        delete m_constraintPanel;
-        m_constraintPanel = nullptr;
-    }
-
-    if( m_helpWindow )
-    {
-        delete m_helpWindow;
-        m_helpWindow = nullptr;
-    }
 
     m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
                               this );
@@ -536,7 +512,7 @@ void PANEL_DRC_RULE_EDITOR::onScintillaCharAdded( wxStyledTextEvent& aEvent )
 
             for( const PROPERTY_MANAGER::CLASS_INFO& cls : propMgr.GetAllClasses() )
             {
-                const PROPERTY_LIST& props = propMgr.GetProperties( cls.type );
+                const std::vector<PROPERTY_BASE*>& props = propMgr.GetProperties( cls.type );
 
                 for( PROPERTY_BASE* prop : props )
                 {
@@ -757,7 +733,7 @@ void PANEL_DRC_RULE_EDITOR::onSyntaxHelp( wxHyperlinkEvent& aEvent )
 #endif
     const wxString& msGg_txt = msg_txt;
 
-    m_helpWindow = new HTML_MESSAGE_BOX( nullptr, _( "Syntax Help" ) );
+    m_helpWindow = new HTML_MESSAGE_BOX( this, _( "Syntax Help" ) );
     m_helpWindow->SetDialogSizeInDU( 420, 320 );
 
     wxString html_txt = wxEmptyString;
