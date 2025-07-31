@@ -203,7 +203,7 @@ bool DRC_RULE_EDITOR_UTILS::ValidateMinMaxCtrl( wxTextCtrl* aMinTextCtrl, wxText
                                                 int* aErrorCount, std::string* aValidationMessage )
 {
     aMinTextCtrl->SetName( "min" );
-    aMinTextCtrl->SetName( "max" );
+    aMaxTextCtrl->SetName( "max" );
 
     aMinTextCtrl->SetValidator( VALIDATE_MIN_MAX_CTRL( aMinTextCtrl, aMaxTextCtrl ) );
 
