@@ -103,17 +103,6 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
 
 DIALOG_DRC_RULE_EDITOR::~DIALOG_DRC_RULE_EDITOR()
 {
-    if( m_ruleEditorPanel )
-    {
-        delete m_ruleEditorPanel;
-        m_ruleEditorPanel = nullptr;
-    }
-
-    if( m_groupHeaderPanel )
-    {
-        delete m_groupHeaderPanel;
-        m_groupHeaderPanel = nullptr;
-    }
 }
 
 
@@ -139,23 +128,18 @@ std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
     int highSpeedDesignId;
     int footprintItemId;
 
-    result.push_back( buildRuleTreeNodeData( "Design Rules", DRC_RULE_EDITOR_ITEM_TYPE::ROOT ) );
-    lastParentId = m_nodeId;
-
-    result.push_back( buildRuleTreeNodeData( "Electrical", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-                                             lastParentId ) );
+    result.push_back( buildRuleTreeNodeData( "Electrical", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
     electricalItemId = m_nodeId;
 
     result.push_back( buildRuleTreeNodeData( "Manufacturability",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
     manufacturabilityItemId = m_nodeId;
 
     result.push_back( buildRuleTreeNodeData( "Highspeed design",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
     highSpeedDesignId = m_nodeId;
 
-    result.push_back( buildRuleTreeNodeData( "Footprints", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY,
-                                             lastParentId ) );
+    result.push_back( buildRuleTreeNodeData( "Footprints", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
     footprintItemId = m_nodeId;
 
     std::vector<RULE_TREE_NODE> subItemNodes = buildElectricalRuleTreeNodes( electricalItemId );
@@ -682,6 +666,49 @@ bool nodeExists( const std::vector<RULE_TREE_NODE>& aRuleTreeNodes, const wxStri
 
 RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RULE_TREE_ITEM_DATA* aRuleTreeItemData )
 {
+        // Factory function type for creating constraint data objects
+    using ConstraintDataFactory = std::function<std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA>(const DRC_RE_BASE_CONSTRAINT_DATA&)>;
+
+    // Factory map for constraint data creation
+    static const std::unordered_map<DRC_RULE_EDITOR_CONSTRAINT_NAME, ConstraintDataFactory> s_constraintFactories = {
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::VIA_STYLE,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_VIA_STYLE_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::MINIMUM_TEXT_HEIGHT_AND_THICKNESS,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::ROUTING_DIFF_PAIR,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::ROUTING_WIDTH,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::PARALLEL_LIMIT,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::PERMITTED_LAYERS,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::ALLOWED_ORIENTATION,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::CORNER_STYLE,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA>(data);
+        } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::SMD_ENTRY,
+        [](const DRC_RE_BASE_CONSTRAINT_DATA& data) {
+            return std::make_shared<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>(data);
+        } }
+};
+
     RULE_TREE_ITEM_DATA* treeItemData;
     RULE_TREE_NODE*      nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
 
@@ -720,69 +747,26 @@ RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RULE_TREE_ITEM_DATA* a
             static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( nodeDetail->m_nodeTypeMap.value_or( 0 ) ),
             {}, m_nodeId );
 
-    auto nodeType = static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>(
-            newRuleNode.m_nodeTypeMap.value_or( -1 ) );
-    DRC_RE_BASE_CONSTRAINT_DATA clearanceData( m_nodeId, nodeDetail->m_nodeData->GetId(),
-                                               newRuleNode.m_nodeName );
+    auto nodeType = static_cast<DRC_RULE_EDITOR_CONSTRAINT_NAME>( newRuleNode.m_nodeTypeMap.value_or( -1 ) );
 
-    switch( nodeType )
+    DRC_RE_BASE_CONSTRAINT_DATA clearanceData( m_nodeId, nodeDetail->m_nodeData->GetId(), newRuleNode.m_nodeName );
+
+    if( s_constraintFactories.find( nodeType ) != s_constraintFactories.end() )
     {
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::VIA_STYLE:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_VIA_STYLE_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::MINIMUM_TEXT_HEIGHT_AND_THICKNESS:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA>(
-                        clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::ROUTING_DIFF_PAIR:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::ROUTING_WIDTH:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::PARALLEL_LIMIT:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::PERMITTED_LAYERS:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::ALLOWED_ORIENTATION:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::CORNER_STYLE:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    case DRC_RULE_EDITOR_CONSTRAINT_NAME::SMD_ENTRY:
-        newRuleNode.m_nodeData =
-                std::make_shared<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( clearanceData );
-        break;
-
-    default:
-    {
-        if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( nodeType ) )
-            newRuleNode.m_nodeData =
-                    std::make_shared<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>( clearanceData );
-        else if( DRC_RULE_EDITOR_UTILS::IsBoolInputType( nodeType ) )
-            newRuleNode.m_nodeData =
-                    std::make_shared<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>( clearanceData );
+        newRuleNode.m_nodeData = s_constraintFactories.at( nodeType )( clearanceData );
     }
-    break;
+    else if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( nodeType ) )
+    {
+        newRuleNode.m_nodeData = std::make_shared<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>( clearanceData );
+    }
+    else if( DRC_RULE_EDITOR_UTILS::IsBoolInputType( nodeType ) )
+    {
+        newRuleNode.m_nodeData = std::make_shared<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>( clearanceData );
+    }
+    else
+    {
+        wxLogWarning( "No factory found for constraint type: %d", nodeType );
+        newRuleNode.m_nodeData = std::make_shared<DRC_RE_BASE_CONSTRAINT_DATA>( clearanceData );
     }
 
     newRuleNode.m_nodeData->SetIsNew( true );
