@@ -78,11 +78,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         PANEL_DRC_RULE_EDITOR_BASE( aParent ),
         m_board( aBoard ),
         m_constraintTitle( aConstraintTitle ),
-        m_basicDetailValidated( false ),
-        m_syntaxChecked( false ),
-        m_isModified( false ),
         m_validationSucceeded( false ),
-        m_constraintType( aConstraintType ),
         m_constraintData( aConstraintData ),
         m_helpWindow( nullptr )
 {
@@ -327,16 +323,14 @@ void PANEL_DRC_RULE_EDITOR::Save( wxCommandEvent& aEvent )
 
 void PANEL_DRC_RULE_EDITOR::onRemoveButtonClicked( wxCommandEvent& aEvent )
 {
-    if( m_callBackRemove )
-    {
+    if( m_callBackRemove && m_constraintData )
         m_callBackRemove( m_constraintData->GetId() );
-    }
 }
 
 
 void PANEL_DRC_RULE_EDITOR::Cancel( wxCommandEvent& aEvent )
 {
-    if( m_constraintData->IsNew() )
+    if( m_constraintData && m_constraintData->IsNew() )
         onRemoveButtonClicked( aEvent );
     else
         onCloseButtonClicked( aEvent );
@@ -345,10 +339,8 @@ void PANEL_DRC_RULE_EDITOR::Cancel( wxCommandEvent& aEvent )
 
 void PANEL_DRC_RULE_EDITOR::onCloseButtonClicked( wxCommandEvent& aEvent )
 {
-    if( m_callBackClose )
-    {
+    if( m_callBackClose && m_constraintData )
         m_callBackClose( m_constraintData->GetId() );
-    }
 }
 
 

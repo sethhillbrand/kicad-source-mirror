@@ -157,24 +157,16 @@ private:
     void onShowMatchesButtonClicked( wxCommandEvent& aEvent );
 
 private:
-    wxButton*         m_btnSave;
-    wxButton*         m_btnRemove;
-    wxButton*         m_btnClose;
     wxButton*         m_btnShowMatches;
-    wxComboCtrl*      m_comboCtrl;
     std::vector<int>  m_validLayers;
     LSEQ              m_layerList;
     BOARD*            m_board;
     wxString*         m_constraintTitle;
-    bool              m_basicDetailValidated;
-    bool              m_syntaxChecked;
-    bool              m_isModified;
     bool              m_validationSucceeded;
     std::string       m_validationMessage;
 
     std::unique_ptr<SCINTILLA_TRICKS>            m_scintillaTricks;
     DRC_RE_LAYER_SELECTION_COMBO*                m_layerListCmbCtrl;
-    DRC_RULE_EDITOR_CONSTRAINT_NAME              m_constraintType;
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE*          m_constraintPanel;
     std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> m_constraintData;
 
