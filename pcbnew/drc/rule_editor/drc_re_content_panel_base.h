@@ -50,7 +50,7 @@ public:
     wxStaticBitmap* GetConstraintImage(wxPanel* aParent, BITMAPS aBitMap)
     {
         return new wxStaticBitmap( aParent, wxID_ANY, KiBitmapBundle( aBitMap ),
-                                   wxDefaultPosition, wxSize( -1, 150 ), 0 );
+                                   wxDefaultPosition, wxSize( -1, 250 ), 0 );
     }
 };
 

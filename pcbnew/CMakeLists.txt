@@ -329,8 +329,6 @@ set( PCBNEW_DRC_SRCS
     drc/rule_editor/drc_re_validator_numeric_ctrl.cpp
     drc/rule_editor/drc_re_layers_selection_choice_popup.cpp
     drc/rule_editor/drc_re_layers_selection_combo.cpp
-    drc/drc_show_matches_provider_copper_clearance.cpp
-    drc/drc_show_matches_provider_edge_clearance.cpp
     )
 
 set( PCBNEW_NETLIST_SRCS

@@ -49,9 +49,9 @@ private:
     void onMouseClick( wxMouseEvent& aEvent );
 
 private:
-    DRC_RE_LAYER_SELECTION_CHOICE_POPUP*    m_popup;
-    std::vector<PCB_LAYER_ID>               m_layerIDs;   // Stores the layer IDs
-    std::function<wxString( PCB_LAYER_ID )> m_nameGetter; // Function to get layer names
+    std::unique_ptr<DRC_RE_LAYER_SELECTION_CHOICE_POPUP> m_popup;
+    std::vector<PCB_LAYER_ID>                            m_layerIDs;   // Stores the layer IDs
+    std::function<wxString( PCB_LAYER_ID )>              m_nameGetter; // Function to get layer names
 };
 
 #endif // DRC_RE_LAYER_SELECTION_COMBO_H
