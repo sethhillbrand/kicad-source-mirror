@@ -68,6 +68,7 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
 {
     m_frame = aEditorFrame;
     m_currentBoard = m_frame->GetBoard();
+    m_ruleEditorPanel = nullptr;
 
     m_ruleTreeCtrl->DeleteAllItems();
 
@@ -128,18 +129,19 @@ std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
     int highSpeedDesignId;
     int footprintItemId;
 
-    result.push_back( buildRuleTreeNodeData( "Electrical", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
+    result.push_back( buildRuleTreeNodeData( "Design Rules", DRC_RULE_EDITOR_ITEM_TYPE::ROOT ) );
+    lastParentId = m_nodeId;
+
+    result.push_back( buildRuleTreeNodeData( "Electrical", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
     electricalItemId = m_nodeId;
 
-    result.push_back( buildRuleTreeNodeData( "Manufacturability",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
+    result.push_back( buildRuleTreeNodeData( "Manufacturability", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
     manufacturabilityItemId = m_nodeId;
 
-    result.push_back( buildRuleTreeNodeData( "Highspeed design",
-                                             DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
+    result.push_back( buildRuleTreeNodeData( "Highspeed design", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
     highSpeedDesignId = m_nodeId;
 
-    result.push_back( buildRuleTreeNodeData( "Footprints", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY ) );
+    result.push_back( buildRuleTreeNodeData( "Footprints", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
     footprintItemId = m_nodeId;
 
     std::vector<RULE_TREE_NODE> subItemNodes = buildElectricalRuleTreeNodes( electricalItemId );
@@ -269,6 +271,8 @@ void DIALOG_DRC_RULE_EDITOR::OnCancel( wxCommandEvent& aEvent )
 {
     if( m_ruleEditorPanel )
         m_ruleEditorPanel->Cancel( aEvent );
+
+    aEvent.Skip();
 }
 
 

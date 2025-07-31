@@ -97,19 +97,19 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     m_contentSizer = new wxBoxSizer( wxHORIZONTAL );
 
     // Create the tree control panel
-    WX_PANEL* treeCtrlPanel = new WX_PANEL( this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                                            wxBORDER_NONE | wxTAB_TRAVERSAL );
+    WX_PANEL* treeCtrlPanel =
+            new WX_PANEL( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTAB_TRAVERSAL );
     treeCtrlPanel->SetBorders( true, true, true, true );
     wxBoxSizer* treeCtrlSizer = new wxBoxSizer( wxVERTICAL );
     treeCtrlPanel->SetSizer( treeCtrlSizer );
 
     // Add a search text box above the tree control
     m_filterSearch = CreateTextFilterBox( treeCtrlPanel, _( "Type filter text" ) );
-    treeCtrlSizer->Add( m_filterSearch, 0, wxEXPAND | wxBOTTOM,
-                        5 ); // Add search box with bottom margin
+    treeCtrlSizer->Add( m_filterSearch, 0, wxEXPAND | wxBOTTOM, 5 );
 
     // Create the tree control and set its font
-    m_ruleTreeCtrl = new wxTreeCtrl( treeCtrlPanel );
+    m_ruleTreeCtrl = new wxTreeCtrl( treeCtrlPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                     wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS );
     m_ruleTreeCtrl->SetFont( KIUI::GetControlFont( this ) );
     setTreeCtrlSize( aInitialSize.y );
 
@@ -119,7 +119,7 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     m_ruleTreeCtrl->SetWindowStyleFlag( treeCtrlFlags );
 
     // Add the tree control to its sizer
-    treeCtrlSizer->Add( m_ruleTreeCtrl, 3, wxEXPAND | wxBOTTOM, 5 );
+    treeCtrlSizer->Add( m_ruleTreeCtrl, 1, wxEXPAND | wxBOTTOM, 5 );
 
     // Create a sizer for the action buttons
     wxBoxSizer* actionButtonsSizer = new wxBoxSizer( wxHORIZONTAL );
@@ -155,7 +155,7 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     treeCtrlSizer->Add( actionButtonsSizer, 0, wxBOTTOM | wxEXPAND, 5 );
 
     // Add the tree panel to the content sizer
-    m_contentSizer->Add( treeCtrlPanel, 3, wxEXPAND | wxALL, 5 );
+    m_contentSizer->Add( treeCtrlPanel, 7, wxEXPAND | wxALL, 5 );
 
     // Create the dynamic content panel
     m_contentPanel = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE );
@@ -325,8 +325,6 @@ void RULE_EDITOR_DIALOG_BASE::InitRuleTreeItems( const std::vector<RULE_TREE_NOD
     {
         populateRuleTreeCtrl( aRuleTreeNodes, child, rootId );
     }
-
-    m_ruleTreeCtrl->Expand( rootId );
 
     m_treeHistoryData.clear();
     saveRuleTreeState( m_ruleTreeCtrl->GetRootItem(), m_defaultTreeItems[0].m_nodeId );
