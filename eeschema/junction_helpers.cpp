@@ -20,6 +20,10 @@
 #include "junction_helpers.h"
 
 #include <sch_line.h>
+#include <sch_screen.h>
+#include <sch_junction.h>
+#include <sch_item.h>
+#include <trigo.h>
 
 using namespace JUNCTION_HELPERS;
 
@@ -139,4 +143,73 @@ POINT_INFO JUNCTION_HELPERS::AnalyzePoint( const EE_RTREE& aItems, const VECTOR2
     info.isJunction = exitAngles[WIRES].size() >= 3 || exitAngles[BUSES].size() >= 3;
 
     return info;
+}
+
+
+std::vector<SCH_JUNCTION*> JUNCTION_HELPERS::PreviewJunctions( const SCH_SCREEN* aScreen,
+                                                               const std::vector<SCH_ITEM*>& aItems )
+{
+    EE_RTREE combined;
+
+    // Existing items
+    for( const SCH_ITEM* item : aScreen->Items() )
+    {
+        if( !item->IsConnectable() )
+            continue;
+
+        combined.insert( const_cast<SCH_ITEM*>( item ) );
+    }
+
+    // Temporary items
+    for( SCH_ITEM* item : aItems )
+    {
+        if( !item || !item->IsConnectable() )
+            continue;
+        combined.insert( item );
+    }
+
+    std::vector<VECTOR2I> connections = aScreen->GetConnections();
+    std::vector<VECTOR2I> pts;
+
+    for( SCH_ITEM* item : aItems )
+    {
+        if( !item || !item->IsConnectable() )
+            continue;
+
+        std::vector<VECTOR2I> new_pts = item->GetConnectionPoints();
+        pts.insert( pts.end(), new_pts.begin(), new_pts.end() );
+
+        if( item->Type() == SCH_LINE_T )
+        {
+            SCH_LINE* line = static_cast<SCH_LINE*>( item );
+
+            for( const VECTOR2I& pt : connections )
+            {
+                if( IsPointOnSegment( line->GetStartPoint(), line->GetEndPoint(), pt ) )
+                    pts.push_back( pt );
+            }
+        }
+    }
+
+    std::sort( pts.begin(), pts.end(),
+               []( const VECTOR2I& a, const VECTOR2I& b )
+               {
+                   return a.x < b.x || ( a.x == b.x && a.y < b.y );
+               } );
+
+    pts.erase( std::unique( pts.begin(), pts.end() ), pts.end() );
+
+    std::vector<SCH_JUNCTION*> jcts;
+
+    for( const VECTOR2I& pt : pts )
+    {
+        POINT_INFO info = AnalyzePoint( combined, pt, false );
+
+        if( info.isJunction && ( !info.hasBusEntry || info.hasBusEntryToMultipleWires ) )
+        {
+            jcts.push_back( new SCH_JUNCTION( pt ) );
+        }
+    }
+
+    return jcts;
 }
