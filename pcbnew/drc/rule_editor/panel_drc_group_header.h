@@ -33,10 +33,17 @@
 #include "panel_drc_group_header_base.h"
 
 
+struct DRC_RULE_ROW
+{
+    wxString m_ruleType;
+    wxString m_ruleName;
+    wxString m_comment;
+};
+
 class PANEL_DRC_GROUP_HEADER : public PANEL_DRC_GROUP_HEADER_BASE
 {
 public:
-    PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_ITEM_TYPE aItemType );
+    PANEL_DRC_GROUP_HEADER( wxWindow* aParent, const std::vector<DRC_RULE_ROW>& aRows );
 
     ~PANEL_DRC_GROUP_HEADER() override;
 
@@ -45,7 +52,8 @@ public:
     bool TransferDataFromWindow() override;
 
 private:
-    std::vector<int> m_validLayers;
+    void                      populateGrid();
+    std::vector<DRC_RULE_ROW> m_rows;
 };
 
 #endif // PANEL_DRC_GROUP_HEADER_H
