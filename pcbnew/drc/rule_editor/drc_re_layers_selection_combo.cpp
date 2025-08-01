@@ -30,8 +30,8 @@ DRC_RE_LAYER_SELECTION_COMBO::DRC_RE_LAYER_SELECTION_COMBO( wxWindow* aParent,
         const std::function<wxString( PCB_LAYER_ID )>& aNameGetter ) :
         wxComboCtrl( aParent, wxID_ANY )
 {
-    m_popup = std::make_unique<DRC_RE_LAYER_SELECTION_CHOICE_POPUP>();
-    SetPopupControl( m_popup.get() );
+    m_popup = new DRC_RE_LAYER_SELECTION_CHOICE_POPUP();
+    SetPopupControl( m_popup );
 
     m_layerIDs = aLayerIDs;
     m_nameGetter = aNameGetter;
@@ -76,6 +76,7 @@ void DRC_RE_LAYER_SELECTION_COMBO::SetItemsSelected(
 void DRC_RE_LAYER_SELECTION_COMBO::onPopupClose( wxCommandEvent& aEvent )
 {
     SetValue( m_popup->GetSelectedItemsString() );
+    aEvent.Skip();
 }
 
 
