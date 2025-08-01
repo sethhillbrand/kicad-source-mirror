@@ -21,31 +21,36 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include <widgets/std_bitmap_button.h>
-
-#include <pgm_base.h>
-#include <settings/settings_manager.h>
-#include <footprint_editor_settings.h>
-#include <template_fieldnames.h>
-#include <grid_tricks.h>
-#include <eda_text.h>
-#include <grid_layer_box_helpers.h>
-#include <bitmaps.h>
-#include <confirm.h>
-#include <kidialog.h>
-#include <layer_ids.h>
-#include <layer_range.h>
-#include <board.h>
-#include <idf_parser.h>
-
 #include <drc/rule_editor/panel_drc_group_header.h>
 
 
-
-PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, BOARD* aBoard,
-                                                DRC_RULE_EDITOR_ITEM_TYPE aItemType ) :
-        PANEL_DRC_GROUP_HEADER_BASE( aParent )
+PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, const std::vector<DRC_RULE_ROW>& aRows ) :
+        PANEL_DRC_GROUP_HEADER_BASE( aParent ),
+        m_rows( aRows )
 {
+    int cols = m_dataGrid->GetNumberCols();
+
+    if( cols )
+        m_dataGrid->DeleteCols( 0, cols );
+
+    int rows = m_dataGrid->GetNumberRows();
+
+    if( rows )
+        m_dataGrid->DeleteRows( 0, rows );
+
+    m_dataGrid->AppendCols( 3 );
+    m_dataGrid->SetColLabelValue( 0, _( "Rule type" ) );
+    m_dataGrid->SetColLabelValue( 1, _( "Rule name" ) );
+    m_dataGrid->SetColLabelValue( 2, _( "Comment" ) );
+
+    m_dataGrid->AppendRows( m_rows.size() );
+
+    for( size_t i = 0; i < m_rows.size(); ++i )
+    {
+        m_dataGrid->SetCellValue( i, 0, m_rows[i].m_ruleType );
+        m_dataGrid->SetCellValue( i, 1, m_rows[i].m_ruleName );
+        m_dataGrid->SetCellValue( i, 2, m_rows[i].m_comment );
+    }
 }
 
 

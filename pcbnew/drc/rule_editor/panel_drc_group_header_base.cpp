@@ -17,26 +17,28 @@ PANEL_DRC_GROUP_HEADER_BASE::PANEL_DRC_GROUP_HEADER_BASE( wxWindow* parent, wxWi
 	m_dataGrid = new wxGrid( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0 );
 
 	// Grid
-	m_dataGrid->CreateGrid( 5, 5 );
+	m_dataGrid->CreateGrid( 0, 3 );
 	m_dataGrid->EnableEditing( true );
 	m_dataGrid->EnableGridLines( true );
 	m_dataGrid->EnableDragGridSize( false );
 	m_dataGrid->SetMargins( 0, 0 );
 
 	// Columns
+	m_dataGrid->AutoSizeColumns();
 	m_dataGrid->EnableDragColMove( false );
 	m_dataGrid->EnableDragColSize( true );
 	m_dataGrid->SetColLabelAlignment( wxALIGN_CENTER, wxALIGN_CENTER );
 
 	// Rows
 	m_dataGrid->EnableDragRowSize( true );
+	m_dataGrid->SetRowLabelSize( 0 );
 	m_dataGrid->SetRowLabelAlignment( wxALIGN_CENTER, wxALIGN_CENTER );
 
 	// Label Appearance
 
 	// Cell Defaults
 	m_dataGrid->SetDefaultCellAlignment( wxALIGN_LEFT, wxALIGN_TOP );
-	mainSizer->Add( m_dataGrid, 0, wxALL, 5 );
+	mainSizer->Add( m_dataGrid, 0, wxALL|wxEXPAND, 5 );
 
 
 	this->SetSizer( mainSizer );

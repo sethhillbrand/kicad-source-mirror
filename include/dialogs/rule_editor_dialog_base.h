@@ -23,6 +23,7 @@
 #include <wx/treectrl.h>
 #include <wx/srchctrl.h>
 #include <wx/bmpbuttn.h>
+#include <wx/splitter.h>
 
 #include <variant>
 #include <optional>
@@ -72,8 +73,8 @@ public:
     explicit RULE_TREE_ITEM_DATA( int aNodeId, wxTreeItemId aParentTreeItemId,
                                   wxTreeItemId aTreeItemId ) :
             m_nodeId( aNodeId ),
-            m_treeItemId( aTreeItemId ), 
-            m_parentTreeItemId( aParentTreeItemId )            
+            m_treeItemId( aTreeItemId ),
+            m_parentTreeItemId( aParentTreeItemId )
     {
     }
 
@@ -99,6 +100,8 @@ private:
 
 class RULE_EDITOR_DIALOG_BASE : public DIALOG_SHIM
 {
+    friend class DIALOG_DRC_RULE_EDITOR;
+
 public:
     RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxString& aTitle,
                              const wxSize& aInitialSize = wxDefaultSize );
@@ -436,20 +439,20 @@ private:
     void onClose( wxCloseEvent& aEvt );
 
 protected:
-    wxTreeCtrl*     m_ruleTreeCtrl;
-    WX_INFOBAR*     m_infoBar;
-    wxPanel*        m_contentPanel;
-    wxSizer*        m_contentSizer;
-    wxSearchCtrl*   m_filterSearch;
-    wxTextCtrl*     m_filterText;
-    wxBoxSizer*     m_buttonsSizer;
-    wxBitmapButton* m_addRuleButton;
-    wxBitmapButton* m_copyRuleButton;
-    wxBitmapButton* m_moveTreeItemUpButton;
-    wxBitmapButton* m_moveTreeItemDownButton;
-    wxBitmapButton* m_deleteRuleButton;
-    wxButton*       m_saveRuleButton;
-    wxButton*       m_cancelRuleButton;
+    wxTreeCtrl*       m_ruleTreeCtrl;
+    WX_INFOBAR*       m_infoBar;
+    wxPanel*          m_contentPanel;
+    wxSplitterWindow* m_splitter;
+    wxSearchCtrl*     m_filterSearch;
+    wxTextCtrl*       m_filterText;
+    wxBoxSizer*       m_buttonsSizer;
+    wxBitmapButton*   m_addRuleButton;
+    wxBitmapButton*   m_copyRuleButton;
+    wxBitmapButton*   m_moveTreeItemUpButton;
+    wxBitmapButton*   m_moveTreeItemDownButton;
+    wxBitmapButton*   m_deleteRuleButton;
+    wxButton*         m_saveRuleButton;
+    wxButton*         m_cancelRuleButton;
 
 private:
     bool m_isDragging;
