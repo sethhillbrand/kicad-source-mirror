@@ -56,7 +56,7 @@ public:
     std::vector<RULE_TREE_NODE> GetDefaultRuleTreeItems() override;
 
     /**
-     * Adds a new rule to the rule tree, either as a child or under the parent, 
+     * Adds a new rule to the rule tree, either as a child or under the parent,
      * based on the node type (CONSTRAINT or not).
      *
      * @param aRuleTreeItemData The data for the rule tree item to be added.
@@ -89,7 +89,7 @@ public:
      *
      * @param aRuleTreeItemData The data of the rule tree item.
      * @param aOption The context menu option to verify.
-     * 
+     *
      * @return true if the option should be enabled, false otherwise.
      */
     bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA* aRuleTreeItemData,
@@ -121,7 +121,7 @@ private:
      * Creates a new rule tree node with a unique name and assigns the appropriate constraint data.
      *
      * @param aRuleTreeItemData The rule tree item data for the node.
-     * 
+     *
      * @return The newly created rule tree node.
      */
     RULE_TREE_NODE buildRuleTreeNode( RULE_TREE_ITEM_DATA* aRuleTreeItemData );
@@ -135,10 +135,10 @@ private:
      * @param aConstraintType The constraint type, if any.
      * @param aChildNodes List of child nodes.
      * @param id Optional ID for the node.
-     * 
+     *
      * @return The newly created RULE_TREE_NODE.
      */
-    RULE_TREE_NODE buildRuleTreeNodeData( const std::string& aName, 
+    RULE_TREE_NODE buildRuleTreeNodeData( const std::string& aName,
             const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,
             const std::optional<int>&  aParentId = std::nullopt,
             const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType = std::nullopt,
@@ -150,7 +150,7 @@ private:
      * Returns a pointer to the node if found, or nullptr if not.
      *
      * @param aNodeId The node ID to search for.
-     * 
+     *
      * @return A pointer to the node, or nullptr if not found.
      */
     RULE_TREE_NODE* getRuleTreeNodeInfo( const int& aNodeId );
@@ -177,7 +177,7 @@ private:
      *
      * @param aNodeId The ID of the node to exclude from the check.
      * @param aRuleName The rule name to validate.
-     * 
+     *
      * @return True if the rule name is unique, false otherwise.
      */
     bool validateRuleName( int aNodeId, wxString aRuleName );
@@ -186,10 +186,18 @@ private:
      * Deletes a rule tree node by its ID.
      *
      * @param aNodeId The ID of the node to delete.
-     * 
+     *
      * @return True if the node was found and deleted, false otherwise.
      */
     bool deleteTreeNodeData( const int& aNodeId );
+
+    /**
+     * Collects all child rule nodes for a given parent node ID.
+     *
+     * @param aParentId The ID of the parent node.
+     * @param aResult The vector to store the child nodes.
+     */
+    void collectChildRuleNodes( int aParentId, std::vector<RULE_TREE_NODE*>& aResult );
 
      // PROGRESS_REPORTER calls
     bool updateUI() override;
@@ -215,9 +223,9 @@ private:
     PANEL_DRC_GROUP_HEADER*     m_groupHeaderPanel;
 
     std::shared_ptr<RC_ITEMS_PROVIDER> m_markersProvider;
-    RC_TREE_MODEL* m_markersTreeModel;
-    int m_severities;
-    std::vector<BOARD_ITEM*> m_violatedBoarditems;
+    RC_TREE_MODEL*                     m_markersTreeModel;
+    int                                m_severities;
+    std::vector<BOARD_ITEM*>           m_violatedBoarditems;
 };
 
 #endif //DIALOG_DRC_RULE_EDITOR_H

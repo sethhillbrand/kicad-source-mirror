@@ -89,16 +89,16 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     wxBoxSizer* infoBarSizer = new wxBoxSizer( wxHORIZONTAL );
 
     m_infoBar = new WX_INFOBAR( this );
-    infoBarSizer->Add( m_infoBar, 1, wxEXPAND, 0 );
+    infoBarSizer->Add( m_infoBar, 0, wxEXPAND, 0 );
 
-    // Add the info bar sizer to the main sizer
-    mainSizer->Add( infoBarSizer, 0, wxEXPAND, 0 );
-
-    m_contentSizer = new wxBoxSizer( wxHORIZONTAL );
+    // Add the tree panel to the content sizer
+    m_splitter = new wxSplitterWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                        wxSP_3D | wxSP_LIVE_UPDATE | wxSP_3DSASH );
+    m_splitter->SetMinimumPaneSize( 50 ); // Set a minimum pane size
 
     // Create the tree control panel
     WX_PANEL* treeCtrlPanel =
-            new WX_PANEL( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTAB_TRAVERSAL );
+            new WX_PANEL( m_splitter, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTAB_TRAVERSAL );
     treeCtrlPanel->SetBorders( true, true, true, true );
     wxBoxSizer* treeCtrlSizer = new wxBoxSizer( wxVERTICAL );
     treeCtrlPanel->SetSizer( treeCtrlSizer );
@@ -154,18 +154,15 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     // Add the action buttons sizer to the tree control sizer
     treeCtrlSizer->Add( actionButtonsSizer, 0, wxBOTTOM | wxEXPAND, 5 );
 
-    // Add the tree panel to the content sizer
-    m_contentSizer->Add( treeCtrlPanel, 7, wxEXPAND | wxALL, 5 );
-
     // Create the dynamic content panel
-    m_contentPanel = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE );
+    m_contentPanel = new wxPanel( m_splitter, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE );
     m_contentPanel->SetBackgroundColour( *wxLIGHT_GREY );
 
-    // Add the dynamic panel to the content sizer
-    m_contentSizer->Add( m_contentPanel, 7, wxEXPAND | wxLEFT, 5 );
-
-    // Add the content sizer to the main sizer
-    mainSizer->Add( m_contentSizer, 1, wxEXPAND, 0 );
+    // Add the tree control panel to the splitter
+    m_splitter->SplitVertically( treeCtrlPanel, m_contentPanel );
+    // // Add the dynamic panel to the content sizer
+    // m_contentSizer->Add( m_contentPanel, 7, wxEXPAND | wxLEFT, 5 );
+    m_splitter->SetSashGravity( 0.5 ); // Center the sash position
 
     wxBoxSizer* m_sizerButtons = new wxBoxSizer( wxHORIZONTAL );
 
@@ -179,7 +176,13 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
 
     m_sizerButtons->Add( m_sdbSizer, 1, wxEXPAND, 5 );
 
+
+    // Add the info bar sizer to the main sizer
+    mainSizer->Add( infoBarSizer, 0, wxEXPAND, 0 );
+    mainSizer->Add( m_splitter, 1, wxEXPAND | wxBOTTOM, 5 );
     mainSizer->Add( m_sizerButtons, 0, wxALL | wxEXPAND, 5 );
+    Layout();
+    setTreeCtrlSize( GetSize().GetHeight() );
 
     // We normally save the dialog size and position based on its class-name.  This class
     // substitutes the title so that each distinctly-titled dialog can have its own saved
@@ -335,14 +338,18 @@ void RULE_EDITOR_DIALOG_BASE::InitRuleTreeItems( const std::vector<RULE_TREE_NOD
 
 void RULE_EDITOR_DIALOG_BASE::SetContentPanel( wxPanel* aContentPanel )
 {
+    int sash_position = 200;
+
     if( m_contentPanel )
     {
-        m_contentSizer->Detach( m_contentPanel );
+        sash_position = m_splitter->GetSashPosition();
+        m_splitter->Unsplit( m_contentPanel );
         m_contentPanel->Destroy();
     }
 
     m_contentPanel = aContentPanel;
-    m_contentSizer->Add( m_contentPanel, 7, wxEXPAND | wxLEFT, 5 );
+    auto treeCtrlPanel = m_splitter->GetWindow1();
+    m_splitter->SplitVertically( treeCtrlPanel, m_contentPanel, sash_position );
 
     Layout();
     Refresh();
@@ -1063,8 +1070,6 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState(
 
 void RULE_EDITOR_DIALOG_BASE::onResize( wxSizeEvent& event )
 {
-    setTreeCtrlSize( GetSize().GetHeight() );
-
     Layout();
 
     event.Skip();
