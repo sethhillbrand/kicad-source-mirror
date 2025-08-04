@@ -820,6 +820,9 @@ private:
 
     std::unordered_map<wxString, int> m_bus_name_to_code_map;
 
+    std::unordered_map<wxString, int> m_cached_net_codes;
+    std::unordered_map<wxString, int> m_cached_bus_codes;
+
     std::unordered_map<wxString, std::vector<const CONNECTION_SUBGRAPH*>> m_global_label_cache;
 
     std::map< std::pair<SCH_SHEET_PATH, wxString>,

@@ -638,6 +638,12 @@ void CONNECTION_GRAPH::Merge( CONNECTION_GRAPH& aGraph )
     for( auto& [key, value] : aGraph.m_bus_name_to_code_map )
         m_bus_name_to_code_map.insert_or_assign( key, value );
 
+    for( auto& [key, value] : aGraph.m_cached_net_codes )
+        m_cached_net_codes.insert_or_assign( key, value );
+
+    for( auto& [key, value] : aGraph.m_cached_bus_codes )
+        m_cached_bus_codes.insert_or_assign( key, value );
+
     for( auto& [key, value] : aGraph.m_net_code_to_subgraphs_map )
         m_net_code_to_subgraphs_map.insert_or_assign( key, value );
 
@@ -1955,16 +1961,28 @@ void CONNECTION_GRAPH::processSubGraphs()
         if( connection->IsBus() )
         {
             int  code = -1;
-            auto it   = m_bus_name_to_code_map.find( name );
+            auto cached = m_cached_bus_codes.find( name );
 
-            if( it != m_bus_name_to_code_map.end() )
+            if( cached != m_cached_bus_codes.end() )
             {
-                code = it->second;
+                code = cached->second;
+                m_bus_name_to_code_map[ name ] = code;
             }
             else
             {
-                code = m_last_bus_code++;
-                m_bus_name_to_code_map[ name ] = code;
+                auto it = m_bus_name_to_code_map.find( name );
+
+                if( it != m_bus_name_to_code_map.end() )
+                {
+                    code = it->second;
+                }
+                else
+                {
+                    code = m_last_bus_code++;
+                    m_bus_name_to_code_map[ name ] = code;
+                }
+
+                m_cached_bus_codes[ name ] = code;
             }
 
             connection->SetBusCode( code );
@@ -2604,31 +2622,36 @@ void CONNECTION_GRAPH::buildConnectionGraph( std::function<void( SCH_ITEM* )>* a
 
 int CONNECTION_GRAPH::getOrCreateNetCode( const wxString& aNetName )
 {
-    int code;
+    auto cached = m_cached_net_codes.find( aNetName );
 
+    if( cached != m_cached_net_codes.end() )
+    {
+        m_net_name_to_code_map[ aNetName ] = cached->second;
+        return cached->second;
+    }
+
+    int  code;
     auto it = m_net_name_to_code_map.find( aNetName );
 
-    if( it == m_net_name_to_code_map.end() )
+    if( it != m_net_name_to_code_map.end() )
+    {
+        code = it->second;
+    }
+    else
     {
         code = m_last_net_code++;
         m_net_name_to_code_map[ aNetName ] = code;
     }
-    else
-    {
-        code = it->second;
-    }
 
+    m_cached_net_codes[ aNetName ] = code;
     return code;
 }
 
 
 int CONNECTION_GRAPH::assignNewNetCode( SCH_CONNECTION& aConnection )
 {
-    int code = getOrCreateNetCode( aConnection.Name() );
-
-    aConnection.SetNetCode( code );
-
-    return code;
+    aConnection.SetNetCode( getOrCreateNetCode( aConnection.Name() ) );
+    return aConnection.NetCode();
 }
 
 
