@@ -227,9 +227,14 @@ private:
     /// Constraint for end side segment.
     EDIT_CONSTRAINT<EDIT_POINT>* m_endSideConstraint;
 
-    /// Additional constraint, applied when at least two points are collinear. It is a pointer to
-    /// m_[origin/end]SideConstraint, so it should not be freed.
-    EDIT_CONSTRAINT<EDIT_POINT>* m_colinearConstraint;
+    /// Additional point used when constraining a collinear origin.
+    EDIT_POINT* m_originParallel;
+
+    /// Additional point used when constraining a collinear end.
+    EDIT_POINT* m_endParallel;
+
+    /// Constraint applied when both endpoints are between collinear segments.
+    EDIT_CONSTRAINT<EDIT_LINE>* m_perpConstraint;
 
     /// EDIT_POINTS instance that stores currently modified lines.
     EDIT_POINTS& m_editPoints;

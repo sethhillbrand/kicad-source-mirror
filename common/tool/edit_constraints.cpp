@@ -125,7 +125,11 @@ void EC_CIRCLE::Apply( EDIT_POINT& aHandle, const GRID_HELPER& aGrid )
 
 EC_CONVERGING::EC_CONVERGING( EDIT_LINE& aLine, EDIT_POINTS& aPoints ) :
     EDIT_CONSTRAINT<EDIT_LINE>( aLine ),
-    m_colinearConstraint( nullptr ),
+    m_originSideConstraint( nullptr ),
+    m_endSideConstraint( nullptr ),
+    m_originParallel( nullptr ),
+    m_endParallel( nullptr ),
+    m_perpConstraint( nullptr ),
     m_editPoints( aPoints )
 {
     // Dragged segment endings
@@ -135,10 +139,6 @@ EC_CONVERGING::EC_CONVERGING( EDIT_LINE& aLine, EDIT_POINTS& aPoints ) :
     // Previous and next points, to make constraining lines (adjacent to the dragged line)
     EDIT_POINT& prevOrigin = *aPoints.Previous( origin, false );
     EDIT_POINT& nextEnd = *aPoints.Next( end, false );
-
-    // Constraints for segments adjacent to the dragged one
-    m_originSideConstraint = new EC_LINE( origin, prevOrigin );
-    m_endSideConstraint = new EC_LINE( end, nextEnd );
 
     // Store the current vector of the line
     m_draggedVector = end.GetPosition() - origin.GetPosition();
@@ -154,10 +154,34 @@ EC_CONVERGING::EC_CONVERGING( EDIT_LINE& aLine, EDIT_POINTS& aPoints ) :
     m_originCollinear = dragged.Angle( originSide ).AsDegrees() < alignAngle;
     m_endCollinear = dragged.Angle( endSide ).AsDegrees() < alignAngle;
 
-    if( m_originCollinear )
-        m_colinearConstraint = m_originSideConstraint;
-    else if( m_endCollinear )
-        m_colinearConstraint = m_endSideConstraint;
+    if( m_originCollinear && m_endCollinear )
+    {
+        m_perpConstraint = new EC_PERPLINE( aLine );
+    }
+    else
+    {
+        if( m_originCollinear )
+        {
+            VECTOR2I dir = nextEnd.GetPosition() - end.GetPosition();
+            m_originParallel = new EDIT_POINT( origin.GetPosition() + dir );
+            m_originSideConstraint = new EC_LINE( origin, *m_originParallel );
+        }
+        else
+        {
+            m_originSideConstraint = new EC_LINE( origin, prevOrigin );
+        }
+
+        if( m_endCollinear )
+        {
+            VECTOR2I dir = prevOrigin.GetPosition() - origin.GetPosition();
+            m_endParallel = new EDIT_POINT( end.GetPosition() + dir );
+            m_endSideConstraint = new EC_LINE( end, *m_endParallel );
+        }
+        else
+        {
+            m_endSideConstraint = new EC_LINE( end, nextEnd );
+        }
+    }
 }
 
 
@@ -165,7 +189,9 @@ EC_CONVERGING::~EC_CONVERGING()
 {
     delete m_originSideConstraint;
     delete m_endSideConstraint;
-    // m_colinearConstraint should not be freed, it is a pointer to one of the above
+    delete m_originParallel;
+    delete m_endParallel;
+    delete m_perpConstraint;
 }
 
 
@@ -175,28 +201,29 @@ void EC_CONVERGING::Apply( EDIT_LINE& aHandle, const GRID_HELPER& aGrid )
     EDIT_POINT& origin = aHandle.GetOrigin();
     EDIT_POINT& end = aHandle.GetEnd();
 
-    if( m_colinearConstraint )
+    if( m_perpConstraint )
     {
-        m_colinearConstraint->Apply( origin, aGrid );
-        m_colinearConstraint->Apply( end, aGrid );
+        m_perpConstraint->Apply( aHandle, aGrid );
+        return;
     }
 
-    if( m_originCollinear && m_endCollinear )
-        return;
+    if( m_originSideConstraint )
+        m_originSideConstraint->Apply( aGrid );
+
+    if( m_endSideConstraint )
+        m_endSideConstraint->Apply( aGrid );
 
     // The dragged segment
     SEG dragged( origin.GetPosition(), origin.GetPosition() + m_draggedVector );
-
-    // Do not allow points on the adjacent segments move freely
-    m_originSideConstraint->Apply( aGrid );
-    m_endSideConstraint->Apply( aGrid );
 
     EDIT_POINT& prevOrigin = *m_editPoints.Previous( origin, false );
     EDIT_POINT& nextEnd = *m_editPoints.Next( end, false );
 
     // Two segments adjacent to the dragged segment
-    SEG originSide = SEG( origin.GetPosition(), prevOrigin.GetPosition() );
-    SEG endSide = SEG( end.GetPosition(), nextEnd.GetPosition() );
+    SEG originSide = SEG( origin.GetPosition(), m_originCollinear ?
+                          m_originParallel->GetPosition() : prevOrigin.GetPosition() );
+    SEG endSide = SEG( end.GetPosition(), m_endCollinear ?
+                        m_endParallel->GetPosition() : nextEnd.GetPosition() );
 
     // First intersection point (dragged segment against origin side)
     if( OPT_VECTOR2I originIntersect = dragged.IntersectLines( originSide ) )
@@ -208,8 +235,10 @@ void EC_CONVERGING::Apply( EDIT_LINE& aHandle, const GRID_HELPER& aGrid )
 
     // Check if adjacent segments intersect (did we dragged the line to the point that it may
     // create a selfintersecting polygon?)
-    originSide = SEG( origin.GetPosition(), prevOrigin.GetPosition() );
-    endSide = SEG( end.GetPosition(), nextEnd.GetPosition() );
+    originSide = SEG( origin.GetPosition(), m_originCollinear ?
+                      m_originParallel->GetPosition() : prevOrigin.GetPosition() );
+    endSide = SEG( end.GetPosition(), m_endCollinear ?
+                   m_endParallel->GetPosition() : nextEnd.GetPosition() );
 
     if( OPT_VECTOR2I originEndIntersect = endSide.Intersect( originSide ) )
     {
