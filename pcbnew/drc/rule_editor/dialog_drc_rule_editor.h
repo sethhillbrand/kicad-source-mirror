@@ -170,7 +170,7 @@ private:
      */
     void closeRuleEntryView( int aNodeId );
 
-    void showConditionMatches( int aNodeId );
+    void highlightMatchingItems( int aNodeId );
 
     /**
      * Validates if the rule name is unique for the given node ID.
@@ -204,8 +204,6 @@ private:
 
     void AdvancePhase( const wxString& aMessage ) override;
 
-    void highlightViolatedBoardItems( wxDataViewCtrl* dataViewCtrl,
-                                      const wxDataViewItem& dataViewItem );
 
 protected:
     BOARD_DESIGN_SETTINGS& bds() { return m_currentBoard->GetDesignSettings(); }
@@ -225,7 +223,6 @@ private:
     std::shared_ptr<RC_ITEMS_PROVIDER> m_markersProvider;
     RC_TREE_MODEL*                     m_markersTreeModel;
     int                                m_severities;
-    std::vector<BOARD_ITEM*>           m_violatedBoarditems;
 };
 
 #endif //DIALOG_DRC_RULE_EDITOR_H
