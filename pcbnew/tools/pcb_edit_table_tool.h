@@ -30,6 +30,9 @@
 #include <pcb_tablecell.h>
 #include <board_commit.h>
 
+class CONDITIONAL_MENU;
+enum class STACKUP_UNIT_MODE;
+
 
 class PCB_EDIT_TABLE_TOOL : public PCB_TOOL_BASE,
                             public EDIT_TABLE_TOOL_BASE<PCB_TABLE, PCB_TABLECELL, BOARD_COMMIT>
@@ -53,9 +56,20 @@ public:
 
     int EditTable( const TOOL_EVENT& aEvent );
 
+    int HideStackupColumn( const TOOL_EVENT& aEvent );
+    int ShowAllStackupColumns( const TOOL_EVENT& aEvent );
+    int SetStackupPrecision( const TOOL_EVENT& aEvent );
+    int SetStackupUnitsAuto( const TOOL_EVENT& aEvent );
+    int SetStackupUnitsMM( const TOOL_EVENT& aEvent );
+    int SetStackupUnitsInch( const TOOL_EVENT& aEvent );
+    int ToggleStackupTitle( const TOOL_EVENT& aEvent );
+
 private:
     ///< Set up handlers for various events.
     void setTransitions() override;
+
+    void addStackupMenus( CONDITIONAL_MENU& aMenu );
+    int  setStackupUnits( STACKUP_UNIT_MODE aMode );
 
 private:
     TOOL_MANAGER* getToolMgr() override { return m_toolMgr; }

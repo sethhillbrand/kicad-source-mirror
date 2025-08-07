@@ -213,6 +213,13 @@ public:
     static TOOL_ACTION drawSimilarZone;
     static TOOL_ACTION placeCharacteristics;
     static TOOL_ACTION placeStackup;
+    static TOOL_ACTION stackupHideColumn;
+    static TOOL_ACTION stackupShowAllColumns;
+    static TOOL_ACTION stackupSetPrecision;
+    static TOOL_ACTION stackupUnitsAuto;
+    static TOOL_ACTION stackupUnitsMM;
+    static TOOL_ACTION stackupUnitsInch;
+    static TOOL_ACTION stackupToggleTitle;
     static TOOL_ACTION placeFootprint;
     static TOOL_ACTION placeImportedGraphics;
     static TOOL_ACTION setAnchor;

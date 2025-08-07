@@ -177,6 +177,49 @@ TOOL_ACTION PCB_ACTIONS::placeStackup( TOOL_ACTION_ARGS()
         .ToolbarState( TOOLBAR_STATE::TOGGLE )
         .Flags( AF_ACTIVATE ) );
 
+TOOL_ACTION PCB_ACTIONS::stackupHideColumn( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.hideColumn" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Hide Column" ) )
+        .Tooltip( _( "Hide the selected stackup column" ) )
+        .Icon( BITMAPS::table_delete_column ) );
+
+TOOL_ACTION PCB_ACTIONS::stackupShowAllColumns( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.showAllColumns" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Show All Columns" ) )
+        .Tooltip( _( "Show all stackup columns" ) ) );
+
+TOOL_ACTION PCB_ACTIONS::stackupSetPrecision( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.setPrecision" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Set Numeric Precision..." ) )
+        .Tooltip( _( "Set numeric precision for stackup values" ) ) );
+
+TOOL_ACTION PCB_ACTIONS::stackupUnitsAuto( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.unitsAuto" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Units: Auto" ) )
+        .Tooltip( _( "Follow global display units" ) ) );
+
+TOOL_ACTION PCB_ACTIONS::stackupUnitsMM( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.unitsMM" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Units: Millimeters" ) )
+        .Tooltip( _( "Display stackup values in millimeters" ) ) );
+
+TOOL_ACTION PCB_ACTIONS::stackupUnitsInch( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.unitsInch" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Units: Inches" ) )
+        .Tooltip( _( "Display stackup values in inches" ) ) );
+
+TOOL_ACTION PCB_ACTIONS::stackupToggleTitle( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.StackupTable.toggleTitle" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Toggle Title" ) )
+        .Tooltip( _( "Add or remove stackup table title" ) ) );
+
 TOOL_ACTION PCB_ACTIONS::placeReferenceImage( TOOL_ACTION_ARGS()
         .Name( "pcbnew.InteractiveDrawing.placeReferenceImage" )
         .Scope( AS_GLOBAL )

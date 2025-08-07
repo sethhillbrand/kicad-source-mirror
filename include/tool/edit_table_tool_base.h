@@ -44,9 +44,27 @@ class EDIT_TABLE_TOOL_BASE
 protected:
     void addMenus( CONDITIONAL_MENU& selToolMenu )
     {
+        auto notStackupTable =
+                [&]( const SELECTION& sel )
+                {
+                    for( EDA_ITEM* item : sel )
+                    {
+                        if( T_TABLECELL* cell = dynamic_cast<T_TABLECELL*>( item ) )
+                        {
+                            EDA_ITEM* parent = cell->GetParent();
+
+                            if( parent && parent->GetClass() == wxT( "PCB_STACKUP_TABLE" ) )
+                                return false;
+                        }
+                    }
+
+                    return true;
+                };
+
         auto cellSelection = SELECTION_CONDITIONS::MoreThan( 0 )
                                     && SELECTION_CONDITIONS::OnlyTypes( { SCH_TABLECELL_T,
-                                                                          PCB_TABLECELL_T } );
+                                                                          PCB_TABLECELL_T } )
+                                    && notStackupTable;
 
         auto cellBlockSelection =
                 [&]( const SELECTION& sel )

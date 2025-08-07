@@ -2508,8 +2508,13 @@ void PCB_PAINTER::draw( const PCB_TABLE* aTable, int aLayer )
 
     for( PCB_TABLECELL* cell : aTable->GetCells() )
     {
-        if( cell->GetColSpan() > 0 || cell->GetRowSpan() > 0 )
-            draw( static_cast<PCB_TEXTBOX*>( cell ), aLayer );
+        if( cell->GetColumnWidth() <= 0 || cell->GetRowHeight() <= 0 )
+            continue;
+
+        if( cell->GetColSpan() <= 0 || cell->GetRowSpan() <= 0 )
+            continue;
+
+        draw( static_cast<PCB_TEXTBOX*>( cell ), aLayer );
     }
 
     COLOR4D color = m_pcbSettings.GetColor( aTable, aLayer );
@@ -2517,6 +2522,9 @@ void PCB_PAINTER::draw( const PCB_TABLE* aTable, int aLayer )
     aTable->DrawBorders(
             [&]( const VECTOR2I& ptA, const VECTOR2I& ptB, const STROKE_PARAMS& stroke )
             {
+                if( ptA == ptB )
+                    return;
+
                 int        lineWidth = getLineThickness( stroke.GetWidth() );
                 LINE_STYLE lineStyle = stroke.GetLineStyle();
 
@@ -2536,11 +2544,10 @@ void PCB_PAINTER::draw( const PCB_TABLE* aTable, int aLayer )
                     STROKE_PARAMS::Stroke( &seg, lineStyle, lineWidth, &m_pcbSettings,
                             [&]( VECTOR2I a, VECTOR2I b )
                             {
-                                // DrawLine has problem with 0 length lines so enforce minimum
                                 if( a == b )
-                                    m_gal->DrawLine( a+1, b );
-                                else
-                                    m_gal->DrawLine( a, b );
+                                    return;
+
+                                m_gal->DrawLine( a, b );
                             } );
                 }
             } );
@@ -2548,6 +2555,12 @@ void PCB_PAINTER::draw( const PCB_TABLE* aTable, int aLayer )
     // Highlight selected tablecells with a background wash.
     for( PCB_TABLECELL* cell : aTable->GetCells() )
     {
+        if( cell->GetColumnWidth() <= 0 || cell->GetRowHeight() <= 0 )
+            continue;
+
+        if( cell->GetColSpan() <= 0 || cell->GetRowSpan() <= 0 )
+            continue;
+
         if( aTable->IsSelected() || cell->IsSelected() )
         {
             std::vector<VECTOR2I> corners = cell->GetCorners();

@@ -218,6 +218,7 @@ set( PCBNEW_BRDSTACKUP_MGR
     board_stackup_manager/board_stackup_reporter.cpp
     board_stackup_manager/dialog_dielectric_list_manager_base.cpp
     board_stackup_manager/dialog_dielectric_list_manager.cpp
+    board_stackup_manager/pcb_stackup_table.cpp
     )
 
 set( PCBNEW_IMPORT_GFX

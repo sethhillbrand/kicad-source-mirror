@@ -38,7 +38,7 @@ public:
 
     PCB_TABLE( const PCB_TABLE& aTable );
 
-    ~PCB_TABLE();
+    ~PCB_TABLE() override;
 
     // If implemented, would need to copy m_cells list.
     PCB_TABLE& operator=( const PCB_TABLE& ) = delete;
