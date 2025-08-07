@@ -945,6 +945,8 @@ set( PCB_COMMON_SRCS
     ${CMAKE_SOURCE_DIR}/pcbnew/length_delay_calculation/time_domain_parameters_user_defined.cpp
 
     widgets/net_selector.cpp
+    widgets/netclass_selector.cpp
+    widgets/area_selector.cpp
 )
 
 set( PCB_COMMON_SRCS

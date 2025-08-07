@@ -40,6 +40,7 @@
 #include <board.h>
 #include <idf_parser.h>
 #include <scintilla_tricks.h>
+#include <wx/stc/stc.h>
 #include <dialogs/html_message_box.h>
 #include <tools/drc_tool.h>
 #include <pcbexpr_evaluator.h>
@@ -58,6 +59,7 @@
 #include <drc/rule_editor/drc_re_allowed_orientation_panel.h>
 #include <drc/rule_editor/drc_re_corner_style_panel.h>
 #include <drc/rule_editor/drc_re_smd_entry_panel.h>
+#include <drc/rule_editor/drc_re_object_selector_panel.h>
 #include "drc_re_numeric_input_constraint_data.h"
 #include "drc_re_bool_input_constraint_data.h"
 #include "drc_re_via_style_constraint_data.h"
@@ -71,6 +73,27 @@
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
 
+static bool constraintNeedsTwoObjects( DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType )
+{
+    switch( aConstraintType )
+    {
+    case BASIC_CLEARANCE:
+    case BOARD_OUTLINE_CLEARANCE:
+    case MINIMUM_CLEARANCE:
+    case MINIMUM_ITEM_CLEARANCE:
+    case CREEPAGE_DISTANCE:
+    case COPPER_TO_HOLE_CLEARANCE:
+    case HOLE_TO_HOLE_CLEARANCE:
+    case PHYSICAL_CLEARANCE:
+    case HOLE_TO_HOLE_DISTANCE:
+    case PARALLEL_LIMIT:
+    case ABSOLUTE_LENGTH_2:
+    case DAISY_CHAIN_STUB_2:
+        return true;
+    default:
+        return false;
+    }
+}
 
 PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType,
@@ -127,6 +150,24 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
             } );
 
     m_textConditionCtrl->AutoCompSetSeparator( '|' );
+
+    // Build condition selection panels
+    m_conditionControlsSizer->Detach( m_textConditionCtrl );
+
+    bool twoObjects = constraintNeedsTwoObjects( aConstraintType );
+
+    wxString labelA = twoObjects ? _( "Where object A matches" ) : _( "Where object matches" );
+    m_objectPanelA = new DRC_RE_OBJECT_SELECTOR_PANEL( this, m_board, labelA );
+    m_objectPanelA->SetCustomQueryCtrl( m_textConditionCtrl );
+    m_conditionControlsSizer->Insert( 0, m_objectPanelA, 0, wxEXPAND | wxBOTTOM, 5 );
+
+    m_textConditionCtrlB = new wxStyledTextCtrl( this, wxID_ANY, wxDefaultPosition, wxSize( -1, 60 ), 0, wxEmptyString );
+    m_objectPanelB = new DRC_RE_OBJECT_SELECTOR_PANEL( this, m_board, _( "Where object B matches" ) );
+    m_objectPanelB->SetCustomQueryCtrl( m_textConditionCtrlB );
+    m_conditionControlsSizer->Insert( 1, m_objectPanelB, 0, wxEXPAND | wxBOTTOM, 5 );
+    m_objectPanelB->Show( twoObjects );
+    if( !twoObjects )
+        m_objectPanelB->Hide();
 
     m_netClassRegex.Compile( "^NetClass\\s*[!=]=\\s*$", wxRE_ADVANCED );
     m_netNameRegex.Compile( "^NetName\\s*[!=]=\\s*$", wxRE_ADVANCED );
