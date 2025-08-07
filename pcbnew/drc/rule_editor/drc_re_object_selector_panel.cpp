@@ -9,10 +9,11 @@
 #include <wx/stattext.h>
 #include <wx/choice.h>
 #include <wx/stc/stc.h>
+#include <wx/regex.h>
 
-DRC_RE_OBJECT_SELECTOR_PANEL::DRC_RE_OBJECT_SELECTOR_PANEL( wxWindow* parent, BOARD* board,
-                                                            const wxString& label )
-        : wxPanel( parent ), m_customQueryCtrl( nullptr )
+DRC_RE_OBJECT_SELECTOR_PANEL::DRC_RE_OBJECT_SELECTOR_PANEL( wxWindow* parent, BOARD* board, const wxString& label ) :
+        wxPanel( parent ),
+        m_customQueryCtrl( nullptr )
 {
     wxBoxSizer* mainSizer = new wxBoxSizer( wxVERTICAL );
 
@@ -97,10 +98,98 @@ void DRC_RE_OBJECT_SELECTOR_PANEL::onChoice( wxCommandEvent& event )
         if( m_customQueryCtrl )
             m_customQueryCtrl->Show();
         break;
-    default:
-        break;
+    default: break;
     }
 
     Layout();
 }
 
+
+void DRC_RE_OBJECT_SELECTOR_PANEL::ParseCondition( const wxString& aExpr, const wxString& aPrefix )
+{
+    wxString expr = aExpr;
+
+    if( expr.IsEmpty() )
+    {
+        m_choice->SetSelection( 0 );
+        onChoice( wxCommandEvent() );
+        if( m_customQueryCtrl )
+            m_customQueryCtrl->SetValue( wxEmptyString );
+        return;
+    }
+
+    wxString prefix = aPrefix;
+    if( !prefix.IsEmpty() && expr.StartsWith( prefix + "." ) )
+        expr = expr.Mid( prefix.Length() + 1 );
+
+    wxRegEx netRe( wxT( "^NetName\\s*==\\s*'([^']*)'" ) );
+    wxRegEx netclassRe1( wxT( "^hasNetclass\\('([^']*)'\\)" ) );
+    wxRegEx netclassRe2( wxT( "^NetClass\\s*==\\s*'([^']*)'" ) );
+    wxRegEx areaRe( wxT( "^(?:enclosedByArea|intersectsArea)\\('([^']*)'\\)" ) );
+
+    if( netRe.Matches( expr ) )
+    {
+        m_choice->SetSelection( 1 );
+        onChoice( wxCommandEvent() );
+        m_netSelector->SetSelectedNet( netRe.GetMatch( expr, 1 ) );
+        return;
+    }
+    else if( netclassRe1.Matches( expr ) )
+    {
+        m_choice->SetSelection( 2 );
+        onChoice( wxCommandEvent() );
+        m_netclassSelector->SetSelectedNetclass( netclassRe1.GetMatch( expr, 1 ) );
+        return;
+    }
+    else if( netclassRe2.Matches( expr ) )
+    {
+        m_choice->SetSelection( 2 );
+        onChoice( wxCommandEvent() );
+        m_netclassSelector->SetSelectedNetclass( netclassRe2.GetMatch( expr, 1 ) );
+        return;
+    }
+    else if( areaRe.Matches( expr ) )
+    {
+        m_choice->SetSelection( 3 );
+        onChoice( wxCommandEvent() );
+        m_areaSelector->SetSelectedArea( areaRe.GetMatch( expr, 1 ) );
+        return;
+    }
+
+    m_choice->SetSelection( 4 );
+    onChoice( wxCommandEvent() );
+    if( m_customQueryCtrl )
+        m_customQueryCtrl->SetValue( expr );
+}
+
+
+wxString DRC_RE_OBJECT_SELECTOR_PANEL::BuildCondition( const wxString& aPrefix ) const
+{
+    wxString prefix = aPrefix;
+
+    switch( m_choice->GetSelection() )
+    {
+    case 1: // Net
+        if( m_netSelector->GetSelectedNetname().IsEmpty() )
+            return wxEmptyString;
+        return prefix + wxString::Format( ".NetName == '%s'", m_netSelector->GetSelectedNetname() );
+
+    case 2: // Netclass
+        if( m_netclassSelector->GetSelectedNetclass().IsEmpty() )
+            return wxEmptyString;
+        return prefix + wxString::Format( ".hasNetclass('%s')", m_netclassSelector->GetSelectedNetclass() );
+
+    case 3: // Within Area
+        if( m_areaSelector->GetSelectedArea().IsEmpty() )
+            return wxEmptyString;
+        return prefix + wxString::Format( ".enclosedByArea('%s')", m_areaSelector->GetSelectedArea() );
+
+    case 4: // Custom
+        if( m_customQueryCtrl )
+            return m_customQueryCtrl->GetText();
+        else
+            return wxEmptyString;
+
+    default: return wxEmptyString;
+    }
+}

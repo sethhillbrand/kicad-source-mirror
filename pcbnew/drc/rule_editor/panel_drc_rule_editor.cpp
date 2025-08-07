@@ -88,16 +88,15 @@ static bool constraintNeedsTwoObjects( DRC_RULE_EDITOR_CONSTRAINT_NAME aConstrai
     case HOLE_TO_HOLE_DISTANCE:
     case PARALLEL_LIMIT:
     case ABSOLUTE_LENGTH_2:
-    case DAISY_CHAIN_STUB_2:
-        return true;
-    default:
-        return false;
+    case DAISY_CHAIN_STUB_2: return true;
+    default: return false;
     }
 }
 
-PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
-        wxWindow* aParent, BOARD* aBoard, DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType,
-        wxString* aConstraintTitle, std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData ) :
+PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard,
+                                              DRC_RULE_EDITOR_CONSTRAINT_NAME              aConstraintType,
+                                              wxString*                                    aConstraintTitle,
+                                              std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> aConstraintData ) :
         PANEL_DRC_RULE_EDITOR_BASE( aParent ),
         m_board( aBoard ),
         m_constraintTitle( aConstraintTitle ),
@@ -106,8 +105,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
         m_helpWindow( nullptr )
 {
     m_constraintPanel = getConstraintPanel( this, aConstraintType );
-    m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP,
-                                   5 );
+    m_constraintContentSizer->Add( dynamic_cast<wxPanel*>( m_constraintPanel ), 0, wxEXPAND | wxTOP, 5 );
     m_layerList = m_board->GetEnabledLayers().UIOrder();
     m_constraintHeaderTitle->SetLabelText( *aConstraintTitle + " Constraint" );
 
@@ -119,7 +117,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
     };
 
     m_layerListCmbCtrl = new DRC_RE_LAYER_SELECTION_COMBO( this, layerIDs, layerNameGetter );
-    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND , 5 ); // Remove wxEXPAND
+    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 ); // Remove wxEXPAND
 
 
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
@@ -128,8 +126,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
 
     bContentSizer->Add( buttonSizer, 0, wxALIGN_RIGHT | wxALL, 2 );
 
-    m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
-                            this );
+    m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked, this );
 
     m_btnShowMatches->Enable( !m_constraintData->IsNew() );
 
@@ -140,8 +137,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
             // onAcceptFn
             [this]( wxKeyEvent& aEvent )
             {
-                wxPostEvent( PAGED_DIALOG::GetDialog( this ),
-                             wxCommandEvent( wxEVT_COMMAND_BUTTON_CLICKED, wxID_OK ) );
+                wxPostEvent( PAGED_DIALOG::GetDialog( this ), wxCommandEvent( wxEVT_COMMAND_BUTTON_CLICKED, wxID_OK ) );
             },
             // onCharFn
             [this]( wxStyledTextEvent& aEvent )
@@ -161,7 +157,8 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR(
     m_objectPanelA->SetCustomQueryCtrl( m_textConditionCtrl );
     m_conditionControlsSizer->Insert( 0, m_objectPanelA, 0, wxEXPAND | wxBOTTOM, 5 );
 
-    m_textConditionCtrlB = new wxStyledTextCtrl( this, wxID_ANY, wxDefaultPosition, wxSize( -1, 60 ), 0, wxEmptyString );
+    m_textConditionCtrlB =
+            new wxStyledTextCtrl( this, wxID_ANY, wxDefaultPosition, wxSize( -1, 60 ), 0, wxEmptyString );
     m_objectPanelB = new DRC_RE_OBJECT_SELECTOR_PANEL( this, m_board, _( "Where object B matches" ) );
     m_objectPanelB->SetCustomQueryCtrl( m_textConditionCtrlB );
     m_conditionControlsSizer->Insert( 1, m_objectPanelB, 0, wxEXPAND | wxBOTTOM, 5 );
@@ -191,8 +188,7 @@ PANEL_DRC_RULE_EDITOR::~PANEL_DRC_RULE_EDITOR()
     m_board = nullptr;
     m_constraintTitle = nullptr;
 
-    m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked,
-                              this );
+    m_btnShowMatches->Unbind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked, this );
 }
 
 
@@ -203,7 +199,73 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataToWindow()
         m_nameCtrl->SetValue( m_constraintData->GetRuleName() );
         m_commentCtrl->SetValue( m_constraintData->GetComment() );
         m_layerListCmbCtrl->SetItemsSelected( m_constraintData->GetLayers() );
-        m_textConditionCtrl->SetText( m_constraintData->GetRuleCondition() );
+        wxString cond = m_constraintData->GetRuleCondition();
+
+        // Reset object selector panels
+        m_objectPanelA->ParseCondition( wxEmptyString, "A" );
+        m_objectPanelB->ParseCondition( wxEmptyString, "B" );
+
+        // Split condition into A-only and B-only expressions
+        wxString aExpr, bExpr;
+        bool     complex = false;
+
+        if( !cond.IsEmpty() )
+        {
+            wxString remaining = cond;
+
+            while( true )
+            {
+                int idx = remaining.Find( "&&" );
+
+                wxString part = idx == wxNOT_FOUND ? remaining : remaining.Left( idx );
+                part.Trim( true ).Trim( false );
+
+                bool hasA = part.Contains( "A." );
+                bool hasB = part.Contains( "B." );
+
+                if( hasA && !hasB )
+                {
+                    if( !aExpr.IsEmpty() )
+                    {
+                        complex = true;
+                        break;
+                    }
+
+                    aExpr = part;
+                }
+                else if( hasB && !hasA )
+                {
+                    if( !bExpr.IsEmpty() )
+                    {
+                        complex = true;
+                        break;
+                    }
+
+                    bExpr = part;
+                }
+                else if( !part.IsEmpty() )
+                {
+                    complex = true;
+                    break;
+                }
+
+                if( idx == wxNOT_FOUND )
+                    break;
+
+                remaining = remaining.Mid( idx + 2 );
+            }
+        }
+
+        if( complex )
+        {
+            m_objectPanelA->ParseCondition( cond );
+            m_objectPanelB->ParseCondition( wxEmptyString, "B" );
+        }
+        else
+        {
+            m_objectPanelA->ParseCondition( aExpr, "A" );
+            m_objectPanelB->ParseCondition( bExpr, "B" );
+        }
     }
 
     return dynamic_cast<wxPanel*>( m_constraintPanel )->TransferDataToWindow();
@@ -217,48 +279,68 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
     m_constraintData->SetRuleName( m_nameCtrl->GetValue() );
     m_constraintData->SetComment( m_commentCtrl->GetValue() );
     m_constraintData->SetLayers( m_layerListCmbCtrl->GetSelectedLayers() );
-    m_constraintData->SetRuleCondition( m_textConditionCtrl->GetValue() );
+    wxString aCond = m_objectPanelA->BuildCondition( "A" );
+    wxString bCond = m_objectPanelB->BuildCondition( "B" );
+
+    wxString combined = aCond;
+
+    if( !bCond.IsEmpty() )
+    {
+        if( !combined.IsEmpty() )
+            combined += " && ";
+
+        combined += bCond;
+    }
+
+    m_constraintData->SetRuleCondition( combined );
 
     return true;
 }
 
 
-DRC_RULE_EDITOR_CONTENT_PANEL_BASE* PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWindow* aParent,
-                                           const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType )
+DRC_RULE_EDITOR_CONTENT_PANEL_BASE*
+PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWindow* aParent, const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType )
 {
     switch( aConstraintType )
     {
     case VIA_STYLE:
         return new DRC_RE_VIA_STYLE_PANEL( aParent, m_constraintTitle,
-                dynamic_pointer_cast<DRC_RE_VIA_STYLE_CONSTRAINT_DATA>( m_constraintData ) );
+                                           dynamic_pointer_cast<DRC_RE_VIA_STYLE_CONSTRAINT_DATA>( m_constraintData ) );
     case ABSOLUTE_LENGTH_2:
-        return new DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_ABSOLUTE_LENGTH_TWO_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA>( m_constraintData ) );
     case MINIMUM_TEXT_HEIGHT_AND_THICKNESS:
-        return new DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL( aParent, m_constraintTitle,
-                dynamic_pointer_cast<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA>(
-                        m_constraintData ) );
+        return new DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL(
+                aParent, m_constraintTitle,
+                dynamic_pointer_cast<DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_CONSTRAINT_DATA>( m_constraintData ) );
     case ROUTING_DIFF_PAIR:
-        return new DRC_RE_ROUTING_DIFF_PAIR_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_ROUTING_DIFF_PAIR_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>( m_constraintData ) );
     case ROUTING_WIDTH:
-        return new DRC_RE_ROUTING_WIDTH_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_ROUTING_WIDTH_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA>( m_constraintData ) );
     case PARALLEL_LIMIT:
-        return new DRC_RE_PARALLEL_LIMIT_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_PARALLEL_LIMIT_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA>( m_constraintData ) );
     case PERMITTED_LAYERS:
-        return new DRC_RE_PERMITTED_LAYERS_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_PERMITTED_LAYERS_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA>( m_constraintData ) );
     case ALLOWED_ORIENTATION:
-        return new DRC_RE_ALLOWED_ORIENTATION_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_ALLOWED_ORIENTATION_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_ALLOWED_ORIENTATION_CONSTRAINT_DATA>( m_constraintData ) );
     case CORNER_STYLE:
-        return new DRC_RE_CORNER_STYLE_PANEL( aParent, m_constraintTitle,
+        return new DRC_RE_CORNER_STYLE_PANEL(
+                aParent, m_constraintTitle,
                 dynamic_pointer_cast<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA>( m_constraintData ) );
     case SMD_ENTRY:
         return new DRC_RE_SMD_ENTRY_PANEL( aParent, m_constraintTitle,
-                dynamic_pointer_cast<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( m_constraintData ) );
+                                           dynamic_pointer_cast<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( m_constraintData ) );
     default:
         if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( aConstraintType ) )
         {
@@ -274,12 +356,11 @@ DRC_RULE_EDITOR_CONTENT_PANEL_BASE* PANEL_DRC_RULE_EDITOR::getConstraintPanel( w
             default: customLabel = *m_constraintTitle;
             }
 
-            DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS numericInputParams( *m_constraintTitle,
-                    dynamic_pointer_cast<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>( m_constraintData ),
+            DRC_RE_NUMERIC_INPUT_CONSTRAINT_PANEL_PARAMS numericInputParams(
+                    *m_constraintTitle, dynamic_pointer_cast<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA>( m_constraintData ),
                     aConstraintType, customLabel );
 
-            if( aConstraintType == MINIMUM_THERMAL_RELIEF_SPOKE_COUNT
-                || aConstraintType == MAXIMUM_VIA_COUNT )
+            if( aConstraintType == MINIMUM_THERMAL_RELIEF_SPOKE_COUNT || aConstraintType == MAXIMUM_VIA_COUNT )
                 numericInputParams.SetInputIsCount( true );
 
             return new DRC_RE_NUMERIC_INPUT_PANEL( aParent, numericInputParams );
@@ -297,8 +378,7 @@ DRC_RULE_EDITOR_CONTENT_PANEL_BASE* PANEL_DRC_RULE_EDITOR::getConstraintPanel( w
             }
 
             DRC_RE_BOOL_INPUT_CONSTRAINT_PANEL_PARAMS boolInputParams(
-                    *m_constraintTitle,
-                    dynamic_pointer_cast<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>( m_constraintData ),
+                    *m_constraintTitle, dynamic_pointer_cast<DRC_RE_BOOL_INPUT_CONSTRAINT_DATA>( m_constraintData ),
                     aConstraintType, customLabel );
 
             return new DRC_RE_BOOL_INPUT_PANEL( aParent, boolInputParams );
@@ -317,16 +397,16 @@ bool PANEL_DRC_RULE_EDITOR::ValidateInputs( int* aErrorCount, std::string* aVali
     {
         m_validationSucceeded = false;
         ( *aErrorCount )++;
-        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                *aErrorCount, "Rule Name should be unique !!" );
+        m_validationMessage +=
+                DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Rule Name should be unique !!" );
     }
 
     if( m_layerListCmbCtrl->GetSelectedItemsString() == wxEmptyString )
     {
         m_validationSucceeded = false;
         ( *aErrorCount )++;
-        m_validationMessage += DRC_RULE_EDITOR_UTILS::FormatErrorMessage(
-                *aErrorCount, "Layers selection should not be empty !!" );
+        m_validationMessage +=
+                DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Layers selection should not be empty !!" );
     }
 
     return m_validationSucceeded;
@@ -796,23 +876,20 @@ void PANEL_DRC_RULE_EDITOR::onCheckSyntax( wxCommandEvent& event )
     {
         std::vector<std::shared_ptr<DRC_RULE>> dummyRules;
 
-        DRC_RULES_PARSER conditionParser( m_textConditionCtrl->GetText(),
-                                          _( "DRC rule condition" ) );
+        DRC_RULES_PARSER conditionParser( m_textConditionCtrl->GetText(), _( "DRC rule condition" ) );
 
         // if( conditionParser.VerifyParseCondition( m_syntaxErrorReport ) )
         {
-            wxString ruleTemplate = L"(version 1)\n(rule default\n   %s\n)";
-            wxString formattedRule =
-                    wxString::Format( ruleTemplate, m_textConditionCtrl->GetText() );
+            wxString         ruleTemplate = L"(version 1)\n(rule default\n   %s\n)";
+            wxString         formattedRule = wxString::Format( ruleTemplate, m_textConditionCtrl->GetText() );
             DRC_RULES_PARSER ruleParser( formattedRule, _( "DRC rule" ) );
             ruleParser.Parse( dummyRules, m_syntaxErrorReport );
         }
     }
     catch( PARSE_ERROR& pe )
     {
-        wxString msg =
-                wxString::Format( wxT( "%s <a href='%d:%d'>%s</a>%s" ), _( "ERROR:" ),
-                                  pe.lineNumber, pe.byteIndex, pe.ParseProblem(), wxEmptyString );
+        wxString msg = wxString::Format( wxT( "%s <a href='%d:%d'>%s</a>%s" ), _( "ERROR:" ), pe.lineNumber,
+                                         pe.byteIndex, pe.ParseProblem(), wxEmptyString );
 
         m_syntaxErrorReport->Report( msg, RPT_SEVERITY_ERROR );
     }
