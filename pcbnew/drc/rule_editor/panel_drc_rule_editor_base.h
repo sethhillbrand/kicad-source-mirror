@@ -52,11 +52,12 @@ class PANEL_DRC_RULE_EDITOR_BASE : public wxPanel
 		wxStaticLine* m_staticline3;
 		wxBoxSizer* m_constraintContentSizer;
 		wxStaticText* m_conditionHeaderTitle;
-		wxHyperlinkCtrl* m_syntaxHelp;
-		wxStaticLine* m_staticline8;
-		wxStyledTextCtrl* m_textConditionCtrl;
-		wxBitmapButton* m_checkSyntaxBtnCtrl;
-		WX_HTML_REPORT_BOX* m_syntaxErrorReport;
+                wxHyperlinkCtrl* m_syntaxHelp;
+                wxStaticLine* m_staticline8;
+                wxBoxSizer* m_conditionControlsSizer;
+                wxStyledTextCtrl* m_textConditionCtrl;
+                wxBitmapButton* m_checkSyntaxBtnCtrl;
+                WX_HTML_REPORT_BOX* m_syntaxErrorReport;
 		wxStaticText* m_staticText711;
 		wxStaticLine* m_staticline111;
 		wxBoxSizer* m_LayersComboBoxSizer;

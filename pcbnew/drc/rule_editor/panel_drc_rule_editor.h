@@ -39,6 +39,7 @@
 
 class SCINTILLA_TRICKS;
 class HTML_MESSAGE_BOX;
+class DRC_RE_OBJECT_SELECTOR_PANEL;
 
 class PANEL_DRC_RULE_EDITOR : public PANEL_DRC_RULE_EDITOR_BASE,
                               public DRC_RULE_EDITOR_CONTENT_PANEL_BASE
@@ -169,6 +170,10 @@ private:
     DRC_RE_LAYER_SELECTION_COMBO*                m_layerListCmbCtrl;
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE*          m_constraintPanel;
     std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> m_constraintData;
+
+    class DRC_RE_OBJECT_SELECTOR_PANEL*          m_objectPanelA;
+    class DRC_RE_OBJECT_SELECTOR_PANEL*          m_objectPanelB;
+    wxStyledTextCtrl*                            m_textConditionCtrlB;
 
     std::function<void( int aNodeId )>                     m_callBackSave;
     std::function<void( int aNodeId )>                     m_callBackRemove;

@@ -318,6 +318,7 @@ set( PCBNEW_DRC_SRCS
     drc/rule_editor/drc_re_allowed_orientation_panel.cpp
     drc/rule_editor/drc_re_corner_style_panel_base.cpp
     drc/rule_editor/drc_re_corner_style_panel.cpp
+    drc/rule_editor/drc_re_object_selector_panel.cpp
     drc/rule_editor/drc_re_smd_entry_panel_base.cpp
     drc/rule_editor/drc_re_smd_entry_panel.cpp
     drc/rule_editor/panel_drc_group_header_base.cpp
