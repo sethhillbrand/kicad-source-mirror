@@ -86,8 +86,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	m_staticline8 = new wxStaticLine( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
 	bConditionSizer->Add( m_staticline8, 0, wxEXPAND | wxALL, 5 );
 
-	wxBoxSizer* bSizer15;
-	bSizer15 = new wxBoxSizer( wxVERTICAL );
+        m_conditionControlsSizer = new wxBoxSizer( wxVERTICAL );
 
 	m_textConditionCtrl = new wxStyledTextCtrl( this, wxID_ANY, wxDefaultPosition, wxSize( -1,-1 ), 0, wxEmptyString );
 	m_textConditionCtrl->SetUseTabs( true );
@@ -122,7 +121,7 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	m_textConditionCtrl->SetSelForeground( true, wxSystemSettings::GetColour( wxSYS_COLOUR_HIGHLIGHTTEXT ) );
 	m_textConditionCtrl->SetMaxSize( wxSize( -1,60 ) );
 
-	bSizer15->Add( m_textConditionCtrl, 0, wxBOTTOM|wxEXPAND|wxRIGHT, 5 );
+        m_conditionControlsSizer->Add( m_textConditionCtrl, 0, wxBOTTOM|wxEXPAND|wxRIGHT, 5 );
 
 	wxBoxSizer* bSizer16;
 	bSizer16 = new wxBoxSizer( wxHORIZONTAL );
@@ -138,10 +137,10 @@ PANEL_DRC_RULE_EDITOR_BASE::PANEL_DRC_RULE_EDITOR_BASE( wxWindow* parent, wxWind
 	bSizer16->Add( m_syntaxErrorReport, 1, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 5 );
 
 
-	bSizer15->Add( bSizer16, 1, wxEXPAND, 5 );
+        m_conditionControlsSizer->Add( bSizer16, 1, wxEXPAND, 5 );
 
 
-	bConditionSizer->Add( bSizer15, 1, wxEXPAND|wxTOP, 5 );
+        bConditionSizer->Add( m_conditionControlsSizer, 1, wxEXPAND|wxTOP, 5 );
 
 
 	bContentSizer->Add( bConditionSizer, 0, wxEXPAND, 15 );
