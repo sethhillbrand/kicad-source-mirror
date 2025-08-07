@@ -23,6 +23,22 @@ public:
     void SetLabelText( const wxString& text );
     void SetCustomQueryCtrl( wxStyledTextCtrl* ctrl );
 
+    /**
+     * Populate the panel controls from a rule condition expression.
+     *
+     * @param aExpr   the rule expression without the surrounding (condition "...") wrapper
+     * @param aPrefix optional object designator ("A" or "B") that will be stripped if present
+     */
+    void ParseCondition( const wxString& aExpr, const wxString& aPrefix = wxEmptyString );
+
+    /**
+     * Build a rule condition expression based on the panel state.
+     *
+     * @param aPrefix object designator ("A" or "B") used when the expression refers to a
+     *                single object.  Custom queries are returned verbatim without the prefix.
+     */
+    wxString BuildCondition( const wxString& aPrefix ) const;
+
 private:
     void onChoice( wxCommandEvent& event );
 
@@ -34,4 +50,3 @@ private:
     wxStyledTextCtrl*  m_customQueryCtrl;
     wxBoxSizer*        m_rowSizer;
 };
-
