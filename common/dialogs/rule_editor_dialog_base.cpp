@@ -168,9 +168,10 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
 
     wxStdDialogButtonSizer* m_sdbSizer = new wxStdDialogButtonSizer();
     m_cancelRuleButton = new wxButton( this, wxID_CANCEL );
+    m_cancelRuleButton->SetLabelText( _( "Close" ) );
     m_sdbSizer->AddButton( m_cancelRuleButton );
     m_saveRuleButton = new wxButton( this, wxID_OK );
-    m_saveRuleButton->SetLabelText( "Save" );
+    m_saveRuleButton->SetLabelText( _( "Save" ) );
     m_sdbSizer->AddButton( m_saveRuleButton );
     m_sdbSizer->Realize();
 
@@ -390,6 +391,9 @@ void RULE_EDITOR_DIALOG_BASE::SetControlsEnabled( bool aEnable )
     m_filterSearch->Enable( aEnable );
 
     updateRuleTreeActionButtonsState( m_selectedTreeItemData );
+
+    if( m_cancelRuleButton )
+        m_cancelRuleButton->SetLabelText( aEnable ? _( "Close" ) : _( "Cancel" ) );
 }
 
 
