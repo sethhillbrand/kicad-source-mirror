@@ -279,7 +279,15 @@ void DIALOG_DRC_RULE_EDITOR::OnSave( wxCommandEvent& aEvent )
 void DIALOG_DRC_RULE_EDITOR::OnCancel( wxCommandEvent& aEvent )
 {
     if( m_ruleEditorPanel )
+    {
+        auto data = m_ruleEditorPanel->GetConstraintData();
+        bool isNew = data && data->IsNew();
+
         m_ruleEditorPanel->Cancel( aEvent );
+
+        if( isNew )
+            return;
+    }
 
     aEvent.Skip();
 }
