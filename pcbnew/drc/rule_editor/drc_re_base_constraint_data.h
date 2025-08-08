@@ -47,6 +47,10 @@ public:
 
     void SetRuleCondition( wxString aRuleCondition ) { m_ruleCondition = aRuleCondition; }
 
+    wxString GetConstraintCode() { return m_constraintCode; }
+
+    void SetConstraintCode( wxString aCode ) { m_constraintCode = aCode; }
+
     void CopyFrom( const ICopyable& aSource ) override
     {
         const auto& source = dynamic_cast<const DRC_RE_BASE_CONSTRAINT_DATA&>( aSource );
@@ -54,11 +58,13 @@ public:
         RULE_EDITOR_DATA_BASE::CopyFrom( source );
 
         m_layers = source.m_layers;
+        m_constraintCode = source.m_constraintCode;
     }
 
 private:
     std::vector<PCB_LAYER_ID> m_layers;
     wxString m_ruleCondition;
+    wxString m_constraintCode;
 };
 
 #endif // DRC_RE_BASE_CONSTRAINT_DATA_H_

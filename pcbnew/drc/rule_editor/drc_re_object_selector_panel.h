@@ -40,7 +40,7 @@ public:
     wxString BuildCondition( const wxString& aPrefix ) const;
 
 private:
-    void onChoice( wxCommandEvent& event );
+    void onChoice( const wxCommandEvent& aEvent );
 
     wxStaticText*      m_label;
     wxChoice*          m_choice;

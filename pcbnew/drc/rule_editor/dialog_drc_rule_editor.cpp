@@ -28,6 +28,7 @@
 #include "dialog_drc_rule_editor.h"
 #include "panel_drc_rule_editor.h"
 #include "drc_rule_editor_enums.h"
+#include "drc_re_base_constraint_data.h"
 #include "drc_re_numeric_input_constraint_data.h"
 #include "drc_re_bool_input_constraint_data.h"
 #include "drc_re_via_style_constraint_data.h"
@@ -41,6 +42,7 @@
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
 #include <drc/drc_engine.h>
+#include <memory>
 
 
 const RULE_TREE_NODE* FindNodeById( const std::vector<RULE_TREE_NODE>& aNodes, int aTargetId )
@@ -736,6 +738,8 @@ RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RULE_TREE_ITEM_DATA* a
         newRuleNode.m_nodeData = std::make_shared<DRC_RE_BASE_CONSTRAINT_DATA>( clearanceData );
     }
 
+    std::static_pointer_cast<DRC_RE_BASE_CONSTRAINT_DATA>( newRuleNode.m_nodeData )
+            ->SetConstraintCode( DRC_RULE_EDITOR_UTILS::ConstraintToKicadDrc( nodeType ) );
     newRuleNode.m_nodeData->SetIsNew( true );
 
     m_ruleTreeNodeDatas.push_back( newRuleNode );
@@ -803,8 +807,8 @@ void DIALOG_DRC_RULE_EDITOR::highlightMatchingItems( int aNodeId )
 
     m_drcTool = m_frame->GetToolManager()->GetTool<DRC_TOOL>();
 
-    std::vector<BOARD_ITEM*> matches = m_drcTool->GetDRCEngine()->GetItemsMatchingCondition(
-            condition, ASSERTION_CONSTRAINT, m_reporter );
+    std::vector<BOARD_ITEM*> matches =
+            m_drcTool->GetDRCEngine()->GetItemsMatchingCondition( condition, ASSERTION_CONSTRAINT, m_reporter );
 
     m_frame->FocusOnItems( matches );
 
@@ -904,6 +908,20 @@ RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNodeData(
 }
 
 
+RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleNodeFromKicadDrc( const wxString& aName, const wxString& aCode,
+                                                                  const std::optional<int>& aParentId )
+{
+    auto           typeOpt = DRC_RULE_EDITOR_UTILS::GetConstraintTypeFromCode( aCode );
+    RULE_TREE_NODE node =
+            buildRuleTreeNodeData( aName.ToStdString(), DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, aParentId, typeOpt );
+
+    auto baseData = std::dynamic_pointer_cast<DRC_RE_BASE_CONSTRAINT_DATA>( node.m_nodeData );
+    DRC_RULE_EDITOR_UTILS::ConstraintFromKicadDrc( aCode, baseData.get() );
+    node.m_nodeData = baseData;
+    return node;
+}
+
+
 bool DIALOG_DRC_RULE_EDITOR::updateUI()
 {
     return !m_cancelled;
@@ -921,4 +939,3 @@ void DIALOG_DRC_RULE_EDITOR::UpdateData()
 {
     m_markersTreeModel->Update( m_markersProvider, m_severities );
 }
-
