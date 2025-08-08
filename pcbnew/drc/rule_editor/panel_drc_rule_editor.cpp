@@ -59,6 +59,7 @@
 #include <drc/rule_editor/drc_re_allowed_orientation_panel.h>
 #include <drc/rule_editor/drc_re_corner_style_panel.h>
 #include <drc/rule_editor/drc_re_smd_entry_panel.h>
+#include <drc/rule_editor/drc_re_custom_rule_panel.h>
 #include <drc/rule_editor/drc_re_object_selector_panel.h>
 #include "drc_re_numeric_input_constraint_data.h"
 #include "drc_re_bool_input_constraint_data.h"
@@ -72,6 +73,7 @@
 #include "drc_re_allowed_orientation_constraint_data.h"
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
+#include "drc_re_custom_rule_constraint_data.h"
 
 static bool constraintNeedsTwoObjects( DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType )
 {
@@ -341,6 +343,9 @@ PANEL_DRC_RULE_EDITOR::getConstraintPanel( wxWindow* aParent, const DRC_RULE_EDI
     case SMD_ENTRY:
         return new DRC_RE_SMD_ENTRY_PANEL( aParent, m_constraintTitle,
                                            dynamic_pointer_cast<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( m_constraintData ) );
+    case CUSTOM_RULE:
+        return new DRC_RE_CUSTOM_RULE_PANEL(
+                aParent, dynamic_pointer_cast<DRC_RE_CUSTOM_RULE_CONSTRAINT_DATA>( m_constraintData ) );
     default:
         if( DRC_RULE_EDITOR_UTILS::IsNumericInputType( aConstraintType ) )
         {

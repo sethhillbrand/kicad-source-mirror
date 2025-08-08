@@ -69,3 +69,23 @@ bool PANEL_DRC_GROUP_HEADER::TransferDataFromWindow()
 {
     return true;
 }
+
+void PANEL_DRC_GROUP_HEADER::OnSize( wxSizeEvent& event )
+{
+    // Resize the grid to fit the panel size.
+    wxSize size = GetClientSize();
+    m_dataGrid->SetSize( size );
+    double total_column_width = m_dataGrid->GetColSize( 0 ) + m_dataGrid->GetColSize( 1 ) + m_dataGrid->GetColSize( 2 );
+    double col0_width_ratio = m_dataGrid->GetColSize( 0 ) / total_column_width;
+    double col1_width_ratio = m_dataGrid->GetColSize( 1 ) / total_column_width;
+
+    m_dataGrid->SetColSize( 0, static_cast<int>( size.GetWidth() * col0_width_ratio ) );
+    m_dataGrid->SetColSize( 1, static_cast<int>( size.GetWidth() * col1_width_ratio ) );
+    m_dataGrid->SetColSize( 2, GetSizer()->GetSize().GetWidth() - m_dataGrid->GetColSize( 0 ) - m_dataGrid->GetColSize( 1 ) );
+
+    // Refresh the grid to apply the new sizes.
+    m_dataGrid->ForceRefresh();
+
+
+    event.Skip(); // Allow further processing of the event.
+}

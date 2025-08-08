@@ -872,6 +872,8 @@ void DIALOG_SHIM::OnCloseWindow( wxCloseEvent& aEvent )
     wxString msg = wxString::Format( "Closing dialog %s", GetTitle() );
     APP_MONITOR::AddNavigationBreadcrumb( msg, "dialog.close" );
 
+    SaveControlState();
+
     if( IsQuasiModal() )
     {
         EndQuasiModal( wxID_CANCEL );

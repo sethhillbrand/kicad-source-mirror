@@ -51,6 +51,9 @@ public:
 
     bool TransferDataFromWindow() override;
 
+protected:
+    void OnSize( wxSizeEvent& event ) override;
+
 private:
     void                      populateGrid();
     std::vector<DRC_RULE_ROW> m_rows;

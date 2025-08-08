@@ -117,6 +117,8 @@ private:
 
     std::vector<RULE_TREE_NODE> buildFootprintsRuleTreeNodes( int& aParentId );
 
+    void LoadExistingRules();
+
     /**
      * Creates a new rule tree node with a unique name and assigns the appropriate constraint data.
      *
