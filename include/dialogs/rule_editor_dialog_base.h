@@ -306,6 +306,12 @@ private:
     void onRuleTreeItemSelectionChanged( wxTreeEvent& aEvent );
 
     /**
+     * Handles double-click activation of a tree item.
+     * Creates a new rule of the activated type when appropriate.
+     */
+    void onRuleTreeItemActivated( wxTreeEvent& aEvent );
+
+    /**
      * Creates a new rule when the "New Rule" option is clicked.
      *
      * @param aEvent The command event triggered by the click.

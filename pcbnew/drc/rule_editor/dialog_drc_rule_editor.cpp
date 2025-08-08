@@ -425,6 +425,9 @@ bool DIALOG_DRC_RULE_EDITOR::VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_
                || nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
     case RULE_EDITOR_TREE_CONTEXT_OPT::DUPLICATE_RULE:
     case RULE_EDITOR_TREE_CONTEXT_OPT::DELETE_RULE: return nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
+    case RULE_EDITOR_TREE_CONTEXT_OPT::MOVE_UP:
+    case RULE_EDITOR_TREE_CONTEXT_OPT::MOVE_DOWN:
+        return nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
     default: return true;
     }
 }

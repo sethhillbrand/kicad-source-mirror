@@ -193,6 +193,8 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
                           &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemRightClick, this );
     m_ruleTreeCtrl->Bind( wxEVT_TREE_SEL_CHANGED,
                           &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemSelectionChanged, this );
+    m_ruleTreeCtrl->Bind( wxEVT_TREE_ITEM_ACTIVATED,
+                          &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemActivated, this );
     m_ruleTreeCtrl->Bind( wxEVT_LEFT_DOWN, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown, this );
     m_ruleTreeCtrl->Bind( wxEVT_MOTION, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion, this );
     m_ruleTreeCtrl->Bind( wxEVT_LEFT_UP, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp, this );
@@ -226,6 +228,7 @@ RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
     m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch, this );
     m_ruleTreeCtrl->Unbind( wxEVT_TREE_ITEM_RIGHT_CLICK, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemRightClick, this );
     m_ruleTreeCtrl->Unbind( wxEVT_TREE_SEL_CHANGED, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemSelectionChanged, this );
+    m_ruleTreeCtrl->Unbind( wxEVT_TREE_ITEM_ACTIVATED, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemActivated, this );
     m_ruleTreeCtrl->Unbind( wxEVT_LEFT_DOWN, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown, this );
     m_ruleTreeCtrl->Unbind( wxEVT_MOTION, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion, this );
     m_ruleTreeCtrl->Unbind( wxEVT_LEFT_UP, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp, this );
@@ -359,7 +362,6 @@ void RULE_EDITOR_DIALOG_BASE::AppendNewRuleTreeItem( const RULE_TREE_NODE& aRule
     }
 
     m_ruleTreeCtrl->SelectItem( currentTreeItemId );
-    SetControlsEnabled( false );
 }
 
 
@@ -494,6 +496,18 @@ void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemSelectionChanged( wxTreeEvent& aEven
     RuleTreeItemSelectionChanged( m_selectedTreeItemData );
 
     updateRuleTreeActionButtonsState( selectedItemData );
+}
+
+void RULE_EDITOR_DIALOG_BASE::onRuleTreeItemActivated( wxTreeEvent& aEvent )
+{
+    RULE_TREE_ITEM_DATA* itemData =
+            dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData( aEvent.GetItem() ) );
+
+    if( itemData &&
+        VerifyRuleTreeContextMenuOptionToEnable( itemData, RULE_EDITOR_TREE_CONTEXT_OPT::ADD_RULE ) )
+    {
+        AddNewRule( itemData );
+    }
 }
 
 
@@ -995,6 +1009,16 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeItemMoveOptionState()
 
     if( selectedItem == m_ruleTreeCtrl->GetRootItem() )
         return;
+
+    RULE_TREE_ITEM_DATA* itemData =
+            dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData( selectedItem ) );
+
+    if( !itemData ||
+        !VerifyRuleTreeContextMenuOptionToEnable( itemData, RULE_EDITOR_TREE_CONTEXT_OPT::MOVE_UP ) ||
+        !VerifyRuleTreeContextMenuOptionToEnable( itemData, RULE_EDITOR_TREE_CONTEXT_OPT::MOVE_DOWN ) )
+    {
+        return;
+    }
 
     wxTreeItemId      parent = m_ruleTreeCtrl->GetItemParent( selectedItem );
     wxTreeItemIdValue cookie;

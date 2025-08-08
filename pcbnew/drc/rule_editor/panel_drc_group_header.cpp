@@ -51,6 +51,9 @@ PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, const std::ve
         m_dataGrid->SetCellValue( i, 1, m_rows[i].m_ruleName );
         m_dataGrid->SetCellValue( i, 2, m_rows[i].m_comment );
     }
+
+    // Disable horizontal scroll bar
+    m_dataGrid->EnableScrolling( false, true );
 }
 
 
@@ -73,7 +76,7 @@ bool PANEL_DRC_GROUP_HEADER::TransferDataFromWindow()
 void PANEL_DRC_GROUP_HEADER::OnSize( wxSizeEvent& event )
 {
     // Resize the grid to fit the panel size.
-    wxSize size = GetSizer()->GetSize();
+    wxSize size = GetClientSize() - wxSize( 10, 10 );
     m_dataGrid->SetSize( size );
     double total_column_width = m_dataGrid->GetColSize( 0 ) + m_dataGrid->GetColSize( 1 ) + m_dataGrid->GetColSize( 2 );
     double col0_width_ratio = m_dataGrid->GetColSize( 0 ) / total_column_width;
@@ -91,4 +94,10 @@ void PANEL_DRC_GROUP_HEADER::OnSize( wxSizeEvent& event )
 
 
     event.Skip(); // Allow further processing of the event.
+}
+
+void PANEL_DRC_GROUP_HEADER::OnGridSize( wxGridSizeEvent& event )
+{
+    wxSizeEvent evt( m_dataGrid->GetSize() );
+    OnSize( evt );
 }
