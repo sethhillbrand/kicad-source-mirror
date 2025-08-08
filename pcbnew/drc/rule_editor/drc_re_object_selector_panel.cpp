@@ -75,7 +75,7 @@ void DRC_RE_OBJECT_SELECTOR_PANEL::SetCustomQueryCtrl( wxStyledTextCtrl* ctrl )
     }
 }
 
-void DRC_RE_OBJECT_SELECTOR_PANEL::onChoice( wxCommandEvent& event )
+void DRC_RE_OBJECT_SELECTOR_PANEL::onChoice( const wxCommandEvent& aEvent )
 {
     m_netSelector->Hide();
     m_netclassSelector->Hide();
@@ -113,8 +113,10 @@ void DRC_RE_OBJECT_SELECTOR_PANEL::ParseCondition( const wxString& aExpr, const 
     {
         m_choice->SetSelection( 0 );
         onChoice( wxCommandEvent() );
+
         if( m_customQueryCtrl )
             m_customQueryCtrl->SetValue( wxEmptyString );
+
         return;
     }
 
