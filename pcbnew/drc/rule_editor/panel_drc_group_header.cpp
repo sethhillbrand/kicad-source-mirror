@@ -51,6 +51,9 @@ PANEL_DRC_GROUP_HEADER::PANEL_DRC_GROUP_HEADER( wxWindow* aParent, const std::ve
         m_dataGrid->SetCellValue( i, 1, m_rows[i].m_ruleName );
         m_dataGrid->SetCellValue( i, 2, m_rows[i].m_comment );
     }
+
+    // Disable horizontal scroll bar
+    m_dataGrid->EnableScrolling( false, true );
 }
 
 
@@ -72,15 +75,17 @@ bool PANEL_DRC_GROUP_HEADER::TransferDataFromWindow()
 
 void PANEL_DRC_GROUP_HEADER::OnSize( wxSizeEvent& event )
 {
-    // Resize the grid to fit the panel size.
-    wxSize size = GetSizer()->GetSize();
-    m_dataGrid->SetSize( size );
+    wxSize clientSize = GetClientSize();
+    int    availableWidth = clientSize.GetWidth() - wxSystemSettings::GetMetric( wxSYS_VSCROLL_X );
+    int    availableHeight = clientSize.GetHeight() - wxSystemSettings::GetMetric( wxSYS_HSCROLL_Y );
+
+    m_dataGrid->SetSize( wxSize( availableWidth, availableHeight ) );
     double total_column_width = m_dataGrid->GetColSize( 0 ) + m_dataGrid->GetColSize( 1 ) + m_dataGrid->GetColSize( 2 );
     double col0_width_ratio = m_dataGrid->GetColSize( 0 ) / total_column_width;
     double col1_width_ratio = m_dataGrid->GetColSize( 1 ) / total_column_width;
-    int col0_size = static_cast<int>( size.GetWidth() * col0_width_ratio );
-    int col1_size = static_cast<int>( size.GetWidth() * col1_width_ratio );
-    int col2_size = size.GetWidth() - col0_size - col1_size;
+    int col0_size = static_cast<int>( availableWidth * col0_width_ratio );
+    int col1_size = static_cast<int>( availableWidth * col1_width_ratio );
+    int col2_size = availableWidth - col0_size - col1_size;
 
     m_dataGrid->SetColSize( 0, col0_size );
     m_dataGrid->SetColSize( 1, col1_size );
@@ -89,6 +94,11 @@ void PANEL_DRC_GROUP_HEADER::OnSize( wxSizeEvent& event )
     // Refresh the grid to apply the new sizes.
     m_dataGrid->ForceRefresh();
 
-
     event.Skip(); // Allow further processing of the event.
+}
+
+void PANEL_DRC_GROUP_HEADER::OnGridSize( wxGridSizeEvent& event )
+{
+    wxSizeEvent evt( m_dataGrid->GetSize() );
+    OnSize( evt );
 }

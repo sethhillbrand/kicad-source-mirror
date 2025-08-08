@@ -82,8 +82,6 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
 
     LoadExistingRules();
 
-    finishDialogSettings();
-
     if( Prj().IsReadOnly() )
     {
         m_infoBar->ShowMessage( _( "Project is missing or read-only. Settings will not be "
@@ -91,8 +89,7 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
                                 wxICON_WARNING );
     }
 
-    PCBNEW_SETTINGS* cfg = m_frame->GetPcbNewSettings();
-    m_severities = cfg->m_DrcDialog.severities;
+    m_severities = 0;
 
     m_markersProvider = std::make_shared<DRC_ITEMS_PROVIDER>( m_currentBoard, MARKER_BASE::MARKER_DRC,
                                                               MARKER_BASE::MARKER_DRAWING_SHEET );
@@ -105,6 +102,7 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
     m_markersTreeModel->Update( m_markersProvider, m_severities );
 
     m_markerDataView->Hide();
+    SetMinSize( wxSize( 400, 300 ) );
 }
 
 
@@ -413,7 +411,7 @@ void DIALOG_DRC_RULE_EDITOR::UpdateRuleTypeTreeItemData( RULE_TREE_ITEM_DATA* aR
 }
 
 
-bool DIALOG_DRC_RULE_EDITOR::VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA*         aRuleTreeItemData,
+bool DIALOG_DRC_RULE_EDITOR::isEnabled( RULE_TREE_ITEM_DATA*         aRuleTreeItemData,
                                                                       RULE_EDITOR_TREE_CONTEXT_OPT aOption )
 {
     RULE_TREE_NODE* nodeDetail = getRuleTreeNodeInfo( aRuleTreeItemData->GetNodeId() );
@@ -425,6 +423,9 @@ bool DIALOG_DRC_RULE_EDITOR::VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_
                || nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
     case RULE_EDITOR_TREE_CONTEXT_OPT::DUPLICATE_RULE:
     case RULE_EDITOR_TREE_CONTEXT_OPT::DELETE_RULE: return nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
+    case RULE_EDITOR_TREE_CONTEXT_OPT::MOVE_UP:
+    case RULE_EDITOR_TREE_CONTEXT_OPT::MOVE_DOWN:
+        return nodeDetail->m_nodeType == DRC_RULE_EDITOR_ITEM_TYPE::RULE;
     default: return true;
     }
 }

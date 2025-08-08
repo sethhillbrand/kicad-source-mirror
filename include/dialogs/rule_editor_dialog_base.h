@@ -198,7 +198,7 @@ public:
      *
      * @return true if the option should be enabled, false otherwise.
      */
-    virtual bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA* aRuleTreeItemData,
+    virtual bool isEnabled( RULE_TREE_ITEM_DATA* aRuleTreeItemData,
                                                           RULE_EDITOR_TREE_CONTEXT_OPT aOption ) = 0;
 
     /**
@@ -236,14 +236,14 @@ public:
      *
      * @return A pointer to the currently selected rule tree item data.
      */
-    RULE_TREE_ITEM_DATA* GetCurrentlySelectedRuleTreeItemData() { return m_selectedTreeItemData; }
+    RULE_TREE_ITEM_DATA* GetCurrentlySelectedRuleTreeItemData() { return m_selectedData; }
 
     /**
      * Retrieves the previously selected rule tree item ID.
      *
      * @return The ID of the previously selected rule tree item.
      */
-    wxTreeItemId GetPreviouslySelectedRuleTreeItemId() { return m_previouslySelectedTreeItemId; }
+    wxTreeItemId GetPreviouslySelectedRuleTreeItemId() { return m_previousId; }
 
     /**
      * Updates the text of a specified rule tree item.
@@ -304,6 +304,12 @@ private:
      * @param aEvent The selection change event.
      */
     void onRuleTreeItemSelectionChanged( wxTreeEvent& aEvent );
+
+    /**
+     * Handles double-click activation of a tree item.
+     * Creates a new rule of the activated type when appropriate.
+     */
+    void onRuleTreeItemActivated( wxTreeEvent& aEvent );
 
     /**
      * Creates a new rule when the "New Rule" option is clicked.
@@ -459,12 +465,11 @@ private:
     bool m_enableAddRule;
     bool m_enableDuplicateRule;
     bool m_enableDeleteRule;
-    bool m_preventSelectionChange;
 
     wxString                    m_title;
     std::vector<RULE_TREE_NODE> m_defaultTreeItems;
-    RULE_TREE_ITEM_DATA*        m_selectedTreeItemData;
-    wxTreeItemId                m_previouslySelectedTreeItemId;
+    RULE_TREE_ITEM_DATA*        m_selectedData;
+    wxTreeItemId                m_previousId;
     wxTreeItemId                m_draggedItem;
     wxDragImage*                m_dragImage;
 

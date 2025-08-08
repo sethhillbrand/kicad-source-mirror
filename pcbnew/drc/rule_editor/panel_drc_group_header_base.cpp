@@ -43,15 +43,16 @@ PANEL_DRC_GROUP_HEADER_BASE::PANEL_DRC_GROUP_HEADER_BASE( wxWindow* parent, wxWi
 
 	this->SetSizer( mainSizer );
 	this->Layout();
-	mainSizer->Fit( this );
 
 	// Connect Events
 	this->Connect( wxEVT_SIZE, wxSizeEventHandler( PANEL_DRC_GROUP_HEADER_BASE::OnSize ) );
+	m_dataGrid->Connect( wxEVT_GRID_COL_SIZE, wxGridSizeEventHandler( PANEL_DRC_GROUP_HEADER_BASE::OnGridSize ), NULL, this );
 }
 
 PANEL_DRC_GROUP_HEADER_BASE::~PANEL_DRC_GROUP_HEADER_BASE()
 {
 	// Disconnect Events
 	this->Disconnect( wxEVT_SIZE, wxSizeEventHandler( PANEL_DRC_GROUP_HEADER_BASE::OnSize ) );
+	m_dataGrid->Disconnect( wxEVT_GRID_COL_SIZE, wxGridSizeEventHandler( PANEL_DRC_GROUP_HEADER_BASE::OnGridSize ), NULL, this );
 
 }
