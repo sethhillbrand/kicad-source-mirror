@@ -141,8 +141,6 @@ DIALOG_SHIM::~DIALOG_SHIM()
 {
     m_isClosing = true;
 
-    SaveControlState();
-
     Unbind( wxEVT_CLOSE_WINDOW, &DIALOG_SHIM::OnCloseWindow, this );
     Unbind( wxEVT_BUTTON, &DIALOG_SHIM::OnButton, this );
     Unbind( wxEVT_PAINT, &DIALOG_SHIM::OnPaint, this );
@@ -793,6 +791,8 @@ void DIALOG_SHIM::OnCloseWindow( wxCloseEvent& aEvent )
 {
     wxString msg = wxString::Format( "Closing dialog %s", GetTitle() );
     APP_MONITOR::AddNavigationBreadcrumb( msg, "dialog.close" );
+
+    SaveControlState();
 
     if( IsQuasiModal() )
     {

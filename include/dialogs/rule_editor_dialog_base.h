@@ -434,8 +434,6 @@ private:
 
     void onResize( wxSizeEvent& event );
 
-    void setTreeCtrlSize( int aHeight );
-
     void onClose( wxCloseEvent& aEvt );
 
 protected:

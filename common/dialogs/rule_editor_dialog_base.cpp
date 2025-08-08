@@ -111,7 +111,6 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     m_ruleTreeCtrl = new wxTreeCtrl( treeCtrlPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                                      wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS );
     m_ruleTreeCtrl->SetFont( KIUI::GetControlFont( this ) );
-    setTreeCtrlSize( aInitialSize.y );
 
     // Adjust the tree control's window style to remove the border
     long treeCtrlFlags = m_ruleTreeCtrl->GetWindowStyleFlag();
@@ -154,6 +153,8 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     // Add the action buttons sizer to the tree control sizer
     treeCtrlSizer->Add( actionButtonsSizer, 0, wxBOTTOM | wxEXPAND, 5 );
 
+    treeCtrlPanel->Layout();
+
     // Create the dynamic content panel
     m_contentPanel = new wxPanel( m_splitter, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE );
     m_contentPanel->SetBackgroundColour( *wxLIGHT_GREY );
@@ -182,13 +183,8 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     mainSizer->Add( infoBarSizer, 0, wxEXPAND, 0 );
     mainSizer->Add( m_splitter, 1, wxEXPAND | wxBOTTOM, 5 );
     mainSizer->Add( m_sizerButtons, 0, wxALL | wxEXPAND, 5 );
+    SetSize(wxSize(980, 680));
     Layout();
-    setTreeCtrlSize( GetSize().GetHeight() );
-
-    // We normally save the dialog size and position based on its class-name.  This class
-    // substitutes the title so that each distinctly-titled dialog can have its own saved
-    // size and position.
-    m_hash_key = aTitle;
 
     // Bind the context menu event
     m_filterSearch->Bind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch,
@@ -215,8 +211,7 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
 
     this->Bind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
 
-    this->Connect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( RULE_EDITOR_DIALOG_BASE::onClose ), nullptr,
-             this );
+    this->Bind( wxEVT_CLOSE_WINDOW, &RULE_EDITOR_DIALOG_BASE::onClose, this );
 }
 
 
@@ -228,34 +223,23 @@ void RULE_EDITOR_DIALOG_BASE::finishInitialization()
 
 RULE_EDITOR_DIALOG_BASE::~RULE_EDITOR_DIALOG_BASE()
 {
-    m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch,
-                            this );
-    m_ruleTreeCtrl->Unbind( wxEVT_TREE_ITEM_RIGHT_CLICK,
-                            &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemRightClick, this );
-    m_ruleTreeCtrl->Unbind( wxEVT_TREE_SEL_CHANGED,
-                            &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemSelectionChanged, this );
-    m_ruleTreeCtrl->Unbind( wxEVT_LEFT_DOWN, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown,
-                            this );
-    m_ruleTreeCtrl->Unbind( wxEVT_MOTION, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion,
-                            this );
+    m_filterSearch->Unbind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch, this );
+    m_ruleTreeCtrl->Unbind( wxEVT_TREE_ITEM_RIGHT_CLICK, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemRightClick, this );
+    m_ruleTreeCtrl->Unbind( wxEVT_TREE_SEL_CHANGED, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemSelectionChanged, this );
+    m_ruleTreeCtrl->Unbind( wxEVT_LEFT_DOWN, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftDown, this );
+    m_ruleTreeCtrl->Unbind( wxEVT_MOTION, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemMouseMotion, this );
     m_ruleTreeCtrl->Unbind( wxEVT_LEFT_UP, &RULE_EDITOR_DIALOG_BASE::onRuleTreeItemLeftUp, this );
 
     m_addRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onNewRuleOptionClick, this );
-    m_copyRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDuplicateRuleOptionClick,
-                              this );
-    m_moveTreeItemUpButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick,
-                                    this );
-    m_moveTreeItemDownButton->Unbind( wxEVT_BUTTON,
-                                      &RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick, this );
-    m_deleteRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick,
-                                this );
+    m_copyRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDuplicateRuleOptionClick, this );
+    m_moveTreeItemUpButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onMoveUpRuleOptionClick, this );
+    m_moveTreeItemDownButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onMoveDownRuleOptionClick, this );
+    m_deleteRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::onDeleteRuleOptionClick, this );
     m_saveRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnSave, this );
     m_cancelRuleButton->Unbind( wxEVT_BUTTON, &RULE_EDITOR_DIALOG_BASE::OnCancel, this );
 
     this->Unbind( wxEVT_SIZE, &RULE_EDITOR_DIALOG_BASE::onResize, this );
-
-    this->Disconnect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( RULE_EDITOR_DIALOG_BASE::onClose ),
-                   nullptr, this );
+    this->Unbind( wxEVT_CLOSE_WINDOW, &RULE_EDITOR_DIALOG_BASE::onClose, this );
 
     m_selectedTreeItemData = nullptr;
     m_previouslySelectedTreeItemId = nullptr;
@@ -933,7 +917,9 @@ void RULE_EDITOR_DIALOG_BASE::restoreRuleTree( const wxTreeItemId& aParent, cons
         restoreRuleTree( newItem, childId );
     }
 
-    m_ruleTreeCtrl->Expand( newItem );
+    // Don't expand the root item because it is hidden
+    if( aParent )
+        m_ruleTreeCtrl->Expand( newItem );
 }
 
 
@@ -1077,13 +1063,6 @@ void RULE_EDITOR_DIALOG_BASE::onResize( wxSizeEvent& event )
     Layout();
 
     event.Skip();
-}
-
-
-void RULE_EDITOR_DIALOG_BASE::setTreeCtrlSize( int aHeight )
-{
-    // Set the maximum height for wxTreeCtrl to 75% of the available height
-    m_ruleTreeCtrl->SetMaxSize( wxSize( -1, ( 75 * aHeight ) / 100.0 ) );
 }
 
 
