@@ -31,6 +31,10 @@ class PANEL_DRC_GROUP_HEADER_BASE : public wxPanel
 	protected:
 		wxGrid* m_dataGrid;
 
+		// Virtual event handlers, override them in your derived class
+		virtual void OnSize( wxSizeEvent& event ) { event.Skip(); }
+
+
 	public:
 
 		PANEL_DRC_GROUP_HEADER_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxTAB_TRAVERSAL, const wxString& name = wxEmptyString );

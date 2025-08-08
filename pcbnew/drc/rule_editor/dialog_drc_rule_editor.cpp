@@ -41,7 +41,9 @@
 #include "drc_re_allowed_orientation_constraint_data.h"
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
+#include "drc_re_custom_rule_constraint_data.h"
 #include <drc/drc_engine.h>
+#include <wx/ffile.h>
 #include <memory>
 
 
@@ -77,6 +79,8 @@ DIALOG_DRC_RULE_EDITOR::DIALOG_DRC_RULE_EDITOR( PCB_EDIT_FRAME* aEditorFrame, wx
     m_ruleTreeNodeDatas = GetDefaultRuleTreeItems();
 
     InitRuleTreeItems( m_ruleTreeNodeDatas );
+
+    LoadExistingRules();
 
     finishDialogSettings();
 
@@ -158,7 +162,106 @@ std::vector<RULE_TREE_NODE> DIALOG_DRC_RULE_EDITOR::GetDefaultRuleTreeItems()
     subItemNodes = buildFootprintsRuleTreeNodes( footprintItemId );
     result.insert( result.end(), subItemNodes.begin(), subItemNodes.end() );
 
+    // Custom rules category
+    result.push_back( buildRuleTreeNodeData( "Custom", DRC_RULE_EDITOR_ITEM_TYPE::CATEGORY, lastParentId ) );
+    int customItemId = m_nodeId;
+    result.push_back(
+            buildRuleTreeNodeData( "Custom Rule", DRC_RULE_EDITOR_ITEM_TYPE::CONSTRAINT, customItemId, CUSTOM_RULE ) );
+
     return result;
+}
+
+void DIALOG_DRC_RULE_EDITOR::LoadExistingRules()
+{
+    wxFileName rulesFile( m_frame->GetDesignRulesPath() );
+    if( !rulesFile.FileExists() )
+        return;
+
+    wxFFile  file( rulesFile.GetFullPath() );
+    wxString contents;
+    if( !file.ReadAll( &contents ) )
+        return;
+
+    // Find custom constraint node and its tree item
+    int customNodeId = -1;
+    for( const RULE_TREE_NODE& node : m_ruleTreeNodeDatas )
+    {
+        if( node.m_nodeType == CONSTRAINT && node.m_nodeTypeMap && *node.m_nodeTypeMap == CUSTOM_RULE )
+        {
+            customNodeId = node.m_nodeId;
+            break;
+        }
+    }
+
+    if( customNodeId == -1 )
+        return;
+
+    std::function<wxTreeItemId( wxTreeItemId )> findItem = [&]( wxTreeItemId aItem ) -> wxTreeItemId
+    {
+        RULE_TREE_ITEM_DATA* data = dynamic_cast<RULE_TREE_ITEM_DATA*>( m_ruleTreeCtrl->GetItemData( aItem ) );
+        if( data && data->GetNodeId() == customNodeId )
+            return aItem;
+        wxTreeItemIdValue cookie;
+        wxTreeItemId      child = m_ruleTreeCtrl->GetFirstChild( aItem, cookie );
+        while( child.IsOk() )
+        {
+            wxTreeItemId res = findItem( child );
+            if( res.IsOk() )
+                return res;
+            child = m_ruleTreeCtrl->GetNextChild( aItem, cookie );
+        }
+        return wxTreeItemId();
+    };
+
+    wxTreeItemId customTreeItem = findItem( m_ruleTreeCtrl->GetRootItem() );
+    if( !customTreeItem.IsOk() )
+        return;
+
+    // Simple parser for rule blocks
+    size_t      pos = 0;
+    int         ruleCount = 1;
+    std::string all = contents.ToStdString();
+
+    while( ( pos = all.find( "(rule", pos ) ) != std::string::npos )
+    {
+        size_t start = pos;
+        int    depth = 0;
+        for( size_t i = pos; i < all.size(); ++i )
+        {
+            if( all[i] == '(' )
+                depth++;
+            else if( all[i] == ')' )
+            {
+                depth--;
+                if( depth == 0 )
+                {
+                    wxString ruleText = wxString::FromUTF8( all.substr( start, i - start + 1 ) );
+                    pos = i + 1;
+
+                    // Extract rule name if present
+                    wxString ruleName = wxString::Format( "Custom Rule %d", ruleCount++ );
+                    size_t   q1 = ruleText.find( '"' );
+                    if( q1 != wxString::npos )
+                    {
+                        size_t q2 = ruleText.find( '"', q1 + 1 );
+                        if( q2 != wxString::npos )
+                            ruleName = ruleText.Mid( q1 + 1, q2 - q1 - 1 );
+                    }
+                    RULE_TREE_NODE node =
+                            buildRuleTreeNodeData( ruleName.ToStdString(), RULE, customNodeId, CUSTOM_RULE );
+                    DRC_RE_BASE_CONSTRAINT_DATA baseData( node.m_nodeData->GetId(), customNodeId, ruleName );
+                    auto customData = std::make_shared<DRC_RE_CUSTOM_RULE_CONSTRAINT_DATA>( baseData );
+                    customData->SetRuleText( ruleText );
+                    node.m_nodeData = customData;
+                    m_ruleTreeNodeDatas.push_back( node );
+                    AppendNewRuleTreeItem( node, customTreeItem );
+                    break;
+                }
+            }
+        }
+        if( depth != 0 )
+            break; // unmatched parentheses
+    }
 }
 
 
@@ -676,6 +779,11 @@ RULE_TREE_NODE DIALOG_DRC_RULE_EDITOR::buildRuleTreeNode( RULE_TREE_ITEM_DATA* a
           []( const DRC_RE_BASE_CONSTRAINT_DATA& data )
           {
               return std::make_shared<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA>( data );
+          } },
+        { DRC_RULE_EDITOR_CONSTRAINT_NAME::CUSTOM_RULE,
+          []( const DRC_RE_BASE_CONSTRAINT_DATA& data )
+          {
+              return std::make_shared<DRC_RE_CUSTOM_RULE_CONSTRAINT_DATA>( data );
           } }
     };
 

@@ -38,14 +38,20 @@ PANEL_DRC_GROUP_HEADER_BASE::PANEL_DRC_GROUP_HEADER_BASE( wxWindow* parent, wxWi
 
 	// Cell Defaults
 	m_dataGrid->SetDefaultCellAlignment( wxALIGN_LEFT, wxALIGN_TOP );
-	mainSizer->Add( m_dataGrid, 0, wxALL|wxEXPAND, 5 );
+	mainSizer->Add( m_dataGrid, 1, wxALL|wxEXPAND, 5 );
 
 
 	this->SetSizer( mainSizer );
 	this->Layout();
 	mainSizer->Fit( this );
+
+	// Connect Events
+	this->Connect( wxEVT_SIZE, wxSizeEventHandler( PANEL_DRC_GROUP_HEADER_BASE::OnSize ) );
 }
 
 PANEL_DRC_GROUP_HEADER_BASE::~PANEL_DRC_GROUP_HEADER_BASE()
 {
+	// Disconnect Events
+	this->Disconnect( wxEVT_SIZE, wxSizeEventHandler( PANEL_DRC_GROUP_HEADER_BASE::OnSize ) );
+
 }
