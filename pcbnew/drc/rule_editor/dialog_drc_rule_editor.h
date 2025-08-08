@@ -92,7 +92,7 @@ public:
      *
      * @return true if the option should be enabled, false otherwise.
      */
-    bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA* aRuleTreeItemData,
+    bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA*         aRuleTreeItemData,
                                                   RULE_EDITOR_TREE_CONTEXT_OPT aOption ) override;
 
     /**
@@ -138,12 +138,19 @@ private:
      *
      * @return The newly created RULE_TREE_NODE.
      */
-    RULE_TREE_NODE buildRuleTreeNodeData( const std::string& aName,
-            const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,
-            const std::optional<int>&  aParentId = std::nullopt,
-            const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType = std::nullopt,
-            const std::vector<RULE_TREE_NODE>& aChildNodes = {},
-            const std::optional<int>&  aId = std::nullopt );
+    RULE_TREE_NODE
+    buildRuleTreeNodeData( const std::string& aName, const DRC_RULE_EDITOR_ITEM_TYPE& aNodeType,
+                           const std::optional<int>&                             aParentId = std::nullopt,
+                           const std::optional<DRC_RULE_EDITOR_CONSTRAINT_NAME>& aConstraintType = std::nullopt,
+                           const std::vector<RULE_TREE_NODE>&                    aChildNodes = {},
+                           const std::optional<int>&                             aId = std::nullopt );
+
+    /**
+     * Build a rule tree node from a constraint keyword loaded from a
+     * .kicad_drc file.
+     */
+    RULE_TREE_NODE buildRuleNodeFromKicadDrc( const wxString& aName, const wxString& aCode,
+                                              const std::optional<int>& aParentId = std::nullopt );
 
     /**
      * Retrieves the rule tree node for a given ID.
@@ -199,7 +206,7 @@ private:
      */
     void collectChildRuleNodes( int aParentId, std::vector<RULE_TREE_NODE*>& aResult );
 
-     // PROGRESS_REPORTER calls
+    // PROGRESS_REPORTER calls
     bool updateUI() override;
 
     void AdvancePhase( const wxString& aMessage ) override;
