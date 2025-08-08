@@ -21,8 +21,6 @@
 #define PANEL_DRC_RULE_EDITOR_H
 
 #include <wx/wx.h>
-#include <wx/combo.h>
-#include <wx/popupwin.h>
 
 #include <lset.h>
 #include <lseq.h>
@@ -34,7 +32,6 @@
 #include "drc_re_content_panel_base.h"
 #include "drc_re_base_constraint_data.h"
 #include <dialogs/rule_editor_data_base.h>
-#include "drc_re_layers_selection_combo.h"
 
 
 class SCINTILLA_TRICKS;
@@ -158,6 +155,9 @@ private:
     void onShowMatchesButtonClicked( wxCommandEvent& aEvent );
 
 private:
+    std::vector<PCB_LAYER_ID> getSelectedLayers();
+    void setSelectedLayers( const std::vector<PCB_LAYER_ID>& aLayers );
+
     wxButton*         m_btnShowMatches;
     std::vector<int>  m_validLayers;
     LSEQ              m_layerList;
@@ -167,7 +167,8 @@ private:
     std::string       m_validationMessage;
 
     std::unique_ptr<SCINTILLA_TRICKS>            m_scintillaTricks;
-    DRC_RE_LAYER_SELECTION_COMBO*                m_layerListCmbCtrl;
+    wxChoice*                                   m_layerListChoiceCtrl;
+    std::vector<PCB_LAYER_ID>                   m_layerIDs;
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE*          m_constraintPanel;
     std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> m_constraintData;
 

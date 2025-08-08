@@ -33,6 +33,7 @@ class PANEL_DRC_GROUP_HEADER_BASE : public wxPanel
 
 		// Virtual event handlers, override them in your derived class
 		virtual void OnSize( wxSizeEvent& event ) { event.Skip(); }
+		virtual void OnGridSize( wxGridSizeEvent& event ) { event.Skip(); }
 
 
 	public:

@@ -92,7 +92,7 @@ public:
      *
      * @return true if the option should be enabled, false otherwise.
      */
-    bool VerifyRuleTreeContextMenuOptionToEnable( RULE_TREE_ITEM_DATA*         aRuleTreeItemData,
+    bool isEnabled( RULE_TREE_ITEM_DATA*         aRuleTreeItemData,
                                                   RULE_EDITOR_TREE_CONTEXT_OPT aOption ) override;
 
     /**

@@ -44,6 +44,7 @@
 #include <dialogs/html_message_box.h>
 #include <tools/drc_tool.h>
 #include <pcbexpr_evaluator.h>
+#include <string_utils.h>
 
 #include <drc/drc_rule_parser.h>
 #include <drc/rule_editor/panel_drc_rule_editor.h>
@@ -111,15 +112,16 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard,
     m_layerList = m_board->GetEnabledLayers().UIOrder();
     m_constraintHeaderTitle->SetLabelText( *aConstraintTitle + " Constraint" );
 
-    std::vector<PCB_LAYER_ID> layerIDs = m_layerList;
+    m_layerIDs = m_layerList;
 
-    auto layerNameGetter = [this]( PCB_LAYER_ID layer )
-    {
-        return m_board->GetLayerName( layer );
-    };
+    m_layerListChoiceCtrl = new wxChoice( this, wxID_ANY );
+    m_layerListChoiceCtrl->Append( _( "Any" ) );
 
-    m_layerListCmbCtrl = new DRC_RE_LAYER_SELECTION_COMBO( this, layerIDs, layerNameGetter );
-    m_LayersComboBoxSizer->Add( m_layerListCmbCtrl, 0, wxALL | wxEXPAND, 5 ); // Remove wxEXPAND
+    for( PCB_LAYER_ID id : m_layerIDs )
+        m_layerListChoiceCtrl->Append( m_board->GetLayerName( id ) );
+
+    m_layerListChoiceCtrl->SetSelection( 0 );
+    m_LayersComboBoxSizer->Add( m_layerListChoiceCtrl, 0, wxALL | wxEXPAND, 5 );
 
 
     wxBoxSizer* buttonSizer = new wxBoxSizer( wxHORIZONTAL );
@@ -200,7 +202,7 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataToWindow()
     {
         m_nameCtrl->SetValue( m_constraintData->GetRuleName() );
         m_commentCtrl->SetValue( m_constraintData->GetComment() );
-        m_layerListCmbCtrl->SetItemsSelected( m_constraintData->GetLayers() );
+        setSelectedLayers( m_constraintData->GetLayers() );
         wxString cond = m_constraintData->GetRuleCondition();
 
         // Reset object selector panels
@@ -280,7 +282,7 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
 
     m_constraintData->SetRuleName( m_nameCtrl->GetValue() );
     m_constraintData->SetComment( m_commentCtrl->GetValue() );
-    m_constraintData->SetLayers( m_layerListCmbCtrl->GetSelectedLayers() );
+    m_constraintData->SetLayers( getSelectedLayers() );
     wxString aCond = m_objectPanelA->BuildCondition( "A" );
     wxString bCond = m_objectPanelB->BuildCondition( "B" );
 
@@ -406,7 +408,7 @@ bool PANEL_DRC_RULE_EDITOR::ValidateInputs( int* aErrorCount, std::string* aVali
                 DRC_RULE_EDITOR_UTILS::FormatErrorMessage( *aErrorCount, "Rule Name should be unique !!" );
     }
 
-    if( m_layerListCmbCtrl->GetSelectedItemsString() == wxEmptyString )
+    if( m_layerListChoiceCtrl->GetSelection() == wxNOT_FOUND )
     {
         m_validationSucceeded = false;
         ( *aErrorCount )++;
@@ -982,4 +984,36 @@ void PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked( wxCommandEvent& event )
     {
         m_callBackShowMatches( m_constraintData->GetId() );
     }
+}
+
+std::vector<PCB_LAYER_ID> PANEL_DRC_RULE_EDITOR::getSelectedLayers()
+{
+    int sel = m_layerListChoiceCtrl->GetSelection();
+
+    if( sel <= 0 )
+        return {};
+
+    return { m_layerIDs[sel - 1] };
+}
+
+void PANEL_DRC_RULE_EDITOR::setSelectedLayers( const std::vector<PCB_LAYER_ID>& aLayers )
+{
+    if( aLayers.empty() )
+    {
+        m_layerListChoiceCtrl->SetSelection( 0 );
+        return;
+    }
+
+    PCB_LAYER_ID target = aLayers.front();
+
+    for( size_t i = 0; i < m_layerIDs.size(); ++i )
+    {
+        if( m_layerIDs[i] == target )
+        {
+            m_layerListChoiceCtrl->SetSelection( static_cast<int>( i ) + 1 );
+            return;
+        }
+    }
+
+    m_layerListChoiceCtrl->SetSelection( 0 );
 }

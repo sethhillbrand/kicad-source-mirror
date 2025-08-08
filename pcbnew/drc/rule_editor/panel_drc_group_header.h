@@ -52,6 +52,7 @@ public:
     bool TransferDataFromWindow() override;
 
 protected:
+    void OnGridSize( wxGridSizeEvent& event ) override;
     void OnSize( wxSizeEvent& event ) override;
 
 private:
