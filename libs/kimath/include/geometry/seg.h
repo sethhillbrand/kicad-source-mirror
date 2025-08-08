@@ -33,8 +33,11 @@
 #include <ostream>                      // for operator<<, ostream, basic_os...
 #include <type_traits>                  // for swap
 
+#include <math/box2.h>
 #include <math/vector2d.h>
 #include <geometry/eda_angle.h>
+#include <trigo.h>
+#include <core/mirror.h>
 
 typedef std::optional<VECTOR2I> OPT_VECTOR2I;
 
@@ -387,6 +390,40 @@ public:
             return B < aSeg.B;
 
         return A < aSeg.A;
+    }
+
+    void Move( const VECTOR2I& aVector )
+    {
+        A += aVector;
+        B += aVector;
+    }
+
+    void Rotate( const EDA_ANGLE& aAngle, const VECTOR2I& aCenter )
+    {
+        RotatePoint( A, aCenter, aAngle );
+        RotatePoint( B, aCenter, aAngle );
+    }
+
+    void Mirror( const VECTOR2I& aRef, FLIP_DIRECTION aFlipDirection )
+    {
+        if( aFlipDirection == FLIP_DIRECTION::LEFT_RIGHT )
+        {
+            A.x = -A.x + 2 * aRef.x;
+            B.x = -B.x + 2 * aRef.x;
+        }
+        else
+        {
+            A.y = -A.y + 2 * aRef.y;
+            B.y = -B.y + 2 * aRef.y;
+        }
+    }
+
+    BOX2I BBox( int aClearance = 0 ) const
+    {
+        int totalClearance = aClearance + VECTOR2I::ECOORD_MAX / 2;
+
+        return BOX2I( A - VECTOR2I( totalClearance, totalClearance ),
+                      B + VECTOR2I( totalClearance, totalClearance ) );
     }
 
 private:

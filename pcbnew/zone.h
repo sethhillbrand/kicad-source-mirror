@@ -521,25 +521,6 @@ public:
         return m_Poly->TotalVertices();
     }
 
-    /**
-     * Return an iterator to visit all points of the zone's main outline without holes.
-     *
-     * @return an iterator to visit the zone vertices without holes.
-     */
-    SHAPE_POLY_SET::ITERATOR Iterate()
-    {
-        return m_Poly->Iterate();
-    }
-
-    /**
-     * Return an iterator to visit all points of the zone's main outline with holes.
-     *
-     * @return an iterator to visit the zone vertices with holes.
-     */
-    SHAPE_POLY_SET::ITERATOR IterateWithHoles()
-    {
-        return m_Poly->IterateWithHoles();
-    }
 
     /**
      * Return an iterator to visit all points of the zone's main outline with holes.

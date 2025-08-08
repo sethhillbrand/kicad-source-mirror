@@ -858,7 +858,7 @@ void BOARD_ADAPTER::buildPadOutlineAsSegments( const PAD* aPad, PCB_LAYER_ID aLa
         for( int j = 0; j < path.PointCount(); j++ )
         {
             SFVEC2F start3DU = TO_SFVEC2F( path.CPoint( j ) );
-            SFVEC2F end3DU = TO_SFVEC2F( path.CPoint( j + 1 ) );
+            SFVEC2F end3DU = TO_SFVEC2F( path.CPoint( ( j + 1 ) % path.PointCount() ) );
 
             addROUND_SEGMENT_2D( aContainer, start3DU, end3DU, TO_3DU( aWidth ), *aPad );
         }

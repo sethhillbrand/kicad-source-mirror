@@ -97,7 +97,7 @@ public:
 
             virtual const BOX2I BBox( int aClearance = 0 ) const override;
 
-            virtual const VECTOR2I GetPoint( int aIndex ) const override
+            virtual VECTOR2I GetPointAt( size_t aIndex ) const override
             {
                 switch(aIndex)
                 {
@@ -108,7 +108,7 @@ public:
                 }
             }
 
-            virtual const SEG GetSegment( int aIndex ) const override
+            virtual SEG GetSegmentAt( size_t aIndex ) const override
             {
                 switch(aIndex)
                 {
@@ -118,6 +118,9 @@ public:
                     default: wxCHECK( false, SEG() );
                 }
             }
+
+            VECTOR2I GetPoint( int aIndex ) const { return GetPointAt(aIndex); }
+            SEG GetSegment( int aIndex ) const { return GetSegmentAt(aIndex); }
 
             virtual size_t GetPointCount() const override { return 3; }
             virtual size_t GetSegmentCount() const override { return 3; }
@@ -218,10 +221,10 @@ public:
         int m_contour;   /*!< m_contour is the index of the contour relative to the polygon. */
         int m_vertex;    /*!< m_vertex is the index of the vertex relative to the contour. */
 
-        VERTEX_INDEX() :
-            m_polygon(-1),
-            m_contour(-1),
-            m_vertex(-1)
+        VERTEX_INDEX( int aPolygon = -1, int aContour = -1, int aVertex = -1 ) :
+            m_polygon(aPolygon),
+            m_contour(aContour),
+            m_vertex(aVertex)
         {
         }
     };
@@ -229,30 +232,23 @@ public:
     /**
      * Base class for iterating over all vertices in a given SHAPE_POLY_SET.
      */
-    template <class T>
+    template <class PolySet, class T>
     class ITERATOR_TEMPLATE
     {
-    public:
+        using poly_type = PolySet;
+        using value_type = T;
+        using reference = std::conditional_t<std::is_const_v<poly_type>, const T&, T&>;
+        using pointer = std::conditional_t<std::is_const_v<poly_type>, const T*, T*>;
 
-        /**
-         * @return true if the current vertex is the last one of the current contour
-         *         (outline or hole); false otherwise.
-         */
+    public:
         bool IsEndContour() const
         {
-            return m_currentVertex + 1 ==
-                    m_poly->CPolygon( m_currentPolygon )[m_currentContour].PointCount();
+            return m_currentVertex + 1 == m_poly->CPolygon( m_currentPolygon )[m_currentContour].PointCount();
         }
 
-        /**
-         * @return true if the current outline is the last one; false otherwise.
-         */
-        bool IsLastPolygon() const
-        {
-            return m_currentPolygon == m_lastPolygon;
-        }
+        bool IsLastPolygon() const { return m_currentPolygon == m_lastPolygon; }
 
-        operator bool() const
+        explicit operator bool() const
         {
             if( m_currentPolygon < m_lastPolygon )
                 return true;
@@ -318,44 +314,40 @@ public:
             Advance();
         }
 
-        const T& Get()
-        {
-            return m_poly->Polygon( m_currentPolygon )[m_currentContour].CPoint( m_currentVertex );
+        value_type Get() const {
+            return m_poly->Polygon(m_currentPolygon)[m_currentContour]
+                        .CPoint(m_currentVertex);
         }
 
-        const T& operator*()
+        value_type operator*() const { return Get(); }
+        pointer    operator->() const
         {
-            return Get();
+            UpdateCachedValue();
+            return &m_cachedValue;
         }
 
-        const T* operator->()
+        // also const
+        VERTEX_INDEX GetIndex() const
         {
-            return &Get();
-        }
-
-        /**
-         * @return the indices of the current polygon, contour and vertex.
-         */
-        VERTEX_INDEX GetIndex()
-        {
-            VERTEX_INDEX index;
-
-            index.m_polygon = m_currentPolygon;
-            index.m_contour = m_currentContour;
-            index.m_vertex = m_currentVertex;
-
-            return index;
+            VERTEX_INDEX idx{ m_currentPolygon, m_currentContour, m_currentVertex };
+            return idx;
         }
 
     private:
         friend class SHAPE_POLY_SET;
 
-        SHAPE_POLY_SET* m_poly;
-        int             m_currentPolygon;
-        int             m_currentContour;
-        int             m_currentVertex;
-        int             m_lastPolygon;
-        bool            m_iterateHoles;
+        void UpdateCachedValue() const
+        {
+            m_cachedValue = Get();
+        }
+
+        poly_type*                           m_poly;
+        int                                  m_currentPolygon;
+        int                                  m_currentContour;
+        int                                  m_currentVertex;
+        int                                  m_lastPolygon;
+        bool                                 m_iterateHoles;
+        mutable std::remove_cv_t<value_type> m_cachedValue;
     };
 
     /**
@@ -436,7 +428,7 @@ public:
 
         T Get()
         {
-            return m_poly->Polygon( m_currentPolygon )[m_currentContour].Segment( m_currentSegment );
+            return m_poly->Polygon( m_currentPolygon )[m_currentContour].CSegment( m_currentSegment );
         }
 
         T operator*()
@@ -498,8 +490,7 @@ public:
     };
 
     // Iterator and const iterator types to visit polygon's points.
-    typedef ITERATOR_TEMPLATE<VECTOR2I> ITERATOR;
-    typedef ITERATOR_TEMPLATE<const VECTOR2I> CONST_ITERATOR;
+    typedef ITERATOR_TEMPLATE<const SHAPE_POLY_SET, const VECTOR2I> CONST_ITERATOR;
 
     // Iterator and const iterator types to visit polygon's edges.
     typedef SEGMENT_ITERATOR_TEMPLATE<SEG> SEGMENT_ITERATOR;
@@ -677,13 +668,13 @@ public:
     void InsertVertex( int aGlobalIndex, const VECTOR2I& aNewVertex );
 
     /// Return the index-th vertex in a given hole outline within a given outline
-    const VECTOR2I& CVertex( int aIndex, int aOutline, int aHole ) const;
+    VECTOR2I CVertex( int aIndex, int aOutline, int aHole ) const;
 
     /// Return the aGlobalIndex-th vertex in the poly set
-    const VECTOR2I& CVertex( int aGlobalIndex ) const;
+    VECTOR2I CVertex( int aGlobalIndex ) const;
 
     /// Return the index-th vertex in a given hole outline within a given outline
-    const VECTOR2I& CVertex( VERTEX_INDEX aIndex ) const;
+    VECTOR2I CVertex( VERTEX_INDEX aIndex ) const;
 
     /**
      * Return the global indexes of the previous and the next corner of the \a aGlobalIndex-th
@@ -814,61 +805,8 @@ public:
      * @param  aLast         is the last polygon whose points will be iterated.
      * @param  aIterateHoles is a flag to indicate whether the points of the holes should be
      *                       iterated.
-     * @return ITERATOR - the iterator object.
+     * @return CONST_ITERATOR - the iterator object.
      */
-    ITERATOR Iterate( int aFirst, int aLast, bool aIterateHoles = false )
-    {
-        ITERATOR iter;
-
-        iter.m_poly = this;
-        iter.m_currentPolygon = aFirst;
-        iter.m_lastPolygon = aLast < 0 ? OutlineCount() - 1 : aLast;
-        iter.m_currentContour = 0;
-        iter.m_currentVertex = 0;
-        iter.m_iterateHoles = aIterateHoles;
-
-        return iter;
-    }
-
-    /**
-     * @param aOutline is the index of the polygon to be iterated.
-     * @return an iterator object to visit all points in the main outline of the
-     *         \a aOutline-th polygon, without visiting the points in the holes.
-     */
-    ITERATOR Iterate( int aOutline )
-    {
-        return Iterate( aOutline, aOutline );
-    }
-
-    /**
-     * @param aOutline the index of the polygon to be iterated.
-     * @return an iterator object to visit all points in the main outline of the
-     *         \a aOutline-th polygon, visiting also the points in the holes.
-     */
-    ITERATOR IterateWithHoles( int aOutline )
-    {
-        return Iterate( aOutline, aOutline, true );
-    }
-
-    /**
-     * @return an iterator object to visit all points in all outlines of the set,
-     *         without visiting the points in the holes.
-     */
-    ITERATOR Iterate()
-    {
-        return Iterate( 0, OutlineCount() - 1 );
-    }
-
-    /**
-     * @return an iterator object to visit all points in all outlines of the set,
-     *         visiting also the points in the holes.
-     */
-    ITERATOR IterateWithHoles()
-    {
-        return Iterate( 0, OutlineCount() - 1, true );
-    }
-
-
     CONST_ITERATOR CIterate( int aFirst, int aLast, bool aIterateHoles = false ) const
     {
         CONST_ITERATOR iter;
@@ -901,25 +839,6 @@ public:
     CONST_ITERATOR CIterateWithHoles() const
     {
         return CIterate( 0, OutlineCount() - 1, true );
-    }
-
-    ITERATOR IterateFromVertexWithHoles( int aGlobalIdx )
-    {
-        // Build iterator
-        ITERATOR iter = IterateWithHoles();
-
-        // Get the relative indices of the globally indexed vertex
-        VERTEX_INDEX indices;
-
-        if( !GetRelativeIndices( aGlobalIdx, &indices ) )
-            throw( std::out_of_range( "aGlobalIndex-th vertex does not exist" ) );
-
-        // Adjust where the iterator is pointing
-        iter.m_currentPolygon = indices.m_polygon;
-        iter.m_currentContour = indices.m_contour;
-        iter.m_currentVertex = indices.m_vertex;
-
-        return iter;
     }
 
     /// Return an iterator object, for iterating between aFirst and aLast outline, with or

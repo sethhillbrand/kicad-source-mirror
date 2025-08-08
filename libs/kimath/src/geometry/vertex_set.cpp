@@ -33,7 +33,7 @@ VERTEX* VERTEX_SET::createList( const SHAPE_LINE_CHAIN& points, VERTEX* aTail, v
     for( int i = 0; i < points.PointCount(); i++ )
     {
         VECTOR2D p1 = points.CPoint( i );
-        VECTOR2D p2 = points.CPoint( i + 1 );
+        VECTOR2D p2 = points.CPoint( ( i + 1 ) % points.PointCount() );
 
         sum += ( ( p2.x - p1.x ) * ( p2.y + p1.y ) );
     }

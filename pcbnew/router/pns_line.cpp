@@ -376,7 +376,7 @@ bool LINE::Walkaround( const SHAPE_LINE_CHAIN& aObstacle, SHAPE_LINE_CHAIN& aPat
     for( int i = 0; i < hnew.PointCount(); i++ )
     {
         VERTEX* vc = findVertex( hnew.CPoint( i ) );
-        VERTEX* vnext = findVertex( hnew.CPoint( i+1 ) );
+        VERTEX* vnext = findVertex( hnew.CPoint( ( i + 1 ) % hnew.PointCount() ) );
 
         if( vc && vnext )
             vc->neighbours.push_back( vnext );
@@ -743,7 +743,7 @@ void LINE::dragCorner45( const VECTOR2I& aP, int aIndex, DIRECTION_45 aPreferred
     {
         // Are we next to an arc? Insert a new point so we slice correctly
         if( m_line.IsPtOnArc( static_cast<size_t>( aIndex ) + 1 ) )
-            m_line.Insert( aIndex + 1, m_line.CPoint( aIndex + 1 ) );
+            m_line.Insert( aIndex + 1, m_line.CPoint( ( aIndex + 1 ) % m_line.PointCount() ) );
 
         // fixme: awkward behaviour for "outwards" drags
         path = dragCornerInternal( m_line.Slice( 0, aIndex ), snapped, aPreferredEndingDirection );
@@ -927,7 +927,7 @@ void LINE::dragSegment45( const VECTOR2I& aP, int aIndex )
     }
     else if( path.IsPtOnArc( index + 1 ) )
     {
-        path.Insert( index + 1, path.CPoint( index + 1 ) );
+        path.Insert( index + 1, path.CPoint( (index + 1) % path.PointCount() ) );
     }
 
     SEG          dragged = path.CSegment( index );
@@ -953,7 +953,7 @@ void LINE::dragSegment45( const VECTOR2I& aP, int aIndex )
     if( dir_next == drag_dir )
     {
         dir_next = dir_next.Right();
-        path.Insert( index + 1, path.CPoint( index + 1 ) );
+        path.Insert( index + 1, path.CPoint( ( index + 1 ) % path.PointCount() ) );
     }
     else if( dir_next == DIRECTION_45::UNDEFINED )
     {
@@ -1260,8 +1260,8 @@ OPT_BOX2I LINE::ChangedArea( const LINE* aOther ) const
 
     for( int i = 0; i < n; i++ )
     {
-        const VECTOR2I p1 = self.CPoint( np_self - 1 - i );
-        const VECTOR2I p2 = other.CPoint( np_other - 1 - i );
+        const VECTOR2I p1 = self.CPoint( ( np_self - 1 - i ) % np_self );
+        const VECTOR2I p2 = other.CPoint( ( np_other - 1 - i ) % np_other );
 
         if( p1 != p2 )
         {

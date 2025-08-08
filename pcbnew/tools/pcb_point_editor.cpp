@@ -2263,7 +2263,7 @@ EDIT_POINT PCB_POINT_EDITOR::get45DegConstrainer() const
 static std::pair<bool, SHAPE_POLY_SET::VERTEX_INDEX>
 findVertex( SHAPE_POLY_SET& aPolySet, const EDIT_POINT& aPoint )
 {
-    for( auto it = aPolySet.IterateWithHoles(); it; ++it )
+    for( auto it = aPolySet.CIterateWithHoles(); it; ++it )
     {
         auto vertexIdx = it.GetIndex();
 

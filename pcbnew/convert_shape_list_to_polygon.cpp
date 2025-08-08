@@ -294,7 +294,7 @@ bool doConvertOutlineToPolygon( std::vector<PCB_SHAPE*>& aShapeList, SHAPE_POLY_
             // set shapeOwners for currContour points created by appending the arc360:
             for( int ii = 1; ii < currContour.PointCount(); ++ii )
             {
-                shapeOwners[ std::make_pair( currContour.CPoint( ii-1 ),
+                shapeOwners[ std::make_pair( currContour.CPoint( ( ii - 1 ) ),
                                              currContour.CPoint( ii ) ) ] = graphic;
             }
 
@@ -480,11 +480,11 @@ bool doConvertOutlineToPolygon( std::vector<PCB_SHAPE*>& aShapeList, SHAPE_POLY_
                     {
                         // Snap the last shape's endpoint to the outline startpoint
                         PCB_SHAPE* owner = fetchOwner( currContour.CSegment( -1 ) );
+                        const CHAIN_SEGMENT& seg = currContour.GetSegment( -1 );
 
                         if( currContour.IsArcEnd( currContour.PointCount() - 1 ) )
                         {
-                            SHAPE_ARC arc = currContour.Arc(
-                                    currContour.ArcIndex( currContour.PointCount() - 1 ) );
+                            const SHAPE_ARC& arc = seg.AsArc();
 
                             // Snap the arc endpoint
                             SHAPE_ARC sarc( arc.GetP0(), arc.GetArcMid(), startPt, 0 );

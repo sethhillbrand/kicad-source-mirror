@@ -189,7 +189,7 @@ static inline bool Collide( const SHAPE_CIRCLE& aA, const SHAPE_LINE_CHAIN_BASE&
         {
             for( size_t s = 0; s < aB.GetSegmentCount(); s++ )
             {
-                int dist = aB.GetSegment(s).Distance( aA.GetCenter() );
+                int dist = aB.GetSegmentAt(s).Distance( aA.GetCenter() );
 
                 if( dist < closest_mtv_dist )
                 {
@@ -207,7 +207,7 @@ static inline bool Collide( const SHAPE_CIRCLE& aA, const SHAPE_LINE_CHAIN_BASE&
             int collision_dist = 0;
             VECTOR2I pn;
 
-            if( aA.Collide( aB.GetSegment( s ), aClearance,
+            if( aA.Collide( aB.GetSegmentAt( s ), aClearance,
                             aActual || aLocation ? &collision_dist : nullptr,
                             aLocation ? &pn : nullptr ) )
             {
@@ -244,7 +244,7 @@ static inline bool Collide( const SHAPE_CIRCLE& aA, const SHAPE_LINE_CHAIN_BASE&
 
             if (closest_mtv_seg >= 0)
             {
-                SEG cs = aB.GetSegment( closest_mtv_seg );
+                SEG cs = aB.GetSegmentAt( closest_mtv_seg );
                 VECTOR2I np = cs.NearestPoint( aA.GetCenter() );
                 f = ( np - aA.GetCenter() ) + ( np - aA.GetCenter() ).Resize( aA.GetRadius() );
             }
@@ -254,7 +254,7 @@ static inline bool Collide( const SHAPE_CIRCLE& aA, const SHAPE_LINE_CHAIN_BASE&
 
             for( size_t s = 0; s < aB.GetSegmentCount(); s++ )
             {
-                f = pushoutForce( cmoved, aB.GetSegment( s ), aClearance );
+                f = pushoutForce( cmoved, aB.GetSegmentAt( s ), aClearance );
                 cmoved.SetCenter( cmoved.GetCenter() + f );
                 f_total += f;
             }
@@ -297,15 +297,15 @@ static inline bool Collide( const SHAPE_LINE_CHAIN_BASE& aA, const SHAPE_LINE_CH
     int closest_dist = std::numeric_limits<int>::max();
     VECTOR2I nearest;
 
-    if( aB.IsClosed() && aA.GetPointCount() > 0 && aB.PointInside( aA.GetPoint( 0 ) ) )
+    if( aB.IsClosed() && aA.GetPointCount() > 0 && aB.PointInside( aA.GetPointAt( 0 ) ) )
     {
         closest_dist = 0;
-        nearest = aA.GetPoint( 0 );
+        nearest = aA.GetPointAt( 0 );
     }
-    else if( aA.IsClosed() && aB.GetPointCount() > 0 && aA.PointInside( aB.GetPoint( 0 ) ) )
+    else if( aA.IsClosed() && aB.GetPointCount() > 0 && aA.PointInside( aB.GetPointAt( 0 ) ) )
     {
         closest_dist = 0;
-        nearest = aB.GetPoint( 0 );
+        nearest = aB.GetPointAt( 0 );
     }
     else
     {
@@ -317,7 +317,7 @@ static inline bool Collide( const SHAPE_LINE_CHAIN_BASE& aA, const SHAPE_LINE_CH
             if( aA.Type() != SH_LINE_CHAIN
                 || !static_cast<const SHAPE_LINE_CHAIN*>( &aA )->IsArcSegment( ii ) )
             {
-                a_segs.push_back( aA.GetSegment( ii ) );
+                a_segs.push_back( aA.GetSegmentAt( ii ) );
             }
         }
 
@@ -326,7 +326,7 @@ static inline bool Collide( const SHAPE_LINE_CHAIN_BASE& aA, const SHAPE_LINE_CH
             if( aB.Type() != SH_LINE_CHAIN
                 || !static_cast<const SHAPE_LINE_CHAIN*>( &aB )->IsArcSegment( ii ) )
             {
-                b_segs.push_back( aB.GetSegment( ii ) );
+                b_segs.push_back( aB.GetSegmentAt( ii ) );
             }
         }
 
@@ -427,7 +427,7 @@ static inline bool Collide( const SHAPE_RECT& aA, const SHAPE_LINE_CHAIN_BASE& a
             int collision_dist = 0;
             VECTOR2I pn;
 
-            if( aA.Collide( aB.GetSegment( s ), aClearance,
+            if( aA.Collide( aB.GetSegmentAt( s ), aClearance,
                             aActual || aLocation ? &collision_dist : nullptr,
                             aLocation ? &pn : nullptr ) )
             {
@@ -635,7 +635,7 @@ static inline bool Collide( const SHAPE_ARC& aA, const SHAPE_LINE_CHAIN& aB, int
             if( aB.IsArcSegment( i ) )
                 continue;
 
-            if( aA.Collide( aB.GetSegment( i ), aClearance,
+            if( aA.Collide( aB.GetSegmentAt( i ), aClearance,
                             aActual || aLocation ? &collision_dist : nullptr,
                             aLocation ? &pn : nullptr ) )
             {
@@ -746,7 +746,7 @@ static inline bool Collide( const SHAPE_ARC& aA, const SHAPE_LINE_CHAIN_BASE& aB
             int      collision_dist = 0;
             VECTOR2I pn;
 
-            if( aA.Collide( aB.GetSegment( i ), aClearance,
+            if( aA.Collide( aB.GetSegmentAt( i ), aClearance,
                             aActual || aLocation ? &collision_dist : nullptr,
                             aLocation ? &pn : nullptr ) )
             {

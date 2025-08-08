@@ -202,8 +202,10 @@ bool LINE_PLACER::handlePullback()
 
     wxASSERT( tail.PointCount() >= 2 );
 
-    if( !head.IsPtOnArc( 0 ) )
-        first_head = DIRECTION_45( head.CSegment( 0 ) );
+    const SEGMENT& firstSeg = head.GetSegmentAt( 0 );
+
+    if( !firstSeg.IsArc() )
+        first_head = DIRECTION_45( firstSeg.AsSegment() );
     else
         first_head = DIRECTION_45( head.CArcs()[head.ArcIndex(0)] );
 

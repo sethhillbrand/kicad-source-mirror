@@ -155,6 +155,7 @@
     "show_fp_text": true,
     "show_fp_values": true,
     "show_navigator": true,
+    "show_plated_barrels": true,
     "show_silkscreen_bottom": true,
     "show_silkscreen_top": true,
     "show_soldermask_bottom": true,

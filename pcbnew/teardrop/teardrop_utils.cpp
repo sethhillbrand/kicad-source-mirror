@@ -653,7 +653,7 @@ bool TEARDROP_MANAGER::findAnchorPointsOnTrack( const TEARDROP_PARAMETERS& aPara
                     start = poly.CPoint( ii );
 
                     if( ii < poly.PointCount()-1 )
-                        end = poly.CPoint( ii+1 );
+                        end = poly.CPoint( ( ii + 1 ) % poly.PointCount() );
 
                     // actualTdLen is the distance between start (the reference segment start point)
                     // and the point on track of the teardrop.

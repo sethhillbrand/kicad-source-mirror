@@ -175,7 +175,7 @@ static bool NearestPoints( const SHAPE_CIRCLE& aCircle, const SHAPE_LINE_CHAIN_B
     for( size_t i = 0; i < aChain.GetSegmentCount(); i++ )
     {
         VECTOR2I ptA, ptB;
-        if( NearestPoints( aCircle, aChain.GetSegment( i ), ptA, ptB ) )
+        if( NearestPoints( aCircle, aChain.GetSegmentAt( i ), ptA, ptB ) )
         {
             int64_t distSq = ( ptB - ptA ).SquaredEuclideanNorm();
             if( distSq < minDistSq )
@@ -268,7 +268,7 @@ static bool NearestPoints( const SHAPE_RECT& aRect, const SHAPE_LINE_CHAIN_BASE&
         for( size_t j = 0; j < aChain.GetSegmentCount(); j++ )
         {
             SEG rectSeg = outline.CSegment( i );
-            SEG chainSeg = aChain.GetSegment( j );
+            SEG chainSeg = aChain.GetSegmentAt( j );
 
             VECTOR2I ptA = rectSeg.NearestPoint( chainSeg );
             VECTOR2I ptB = chainSeg.NearestPoint( ptA );
@@ -313,7 +313,7 @@ static bool NearestPoints( const SEG& aSeg, const SHAPE_LINE_CHAIN_BASE& aChain,
         VECTOR2I ptA, ptB;
 
         // Reverse the output points to match the segment's order
-        if( NearestPoints( aSeg, aChain.GetSegment( i ), ptB, ptA ) )
+        if( NearestPoints( aSeg, aChain.GetSegmentAt( i ), ptB, ptA ) )
         {
             int64_t distSq = ( ptB - ptA ).SquaredEuclideanNorm();
             if( distSq < minDistSq )
@@ -343,7 +343,7 @@ static bool NearestPoints( const SHAPE_LINE_CHAIN_BASE& aA, const SHAPE_LINE_CHA
         for( size_t j = 0; j < aB.GetSegmentCount(); j++ )
         {
             VECTOR2I ptA, ptB;
-            if( NearestPoints( aA.GetSegment( i ), aB.GetSegment( j ), ptA, ptB ) )
+            if( NearestPoints( aA.GetSegmentAt( i ), aB.GetSegmentAt( j ), ptA, ptB ) )
             {
                 int64_t distSq = ( ptB - ptA ).SquaredEuclideanNorm();
                 if( distSq < minDistSq )
@@ -390,7 +390,7 @@ static bool NearestPoints( const SHAPE_LINE_CHAIN_BASE& aA, const SHAPE_LINE_CHA
             {
                 VECTOR2I ptA, ptB;
                 int64_t distSq;
-                if( arcA.NearestPoints( aB.GetSegment( j ), ptA, ptB, distSq ) )
+                if( arcA.NearestPoints( aB.GetSegmentAt( j ), ptA, ptB, distSq ) )
                 {
                     if( distSq < minDistSq )
                     {
@@ -414,7 +414,7 @@ static bool NearestPoints( const SHAPE_LINE_CHAIN_BASE& aA, const SHAPE_LINE_CHA
             {
                 VECTOR2I ptA, ptB;
                 int64_t distSq;
-                if( arcB.NearestPoints( aA.GetSegment( i ), ptB, ptA, distSq ) )
+                if( arcB.NearestPoints( aA.GetSegmentAt( i ), ptB, ptA, distSq ) )
                 {
                     if( distSq < minDistSq )
                     {
@@ -472,7 +472,7 @@ static bool NearestPoints( const SHAPE_ARC& aArc, const SHAPE_LINE_CHAIN_BASE& a
 
     for( size_t i = 0; i < aChain.GetSegmentCount(); i++ )
     {
-        if( aArc.NearestPoints( aChain.GetSegment( i ), tmp_ptA, tmp_ptB, distSq ) )
+        if( aArc.NearestPoints( aChain.GetSegmentAt( i ), tmp_ptA, tmp_ptB, distSq ) )
         {
             if( distSq < minDistSq )
             {
@@ -731,7 +731,7 @@ static bool nearestPointsSingleShapes( const SHAPE* aA, const SHAPE* aB,
                 {
                     VECTOR2I ptA, ptB;
                     int64_t distSq;
-                    if( arc->NearestPoints( chain->GetSegment( i ), ptB, ptA, distSq ) )
+                    if( arc->NearestPoints( chain->GetSegmentAt( i ), ptB, ptA, distSq ) )
                     {
                         if( distSq < minDistSq )
                         {

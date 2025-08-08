@@ -902,11 +902,11 @@ IMAGE* SPECCTRA_DB::makeIMAGE( BOARD* aBoard, FOOTPRINT* aFootprint )
             mainPolygon->layer_id = m_layerIds[ m_kicadLayer2pcb[ layer ] ];
 
             // Handle the main outlines
-            SHAPE_POLY_SET::ITERATOR iterator;
+            SHAPE_POLY_SET::CONST_ITERATOR iterator;
             bool is_first_point = true;
             VECTOR2I startpoint;
 
-            for( iterator = untransformedZone.IterateWithHoles(); iterator; iterator++ )
+            for( iterator = untransformedZone.CIterateWithHoles(); iterator; iterator++ )
             {
                 VECTOR2I point( iterator->x, iterator->y );
 
@@ -1247,11 +1247,11 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
                 mainPolygon->layer_id = m_layerIds[ m_kicadLayer2pcb[ layer ] ];
 
                 // Handle the main outlines
-                SHAPE_POLY_SET::ITERATOR iterator;
+                SHAPE_POLY_SET::CONST_ITERATOR iterator;
                 VECTOR2I                 startpoint;
                 bool is_first_point = true;
 
-                for( iterator = zone->IterateWithHoles(); iterator; iterator++ )
+                for( iterator = zone->CIterateWithHoles(); iterator; iterator++ )
                 {
                     VECTOR2I point( iterator->x, iterator->y );
 
@@ -1352,11 +1352,11 @@ void SPECCTRA_DB::FromBOARD( BOARD* aBoard )
                 mainPolygon->layer_id = m_layerIds[ m_kicadLayer2pcb[ layer ] ];
 
                 // Handle the main outlines
-                SHAPE_POLY_SET::ITERATOR iterator;
-                bool                     is_first_point = true;
-                VECTOR2I                 startpoint;
+                SHAPE_POLY_SET::CONST_ITERATOR iterator;
+                bool                           is_first_point = true;
+                VECTOR2I                       startpoint;
 
-                for( iterator = zone->IterateWithHoles(); iterator; iterator++ )
+                for( iterator = zone->CIterateWithHoles(); iterator; iterator++ )
                 {
                     VECTOR2I point( iterator->x, iterator->y );
 

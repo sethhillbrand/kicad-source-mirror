@@ -229,10 +229,10 @@ bool AREA_CONSTRAINT::Check( int aVertex1, int aVertex2, const LINE* aOriginLine
         return true;
 
     if( aVertex1 < aCurrentPath.PointCount() - 1 && !p1_in && p2_in
-        && m_allowedArea.Contains( aCurrentPath.CPoint( aVertex1 + 1 ) ) )
+        && m_allowedArea.Contains( aCurrentPath.CPoint( ( aVertex1 + 1 ) % aCurrentPath.PointCount() ) ) )
         return aReplacement.CSegment( 0 ).Angle( aCurrentPath.CSegment( aVertex1 ) ).IsHorizontal();
 
-    if( p1_in && !p2_in && m_allowedArea.Contains( aCurrentPath.CPoint( aVertex2 - 1 ) ) )
+    if( p1_in && !p2_in && m_allowedArea.Contains( aCurrentPath.CPoint( ( aVertex2 - 1 ) % aCurrentPath.PointCount() ) ) )
         return aReplacement.CSegment( -1 )
                 .Angle( aCurrentPath.CSegment( aVertex2 - 1 ) )
                 .IsHorizontal();
@@ -1396,14 +1396,12 @@ static int64_t shovedArea( const SHAPE_LINE_CHAIN& aOld, const SHAPE_LINE_CHAIN&
     const int nc = aNew.PointCount();
     const int total = oc + nc;
 
-    for(int i = 0; i < total; i++)
+    for( int i = 0; i < total; i++ )
     {
-        int i_next = (i + 1 == total ? 0 : i + 1);
+        int i_next = ( i + 1 == total ? 0 : i + 1 );
 
-        const VECTOR2I &v0 = i < oc ? aOld.CPoint(i)
-                                    : aNew.CPoint( nc - 1 - (i - oc) );
-        const VECTOR2I &v1 = i_next < oc ? aOld.CPoint ( i_next )
-                                         : aNew.CPoint( nc - 1 - (i_next - oc) );
+        const VECTOR2I& v0 = i < oc ? aOld.CPoint( i ) : aNew.CPoint( ( total - 1 - i ) % nc );
+        const VECTOR2I& v1 = i_next < oc ? aOld.CPoint( i_next ) : aNew.CPoint( ( total - 1 - i_next ) % nc );
         area += -(int64_t) v0.y * v1.x + (int64_t) v0.x * v1.y;
     }
 

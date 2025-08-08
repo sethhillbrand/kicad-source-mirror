@@ -577,7 +577,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_RECT& aRect, VECTOR2I& aPtA, VECTOR2I
 
     for( int i = 0; i < 4; ++i )
     {
-        SEG seg( lineChain.CPoint( i ), lineChain.CPoint( i + 1 ) );
+        SEG seg( lineChain.CPoint( i ), lineChain.CPoint( ( i + 1 ) % lineChain.PointCount() ) );
 
         std::vector<VECTOR2I> intersections = circle.Intersect( seg );
 

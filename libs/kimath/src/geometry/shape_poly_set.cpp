@@ -394,7 +394,7 @@ SHAPE_POLY_SET SHAPE_POLY_SET::Subset( int aFirstPolygon, int aLastPolygon )
 }
 
 
-const VECTOR2I& SHAPE_POLY_SET::CVertex( int aIndex, int aOutline, int aHole ) const
+VECTOR2I SHAPE_POLY_SET::CVertex( int aIndex, int aOutline, int aHole ) const
 {
     if( aOutline < 0 )
         aOutline += m_polys.size();
@@ -413,7 +413,7 @@ const VECTOR2I& SHAPE_POLY_SET::CVertex( int aIndex, int aOutline, int aHole ) c
 }
 
 
-const VECTOR2I& SHAPE_POLY_SET::CVertex( int aGlobalIndex ) const
+VECTOR2I SHAPE_POLY_SET::CVertex( int aGlobalIndex ) const
 {
     SHAPE_POLY_SET::VERTEX_INDEX index;
 
@@ -425,7 +425,7 @@ const VECTOR2I& SHAPE_POLY_SET::CVertex( int aGlobalIndex ) const
 }
 
 
-const VECTOR2I& SHAPE_POLY_SET::CVertex( SHAPE_POLY_SET::VERTEX_INDEX index ) const
+VECTOR2I SHAPE_POLY_SET::CVertex( SHAPE_POLY_SET::VERTEX_INDEX index ) const
 {
     return CVertex( index.m_vertex, index.m_polygon, index.m_contour - 1 );
 }
@@ -624,8 +624,11 @@ void SHAPE_POLY_SET::GetArcs( std::vector<SHAPE_ARC>& aArcBuffer ) const
     {
         for( size_t i = 0; i < poly.size(); i++ )
         {
-            for( SHAPE_ARC arc : poly[i].m_arcs )
-                aArcBuffer.push_back( arc );
+            size_t arcCount = poly[i].ArcCount();
+            aArcBuffer.reserve( aArcBuffer.size() + arcCount );
+
+            for( size_t j = 0; j < arcCount; j++ )
+                aArcBuffer.push_back( poly[i].Arc( j ) );
         }
     }
 }
@@ -776,7 +779,7 @@ void SHAPE_POLY_SET::booleanOp( Clipper2Lib::ClipType aType, const SHAPE_POLY_SE
     {
         for( size_t i = 0; i < poly.size(); i++ )
         {
-            paths.push_back( poly[i].convertToClipper2( i == 0, zValues, arcBuffer ) );
+            paths.push_back( poly[i].ConvertToClipper2( i == 0, zValues, arcBuffer ) );
         }
     }
 
@@ -784,7 +787,7 @@ void SHAPE_POLY_SET::booleanOp( Clipper2Lib::ClipType aType, const SHAPE_POLY_SE
     {
         for( size_t i = 0; i < poly.size(); i++ )
         {
-            clips.push_back( poly[i].convertToClipper2( i == 0, zValues, arcBuffer ) );
+            clips.push_back( poly[i].ConvertToClipper2( i == 0, zValues, arcBuffer ) );
         }
     }
 
@@ -968,7 +971,7 @@ void SHAPE_POLY_SET::inflate2( int aAmount, int aCircleSegCount, CORNER_STRATEGY
         Paths64 paths;
 
         for( size_t i = 0; i < poly.size(); i++ )
-            paths.push_back( poly[i].convertToClipper2( i == 0, zValues, arcBuffer ) );
+            paths.push_back( poly[i].ConvertToClipper2( i == 0, zValues, arcBuffer ) );
 
         c.AddPaths( paths, joinType, EndType::Polygon );
     }
@@ -1067,7 +1070,7 @@ void SHAPE_POLY_SET::inflateLine2( const SHAPE_LINE_CHAIN& aLine, int aAmount, i
     std::vector<CLIPPER_Z_VALUE> zValues;
     std::vector<SHAPE_ARC>       arcBuffer;
 
-    Path64 path = aLine.convertToClipper2( true, zValues, arcBuffer );
+    Path64 path = aLine.ConvertToClipper2( true, zValues, arcBuffer );
     c.AddPath( path, joinType, EndType::Butt );
 
     // Calculate the arc tolerance (arc error) from the seg count by circle. The seg count is
@@ -2209,7 +2212,7 @@ int SHAPE_POLY_SET::RemoveNullSegments()
 {
     int removed = 0;
 
-    ITERATOR iterator = IterateWithHoles();
+    auto iterator = CIterateWithHoles();
 
     VECTOR2I    contourStart = *iterator;
     VECTOR2I    segmentStart, segmentEnd;

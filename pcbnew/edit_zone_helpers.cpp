@@ -132,13 +132,13 @@ bool BOARD::TestZoneIntersection( ZONE* aZone1, ZONE* aZone2 )
 
     // If a contour is inside another contour, no segments intersects, but the zones
     // can be combined if a corner is inside an outline (only one corner is enough)
-    for( auto iter = poly2->IterateWithHoles(); iter; iter++ )
+    for( auto iter = poly2->CIterateWithHoles(); iter; iter++ )
     {
         if( poly1->Contains( *iter ) )
             return true;
     }
 
-    for( auto iter = poly1->IterateWithHoles(); iter; iter++ )
+    for( auto iter = poly1->CIterateWithHoles(); iter; iter++ )
     {
         if( poly2->Contains( *iter ) )
             return true;

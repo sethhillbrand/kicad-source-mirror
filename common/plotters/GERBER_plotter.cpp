@@ -1068,24 +1068,20 @@ void GERBER_PLOTTER::PlotPoly( const SHAPE_LINE_CHAIN& aPoly, FILL_T aFill, int 
 
         fmt::println( m_outputFile, "G01*" ); // Set linear interpolation.
 
-        for( int ii = 1; ii < aPoly.PointCount(); ii++ )
+        for( int ii = 0; ii < aPoly.SegmentCount(); ii++ )
         {
-            int arcindex = aPoly.ArcIndex( ii );
+            const CHAIN_SEGMENT& seg = aPoly.GetSegmentAt( ii );
 
-            if( arcindex < 0 )
+            if( !seg.IsArc() )
             {
                 /// Plain point
-                LineTo( VECTOR2I( aPoly.CPoint( ii ) ) );
+                LineTo( VECTOR2I( seg.GetP1() ) );
             }
             else
             {
-                const SHAPE_ARC& arc = aPoly.Arc( arcindex );
+                const SHAPE_ARC& arc = seg.AsArc();
 
                 plotArc( arc, true );
-
-                // skip points on arcs, since we plot the arc itself
-                while( ii+1 < aPoly.PointCount() && arcindex == aPoly.ArcIndex( ii+1 ) )
-                    ii++;
             }
         }
 
@@ -1101,24 +1097,20 @@ void GERBER_PLOTTER::PlotPoly( const SHAPE_LINE_CHAIN& aPoly, FILL_T aFill, int 
 
         MoveTo( VECTOR2I( aPoly.CPoint( 0 ) ) );
 
-        for( int ii = 1; ii < aPoly.PointCount(); ii++ )
+        for( int ii = 0; ii < aPoly.SegmentCount(); ii++ )
         {
-            int arcindex = aPoly.ArcIndex( ii );
+            const CHAIN_SEGMENT& seg = aPoly.GetSegmentAt( ii );
 
-            if( arcindex < 0 )
+            if( !seg.IsArc() )
             {
                 /// Plain point
-                LineTo( VECTOR2I( aPoly.CPoint( ii ) ) );
+                LineTo( VECTOR2I( seg.GetP1() ) );
             }
             else
             {
-                const SHAPE_ARC& arc = aPoly.Arc( arcindex );
+                const SHAPE_ARC& arc = seg.AsArc();
 
                 plotArc( arc, true );
-
-                // skip points on arcs, since we plot the arc itself
-                while( ii+1 < aPoly.PointCount() && arcindex == aPoly.ArcIndex( ii+1 ) )
-                    ii++;
              }
         }
 

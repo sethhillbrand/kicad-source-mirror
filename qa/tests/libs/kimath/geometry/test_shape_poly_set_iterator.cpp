@@ -97,10 +97,10 @@ BOOST_FIXTURE_TEST_SUITE( PolygonIterator, IteratorFixture )
  */
 BOOST_AUTO_TEST_CASE( VertexIterator )
 {
-    SHAPE_POLY_SET::ITERATOR iterator;
-    int                      vertexIndex = 0;
+    SHAPE_POLY_SET::CONST_ITERATOR iterator;
+    int                            vertexIndex = 0;
 
-    for( iterator = common.holeyPolySet.IterateWithHoles(); iterator; iterator++ )
+    for( iterator = common.holeyPolySet.CIterateWithHoles(); iterator; iterator++ )
     {
         BOOST_CHECK_EQUAL( common.holeyPoints[vertexIndex], *iterator );
         vertexIndex++;

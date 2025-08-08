@@ -578,11 +578,13 @@ void SCH_EASYEDA_PARSER::ParseSymbolShapes( LIB_SYMBOL*                  aSymbol
 
             for( const SHAPE_LINE_CHAIN& chain : chains )
             {
-                for( int i = 0; i <= chain.PointCount() && i != -1; i = chain.NextShape( i ) )
+                for( int i = 0; i < chain.SegmentCount(); i++ )
                 {
-                    if( chain.IsArcStart( i ) )
+                    const SEGMENT& seg = chain.GetSegmentAt( i );
+
+                    if( seg.IsArc() )
                     {
-                        SHAPE_ARC arc = chain.Arc( chain.ArcIndex( i ) );
+                        const SHAPE_ARC& arc = seg.AsArc();
 
                         std::unique_ptr<SCH_SHAPE> shape =
                                 std::make_unique<SCH_SHAPE>( SHAPE_T::ARC, LAYER_DEVICE );
@@ -608,13 +610,11 @@ void SCH_EASYEDA_PARSER::ParseSymbolShapes( LIB_SYMBOL*                  aSymbol
                     }
                     else
                     {
-                        SEG seg = chain.CSegment( i );
-
                         std::unique_ptr<SCH_SHAPE> shape =
                                 std::make_unique<SCH_SHAPE>( SHAPE_T::POLY, LAYER_DEVICE );
 
-                        shape->AddPoint( transform( seg.A ) );
-                        shape->AddPoint( transform( seg.B ) );
+                        shape->AddPoint( transform( seg.GetP0() ) );
+                        shape->AddPoint( transform( seg.GetP1() ) );
 
                         shape->SetUnit( 0 );
                         shape->SetStroke( STROKE_PARAMS( ScaleSize( lineWidth ), strokeStyle ) );

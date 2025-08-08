@@ -246,7 +246,7 @@ inline bool IsOutlineValid( const SHAPE_LINE_CHAIN& aChain )
                 VECTOR2I pointToTest = aChain.CPoint( i );
 
                 if( !aChain.IsSharedPt( i ) )
-                    pointToTest = aChain.CPoint( i - 1 );
+                    pointToTest = aChain.CPoint( ( i - 1 ) % aChain.PointCount() );
 
                 SHAPE_ARC lastArc = aChain.Arc( prevArcIdx );
 

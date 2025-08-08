@@ -172,8 +172,8 @@ bool AR_AUTOPLACER::fillMatrix()
         {
             int seg_startX = outline.CPoint( v ).x;
             int seg_startY = outline.CPoint( v ).y;
-            int seg_endX   = outline.CPoint( v + 1 ).x;
-            int seg_endY   = outline.CPoint( v + 1 ).y;
+            int seg_endX = outline.CPoint( ( v + 1 ) % outline.PointCount() ).x;
+            int seg_endY = outline.CPoint( ( v + 1 ) % outline.PointCount() ).y;
 
             /* Trivial cases: skip if ref above or below the segment to test */
             if( ( seg_startY > refy ) && ( seg_endY > refy ) )

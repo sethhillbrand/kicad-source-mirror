@@ -97,9 +97,9 @@ public:
      * "second to last point" and so on.
      *
      * @param aIndex is the index of the point.
-     * @return the const reference to the point.
+     * @return pass by value the point.
      */
-    const VECTOR2I& CPoint( int aIndex ) const
+    VECTOR2I CPoint( int aIndex ) const
     {
         return m_points.CPoint( aIndex );
     }
@@ -170,10 +170,13 @@ public:
         return true;
     }
 
-    virtual const VECTOR2I GetPoint( int aIndex ) const override { return m_points.CPoint(aIndex); }
-    virtual const SEG GetSegment( int aIndex ) const override { return m_points.CSegment(aIndex); }
-    virtual size_t GetPointCount() const override { return m_points.PointCount(); }
-    virtual size_t GetSegmentCount() const override { return m_points.SegmentCount(); }
+    VECTOR2I GetPoint( int aIndex ) const { return m_points.CPoint(aIndex); }
+    SEG GetSegment( int aIndex ) const { return m_points.CSegment(aIndex); }
+    size_t GetPointCount() const override { return m_points.PointCount(); }
+    size_t GetSegmentCount() const override { return m_points.SegmentCount(); }
+
+    SEG GetSegmentAt( size_t aIndex ) const override { return m_points.GetSegmentAt(aIndex); }
+    VECTOR2I GetPointAt( size_t aIndex ) const override { return m_points.GetPointAt(aIndex); }
 
     bool IsClosed() const override
     {

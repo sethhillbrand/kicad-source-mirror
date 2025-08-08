@@ -250,7 +250,7 @@ void CAIRO_GAL_BASE::DrawSegmentChain( const SHAPE_LINE_CHAIN& aLineChain, doubl
         numPoints += 1;
 
     for( int i = 0; i + 1 < numPoints; ++i )
-        DrawSegment( aLineChain.CPoint( i ), aLineChain.CPoint( i + 1 ), aWidth );
+        DrawSegment( aLineChain.CPoint( i ), aLineChain.CPoint( ( i + 1 ) % numPoints ), aWidth );
 }
 
 

@@ -985,7 +985,7 @@ void PCB_PAINTER::draw( const PCB_ARC* aArc, int aLayer )
     m_gal->SetStrokeColor( COLOR4D( 0.3, 0.2, 0.5, 1.0 ) );
 
     for( int idx = 1; idx < arcSpine.PointCount(); idx++ )
-        m_gal->DrawSegment( arcSpine.CPoint( idx-1 ), arcSpine.CPoint( idx ), aArc->GetWidth() );
+        m_gal->DrawSegment( arcSpine.CPoint( idx - 1 ), arcSpine.CPoint( idx ), aArc->GetWidth() );
 #endif
 }
 

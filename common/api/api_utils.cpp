@@ -117,16 +117,13 @@ KICOMMON_API BOX2I UnpackBox2( const types::Box2& aInput )
 
 KICOMMON_API void PackPolyLine( types::PolyLine& aOutput, const SHAPE_LINE_CHAIN& aSlc )
 {
-    for( int vertex = 0; vertex < aSlc.PointCount(); vertex = aSlc.NextShape( vertex ) )
+    for( const SEGMENT& seg : aSlc )
     {
-        if( vertex < 0 )
-            break;
-
         types::PolyLineNode* node = aOutput.mutable_nodes()->Add();
 
-        if( aSlc.IsPtOnArc( vertex ) )
+        if( seg.IsArc() )
         {
-            const SHAPE_ARC& arc = aSlc.Arc( aSlc.ArcIndex( vertex ) );
+            const SHAPE_ARC& arc = seg.AsArc();
             node->mutable_arc()->mutable_start()->set_x_nm( arc.GetP0().x );
             node->mutable_arc()->mutable_start()->set_y_nm( arc.GetP0().y );
             node->mutable_arc()->mutable_mid()->set_x_nm( arc.GetArcMid().x );
@@ -136,8 +133,8 @@ KICOMMON_API void PackPolyLine( types::PolyLine& aOutput, const SHAPE_LINE_CHAIN
         }
         else
         {
-            node->mutable_point()->set_x_nm( aSlc.CPoint( vertex ).x );
-            node->mutable_point()->set_y_nm( aSlc.CPoint( vertex ).y );
+            node->mutable_point()->set_x_nm( seg.GetP0().x );
+            node->mutable_point()->set_y_nm( seg.GetP0().y );
         }
     }
 

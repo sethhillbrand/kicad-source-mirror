@@ -52,8 +52,10 @@
 #include <kiplatform/io.h>
 #include <string_utils.h>
 #include <build_version.h>
+#include <geometry/chain_segment.h>
 #include <geometry/shape_segment.h>
 #include <geometry/shape_circle.h>
+#include <geometry/shape_line_chain.h>
 #include <board_stackup_manager/board_stackup.h>
 #include <board_stackup_manager/stackup_predefined_prms.h>
 #include <reporter.h>
@@ -294,9 +296,9 @@ static SHAPE_LINE_CHAIN approximateLineChainWithArcs( const SHAPE_LINE_CHAIN& aS
         int first = i - 3;
         int last = c_last_none;
 
-        VECTOR2D p0 = aSrc.CPoint( i - 3 );
-        VECTOR2D p1 = aSrc.CPoint( i - 2 );
-        VECTOR2D p2 = aSrc.CPoint( i - 1 );
+        VECTOR2D p0 = aSrc.CPoint( ( i - 3 ) % aSrc.PointCount() );
+        VECTOR2D p1 = aSrc.CPoint( ( i - 2 ) % aSrc.PointCount() );
+        VECTOR2D p2 = aSrc.CPoint( ( i - 1 ) % aSrc.PointCount() );
 
         APPROX_DBG( std::cout << i << " " << aSrc.CPoint( i ) << " " << ( i - 3 ) << " "
                               << VECTOR2I( p0 ) << " " << ( i - 2 ) << " " << VECTOR2I( p1 ) << " "
@@ -337,7 +339,7 @@ static SHAPE_LINE_CHAIN approximateLineChainWithArcs( const SHAPE_LINE_CHAIN& aS
 
             for( int j = i; j <= jEndIdx; j++ )
             {
-                VECTOR2D p_test = aSrc.CPoint( j );
+                VECTOR2D p_test = aSrc.CPoint( j % aSrc.PointCount() );
 
                 EDA_ANGLE a_test( p_test - p_prev );
                 double    rad_test = ( p_test - center ).EuclideanNorm();
@@ -384,8 +386,9 @@ static SHAPE_LINE_CHAIN approximateLineChainWithArcs( const SHAPE_LINE_CHAIN& aS
         if( last != c_last_none )
         {
             // Try to add an arc, testing for self-interference
-            SHAPE_ARC arc( aSrc.CPoint( first ), aSrc.CPoint( ( first + last ) / 2 ),
-                           aSrc.CPoint( last ), 0 );
+            SHAPE_ARC arc( aSrc.CPoint( first % aSrc.PointCount() ),
+                           aSrc.CPoint( ( ( first + last ) / 2 ) % aSrc.PointCount() ),
+                           aSrc.CPoint( last % aSrc.PointCount() ), 0 );
 
             if( last > aSrc.PointCount() - 3 && !dst.IsArcSegment( 0 ) )
             {
@@ -438,16 +441,16 @@ static SHAPE_LINE_CHAIN approximateLineChainWithArcs( const SHAPE_LINE_CHAIN& aS
     dst.SetClosed( true );
 
     // Try to merge arcs
-    int iarc0 = dst.ArcIndex( 0 );
-    int iarc1 = dst.ArcIndex( dst.GetSegmentCount() - 1 );
+    const CHAIN_SEGMENT& seg0 = dst.GetSegment( 0 );
+    const CHAIN_SEGMENT& seg1 = dst.GetSegment( dst.GetSegmentCount() - 1 );
 
-    if( iarc0 != -1 && iarc1 != -1 )
+    if( seg0.IsArc() && seg1.IsArc() )
     {
-        APPROX_DBG( std::cout << "Final arcs " << iarc0 << " " << iarc1 << std::endl );
+        APPROX_DBG( std::cout << "Final arcs " << seg0 << " " << seg1 << std::endl );
 
-        if( iarc0 == iarc1 )
+        if( seg0 == seg1 )
         {
-            SHAPE_ARC arc = dst.Arc( iarc0 );
+            const SHAPE_ARC& arc = seg0.AsArc();
 
             VECTOR2D p0 = arc.GetP0();
             VECTOR2D p1 = arc.GetP1();
@@ -462,8 +465,8 @@ static SHAPE_LINE_CHAIN approximateLineChainWithArcs( const SHAPE_LINE_CHAIN& aS
         else
         {
             // Merge first and last arcs if they are similar
-            SHAPE_ARC arc0 = dst.Arc( iarc0 );
-            SHAPE_ARC arc1 = dst.Arc( iarc1 );
+            const SHAPE_ARC& arc0 = seg0.AsArc();
+            const SHAPE_ARC& arc1 = seg1.AsArc();
 
             VECTOR2D ac0 = arc0.GetCenter();
             VECTOR2D ac1 = arc1.GetCenter();
@@ -1501,13 +1504,13 @@ static bool makeWireFromChain( BRepLib_MakeWire& aMkWire, const SHAPE_LINE_CHAIN
 
     try
     {
-        auto addSegment = [&]( const VECTOR2I& aPt0, const VECTOR2I& aPt1 ) -> bool
+        auto addSegment = [&]( const SEG& aSeg ) -> bool
         {
-            if( aPt0 == aPt1 )
+            if( aSeg.IsNull() )
                 return false;
 
-            gp_Pnt start = toPoint( aPt0 );
-            gp_Pnt end = toPoint( aPt1 );
+            gp_Pnt start = toPoint( aSeg.GetStart() );
+            gp_Pnt end = toPoint( aSeg.GetEnd() );
 
             BRepBuilderAPI_MakeEdge mkEdge( start, end );
 
@@ -1536,7 +1539,7 @@ static bool makeWireFromChain( BRepLib_MakeWire& aMkWire, const SHAPE_LINE_CHAIN
             return true;
         };
 
-        auto addArc = [&]( const VECTOR2I& aPt0, const SHAPE_ARC& aArc ) -> bool
+        auto addArc = [&]( const SHAPE_ARC& aArc ) -> bool
         {
             // Do not export too short segments: they create broken shape because OCC thinks
             Handle( Geom_Curve ) curve;
@@ -1574,65 +1577,15 @@ static bool makeWireFromChain( BRepLib_MakeWire& aMkWire, const SHAPE_LINE_CHAIN
             return true;
         };
 
-        VECTOR2I firstPt;
-        VECTOR2I lastPt;
-        bool     isFirstShape = true;
+        VECTOR2I firstPt = aChain.CPoint( 0 );
+        VECTOR2I lastPt = aChain.CPoint( aChain.Size() - 1 );
 
-        for( int i = 0; i <= aChain.PointCount() && i != -1; i = aChain.NextShape( i ) )
+        for( const CHAIN_SEGMENT& seg : aChain )
         {
-            if( i == 0 )
-            {
-                if( aChain.IsArcSegment( 0 ) && aChain.IsArcSegment( aChain.PointCount() - 1 )
-                    && aChain.ArcIndex( 0 ) == aChain.ArcIndex( aChain.PointCount() - 1 ) )
-                {
-                    // Skip first arc (we should encounter it later)
-                    int nextShape = aChain.NextShape( i );
-
-                    // If nextShape points to the end, then we have a circle.
-                    if( nextShape != -1 )
-                        i = nextShape;
-                }
-            }
-
-            if( isFirstShape )
-                lastPt = aChain.CPoint( i );
-
-            bool isArc = aChain.IsArcSegment( i );
-
-            if( aChain.IsArcStart( i ) )
-            {
-                const SHAPE_ARC& currentArc = aChain.Arc( aChain.ArcIndex( i ) );
-
-                if( isFirstShape )
-                {
-                    firstPt = currentArc.GetP0();
-                    lastPt = firstPt;
-                }
-
-                if( addSegment( lastPt, currentArc.GetP0() ) )
-                    lastPt = currentArc.GetP0();
-
-                if( addArc( lastPt, currentArc ) )
-                    lastPt = currentArc.GetP1();
-            }
-            else if( !isArc )
-            {
-                const SEG& seg = aChain.CSegment( i );
-
-                if( isFirstShape )
-                {
-                    firstPt = seg.A;
-                    lastPt = firstPt;
-                }
-
-                if( addSegment( lastPt, seg.A ) )
-                    lastPt = seg.A;
-
-                if( addSegment( lastPt, seg.B ) )
-                    lastPt = seg.B;
-            }
-
-            isFirstShape = false;
+            if( seg.IsArc() )
+                addArc( seg.GetArc() );
+            else
+                addSegment( seg.GetSeg() );
         }
 
         if( lastPt != firstPt && !addSegment( lastPt, firstPt ) )

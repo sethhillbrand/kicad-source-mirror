@@ -61,7 +61,7 @@ void buildPadOutlineAsPolygon( const PAD* aPad, PCB_LAYER_ID aLayer, SHAPE_POLY_
         for( int ii = 0; ii < path.PointCount(); ++ii )
         {
             const VECTOR2I& a = path.CPoint( ii );
-            const VECTOR2I& b = path.CPoint( ii + 1 );
+            const VECTOR2I& b = path.CPoint( ( ii + 1 ) % path.PointCount() );
 
             TransformOvalToPolygon( aBuffer, a, b, aWidth, aMaxError, aErrorLoc );
         }

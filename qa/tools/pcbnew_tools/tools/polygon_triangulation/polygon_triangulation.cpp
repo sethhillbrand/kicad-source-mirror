@@ -173,7 +173,7 @@ aResult->clear();
 
         for(int i = 0; i < cnt ;i++)
         {
-            auto p = lc.CPoint(edgeBuf[i]->index);
+            auto p = lc.CPoint( edgeBuf[i]->index % lc.PointCount() );
             outl.Append( p );
             queue.erase( edgeBuf[i] );
         }
