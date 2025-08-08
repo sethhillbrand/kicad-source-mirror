@@ -73,15 +73,18 @@ bool PANEL_DRC_GROUP_HEADER::TransferDataFromWindow()
 void PANEL_DRC_GROUP_HEADER::OnSize( wxSizeEvent& event )
 {
     // Resize the grid to fit the panel size.
-    wxSize size = GetClientSize();
+    wxSize size = GetSizer()->GetSize();
     m_dataGrid->SetSize( size );
     double total_column_width = m_dataGrid->GetColSize( 0 ) + m_dataGrid->GetColSize( 1 ) + m_dataGrid->GetColSize( 2 );
     double col0_width_ratio = m_dataGrid->GetColSize( 0 ) / total_column_width;
     double col1_width_ratio = m_dataGrid->GetColSize( 1 ) / total_column_width;
+    int col0_size = static_cast<int>( size.GetWidth() * col0_width_ratio );
+    int col1_size = static_cast<int>( size.GetWidth() * col1_width_ratio );
+    int col2_size = size.GetWidth() - col0_size - col1_size;
 
-    m_dataGrid->SetColSize( 0, static_cast<int>( size.GetWidth() * col0_width_ratio ) );
-    m_dataGrid->SetColSize( 1, static_cast<int>( size.GetWidth() * col1_width_ratio ) );
-    m_dataGrid->SetColSize( 2, GetSizer()->GetSize().GetWidth() - m_dataGrid->GetColSize( 0 ) - m_dataGrid->GetColSize( 1 ) );
+    m_dataGrid->SetColSize( 0, col0_size );
+    m_dataGrid->SetColSize( 1, col1_size );
+    m_dataGrid->SetColSize( 2, col2_size );
 
     // Refresh the grid to apply the new sizes.
     m_dataGrid->ForceRefresh();
