@@ -50,6 +50,7 @@ using namespace std::placeholders;
 #include <pcb_reference_image.h>
 #include <pcb_generator.h>
 #include <pcb_dimension.h>
+#include <pcb_barcode.h>
 #include <pcb_textbox.h>
 #include <pcb_tablecell.h>
 #include <pcb_table.h>
@@ -516,8 +517,7 @@ public:
                 oldCorner -= oldOrigin;
 
                 // If we tried to cross the origin, clamp it to stop it
-                if( sign( newCorner->x ) != sign( oldCorner.x )
-                    || sign( newCorner->y ) != sign( oldCorner.y ) )
+                if( sign( newCorner->x ) != sign( oldCorner.x ) || sign( newCorner->y ) != sign( oldCorner.y ) )
                 {
                     *newCorner = VECTOR2I( 0, 0 );
                 }
@@ -529,8 +529,8 @@ public:
 
                 // Clamp the scaling to a minimum of 50 mils
                 VECTOR2I newSize = oldSize * ratio;
-                double newWidth = std::max( newSize.x, EDA_UNIT_UTILS::Mils2IU( pcbIUScale, 50 ) );
-                double newHeight = std::max( newSize.y, EDA_UNIT_UTILS::Mils2IU( pcbIUScale, 50 ) );
+                double   newWidth = std::max( newSize.x, EDA_UNIT_UTILS::Mils2IU( pcbIUScale, 50 ) );
+                double   newHeight = std::max( newSize.y, EDA_UNIT_UTILS::Mils2IU( pcbIUScale, 50 ) );
                 ratio = std::min( newWidth / oldSize.x, newHeight / oldSize.y );
 
                 // Also handles the origin offset
@@ -541,6 +541,129 @@ public:
 
 private:
     PCB_REFERENCE_IMAGE& m_refImage;
+};
+
+
+class BARCODE_POINT_EDIT_BEHAVIOR : public POINT_EDIT_BEHAVIOR
+{
+public:
+    BARCODE_POINT_EDIT_BEHAVIOR( PCB_BARCODE& aBarcode ) :
+            m_barcode( aBarcode ),
+            m_ratio( aBarcode.GetHeight() ? (double) aBarcode.GetWidth() / aBarcode.GetHeight() : 1.0 )
+    {
+    }
+
+    void MakePoints( EDIT_POINTS& aPoints ) override
+    {
+        VECTOR2I topLeft = m_barcode.GetTopLeft();
+        VECTOR2I botRight = m_barcode.GetBotRight();
+
+        aPoints.SetSwapX( topLeft.x > botRight.x );
+        aPoints.SetSwapY( topLeft.y > botRight.y );
+
+        if( aPoints.SwapX() )
+            std::swap( topLeft.x, botRight.x );
+
+        if( aPoints.SwapY() )
+            std::swap( topLeft.y, botRight.y );
+
+        aPoints.AddPoint( topLeft );
+        aPoints.AddPoint( VECTOR2I( botRight.x, topLeft.y ) );
+        aPoints.AddPoint( botRight );
+        aPoints.AddPoint( VECTOR2I( topLeft.x, botRight.y ) );
+        aPoints.AddPoint( m_barcode.GetCenter() );
+    }
+
+    void UpdatePoints( EDIT_POINTS& aPoints ) override
+    {
+        wxCHECK( aPoints.PointsSize() >= RECT_MAX_POINTS, /* void */ );
+
+        VECTOR2I topLeft = m_barcode.GetTopLeft();
+        VECTOR2I botRight = m_barcode.GetBotRight();
+
+        aPoints.SetSwapX( topLeft.x > botRight.x );
+        aPoints.SetSwapY( topLeft.y > botRight.y );
+
+        if( aPoints.SwapX() )
+            std::swap( topLeft.x, botRight.x );
+
+        if( aPoints.SwapY() )
+            std::swap( topLeft.y, botRight.y );
+
+        aPoints.Point( RECT_TOP_LEFT ).SetPosition( topLeft );
+        aPoints.Point( RECT_TOP_RIGHT ).SetPosition( botRight.x, topLeft.y );
+        aPoints.Point( RECT_BOT_RIGHT ).SetPosition( botRight );
+        aPoints.Point( RECT_BOT_LEFT ).SetPosition( topLeft.x, botRight.y );
+        aPoints.Point( RECT_CENTER ).SetPosition( m_barcode.GetCenter() );
+    }
+
+    void UpdateItem( const EDIT_POINT& aEditedPoint, EDIT_POINTS& aPoints, COMMIT& aCommit,
+                     std::vector<EDA_ITEM*>& aUpdatedItems ) override
+    {
+        CHECK_POINT_COUNT_GE( aPoints, RECT_MAX_POINTS );
+
+        VECTOR2I topLeft = aPoints.Point( RECT_TOP_LEFT ).GetPosition();
+        VECTOR2I topRight = aPoints.Point( RECT_TOP_RIGHT ).GetPosition();
+        VECTOR2I botLeft = aPoints.Point( RECT_BOT_LEFT ).GetPosition();
+        VECTOR2I botRight = aPoints.Point( RECT_BOT_RIGHT ).GetPosition();
+
+        RECTANGLE_POINT_EDIT_BEHAVIOR::PinEditedCorner( aEditedPoint, aPoints, topLeft, topRight, botLeft, botRight );
+
+        if( isModified( aEditedPoint, aPoints.Point( RECT_TOP_LEFT ) ) )
+        {
+            ConstrainProportions( topLeft, botRight, RECT_TOP_LEFT );
+            m_barcode.SetRect( topLeft, botRight );
+        }
+        else if( isModified( aEditedPoint, aPoints.Point( RECT_TOP_RIGHT ) ) )
+        {
+            ConstrainProportions( topLeft, botRight, RECT_TOP_RIGHT );
+            m_barcode.SetRect( topLeft, botRight );
+        }
+        else if( isModified( aEditedPoint, aPoints.Point( RECT_BOT_RIGHT ) ) )
+        {
+            ConstrainProportions( topLeft, botRight, RECT_BOT_RIGHT );
+            m_barcode.SetRect( topLeft, botRight );
+        }
+        else if( isModified( aEditedPoint, aPoints.Point( RECT_BOT_LEFT ) ) )
+        {
+            ConstrainProportions( topLeft, botRight, RECT_BOT_LEFT );
+            m_barcode.SetRect( topLeft, botRight );
+        }
+        else if( isModified( aEditedPoint, aPoints.Point( RECT_CENTER ) ) )
+        {
+            const VECTOR2I moveVector = aPoints.Point( RECT_CENTER ).GetPosition() - m_barcode.GetCenter();
+            m_barcode.Move( moveVector );
+        }
+    }
+
+private:
+    void ConstrainProportions( VECTOR2I& aTopLeft, VECTOR2I& aBotRight, RECT_POINTS aHandle )
+    {
+        int width = aBotRight.x - aTopLeft.x;
+        int height = aBotRight.y - aTopLeft.y;
+        if( height == 0 )
+            return;
+        double current = (double) width / height;
+        if( current > m_ratio )
+        {
+            int newW = KiROUND( height * m_ratio );
+            if( aHandle == RECT_TOP_LEFT || aHandle == RECT_BOT_LEFT )
+                aTopLeft.x = aBotRight.x - newW;
+            else
+                aBotRight.x = aTopLeft.x + newW;
+        }
+        else
+        {
+            int newH = KiROUND( width / m_ratio );
+            if( aHandle == RECT_TOP_LEFT || aHandle == RECT_TOP_RIGHT )
+                aTopLeft.y = aBotRight.y - newH;
+            else
+                aBotRight.y = aTopLeft.y + newH;
+        }
+    }
+
+    PCB_BARCODE& m_barcode;
+    double       m_ratio;
 };
 
 
@@ -1584,6 +1707,12 @@ std::shared_ptr<EDIT_POINTS> PCB_POINT_EDITOR::makePoints( EDA_ITEM* aItem )
     {
         PCB_REFERENCE_IMAGE& refImage = static_cast<PCB_REFERENCE_IMAGE&>( *aItem );
         m_editorBehavior = std::make_unique<REFERENCE_IMAGE_POINT_EDIT_BEHAVIOR>( refImage );
+        break;
+    }
+    case PCB_BARCODE_T:
+    {
+        PCB_BARCODE& barcode = static_cast<PCB_BARCODE&>( *aItem );
+        m_editorBehavior = std::make_unique<BARCODE_POINT_EDIT_BEHAVIOR>( barcode );
         break;
     }
     case PCB_TEXTBOX_T:

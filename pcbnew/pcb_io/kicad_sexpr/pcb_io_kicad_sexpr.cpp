@@ -47,6 +47,7 @@
 #include <pcb_io/kicad_sexpr/pcb_io_kicad_sexpr.h>
 #include <pcb_io/kicad_sexpr/pcb_io_kicad_sexpr_parser.h>
 #include <pcb_reference_image.h>
+#include <pcb_barcode.h>
 #include <pcb_shape.h>
 #include <pcb_table.h>
 #include <pcb_tablecell.h>
@@ -395,6 +396,10 @@ void PCB_IO_KICAD_SEXPR::Format( const BOARD_ITEM* aItem ) const
 
     case PCB_TEXTBOX_T:
         format( static_cast<const PCB_TEXTBOX*>( aItem ) );
+        break;
+
+    case PCB_BARCODE_T:
+        format( static_cast<const PCB_BARCODE*>( aItem ) );
         break;
 
     case PCB_TABLE_T:
@@ -1981,6 +1986,61 @@ void PCB_IO_KICAD_SEXPR::format( const PAD* aPad ) const
 
         m_out->Print( ")" );
     }
+
+    m_out->Print( ")" );
+}
+
+
+void PCB_IO_KICAD_SEXPR::format( const PCB_BARCODE* aBarcode ) const
+{
+    wxCHECK_RET( aBarcode != nullptr && m_out != nullptr, "" );
+
+    m_out->Print( "(barcode" );
+
+    if( aBarcode->IsLocked() )
+        KICAD_FORMAT::FormatBool( m_out, "locked", true );
+
+    m_out->Print( "(at %s %s)",
+                  formatInternalUnits( aBarcode->GetPosition() ).c_str(),
+                  EDA_UNIT_UTILS::FormatAngle( aBarcode->Text().GetTextAngle() ).c_str() );
+
+    formatLayer( aBarcode->GetLayer() );
+
+    m_out->Print( "(size %s %s)",
+                  formatInternalUnits( aBarcode->GetWidth() ).c_str(),
+                  formatInternalUnits( aBarcode->GetHeight() ).c_str() );
+
+    m_out->Print( "(text %s)", m_out->Quotew( aBarcode->GetText() ).c_str() );
+
+    const char* typeStr = "code39";
+
+    switch( aBarcode->GetKind() )
+    {
+    case BARCODE_T::CODE_39:      typeStr = "code39"; break;
+    case BARCODE_T::CODE_128:     typeStr = "code128"; break;
+    case BARCODE_T::DATA_MATRIX:  typeStr = "datamatrix"; break;
+    case BARCODE_T::QR_CODE:      typeStr = "qr"; break;
+    case BARCODE_T::MICRO_QR_CODE: typeStr = "microqr"; break;
+    }
+
+    m_out->Print( "(type %s)", typeStr );
+
+    if( aBarcode->GetKind() == BARCODE_T::QR_CODE
+        || aBarcode->GetKind() == BARCODE_T::MICRO_QR_CODE )
+    {
+        const char* eccStr = "L";
+        switch( aBarcode->GetErrorCorrection() )
+        {
+        case BARCODE_ECC_T::L: eccStr = "L"; break;
+        case BARCODE_ECC_T::M: eccStr = "M"; break;
+        case BARCODE_ECC_T::Q: eccStr = "Q"; break;
+        case BARCODE_ECC_T::H: eccStr = "H"; break;
+        }
+
+        m_out->Print( "(ecc_level %s)", eccStr );
+    }
+
+    KICAD_FORMAT::FormatUuid( m_out, aBarcode->m_Uuid );
 
     m_out->Print( ")" );
 }

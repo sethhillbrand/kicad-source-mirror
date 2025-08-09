@@ -28,7 +28,7 @@
 #include <confirm.h>
 #include <board_commit.h>
 #include <board.h>
-#include <class_barcode.h>
+#include <pcb_barcode.h>
 #include <footprint.h>
 #include <pcb_text.h>
 #include <project.h>
@@ -257,17 +257,6 @@ void PCB_BASE_EDIT_FRAME::ShowTextPropertiesDialog( PCB_TEXT* aText )
 
     // QuasiModal required for Scintilla auto-complete
     dlg.ShowQuasiModal();
-}
-
-
-/**
- * Routine for main window class to launch barcode properties dialog.
- */
-void PCB_BASE_EDIT_FRAME::InstallBarcodeOptionsFrame( PCB_BARCODE* aBarcode )
-{
-    DIALOG_TEXT_PROPERTIES dlg( this, &aBarcode->Text() );
-    //DIALOG_BARCODE_PROPERTIES dlg( this, aBarcode );
-    dlg.ShowModal();
 }
 
 

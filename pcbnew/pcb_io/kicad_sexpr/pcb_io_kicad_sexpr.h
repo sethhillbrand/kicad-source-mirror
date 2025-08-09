@@ -59,6 +59,7 @@ class ZONE;
 class PCB_TEXT;
 class PCB_TEXTBOX;
 class PCB_TABLE;
+class PCB_BARCODE;
 class EDA_TEXT;
 class SHAPE_LINE_CHAIN;
 class TEARDROP_PARAMETERS;
@@ -184,7 +185,8 @@ class PCB_IO_KICAD_SEXPR;   // forward decl
 //#define SEXPR_BOARD_FILE_VERSION    20250324  // Jumper pads
 //#define SEXPR_BOARD_FILE_VERSION    20250401  // Time domain length tuning
 //#define SEXPR_BOARD_FILE_VERSION    20250513  // Groups can have design block lib_id
-#define SEXPR_BOARD_FILE_VERSION      20250801  // (island) -> (island yes/no)
+//#define SEXPR_BOARD_FILE_VERSION    20250801  // (island) -> (island yes/no)
+#define SEXPR_BOARD_FILE_VERSION    20250808    // Add support for PCB_BARCODE objects
 
 #define BOARD_FILE_HOST_VERSION       20200825  ///< Earlier files than this include the host tag
 #define LEGACY_ARC_FORMATTING         20210925  ///< These were the last to use old arc formatting
@@ -447,6 +449,8 @@ private:
     void format( const FOOTPRINT* aFootprint ) const;
 
     void format( const PAD* aPad ) const;
+
+    void format( const PCB_BARCODE* aBarcode ) const;
 
     void format( const PCB_TEXT* aText ) const;
     void format( const PCB_TEXTBOX* aTextBox ) const;

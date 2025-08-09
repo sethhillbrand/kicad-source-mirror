@@ -60,7 +60,8 @@ const std::vector<KICAD_T> GENERAL_COLLECTOR::AllBoardItems = {
     PCB_FOOTPRINT_T,        // in m_footprints
     PCB_GROUP_T,            // in m_groups
     PCB_ZONE_T,             // in m_zones
-    PCB_GENERATOR_T         // in m_generators
+    PCB_GENERATOR_T,        // in m_generators
+    PCB_BARCODE_T,          // in m_drawings
 };
 
 

@@ -42,7 +42,7 @@
 #include <pcb_tablecell.h>
 #include <pcb_marker.h>
 #include <pcb_dimension.h>
-#include "class_barcode.h"
+#include "pcb_barcode.h"
 #include <pcb_target.h>
 #include <pcb_board_outline.h>
 
@@ -2829,38 +2829,27 @@ void PCB_PAINTER::draw( const PCB_BARCODE* aBarcode, int aLayer )
     m_gal->SetStrokeColor( color );
 
     // Draw the barcode
-    SHAPE_POLY_SET& shape = ( (PCB_BARCODE*) aBarcode )->GetPolyShape();
+    const SHAPE_POLY_SET& shape = aBarcode->GetPolyShape();
+
     if( shape.OutlineCount() != 0 )
     {
-        // On Opengl, a not convex filled polygon is usually drawn by using triangles as primitives.
-        // CacheTriangulation() can create basic triangle primitives to draw the polygon solid shape
-        // on Opengl.
-        // GLU tesselation is much slower, so currently we are using our tesselation.
-        if( m_gal->IsOpenGlEngine() && !shape.IsTriangulationUpToDate() )
-        {
-            shape.CacheTriangulation();
-        }
-
         m_gal->Save();
-
         m_gal->Translate( aBarcode->GetPosition() );
 
         m_gal->SetLineWidth( 0 );
         m_gal->SetIsFill( true );
 
-        m_gal->SetIsStroke( true );
+        m_gal->SetIsStroke( false );
         m_gal->DrawPolygon( shape );
 
         m_gal->Restore();
     }
 
     // Draw text
-    TEXTE_PCB& text = aBarcode->Text();
-    VECTOR2D   position( text.GetTextPos().x, text.GetTextPos().y + aBarcode->GetHeight() / 2 );
+    const PCB_TEXT& text = aBarcode->Text();
 
-    m_gal->SetLineWidth( getLineThickness( text.GetEffectiveTextPenWidth() ) );
-    m_gal->SetTextAttributes( &text );
-    m_gal->StrokeText( text.GetShownText(), position, text.GetTextAngleRadians() );
+    if( text.IsVisible() )
+        draw( &text, aLayer );
 }
 
 
