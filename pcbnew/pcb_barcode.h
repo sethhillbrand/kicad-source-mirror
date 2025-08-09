@@ -23,7 +23,7 @@
  */
 
 /**
- * @file class_barcode.h
+ * @file pcb_barcode.h
  * @brief BARCODE class definition.
  */
 
@@ -31,35 +31,40 @@
 #define BARCODE_H_
 
 
-#include <class_board_item.h>
-#include <class_pcb_text.h>
-#include <geometry/shape_poly_set.h>
-
+#include <board_item.h>
 
 class LINE_READER;
-class TEXTE_PCB;
 class MSG_PANEL_ITEM;
+class SHAPE_POLY_SET;
+class PCB_TEXT;
 
 
-/**
- * Enum STROKE_T
- * is the set of shapes for segments (graphic segments and tracks) which are often
- * in the .m_Shape member
- */
-enum class BARCODE_T
+enum class BARCODE_T : int
 {
-    CODE_39,
-    CODE_128,
-    QR_CODE
+    CODE_39 = 0,
+    CODE_128 = 1,
+    DATA_MATRIX = 2,
+    QR_CODE = 3,
+    MICRO_QR_CODE = 4
+};
+
+enum class BARCODE_ECC_T : int
+{
+    L = 1, // Low
+    M = 2, // Medium
+    Q = 3, // Quartile
+    H = 4  // High
 };
 
 class PCB_BARCODE : public BOARD_ITEM
 {
-    int            m_Width;  ///< Barcode width
-    int            m_Height; ///< Barcode height
-    TEXTE_PCB      m_Text;
-    BARCODE_T      m_Kind;
-    SHAPE_POLY_SET m_Poly; ///< Stores the S_POLYGON shape
+    int            m_width;  ///< Barcode width
+    int            m_height; ///< Barcode height
+    VECTOR2I       m_pos;    ///< Position of the barcode
+    PCB_TEXT       m_text;
+    BARCODE_T      m_kind;
+    BARCODE_ECC_T  m_errorCorrection; ///< Error correction level for QR codes
+    SHAPE_POLY_SET m_poly; ///< Stores the S_POLYGON shape
 
 public:
     PCB_BARCODE( BOARD_ITEM* aParent );
@@ -74,70 +79,64 @@ public:
         return aItem && PCB_BARCODE_T == aItem->Type();
     }
 
-    const wxPoint GetPosition() const override;
+    VECTOR2I GetPosition() const override;
 
-    void SetPosition( const wxPoint& aPos ) override;
+    void SetPosition( const VECTOR2I& aPos ) override;
 
-    void SetTextSize( const wxSize& aTextSize )
+    void SetTextSize( const VECTOR2I& aTextSize )
     {
-        m_Text.SetTextSize( aTextSize );
+        m_text.SetTextSize( aTextSize );
     }
 
     void SetLayer( PCB_LAYER_ID aLayer ) override;
 
     int GetWidth() const
     {
-        return m_Width;
+        return m_width;
     }
     void SetWidth( int aWidth )
     {
-        m_Width = aWidth;
+        m_width = aWidth;
     }
 
     int GetHeight() const
     {
-        return m_Height;
+        return m_height;
     }
     void SetHeight( int aHeight )
     {
-        m_Width = aHeight;
+        m_height = aHeight;
     }
 
     SHAPE_POLY_SET& GetPolyShape()
     {
-        return m_Poly;
+        return m_poly;
     }
 
-    /**
-     * Function ComputeBarcode
-     * Compute elements of the barcode
-     */
     void ComputeBarcode();
 
     void           SetText( const wxString& NewText );
     const wxString GetText() const;
 
-    TEXTE_PCB& Text()
-    {
-        return m_Text;
-    }
-    TEXTE_PCB& Text() const
-    {
-        return *( const_cast<TEXTE_PCB*>( &m_Text ) );
-    }
+    PCB_TEXT& Text() { return m_text; }
+    const PCB_TEXT& Text() const { return m_text; }
+
+    void SetErrorCorrection( BARCODE_ECC_T aErrorCorrection ){ m_errorCorrection = aErrorCorrection; }
+
+    BARCODE_ECC_T GetErrorCorrection() const { return m_errorCorrection; }
 
     /**
      * Function Move
      * @param offset : moving vector
      */
-    void Move( const wxPoint& offset ) override;
-    void Rotate( const wxPoint& aRotCentre, double aAngle ) override;
-    void Flip( const wxPoint& aCentre, bool aFlipLeftRight ) override;
+    void Move( const VECTOR2I& offset ) override;
+    void Rotate( const VECTOR2I& aRotCentre, const EDA_ANGLE& aAngle ) override;
+    void Flip( const VECTOR2I& aCentre, FLIP_DIRECTION aFlipLeftRight ) override;
 
     void GetMsgPanelInfo( EDA_DRAW_FRAME* aFrame, std::vector<MSG_PANEL_ITEM>& aList ) override;
 
-    bool HitTest( const wxPoint& aPosition, int aAccuracy ) const override;
-    bool HitTest( const EDA_RECT& aRect, bool aContained, int aAccuracy = 0 ) const override;
+    bool HitTest( const VECTOR2I& aPosition, int aAccuracy ) const override;
+    bool HitTest( const BOX2I& aRect, bool aContained, int aAccuracy = 0 ) const override;
 
     wxString GetClass() const override
     {
@@ -145,24 +144,36 @@ public:
     }
 
     // Virtual function
-    const EDA_RECT GetBoundingBox() const override;
+    const BOX2I GetBoundingBox() const override;
 
-    wxString GetSelectMenuText( EDA_UNITS aUnits ) const override;
+    wxString GetItemDescription( UNITS_PROVIDER* aUnitsProvider, bool aFull ) const override;
 
-    BITMAP_DEF GetMenuImage() const override;
+    BITMAPS GetMenuImage() const override;
 
     EDA_ITEM* Clone() const override;
 
     virtual const BOX2I ViewBBox() const override;
 
-    virtual void SwapData( BOARD_ITEM* aImage ) override;
+    double Similarity( const BOARD_ITEM& aItem ) const override;
 
-#if defined( DEBUG )
-    virtual void Show( int nestLevel, std::ostream& os ) const override
+    bool operator==( const BOARD_ITEM& aItem ) const override;
+
+    /**
+     * Returns the type of the barcode.
+     */
+    BARCODE_T GetKind() const
     {
-        ShowDummy( os );
+        return m_kind;
     }
-#endif
+
+    /**
+     * Sets the type of the barcode.
+     */
+    void SetKind( BARCODE_T aKind )
+    {
+        m_kind = aKind;
+    }
+
 };
 
 #endif // DIMENSION_H_
