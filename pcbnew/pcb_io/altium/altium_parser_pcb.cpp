@@ -1057,9 +1057,34 @@ ATEXT6::ATEXT6( ALTIUM_BINARY_PARSER& aReader, std::map<uint32_t, wxString>& aSt
 
     if( remaining >= 103 )
     {
-        aReader.Skip( 24 ); // Unknown data
-        aReader.Skip( 64 ); // 2nd font name
-        aReader.Skip( 5 );  // Unknown flags
+        aReader.Skip( 23 );
+        fonttype = static_cast<ALTIUM_TEXT_TYPE>( aReader.Read<uint8_t>() );
+
+        //TODO: This is not quite right yet
+        if( fonttype == ALTIUM_TEXT_TYPE::BARCODE )
+        {
+            aReader.ReadBytes( fontData, sizeof( fontData ) );
+            barcode_fontname = wxString( fontData, wxMBConvUTF16LE(), sizeof( fontData ) ).BeforeFirst( '\0' );
+            aReader.Skip( 1 );
+            barcode_inverted = aReader.Read<uint8_t>() != 0;
+            barcode_size = aReader.ReadVector2ISize();
+            barcode_margin = aReader.ReadVector2ISize();
+            aReader.Skip( 4 );
+            barcode_inverted = aReader.Read<uint8_t>() != 0;
+            aReader.Skip( 1 ); // font type (already read)
+
+            char barcodeName[64] = { 0 };
+            aReader.ReadBytes( barcodeName, sizeof( barcodeName ) );
+            barcode_name = wxString( barcodeName, wxMBConvUTF16LE(), sizeof( barcodeName ) ).BeforeFirst( '\0' );
+
+            barcode_show_text = aReader.Read<uint8_t>() != 0;
+            aReader.Skip( 4 );
+        }
+        else
+        {
+            aReader.Skip( 64 ); // 2nd font name
+            aReader.Skip( 5 );  // Unknown flags
+        }
 
         // "Frame" text type flag
         isFrame = aReader.Read<uint8_t>() != 0;
