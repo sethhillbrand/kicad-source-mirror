@@ -172,6 +172,8 @@ set( PCBNEW_DIALOGS
     dialogs/panel_fp_editor_graphics_defaults_base.cpp
     dialogs/panel_fp_properties_3d_model.cpp
     dialogs/panel_fp_properties_3d_model_base.cpp
+    dialogs/dialog_pcb_3dbody_properties.cpp
+    dialogs/panel_pcb_3dbody_generator.cpp
     dialogs/panel_pcbnew_action_plugins.cpp
     dialogs/panel_pcbnew_action_plugins_base.cpp
     dialogs/panel_pcbnew_color_settings.cpp
@@ -352,6 +354,7 @@ set( PCBNEW_CLASS_SRCS
     initpcb.cpp
     layer_pairs.cpp
     load_select_footprint.cpp
+    pcb_3dbody.cpp
     menubar_footprint_editor.cpp
     menubar_pcb_editor.cpp
     pcb_base_edit_frame.cpp

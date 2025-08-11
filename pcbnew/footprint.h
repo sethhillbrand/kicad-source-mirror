@@ -95,7 +95,8 @@ public:
         m_Rotation { 0, 0, 0 },
         m_Offset { 0, 0, 0 },
         m_Opacity( 1.0 ),
-        m_Show( true )
+        m_Show( true ),
+        m_IsParametric( false )
     {
     }
 
@@ -105,6 +106,7 @@ public:
     double   m_Opacity;
     wxString m_Filename;    ///< The 3D shape filename in 3D library
     bool     m_Show;        ///< Include model in rendering
+    bool     m_IsParametric;///< True if model is generated from PCB_3DBODY
 
     bool operator==( const FP_3DMODEL& aOther ) const
     {
@@ -113,7 +115,8 @@ public:
                 && m_Offset == aOther.m_Offset
                 && m_Opacity == aOther.m_Opacity
                 && m_Filename == aOther.m_Filename
-                && m_Show == aOther.m_Show;
+                && m_Show == aOther.m_Show
+                && m_IsParametric == aOther.m_IsParametric;
     }
 };
 

@@ -45,6 +45,7 @@
 #include <panel_embedded_files.h>
 #include <panel_fp_properties_3d_model.h>
 #include <dialogs/panel_preview_3d_model.h>
+#include <panel_pcb_3dbody_generator.h>
 #include <dialog_footprint_properties.h>
 #include <tool/tool_manager.h>
 #include <tools/pcb_selection_tool.h>
@@ -72,8 +73,10 @@ DIALOG_FOOTPRINT_PROPERTIES::DIALOG_FOOTPRINT_PROPERTIES( PCB_EDIT_FRAME* aParen
     // Create the extra panels.  Embedded files is referenced by the 3D model panel.
     m_embeddedFiles = new PANEL_EMBEDDED_FILES( m_NoteBook, m_footprint );
     m_3dPanel = new PANEL_FP_PROPERTIES_3D_MODEL( m_frame, m_footprint, this, m_embeddedFiles, m_NoteBook );
+    m_generatedPanel = new PANEL_PCB_3DBODY_GENERATOR( m_frame, m_footprint, m_NoteBook );
 
     m_NoteBook->AddPage( m_3dPanel, _("3D Models"), false );
+    m_NoteBook->AddPage( m_generatedPanel, _( "Generated 3D Body" ), false );
     m_NoteBook->AddPage( m_embeddedFiles, _( "Embedded Files" ) );
 
     // Configure display origin transforms

@@ -1,0 +1,12 @@
+#ifndef DIALOG_PCB_3DBODY_PROPERTIES_H
+#define DIALOG_PCB_3DBODY_PROPERTIES_H
+
+#include <dialog_shim.h>
+
+class DIALOG_PCB_3DBODY_PROPERTIES : public DIALOG_SHIM
+{
+public:
+    DIALOG_PCB_3DBODY_PROPERTIES( wxWindow* aParent );
+};
+
+#endif // DIALOG_PCB_3DBODY_PROPERTIES_H

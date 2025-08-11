@@ -109,6 +109,7 @@ enum KICAD_T
     PCB_NETINFO_T,           ///< class NETINFO_ITEM, a description of a net
     PCB_GROUP_T,             ///< class PCB_GROUP, a set of BOARD_ITEMs
     PCB_BOARD_OUTLINE_T,     ///< class PCB_BOARD_OUTLINE_T, a pcb board outline item
+    PCB_3DBODY_T,             ///< class PCB_3DBODY, a parametric 3D body
 
     // Be prudent with these types:
     // they should be used only to locate a specific field type among PCB_FIELD_Ts
@@ -471,6 +472,7 @@ constexpr bool IsPcbnewType( const KICAD_T aType )
     case PCB_SHAPE_LOCATE_ARC_T:
     case PCB_SHAPE_LOCATE_POLY_T:
     case PCB_SHAPE_LOCATE_BEZIER_T:
+    case PCB_3DBODY_T:
     case PCB_BOARD_OUTLINE_T:
         return true;
 

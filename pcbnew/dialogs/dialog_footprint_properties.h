@@ -37,6 +37,7 @@
 class PCB_EDIT_FRAME;
 class PANEL_FP_PROPERTIES_3D_MODEL;
 class PANEL_EMBEDDED_FILES;
+class PANEL_PCB_3DBODY_GENERATOR;
 
 class DIALOG_FOOTPRINT_PROPERTIES: public DIALOG_FOOTPRINT_PROPERTIES_BASE
 {
@@ -106,6 +107,7 @@ private:
     enum FP_PROPS_RETVALUE           m_returnValue; // the option that closed the dialog
 
     PANEL_FP_PROPERTIES_3D_MODEL*    m_3dPanel;
+    PANEL_PCB_3DBODY_GENERATOR*      m_generatedPanel;
 
     bool                             m_initialized;
 

@@ -78,6 +78,8 @@ private:
     void OnAdd3DModel( wxCommandEvent& event ) override;
     void OnAdd3DRow( wxCommandEvent& event ) override;
     void Cfg3DPath( wxCommandEvent& event ) override;
+    void OnModelsGridRightClick( wxGridEvent& event );
+    void OnEdit3DBody( wxCommandEvent& event );
 
     void OnGridSize( wxSizeEvent& event ) override;
     void OnUpdateUI( wxUpdateUIEvent& event ) override;

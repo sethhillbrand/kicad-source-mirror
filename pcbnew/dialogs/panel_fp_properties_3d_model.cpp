@@ -46,11 +46,13 @@
 #include <dialogs/panel_preview_3d_model.h>
 #include <dialogs/dialog_select_3d_model.h>
 #include <dialogs/panel_embedded_files.h>
+#include <dialogs/dialog_pcb_3dbody_properties.h>
 #include <settings/settings_manager.h>
 #include <project_pcb.h>
 
 #include <wx/defs.h>
 #include <wx/msgdlg.h>
+#include <wx/menu.h>
 
 enum MODELS_TABLE_COLUMNS
 {
@@ -86,6 +88,8 @@ PANEL_FP_PROPERTIES_3D_MODEL::PANEL_FP_PROPERTIES_3D_MODEL( PCB_BASE_EDIT_FRAME*
     trick->SetTooltipEnable( COL_PROBLEM );
 
     m_modelsGrid->PushEventHandler( trick );
+    m_modelsGrid->Bind( wxEVT_GRID_CELL_RIGHT_CLICK,
+                        &PANEL_FP_PROPERTIES_3D_MODEL::OnModelsGridRightClick, this );
 
     // Get the last 3D directory
     PCBNEW_SETTINGS* cfg = GetAppSettings<PCBNEW_SETTINGS>( "pcbnew" );
@@ -193,6 +197,8 @@ void PANEL_FP_PROPERTIES_3D_MODEL::ReloadModelsFromFootprint()
         int row = m_modelsGrid->GetNumberRows() - 1;
         m_modelsGrid->SetCellValue( row, COL_FILENAME, origPath );
         m_modelsGrid->SetCellValue( row, COL_SHOWN, model.m_Show ? wxT( "1" ) : wxT( "0" ) );
+        if( model.m_IsParametric )
+            m_modelsGrid->SetCellValue( row, COL_PROBLEM, wxT( "P" ) );
 
         // Must be after the filename is set
         updateValidateStatus( row );
@@ -606,4 +612,21 @@ void PANEL_FP_PROPERTIES_3D_MODEL::postCustomPanelShownEventWithPredicate( bool 
     event.SetEventObject( m_previewPane );
     event.SetInt( static_cast<int>( predicate ) );
     m_previewPane->ProcessWindowEvent( event );
+}
+
+
+void PANEL_FP_PROPERTIES_3D_MODEL::OnModelsGridRightClick( wxGridEvent& event )
+{
+    m_modelsGrid->SetGridCursor( event.GetRow(), event.GetCol() );
+    wxMenu menu;
+    menu.Append( wxID_EDIT, _( "Edit 3D Body..." ) );
+    menu.Bind( wxEVT_COMMAND_MENU_SELECTED, &PANEL_FP_PROPERTIES_3D_MODEL::OnEdit3DBody, this );
+    PopupMenu( &menu );
+}
+
+
+void PANEL_FP_PROPERTIES_3D_MODEL::OnEdit3DBody( wxCommandEvent& WXUNUSED( event ) )
+{
+    DIALOG_PCB_3DBODY_PROPERTIES dlg( this );
+    dlg.ShowModal();
 }
