@@ -2748,7 +2748,31 @@ void PCB_IO_KICAD_SEXPR_PARSER::parseNETINFO_ITEM()
     if( m_requiredVersion < 20210606 )
         name = ConvertToNewOverbarNotation( name );
 
-    NeedRIGHT();
+    T token = NextTok();
+    wxString diffPairName;
+
+    while( token == T_LEFT )
+    {
+        token = NextTok();
+
+        switch( token )
+        {
+        case T_diff_pair:
+            NeedSYMBOLorNUMBER();
+            diffPairName = FromUTF8();
+            NeedRIGHT();
+            token = CurTok();
+            break;
+
+        default:
+            Expecting( "diff_pair" );
+        }
+    }
+
+    if( token != T_RIGHT )
+        Expecting( T_RIGHT );
+    else
+        NextTok();
 
     // net 0 should be already in list, so store this net
     // if it is not the net 0, or if the net 0 does not exists.
@@ -2756,6 +2780,10 @@ void PCB_IO_KICAD_SEXPR_PARSER::parseNETINFO_ITEM()
     if( netCode > NETINFO_LIST::UNCONNECTED || !m_board->FindNet( NETINFO_LIST::UNCONNECTED ) )
     {
         NETINFO_ITEM* net = new NETINFO_ITEM( m_board, name, netCode );
+
+        if( !diffPairName.IsEmpty() )
+            net->SetDiffPair( diffPairName );
+
         m_board->Add( net, ADD_MODE::INSERT, true );
 
         // Store the new code mapping

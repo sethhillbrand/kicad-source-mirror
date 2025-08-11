@@ -442,6 +442,7 @@ static struct EDA_ITEM_DESC
             .Map( SCH_MARKER_T,            _HKI( "Marker" ) )
             .Map( SCH_JUNCTION_T,          _HKI( "Junction" ) )
             .Map( SCH_NO_CONNECT_T,        _HKI( "No-Connect Flag" ) )
+            .Map( SCH_DIFFPAIR_T,         _HKI( "Differential Pair" ) )
             .Map( SCH_BUS_WIRE_ENTRY_T,    _HKI( "Wire Entry" ) )
             .Map( SCH_BUS_BUS_ENTRY_T,     _HKI( "Bus Entry" ) )
             .Map( SCH_LINE_T,              _HKI( "Line" ) )

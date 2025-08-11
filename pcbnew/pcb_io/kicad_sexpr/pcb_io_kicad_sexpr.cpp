@@ -688,9 +688,19 @@ void PCB_IO_KICAD_SEXPR::formatNetInformation( const BOARD* aBoard ) const
         if( net == nullptr )    // Skip not actually existing nets (orphan nets)
             continue;
 
-        m_out->Print( "(net %d %s)",
-                      m_mapping->Translate( net->GetNetCode() ),
-                      m_out->Quotew( net->GetNetname() ).c_str() );
+        if( net->HasDiffPair() )
+        {
+            m_out->Print( "(net %d %s (diff_pair %s))",
+                          m_mapping->Translate( net->GetNetCode() ),
+                          m_out->Quotew( net->GetNetname() ).c_str(),
+                          m_out->Quotew( net->GetDiffPair() ).c_str() );
+        }
+        else
+        {
+            m_out->Print( "(net %d %s)",
+                          m_mapping->Translate( net->GetNetCode() ),
+                          m_out->Quotew( net->GetNetname() ).c_str() );
+        }
     }
 }
 

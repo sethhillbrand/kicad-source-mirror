@@ -159,6 +159,7 @@ enum KICAD_T
     SCH_MARKER_T,
     SCH_JUNCTION_T,
     SCH_NO_CONNECT_T,
+    SCH_DIFFPAIR_T,
     SCH_BUS_WIRE_ENTRY_T,
     SCH_BUS_BUS_ENTRY_T,
     SCH_LINE_T,
@@ -373,6 +374,7 @@ constexpr bool IsEeschemaType( const KICAD_T aType )
     case SCH_MARKER_T:
     case SCH_JUNCTION_T:
     case SCH_NO_CONNECT_T:
+    case SCH_DIFFPAIR_T:
     case SCH_BUS_WIRE_ENTRY_T:
     case SCH_BUS_BUS_ENTRY_T:
     case SCH_LINE_T:

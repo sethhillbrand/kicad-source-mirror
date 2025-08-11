@@ -394,6 +394,7 @@ set( EESCHEMA_SRCS
     sch_line.cpp
     sch_marker.cpp
     sch_no_connect.cpp
+    sch_diffpair.cpp
     sch_painter.cpp
     sch_pin.cpp
     sch_plotter.cpp

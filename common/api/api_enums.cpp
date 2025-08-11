@@ -57,6 +57,7 @@ KICAD_T FromProtoEnum( types::KiCadObjectType aValue )
     case types::KiCadObjectType::KOT_SCH_MARKER:            return SCH_MARKER_T;
     case types::KiCadObjectType::KOT_SCH_JUNCTION:          return SCH_JUNCTION_T;
     case types::KiCadObjectType::KOT_SCH_NO_CONNECT:        return SCH_NO_CONNECT_T;
+    case types::KiCadObjectType::KOT_SCH_DIFFPAIR:         return SCH_DIFFPAIR_T;
     case types::KiCadObjectType::KOT_SCH_BUS_WIRE_ENTRY:    return SCH_BUS_WIRE_ENTRY_T;
     case types::KiCadObjectType::KOT_SCH_BUS_BUS_ENTRY:     return SCH_BUS_BUS_ENTRY_T;
     case types::KiCadObjectType::KOT_SCH_LINE:              return SCH_LINE_T;
@@ -116,6 +117,7 @@ types::KiCadObjectType ToProtoEnum( KICAD_T aValue )
     case SCH_MARKER_T:           return types::KiCadObjectType::KOT_SCH_MARKER;
     case SCH_JUNCTION_T:         return types::KiCadObjectType::KOT_SCH_JUNCTION;
     case SCH_NO_CONNECT_T:       return types::KiCadObjectType::KOT_SCH_NO_CONNECT;
+    case SCH_DIFFPAIR_T:         return types::KiCadObjectType::KOT_SCH_DIFFPAIR;
     case SCH_BUS_WIRE_ENTRY_T:   return types::KiCadObjectType::KOT_SCH_BUS_WIRE_ENTRY;
     case SCH_BUS_BUS_ENTRY_T:    return types::KiCadObjectType::KOT_SCH_BUS_BUS_ENTRY;
     case SCH_LINE_T:             return types::KiCadObjectType::KOT_SCH_LINE;
