@@ -32,6 +32,7 @@
 #include <pcb_group.h>
 #include <pcb_marker.h>
 #include <pcb_textbox.h>
+#include <pcb_barcode.h>
 #include <pcb_table.h>
 #include <pcb_shape.h>
 #include <pad.h>
@@ -167,8 +168,16 @@ void FOOTPRINT_EDIT_FRAME::OnEditItemRequest( BOARD_ITEM* aItem )
         ShowReferenceImagePropertiesDialog( aItem );
         break;
 
+    case PCB_BARCODE_T:
+        ShowBarcodePropertiesDialog( static_cast<PCB_BARCODE*>( aItem ) );
+        break;
+
     case PCB_PAD_T:
         ShowPadPropertiesDialog( static_cast<PAD*>( aItem ) );
+        break;
+
+    case PCB_BARCODE_T:
+        ShowBarcodePropertiesDialog( static_cast<PCB_BARCODE*>( aItem ) );
         break;
 
     case PCB_FOOTPRINT_T:

@@ -27,6 +27,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <board.h>
+#include <footprint.h>
 #include <pcb_text.h>
 #include <pcb_barcode.h>
 #include <pcbnew_utils/board_file_utils.h>
@@ -71,5 +72,53 @@ BOOST_AUTO_TEST_CASE( BarcodeWriteRead )
 
     BOX2I bbox = loaded.GetPolyShape().BBox();
     BOOST_CHECK_EQUAL( bbox.Centre(), loaded.GetPosition() );
+}
+
+
+BOOST_AUTO_TEST_CASE( BarcodeFootprintWriteRead )
+{
+    SETTINGS_MANAGER settingsManager( true );
+
+    FOOTPRINT footprint( nullptr );
+
+    PCB_BARCODE* barcode = new PCB_BARCODE( &footprint );
+    barcode->SetText( wxT( "12345" ) );
+    barcode->SetLayer( F_SilkS );
+    barcode->SetPosition( VECTOR2I( 1000000, 2000000 ) );
+    barcode->SetWidth( 3000000 );
+    barcode->SetHeight( 3000000 );
+    barcode->SetKind( BARCODE_T::QR_CODE );
+    barcode->SetErrorCorrection( BARCODE_ECC_T::M );
+    barcode->ComputeBarcode();
+
+    const KIID id = barcode->m_Uuid;
+
+    footprint.Add( barcode, ADD_MODE::APPEND, true );
+
+    const std::filesystem::path savePath =
+            std::filesystem::temp_directory_path() / "barcode_roundtrip.kicad_mod";
+
+    KI_TEST::DumpFootprintToFile( footprint, savePath.string() );
+    std::unique_ptr<FOOTPRINT> footprint2 =
+            KI_TEST::ReadFootprintFromFileOrStream( savePath.string() );
+
+    PCB_BARCODE* loaded = nullptr;
+
+    for( BOARD_ITEM* item : footprint2->GraphicalItems() )
+    {
+        if( item->Type() == PCB_BARCODE_T && item->m_Uuid == id )
+        {
+            loaded = static_cast<PCB_BARCODE*>( item );
+            break;
+        }
+    }
+
+    BOOST_REQUIRE( loaded != nullptr );
+    BOOST_CHECK( loaded->GetText() == barcode->GetText() );
+    BOOST_CHECK_EQUAL( static_cast<int>( loaded->GetKind() ), static_cast<int>( barcode->GetKind() ) );
+    BOOST_CHECK_EQUAL( static_cast<int>( loaded->GetErrorCorrection() ),
+                       static_cast<int>( barcode->GetErrorCorrection() ) );
+    BOOST_CHECK_EQUAL( loaded->GetWidth(), barcode->GetWidth() );
+    BOOST_CHECK_EQUAL( loaded->GetHeight(), barcode->GetHeight() );
 }
 
