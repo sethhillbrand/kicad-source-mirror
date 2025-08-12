@@ -2119,6 +2119,9 @@ int SCH_EDITOR_CONTROL::Paste( const TOOL_EVENT& aEvent )
 
     if( !annotatedSymbols.empty() )
     {
+        ANNOTATE_ORDER_T annotateOrder = static_cast<ANNOTATE_ORDER_T>( schematicSettings.m_AnnotateSortOrder );
+        ANNOTATE_ALGO_T  annotateAlgo  = static_cast<ANNOTATE_ALGO_T>( schematicSettings.m_AnnotateMethod );
+
         for( SCH_SHEET_PATH& path : sheetPathsForScreen )
         {
             annotatedSymbols[path].SortByReferenceOnly();
@@ -2130,8 +2133,8 @@ int SCH_EDITOR_CONTROL::Paste( const TOOL_EVENT& aEvent )
             }
             else
             {
-                annotatedSymbols[path].ReannotateByOptions( (ANNOTATE_ORDER_T) annotate.sort_order,
-                                                            (ANNOTATE_ALGO_T) annotate.method,
+                annotatedSymbols[path].ReannotateByOptions( annotateOrder,
+                                                            annotateAlgo,
                                                             annotateStartNum, existingRefs, false,
                                                             &hierarchy );
             }
@@ -2153,8 +2156,8 @@ int SCH_EDITOR_CONTROL::Paste( const TOOL_EVENT& aEvent )
                 }
                 else
                 {
-                    annotatedSymbols[pastedSheetPath].ReannotateByOptions( (ANNOTATE_ORDER_T) annotate.sort_order,
-                                                                           (ANNOTATE_ALGO_T) annotate.method,
+                    annotatedSymbols[pastedSheetPath].ReannotateByOptions( annotateOrder,
+                                                                           annotateAlgo,
                                                                            annotateStartNum, existingRefs,
                                                                            false,
                                                                            &hierarchy );

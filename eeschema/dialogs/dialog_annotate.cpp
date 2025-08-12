@@ -133,8 +133,6 @@ DIALOG_ANNOTATE::~DIALOG_ANNOTATE()
 
     EESCHEMA_SETTINGS* cfg = static_cast<EESCHEMA_SETTINGS*>( Kiface().KifaceSettings() );
 
-    cfg->m_AnnotatePanel.sort_order = GetSortOrder();
-    cfg->m_AnnotatePanel.method = GetAnnotateAlgo();
     cfg->m_AnnotatePanel.options = m_rbOptions->GetSelection();
 
     if( m_rbScope_Schematic->IsEnabled() )
@@ -145,22 +143,35 @@ DIALOG_ANNOTATE::~DIALOG_ANNOTATE()
 
     cfg->m_AnnotatePanel.messages_filter = m_MessageWindow->GetVisibleSeverities();
 
-    // Get the "start annotation after" value from dialog and update project settings if changed
+    int sort = GetSortOrder();
+    int method = GetAnnotateAlgo();
     int startNum = GetStartNumber();
 
     if( SCH_EDIT_FRAME* schFrame = dynamic_cast<SCH_EDIT_FRAME*>( m_parentFrame ) )
     {
         SCHEMATIC_SETTINGS& projSettings = schFrame->Schematic().Settings();
+        bool modified = false;
 
-        // If the user has updated the start annotation number then update the project file.
-        // We manually update the project file here in case the user has changed the value
-        // and just clicked the "Close" button on the annotation dialog.
+        if( projSettings.m_AnnotateSortOrder != sort )
+        {
+            projSettings.m_AnnotateSortOrder = sort;
+            modified = true;
+        }
+
+        if( projSettings.m_AnnotateMethod != method )
+        {
+            projSettings.m_AnnotateMethod = method;
+            modified = true;
+        }
 
         if( projSettings.m_AnnotateStartNum != startNum )
         {
             projSettings.m_AnnotateStartNum = startNum;
-            schFrame->OnModify();
+            modified = true;
         }
+
+        if( modified )
+            schFrame->OnModify();
     }
 }
 
@@ -187,28 +198,27 @@ bool DIALOG_ANNOTATE::TransferDataToWindow()
 
     m_rbOptions->SetSelection( cfg->m_AnnotatePanel.options );
 
-    switch( cfg->m_AnnotatePanel.sort_order )
-    {
-    default:
-    case SORT_BY_X_POSITION: m_rbSortBy_X_Position->SetValue( true ); break;
-    case SORT_BY_Y_POSITION: m_rbSortBy_Y_Position->SetValue( true ); break;
-    }
-
-    switch( cfg->m_AnnotatePanel.method )
-    {
-    default:
-    case INCREMENTAL_BY_REF:  m_rbFirstFree->SetValue( true );  break;
-    case SHEET_NUMBER_X_100:  m_rbSheetX100->SetValue( true );  break;
-    case SHEET_NUMBER_X_1000: m_rbSheetX1000->SetValue( true ); break;
-    }
-
     int annotateStartNum = 0; // Default "start after" value for annotation
 
-    // See if we can get a "start after" value from the project settings
     if( SCH_EDIT_FRAME* schFrame = dynamic_cast<SCH_EDIT_FRAME*>( m_parentFrame ) )
     {
         SCHEMATIC_SETTINGS& projSettings = schFrame->Schematic().Settings();
         annotateStartNum = projSettings.m_AnnotateStartNum;
+
+        switch( projSettings.m_AnnotateSortOrder )
+        {
+        default:
+        case SORT_BY_X_POSITION: m_rbSortBy_X_Position->SetValue( true ); break;
+        case SORT_BY_Y_POSITION: m_rbSortBy_Y_Position->SetValue( true ); break;
+        }
+
+        switch( projSettings.m_AnnotateMethod )
+        {
+        default:
+        case INCREMENTAL_BY_REF:  m_rbFirstFree->SetValue( true );  break;
+        case SHEET_NUMBER_X_100:  m_rbSheetX100->SetValue( true );  break;
+        case SHEET_NUMBER_X_1000: m_rbSheetX1000->SetValue( true ); break;
+        }
     }
 
     m_textNumberAfter->SetValue( wxString::Format( wxT( "%d" ), annotateStartNum ) );

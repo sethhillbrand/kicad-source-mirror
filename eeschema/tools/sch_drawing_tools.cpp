@@ -234,8 +234,8 @@ int SCH_DRAWING_TOOLS::PlaceSymbol( const TOOL_EVENT& aEvent )
 
                     if( cfg->m_AnnotatePanel.automatic || newReference.AlwaysAnnotate() )
                     {
-                        refs.ReannotateByOptions( (ANNOTATE_ORDER_T) cfg->m_AnnotatePanel.sort_order,
-                                                  (ANNOTATE_ALGO_T) cfg->m_AnnotatePanel.method,
+                        refs.ReannotateByOptions( (ANNOTATE_ORDER_T) schSettings.m_AnnotateSortOrder,
+                                                  (ANNOTATE_ALGO_T) schSettings.m_AnnotateMethod,
                                                   schSettings.m_AnnotateStartNum, existingRefs, false,
                                                   &hierarchy );
 
@@ -798,8 +798,8 @@ int SCH_DRAWING_TOOLS::ImportSheet( const TOOL_EVENT& aEvent )
                     {
                         NULL_REPORTER reporter;
                         m_frame->AnnotateSymbols( &commit, ANNOTATE_SELECTION,
-                                                  (ANNOTATE_ORDER_T) annotate.sort_order,
-                                                  (ANNOTATE_ALGO_T) annotate.method, true /* recursive */,
+                                                  (ANNOTATE_ORDER_T) schSettings.m_AnnotateSortOrder,
+                                                  (ANNOTATE_ALGO_T) schSettings.m_AnnotateMethod, true /* recursive */,
                                                   schSettings.m_AnnotateStartNum, false, false, reporter );
                     }
 
@@ -3198,8 +3198,8 @@ int SCH_DRAWING_TOOLS::DrawSheet( const TOOL_EVENT& aEvent )
 
                     NULL_REPORTER reporter;
                     m_frame->AnnotateSymbols(
-                            &c, ANNOTATE_SELECTION, (ANNOTATE_ORDER_T) annotate.sort_order,
-                            (ANNOTATE_ALGO_T) annotate.method, true /* recursive */,
+                            &c, ANNOTATE_SELECTION, (ANNOTATE_ORDER_T) schSettings.m_AnnotateSortOrder,
+                            (ANNOTATE_ALGO_T) schSettings.m_AnnotateMethod, true /* recursive */,
                             schSettings.m_AnnotateStartNum, true, false, reporter );
                 }
 

@@ -46,30 +46,27 @@ void PANEL_EESCHEMA_ANNOTATION_OPTIONS::loadEEschemaSettings( EESCHEMA_SETTINGS*
 {
     m_checkAutoAnnotate->SetValue( aCfg->m_AnnotatePanel.automatic );
 
-    switch( aCfg->m_AnnotatePanel.sort_order )
-    {
-    default:
-    case 0: m_rbSortBy_X_Position->SetValue( true ); break;
-    case 1: m_rbSortBy_Y_Position->SetValue( true ); break;
-    }
-
-    switch( aCfg->m_AnnotatePanel.method )
-    {
-    default:
-    case 0: m_rbFirstFree->SetValue( true );  break;
-    case 1: m_rbSheetX100->SetValue( true );  break;
-    case 2: m_rbSheetX1000->SetValue( true ); break;
-    }
-
     int annotateStartNum = 0; // Default "start after" value for annotation
 
-    // See if we can get a "start after" value from the project settings
-    SCH_EDIT_FRAME* schFrame = dynamic_cast<SCH_EDIT_FRAME*>( m_schSettingsProvider );
-
-    if( schFrame )
+    if( SCH_EDIT_FRAME* schFrame = dynamic_cast<SCH_EDIT_FRAME*>( m_schSettingsProvider ) )
     {
         SCHEMATIC_SETTINGS& projSettings = schFrame->Schematic().Settings();
         annotateStartNum = projSettings.m_AnnotateStartNum;
+
+        switch( projSettings.m_AnnotateSortOrder )
+        {
+        default:
+        case SORT_BY_X_POSITION: m_rbSortBy_X_Position->SetValue( true ); break;
+        case SORT_BY_Y_POSITION: m_rbSortBy_Y_Position->SetValue( true ); break;
+        }
+
+        switch( projSettings.m_AnnotateMethod )
+        {
+        default:
+        case INCREMENTAL_BY_REF:  m_rbFirstFree->SetValue( true );  break;
+        case SHEET_NUMBER_X_100:  m_rbSheetX100->SetValue( true );  break;
+        case SHEET_NUMBER_X_1000: m_rbSheetX1000->SetValue( true ); break;
+        }
     }
 
     m_textNumberAfter->SetValue( wxString::Format( wxT( "%d" ), annotateStartNum ) );
@@ -86,23 +83,22 @@ bool PANEL_EESCHEMA_ANNOTATION_OPTIONS::TransferDataToWindow()
 bool PANEL_EESCHEMA_ANNOTATION_OPTIONS::TransferDataFromWindow()
 {
     if( EESCHEMA_SETTINGS* cfg = GetAppSettings<EESCHEMA_SETTINGS>( "eeschema" ) )
-    {
         cfg->m_AnnotatePanel.automatic = m_checkAutoAnnotate->GetValue();
-
-        cfg->m_AnnotatePanel.sort_order = m_rbSortBy_Y_Position->GetValue() ? ANNOTATE_ORDER_T::SORT_BY_Y_POSITION
-                                                                            : ANNOTATE_ORDER_T::SORT_BY_X_POSITION;
-
-        if( m_rbSheetX100->GetValue() )
-            cfg->m_AnnotatePanel.method = ANNOTATE_ALGO_T::SHEET_NUMBER_X_100;
-        else if( m_rbSheetX1000->GetValue() )
-            cfg->m_AnnotatePanel.method = ANNOTATE_ALGO_T::SHEET_NUMBER_X_1000;
-        else
-            cfg->m_AnnotatePanel.method = ANNOTATE_ALGO_T::INCREMENTAL_BY_REF;
-    }
 
     if( SCH_EDIT_FRAME* schFrame = dynamic_cast<SCH_EDIT_FRAME*>( m_schSettingsProvider ) )
     {
         SCHEMATIC_SETTINGS& projSettings = schFrame->Schematic().Settings();
+
+        projSettings.m_AnnotateSortOrder = m_rbSortBy_Y_Position->GetValue() ?
+                ANNOTATE_ORDER_T::SORT_BY_Y_POSITION : ANNOTATE_ORDER_T::SORT_BY_X_POSITION;
+
+        if( m_rbSheetX100->GetValue() )
+            projSettings.m_AnnotateMethod = ANNOTATE_ALGO_T::SHEET_NUMBER_X_100;
+        else if( m_rbSheetX1000->GetValue() )
+            projSettings.m_AnnotateMethod = ANNOTATE_ALGO_T::SHEET_NUMBER_X_1000;
+        else
+            projSettings.m_AnnotateMethod = ANNOTATE_ALGO_T::INCREMENTAL_BY_REF;
+
         projSettings.m_AnnotateStartNum = EDA_UNIT_UTILS::UI::ValueFromString( m_textNumberAfter->GetValue() );
     }
 
