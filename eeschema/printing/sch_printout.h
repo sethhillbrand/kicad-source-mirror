@@ -56,6 +56,9 @@ public:
      * @return true if OK
      */
     bool PrintPage( SCH_SCREEN* aScreen, wxDC* aDC, bool aForPrinting );
+    bool PrintSelection( SCH_SCREEN* aScreen, wxDC* aDC, bool aForPrinting );
+
+    wxSize CalculateSelectionBitmapSize( SCH_SCREEN* aScreen, const wxSize& dcPPI );
 
 private:
     SCH_EDIT_FRAME*        m_parent;

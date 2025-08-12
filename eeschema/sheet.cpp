@@ -656,14 +656,16 @@ void SCH_EDIT_FRAME::DrawCurrentSheetToClipboard()
     screen->m_DrawOrg.x = screen->m_DrawOrg.y = 0;
     screen->m_StartVisu.x = screen->m_StartVisu.y = 0;
 
+    SCH_PRINTOUT printout( this, wxEmptyString );
     wxMemoryDC dc;
-    wxBitmap image( dcsize );
+    dc.SetUserScale( scale, scale );
+    wxSize selSize = printout.CalculateSelectionBitmapSize( GetScreen(), dc.GetPPI() );
+    wxBitmap image( selSize );
     dc.SelectObject( image );
     dc.Clear();
 
     GRResetPenAndBrush( &dc );
     GRForceBlackPen( false );
-    dc.SetUserScale( scale, scale );
 
     SCH_RENDER_SETTINGS* cfg = GetRenderSettings();
 
@@ -677,13 +679,12 @@ void SCH_EDIT_FRAME::DrawCurrentSheetToClipboard()
     try
     {
         dc.SetUserScale( 1.0, 1.0 );
-        SCH_PRINTOUT printout( this, wxEmptyString );
         // Ensure title block will be when printed on clipboard, regardless
         // the current Cairo print option
         EESCHEMA_SETTINGS* eecfg = eeconfig();
         bool print_tb_opt = eecfg->m_Printing.title_block;
         eecfg->m_Printing.title_block = true;
-        bool success = printout.PrintPage( GetScreen(), cfg->GetPrintDC(), false );
+        bool success = printout.PrintSelection( GetScreen(), cfg->GetPrintDC(), false );
         eecfg->m_Printing.title_block = print_tb_opt;
 
         if( !success )

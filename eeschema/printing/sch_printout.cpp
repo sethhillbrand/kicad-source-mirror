@@ -296,3 +296,207 @@ bool SCH_PRINTOUT::PrintPage( SCH_SCREEN* aScreen, wxDC* aDC, bool aForPrinting 
 
     return true;
 }
+
+bool SCH_PRINTOUT::PrintSelection( SCH_SCREEN* aScreen, wxDC* aDC, bool aForPrinting )
+{
+    wxDC* dc = aDC;
+    m_view = m_parent->GetCanvas()->GetView();
+    KIGFX::GAL_DISPLAY_OPTIONS options;
+    options.antialiasing_mode = KIGFX::GAL_ANTIALIASING_MODE::AA_HIGHQUALITY;
+    std::unique_ptr<KIGFX::GAL_PRINT> galPrint = KIGFX::GAL_PRINT::Create( options, dc );
+    KIGFX::GAL* gal = galPrint->GetGAL();
+    KIGFX::PRINT_CONTEXT* printCtx = galPrint->GetPrintCtx();
+    std::unique_ptr<KIGFX::SCH_PAINTER> painter = std::make_unique<KIGFX::SCH_PAINTER>( gal );
+    std::unique_ptr<KIGFX::VIEW> view( new KIGFX::VIEW );
+    std::vector<std::unique_ptr<SCH_ITEM>> items;
+
+    painter->SetSchematic( &m_parent->Schematic() );
+
+    EESCHEMA_SETTINGS*  cfg = m_parent->eeconfig();
+    COLOR_SETTINGS*     cs = ::GetColorSettings( cfg ? cfg->m_Printing.color_theme : DEFAULT_THEME );
+    SCH_SELECTION_TOOL* selTool = m_parent->GetToolManager()->GetTool<SCH_SELECTION_TOOL>();
+
+    // First, calculate the bounding box of all selected items
+    BOX2I drawingAreaBBox;
+    bool bboxValid = false;
+
+    for( EDA_ITEM* item : selTool->GetSelection() )
+    {
+        if( SCH_ITEM* schItem = dynamic_cast<SCH_ITEM*>( item ) )
+        {
+            if( aScreen->CheckIfOnDrawList( schItem ) )
+            {
+                if( bboxValid )
+                    drawingAreaBBox.Merge( schItem->ViewBBox() );
+                else
+                {
+                    drawingAreaBBox = schItem->ViewBBox();
+                    bboxValid = true;
+                }
+            }
+        }
+    }
+
+    if( !bboxValid )
+        return true;
+
+    wxRect pageSizePix;
+    wxSize dcPPI = dc->GetPPI();
+
+    if( aForPrinting )
+    {
+        pageSizePix = GetLogicalPageRect();
+    }
+    else
+    {
+        dc->SetUserScale( 1, 1 );
+
+        if( wxMemoryDC* memdc = dynamic_cast<wxMemoryDC*>( dc ) )
+        {
+            wxBitmap& bm = memdc->GetSelectedBitmap();
+            pageSizePix = wxRect( 0, 0, bm.GetWidth(), bm.GetHeight() );
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    const VECTOR2D pageSizeIn( (double) pageSizePix.width / dcPPI.GetWidth(),
+                               (double) pageSizePix.height / dcPPI.GetHeight() );
+    const VECTOR2D pageSizeIU( milsToIU( pageSizeIn.x * 1000 ), milsToIU( pageSizeIn.y * 1000 ) );
+
+    galPrint->SetSheetSize( pageSizeIn );
+
+    view->SetGAL( gal );
+    view->SetPainter( painter.get() );
+    view->SetScaleLimits( ZOOM_MAX_LIMIT_EESCHEMA, ZOOM_MIN_LIMIT_EESCHEMA );
+    view->SetScale( 1.0 );
+    gal->SetWorldUnitLength( SCH_WORLD_UNIT );
+
+    SCH_RENDER_SETTINGS* dstSettings = painter->GetSettings();
+
+    if( aForPrinting )
+        *dstSettings = *m_parent->GetRenderSettings();
+
+    dstSettings->m_ShowPinsElectricalType = false;
+
+    dstSettings->LoadColors( m_parent->GetColorSettings( false ) );
+
+    if( cfg && cfg->m_Printing.use_theme )
+        dstSettings->LoadColors( cs );
+
+    COLOR4D bgColor = m_parent->GetColorSettings()->GetColor( LAYER_SCHEMATIC_BACKGROUND );
+
+    if( cfg && cfg->m_Printing.background )
+    {
+        if( cfg->m_Printing.use_theme )
+            bgColor = cs->GetColor( LAYER_SCHEMATIC_BACKGROUND );
+    }
+    else
+    {
+        bgColor = COLOR4D::WHITE;
+    }
+
+    dstSettings->SetBackgroundColor( bgColor );
+    dstSettings->SetDefaultFont( cfg ? cfg->m_Appearance.default_font : wxString( "" ) );
+
+    if( aForPrinting && cfg && cfg->m_Printing.monochrome )
+    {
+        for( int i = 0; i < LAYER_ID_COUNT; ++i )
+            dstSettings->SetLayerColor( i, COLOR4D::BLACK );
+
+        dstSettings->SetBackgroundColor( COLOR4D::WHITE );
+        dstSettings->m_OverrideItemColors = true;
+        dstSettings->SetPrintBlackAndWhite( true );
+    }
+    else
+    {
+        for( int i = 0; i < LAYER_ID_COUNT; ++i )
+        {
+            dstSettings->SetLayerColor( i, dstSettings->GetLayerColor( i ).WithAlpha( 1.0 ) );
+        }
+    }
+
+    dstSettings->SetIsPrinting( true );
+
+    // Now add the items to the view (bounding box already calculated)
+    for( EDA_ITEM* item : selTool->GetSelection() )
+    {
+        if( SCH_ITEM* schItem = dynamic_cast<SCH_ITEM*>( item ) )
+        {
+            if( aScreen->CheckIfOnDrawList( schItem ) )
+            {
+                items.emplace_back( static_cast<SCH_ITEM*>( schItem->Clone() ) );
+                view->Add( items.back().get() );
+            }
+        }
+    }
+
+    for( int i = 0; i < KIGFX::VIEW::VIEW_MAX_LAYERS; ++i )
+    {
+        view->SetLayerVisible( i, true );
+        view->SetLayerTarget( i, KIGFX::TARGET_NONCACHED );
+    }
+
+    view->SetLayerVisible( LAYER_DRAWINGSHEET, false );
+
+    double scaleX = (double) pageSizeIU.x / drawingAreaBBox.GetWidth();
+    double scaleY = (double) pageSizeIU.y / drawingAreaBBox.GetHeight();
+    double print_scale = std::min( scaleX, scaleY );
+
+    galPrint->SetNativePaperSize( pageSizeIn, printCtx->HasNativeLandscapeRotation() );
+
+    gal->SetClearColor( dstSettings->GetBackgroundColor() );
+    view->SetScale( print_scale, drawingAreaBBox.GetPosition() );
+
+    VECTOR2I size = gal->GetScreenPixelSize();
+    gal->ResizeScreen( pageSizePix.GetWidth(),pageSizePix.GetHeight() );
+    gal->ClearScreen();
+    gal->ResizeScreen( size.x, size.y );
+
+    view->UseDrawPriority( true );
+
+    {
+        KIGFX::GAL_DRAWING_CONTEXT ctx( gal );
+        view->Redraw();
+    }
+
+    return true;
+}
+
+
+wxSize SCH_PRINTOUT::CalculateSelectionBitmapSize( SCH_SCREEN* aScreen, const wxSize& dcPPI )
+{
+    SCH_SELECTION_TOOL* selTool = m_parent->GetToolManager()->GetTool<SCH_SELECTION_TOOL>();
+
+    BOX2I drawingAreaBBox;
+    bool bboxValid = false;
+
+    for( EDA_ITEM* item : selTool->GetSelection() )
+    {
+        if( SCH_ITEM* schItem = dynamic_cast<SCH_ITEM*>( item ) )
+        {
+            if( aScreen->CheckIfOnDrawList( schItem ) )
+            {
+                if( bboxValid )
+                    drawingAreaBBox.Merge( schItem->ViewBBox() );
+                else
+                {
+                    drawingAreaBBox = schItem->ViewBBox();
+                    bboxValid = true;
+                }
+            }
+        }
+    }
+
+    if( !bboxValid )
+        return wxSize( 100, 100 ); // Default minimum size
+
+    // Convert from internal units to pixels (assuming nanometers to mm conversion)
+
+    const int widthPix = KiROUND( schIUScale.IUToMils( drawingAreaBBox.GetWidth() ) * dcPPI.x / 25.4 );
+    const int heightPix = KiROUND( schIUScale.IUToMils( drawingAreaBBox.GetHeight() ) * dcPPI.y / 25.4 );
+
+    return wxSize( std::max( widthPix, 100 ), std::max( heightPix, 100 ) );
+}
