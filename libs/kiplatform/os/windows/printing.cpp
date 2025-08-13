@@ -38,19 +38,10 @@
 #pragma comment(lib, "windowsapp.lib")
 
 using namespace winrt;
-using namespace Windows::Foundation;
-using namespace Windows::Graphics::Printing;
-using namespace Windows::UI::Xaml;
-using namespace Windows::UI::Xaml::Controls;
-using namespace Windows::UI::Xaml::Printing;
-using namespace Windows::Storage;
-using namespace Windows::Storage::Streams;
-using namespace Windows::Data::Pdf;
 
 // Manual declaration of IPrintManagerInterop to avoid missing header
-// Copied directly from https://github.com/tpn/winsdk-10/blob/master/Include/10.0.16299.0/um/PrintManagerInterop.h
 MIDL_INTERFACE("C5435A42-8D43-4E7B-A68A-EF311E392087")
-IPrintManagerInterop : public IInspectable
+IPrintManagerInterop : public ::IInspectable
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE GetForWindow(
@@ -60,12 +51,12 @@ public:
 
     virtual HRESULT STDMETHODCALLTYPE ShowPrintUIForWindowAsync(
         /* [in] */ HWND appWindow,
-        /* [retval][out] */ ABI::Windows::Foundation::IAsyncOperation<bool> **operation) = 0;
+        /* [retval][out] */ void **operation) = 0;
 };
 
 // Manual declaration of IDesktopWindowXamlSourceNative to avoid missing header
 MIDL_INTERFACE("3cbcf1bf-2f76-4e9c-96ab-e84b37972554")
-IDesktopWindowXamlSourceNative : public IUnknown
+IDesktopWindowXamlSourceNative : public ::IUnknown
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE AttachToWindow(
@@ -75,7 +66,7 @@ public:
         /* [retval][out] */ HWND *hWnd) = 0;
 };
 
-static inline std::pair<uint32_t, uint32_t> DpToPixels( Windows::Data::Pdf::PdfPage const& page, double dpi )
+static inline std::pair<uint32_t, uint32_t> DpToPixels( winrt::Windows::Data::Pdf::PdfPage const& page, double dpi )
 {
     const auto   s = page.Size(); // DIPs (1 DIP = 1/96 inch)
     const double scale = dpi / 96.0;
@@ -87,17 +78,17 @@ static inline std::pair<uint32_t, uint32_t> DpToPixels( Windows::Data::Pdf::PdfP
 // Helper class to manage image with its associated stream
 struct ManagedImage
 {
-    Image image;
-    InMemoryRandomAccessStream stream;
+    winrt::Windows::UI::Xaml::Controls::Image image;
+    winrt::Windows::Storage::Streams::InMemoryRandomAccessStream stream;
 
     ManagedImage() = default;
-    ManagedImage(Image img, InMemoryRandomAccessStream str) : image(img), stream(str) {}
+    ManagedImage(winrt::Windows::UI::Xaml::Controls::Image img, winrt::Windows::Storage::Streams::InMemoryRandomAccessStream str) : image(img), stream(str) {}
 };
 
 // Render one page to a XAML Image using RenderToStreamAsync
 // dpi: e.g., 300 for preview; 600 for print
 // Returns a ManagedImage that keeps the stream alive
-static ManagedImage RenderPdfPageToImage( PdfDocument const& pdf, uint32_t pageIndex, double dpi )
+static ManagedImage RenderPdfPageToImage( winrt::Windows::Data::Pdf::PdfDocument const& pdf, uint32_t pageIndex, double dpi )
 {
     auto page = pdf.GetPage( pageIndex );
 
@@ -106,11 +97,11 @@ static ManagedImage RenderPdfPageToImage( PdfDocument const& pdf, uint32_t pageI
 
     auto [pxW, pxH] = DpToPixels( page, dpi );
 
-    PdfPageRenderOptions opts;
+    winrt::Windows::Data::Pdf::PdfPageRenderOptions opts;
     opts.DestinationWidth( pxW );
     opts.DestinationHeight( pxH );
 
-    InMemoryRandomAccessStream stream;
+    winrt::Windows::Storage::Streams::InMemoryRandomAccessStream stream;
 
     try
     {
@@ -122,7 +113,7 @@ static ManagedImage RenderPdfPageToImage( PdfDocument const& pdf, uint32_t pageI
     }
 
     // Use a BitmapImage that sources directly from the stream (efficient; no extra copies)
-    Windows::UI::Xaml::Media::Imaging::BitmapImage bmp;
+    winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage bmp;
 
     try
     {
@@ -133,9 +124,11 @@ static ManagedImage RenderPdfPageToImage( PdfDocument const& pdf, uint32_t pageI
         return {};
     }
 
-    Image img;
+    winrt::Windows::UI::Xaml::Controls::Image img;
     img.Source( bmp );
-    img.Stretch( Windows::UI::Xaml::Media::Stretch::Uniform );
+    img.Stretch( winrt::Windows::UI::Xaml::Media::Stretch::Uniform );
+
+    // Return both image and stream to keep stream alive
     return ManagedImage{ img, stream };
 }
 
@@ -146,7 +139,7 @@ namespace PRINTING {
 class WIN_PDF_PRINTER
 {
 public:
-    WIN_PDF_PRINTER( HWND hwndOwner, PdfDocument const& pdf ) :
+    WIN_PDF_PRINTER( HWND hwndOwner, winrt::Windows::Data::Pdf::PdfDocument const& pdf ) :
             m_hwnd( hwndOwner ),
             m_pdf( pdf )
     {
@@ -158,13 +151,13 @@ public:
             return PRINT_RESULT::FAILED_TO_LOAD;
 
         // Create hidden XAML Island host
-        m_xamlSource = Windows::UI::Xaml::Hosting::DesktopWindowXamlSource();
+        m_xamlSource = winrt::Windows::UI::Xaml::Hosting::DesktopWindowXamlSource();
         auto native = m_xamlSource.as<IDesktopWindowXamlSourceNative>();
 
         if( !native )
             return PRINT_RESULT::FAILED_TO_PRINT;
 
-        RECT rc{ 0, 0, 100, 100 }; // Set minimum size to avoid 1x1 computation problems
+        RECT rc{ 0, 0, 100, 100 }; // Use larger minimum size
         m_host = ::CreateWindowExW( 0, L"STATIC", L"", WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
                                     rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr,
                                     ::GetModuleHandleW( nullptr ), nullptr );
@@ -182,41 +175,41 @@ public:
             return PRINT_RESULT::FAILED_TO_PRINT;
         }
 
-        m_root = Grid();
+        m_root = winrt::Windows::UI::Xaml::Controls::Grid();
         m_xamlSource.Content( m_root );
 
-        m_printDoc = PrintDocument();
+        m_printDoc = winrt::Windows::UI::Xaml::Printing::PrintDocument();
         m_docSrc = m_printDoc.DocumentSource();
         m_pageCount = std::max<uint32_t>( 1, m_pdf.PageCount() );
 
         m_paginateRevoker = m_printDoc.Paginate( auto_revoke,
-                [this]( auto const&, PaginateEventArgs const& )
+                [this]( auto const&, winrt::Windows::UI::Xaml::Printing::PaginateEventArgs const& )
                 {
-                    m_printDoc.SetPreviewPageCount( m_pageCount, PreviewPageCountType::Final );
+                    m_printDoc.SetPreviewPageCount( m_pageCount, winrt::Windows::UI::Xaml::Printing::PreviewPageCountType::Final );
                 } );
 
         m_getPreviewRevoker = m_printDoc.GetPreviewPage( auto_revoke,
-                [this]( auto const&, GetPreviewPageEventArgs const& e )
+                [this]( auto const&, winrt::Windows::UI::Xaml::Printing::GetPreviewPageEventArgs const& e )
                 {
                     const uint32_t index = e.PageNumber() - 1; // 1-based from system
                     auto managedImg = RenderPdfPageToImage( m_pdf, index, /*dpi*/ 300.0 );
-
                     if( managedImg.image )
                     {
+                        // Store the managed image to keep stream alive
                         m_previewImages[index] = std::move(managedImg);
                         m_printDoc.SetPreviewPage( e.PageNumber(), m_previewImages[index].image );
                     }
                 } );
 
         m_addPagesRevoker = m_printDoc.AddPages( auto_revoke,
-                [this]( auto const&, AddPagesEventArgs const& )
+                [this]( auto const&, winrt::Windows::UI::Xaml::Printing::AddPagesEventArgs const& )
                 {
                     for( uint32_t i = 0; i < m_pageCount; ++i )
                     {
                         auto managedImg = RenderPdfPageToImage( m_pdf, i, /*dpi*/ 600.0 );
-
                         if( managedImg.image )
                         {
+                            // Store the managed image to keep stream alive
                             m_printImages[i] = std::move(managedImg);
                             m_printDoc.AddPage( m_printImages[i].image );
                         }
@@ -224,70 +217,69 @@ public:
                     m_printDoc.AddPagesComplete();
                 } );
 
-        com_ptr<IPrintManagerInterop> pmInterop;
-        HRESULT hrActivation = RoGetActivationFactory(
-                HStringReference( RuntimeClass_Windows_Graphics_Printing_PrintManager ).Get(),
-                __uuidof(IPrintManagerInterop), pmInterop.put_void() );
-
-        if( FAILED(hrActivation) )
-        {
-            Cleanup();
-            return PRINT_RESULT::FAILED_TO_PRINT;
-        }
-
-        com_ptr<ABI::Windows::Graphics::Printing::IPrintManager> pmAbi;
-        HRESULT hrGetForWindow = pmInterop->GetForWindow( m_hwnd, __uuidof( pmAbi ), pmAbi.put_void() );
-
-        if( FAILED(hrGetForWindow) )
-        {
-            Cleanup();
-            return PRINT_RESULT::FAILED_TO_PRINT;
-        }
-
-        // Bridge back ABI->WinRT
-        m_rtPM = PrintManager( pmAbi.as<IInspectable>() );
-        m_taskRequestedToken = m_rtPM.PrintTaskRequested(
-                [this]( auto const&, PrintTaskRequestedEventArgs const& e )
-                {
-                    auto task = e.Request().CreatePrintTask( L"KiCad PDF Print",
-                            [this]( PrintTask const& t )
-                            {
-                                // Supply document source for preview
-                                t.Source( [this]{ return m_docSrc; } );
-                            } );
-                } );
-
-        com_ptr<ABI::Windows::Foundation::IAsyncOperation<bool>> op;
-
-        // Immediately wait for results to keep this in thread
-        HRESULT hrShowPrint = pmInterop->ShowPrintUIForWindowAsync( m_hwnd, op.put() );
-
-        if( FAILED(hrShowPrint) )
-        {
-            Cleanup();
-            return PRINT_RESULT::FAILED_TO_PRINT;
-        }
-
-        bool shown = false;
-
         try
         {
-            shown = op->GetResults();
+            auto factory = winrt::get_activation_factory<winrt::Windows::Graphics::Printing::PrintManager>();
+            auto pmInterop = factory.as<IPrintManagerInterop>();
+
+            winrt::Windows::Graphics::Printing::PrintManager printManager{ nullptr };
+            HRESULT hrGetForWindow = pmInterop->GetForWindow( m_hwnd, winrt::guid_of<winrt::Windows::Graphics::Printing::PrintManager>(), winrt::put_abi(printManager) );
+
+            if( FAILED(hrGetForWindow) )
+            {
+                Cleanup();
+                return PRINT_RESULT::FAILED_TO_PRINT;
+            }
+
+            // Now we have the WinRT PrintManager directly
+            m_rtPM = printManager;
+            m_taskRequestedToken = m_rtPM.PrintTaskRequested(
+                    [this]( auto const&, winrt::Windows::Graphics::Printing::PrintTaskRequestedEventArgs const& e )
+                    {
+                        auto task = e.Request().CreatePrintTask( L"KiCad PDF Print",
+                                [this]( winrt::Windows::Graphics::Printing::PrintTask const& t )
+                                {
+                                    // Supply document source for preview
+                                    t.Source( [this]{ return m_docSrc; } );
+                                } );
+                    } );
+
+            winrt::Windows::Foundation::IAsyncOperation<bool> asyncOp{ nullptr };
+
+            // Immediately wait for results to keep this in thread
+            HRESULT hrShowPrint = pmInterop->ShowPrintUIForWindowAsync( m_hwnd, winrt::put_abi(asyncOp) );
+            if( FAILED(hrShowPrint) )
+            {
+                Cleanup();
+                return PRINT_RESULT::FAILED_TO_PRINT;
+            }
+
+            bool shown = false;
+
+            try
+            {
+                shown = asyncOp.GetResults();
+            }
+            catch( ... )
+            {
+                Cleanup();
+                return PRINT_RESULT::FAILED_TO_PRINT;
+            }
+
+            Cleanup();
+            return shown ? PRINT_RESULT::OK : PRINT_RESULT::CANCELLED;
         }
         catch( ... )
         {
             Cleanup();
             return PRINT_RESULT::FAILED_TO_PRINT;
         }
-
-        Cleanup();
-        return shown ? PRINT_RESULT::OK : PRINT_RESULT::CANCELLED;
     }
 
 private:
     void Cleanup()
     {
-        // This needs to happen first to release the streams
+        // Clear image containers first to release streams
         m_previewImages.clear();
         m_printImages.clear();
 
@@ -316,24 +308,24 @@ private:
 
 private:
     HWND        m_hwnd{};
-    PdfDocument m_pdf{ nullptr };
+    winrt::Windows::Data::Pdf::PdfDocument m_pdf{ nullptr };
 
-    Windows::UI::Xaml::Hosting::DesktopWindowXamlSource m_xamlSource{ nullptr };
-    Grid                                                m_root{ nullptr };
-    PrintDocument                                       m_printDoc{ nullptr };
-    IPrintDocumentSource                                m_docSrc{ nullptr };
+    winrt::Windows::UI::Xaml::Hosting::DesktopWindowXamlSource m_xamlSource{ nullptr };
+    winrt::Windows::UI::Xaml::Controls::Grid                   m_root{ nullptr };
+    winrt::Windows::UI::Xaml::Printing::PrintDocument          m_printDoc{ nullptr };
+    winrt::Windows::UI::Xaml::Printing::IPrintDocumentSource  m_docSrc{ nullptr };
 
     uint32_t           m_pageCount{ 0 };
-    PrintManager       m_rtPM{ nullptr };
+    winrt::Windows::Graphics::Printing::PrintManager       m_rtPM{ nullptr };
     winrt::event_token m_taskRequestedToken{};
 
-    Windows::Foundation::EventRevoker<PrintDocument> m_paginateRevoker;
-    Windows::Foundation::EventRevoker<PrintDocument> m_getPreviewRevoker;
-    Windows::Foundation::EventRevoker<PrintDocument> m_addPagesRevoker;
+    winrt::Windows::Foundation::EventRevoker<winrt::Windows::UI::Xaml::Printing::PrintDocument> m_paginateRevoker;
+    winrt::Windows::Foundation::EventRevoker<winrt::Windows::UI::Xaml::Printing::PrintDocument> m_getPreviewRevoker;
+    winrt::Windows::Foundation::EventRevoker<winrt::Windows::UI::Xaml::Printing::PrintDocument> m_addPagesRevoker;
 
     HWND m_host{ nullptr };
 
-    // Holds images for each page, keeping the bitmap lifetime with the printer
+    // Store managed images to keep streams alive
     std::map<uint32_t, ManagedImage> m_previewImages;
     std::map<uint32_t, ManagedImage> m_printImages;
 };
@@ -352,18 +344,20 @@ private:
 
 PRINT_RESULT PrintPDF(std::string const& aFile )
 {
+    // Validate path
     DWORD attrs = GetFileAttributesA( aFile.c_str() );
 
     if( attrs == INVALID_FILE_ATTRIBUTES )
         return PRINT_RESULT::FILE_NOT_FOUND;
 
-    PdfDocument pdf{ nullptr };
+    // Load PDF via Windows.Data.Pdf
+    winrt::Windows::Data::Pdf::PdfDocument pdf{ nullptr };
 
     try
     {
         auto path = Utf8ToWide( aFile );
-        auto file = StorageFile::GetFileFromPathAsync( winrt::hstring( path ) ).get();
-        pdf = PdfDocument::LoadFromFileAsync( file ).get();
+        auto file = winrt::Windows::Storage::StorageFile::GetFileFromPathAsync( winrt::hstring( path ) ).get();
+        pdf = winrt::Windows::Data::Pdf::PdfDocument::LoadFromFileAsync( file ).get();
     }
     catch( ... )
     {

@@ -84,6 +84,7 @@ PRINT_RESULT PrintPDF( const std::string& aFile, bool fit_to_page)
 
         [document release];
         return result;
+    }
 }
 
 PRINT_RESULT PrintPDF(const std::string& aFile)
