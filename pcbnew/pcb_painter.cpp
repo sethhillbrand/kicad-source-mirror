@@ -401,7 +401,8 @@ COLOR4D PCB_RENDER_SETTINGS::GetColor( const BOARD_ITEM* aItem, int aLayer ) con
             break;
         }
 
-        case LAYER_VIA_BBLIND:
+        case LAYER_VIA_BLIND:
+        case LAYER_VIA_BURIED:
         case LAYER_VIA_MICROVIA:
         {
             const PCB_VIA* via = static_cast<const PCB_VIA*>( aItem );
@@ -513,7 +514,9 @@ COLOR4D PCB_RENDER_SETTINGS::GetColor( const BOARD_ITEM* aItem, int aLayer ) con
             }
         }
     }
-    else if( originalLayer == LAYER_VIA_BBLIND || originalLayer == LAYER_VIA_MICROVIA )
+    else if( originalLayer == LAYER_VIA_BLIND
+          || originalLayer == LAYER_VIA_BURIED
+          || originalLayer == LAYER_VIA_MICROVIA )
     {
         const PCB_VIA* via = static_cast<const PCB_VIA*>( aItem );
         const BOARD*   board = via->GetBoard();

@@ -140,7 +140,7 @@ const int GAL_LAYER_ORDER[] =
     LAYER_LOCKED_ITEM_SHADOW,
     LAYER_VIA_HOLES, LAYER_VIA_HOLEWALLS,
     LAYER_PAD_PLATEDHOLES, LAYER_PAD_HOLEWALLS, LAYER_NON_PLATEDHOLES,
-    LAYER_VIA_THROUGH, LAYER_VIA_BBLIND, LAYER_VIA_MICROVIA,
+    LAYER_VIA_THROUGH, LAYER_VIA_BLIND, LAYER_VIA_BURIED, LAYER_VIA_MICROVIA,
 
     LAYER_PAD_FR_NETNAMES,
     NETNAMES_LAYER_INDEX( F_Cu ),
@@ -506,7 +506,7 @@ void PCB_DRAW_PANEL_GAL::SetHighContrastLayer( PCB_LAYER_ID aLayer )
                 ZONE_LAYER_FOR( aLayer ),
                 BITMAP_LAYER_FOR( aLayer ),
                 LAYER_PAD_PLATEDHOLES, LAYER_PAD_HOLEWALLS, LAYER_NON_PLATEDHOLES,
-                LAYER_VIA_THROUGH, LAYER_VIA_BBLIND, LAYER_VIA_MICROVIA, LAYER_VIA_HOLES,
+                LAYER_VIA_THROUGH, LAYER_VIA_BLIND, LAYER_VIA_BURIED, LAYER_VIA_MICROVIA, LAYER_VIA_HOLES,
                 LAYER_VIA_HOLEWALLS,
                 LAYER_DRC_ERROR, LAYER_DRC_WARNING, LAYER_DRC_EXCLUSION, LAYER_MARKER_SHADOWS,
                 LAYER_DRC_SHAPE1, LAYER_DRC_SHAPE2,
@@ -543,7 +543,7 @@ void PCB_DRAW_PANEL_GAL::SetTopLayer( PCB_LAYER_ID aLayer )
 
     // Layers that should always have on-top attribute enabled
     const std::vector<int> layers = {
-            LAYER_VIA_THROUGH, LAYER_VIA_BBLIND, LAYER_VIA_MICROVIA, LAYER_VIA_HOLES,
+            LAYER_VIA_THROUGH, LAYER_VIA_BLIND, LAYER_VIA_BURIED, LAYER_VIA_MICROVIA, LAYER_VIA_HOLES,
             LAYER_VIA_HOLEWALLS,
             LAYER_PAD_PLATEDHOLES, LAYER_PAD_HOLEWALLS, LAYER_NON_PLATEDHOLES,
             LAYER_PAD_NETNAMES, LAYER_VIA_NETNAMES,
@@ -638,7 +638,8 @@ void PCB_DRAW_PANEL_GAL::SyncLayersVisibility( const BOARD* aBoard )
 
     // Via layers controlled by dependencies
     m_view->SetLayerVisible( LAYER_VIA_MICROVIA, true );
-    m_view->SetLayerVisible( LAYER_VIA_BBLIND, true );
+    m_view->SetLayerVisible( LAYER_VIA_BLIND, true );
+    m_view->SetLayerVisible( LAYER_VIA_BURIED, true );
     m_view->SetLayerVisible( LAYER_VIA_THROUGH, true );
 
     // Always enable netname layers, as their visibility is controlled by layer dependencies
@@ -859,7 +860,8 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
 
     // Via visibility
     m_view->SetRequired( LAYER_VIA_MICROVIA, LAYER_VIAS );
-    m_view->SetRequired( LAYER_VIA_BBLIND, LAYER_VIAS );
+    m_view->SetRequired( LAYER_VIA_BLIND, LAYER_VIAS );
+    m_view->SetRequired( LAYER_VIA_BURIED, LAYER_VIAS );
     m_view->SetRequired( LAYER_VIA_THROUGH, LAYER_VIAS );
     m_view->SetRequired( LAYER_VIA_NETNAMES, LAYER_VIAS );
 

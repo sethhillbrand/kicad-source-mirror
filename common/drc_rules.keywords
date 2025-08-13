@@ -2,6 +2,7 @@ annular_width
 assertion
 assign_component_class
 board_edge
+blind_via
 buried_via
 clearance
 condition
@@ -53,6 +54,7 @@ text_thickness
 thermal_reliefs
 thermal_relief_gap
 thermal_spoke_width
+through_via
 track
 track_angle
 track_width
