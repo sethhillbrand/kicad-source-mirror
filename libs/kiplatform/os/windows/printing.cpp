@@ -28,13 +28,11 @@
 #include <winrt/Windows.UI.Xaml.Controls.h>
 #include <winrt/Windows.UI.Xaml.Media.h>
 #include <winrt/Windows.UI.Xaml.Printing.h>
+#include <winrt/Windows.UI.Xaml.Hosting.h>
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.Data.Pdf.h>
 #include <winrt/Windows.Graphics.Imaging.h>
-#include <windows.ui.xaml.hosting.desktopwindowxamlsource.h>
-#include <windows.graphics.printing.printmanagerinterop.h>
-
 #include <printing.h>
 
 #pragma comment(lib, "windowsapp.lib")
@@ -49,6 +47,33 @@ using namespace Windows::Storage;
 using namespace Windows::Storage::Streams;
 using namespace Windows::Data::Pdf;
 
+// Manual declaration of IPrintManagerInterop to avoid missing header
+// Copied directly from https://github.com/tpn/winsdk-10/blob/master/Include/10.0.16299.0/um/PrintManagerInterop.h
+MIDL_INTERFACE("C5435A42-8D43-4E7B-A68A-EF311E392087")
+IPrintManagerInterop : public IInspectable
+{
+public:
+    virtual HRESULT STDMETHODCALLTYPE GetForWindow(
+        /* [in] */ HWND appWindow,
+        /* [in] */ REFIID riid,
+        /* [iid_is][retval][out] */ void **printManager) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE ShowPrintUIForWindowAsync(
+        /* [in] */ HWND appWindow,
+        /* [retval][out] */ ABI::Windows::Foundation::IAsyncOperation<bool> **operation) = 0;
+};
+
+// Manual declaration of IDesktopWindowXamlSourceNative to avoid missing header
+MIDL_INTERFACE("3cbcf1bf-2f76-4e9c-96ab-e84b37972554")
+IDesktopWindowXamlSourceNative : public IUnknown
+{
+public:
+    virtual HRESULT STDMETHODCALLTYPE AttachToWindow(
+        /* [in] */ HWND parentWnd) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE get_WindowHandle(
+        /* [retval][out] */ HWND *hWnd) = 0;
+};
 
 static inline std::pair<uint32_t, uint32_t> DpToPixels( Windows::Data::Pdf::PdfPage const& page, double dpi )
 {
@@ -59,32 +84,59 @@ static inline std::pair<uint32_t, uint32_t> DpToPixels( Windows::Data::Pdf::PdfP
     return { w, h };
 }
 
+// Helper class to manage image with its associated stream
+struct ManagedImage
+{
+    Image image;
+    InMemoryRandomAccessStream stream;
+
+    ManagedImage() = default;
+    ManagedImage(Image img, InMemoryRandomAccessStream str) : image(img), stream(str) {}
+};
+
 // Render one page to a XAML Image using RenderToStreamAsync
 // dpi: e.g., 300 for preview; 600 for print
-static Image RenderPdfPageToImage( PdfDocument const& aPdf,
-    InMemoryRandomAccessStream& aStream, uint32_t aPageIndex, double aDpi )
+// Returns a ManagedImage that keeps the stream alive
+static ManagedImage RenderPdfPageToImage( PdfDocument const& pdf, uint32_t pageIndex, double dpi )
 {
-    auto page = aPdf.GetPage( aPageIndex );
+    auto page = pdf.GetPage( pageIndex );
 
     if( !page )
-        return nullptr;
+        return {};
 
-    auto [pxW, pxH] = DpToPixels( page, aDpi );
+    auto [pxW, pxH] = DpToPixels( page, dpi );
 
     PdfPageRenderOptions opts;
     opts.DestinationWidth( pxW );
     opts.DestinationHeight( pxH );
 
-    page.RenderToStreamAsync( aStream, opts ).get(); // sync for simplicity
+    InMemoryRandomAccessStream stream;
+
+    try
+    {
+        page.RenderToStreamAsync( stream, opts ).get(); // sync for simplicity
+    }
+    catch( ... )
+    {
+        return {};
+    }
 
     // Use a BitmapImage that sources directly from the stream (efficient; no extra copies)
     Windows::UI::Xaml::Media::Imaging::BitmapImage bmp;
-    bmp.SetSourceAsync( aStream ).get();
+
+    try
+    {
+        bmp.SetSourceAsync( stream ).get();
+    }
+    catch( ... )
+    {
+        return {};
+    }
 
     Image img;
     img.Source( bmp );
     img.Stretch( Windows::UI::Xaml::Media::Stretch::Uniform );
-    return img;
+    return ManagedImage{ img, stream };
 }
 
 
@@ -108,11 +160,27 @@ public:
         // Create hidden XAML Island host
         m_xamlSource = Windows::UI::Xaml::Hosting::DesktopWindowXamlSource();
         auto native = m_xamlSource.as<IDesktopWindowXamlSourceNative>();
-        RECT rc{ 0, 0, 1, 1 };
-        m_host = ::CreateWindowExW( 0, L"STATIC", L"", WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, rc.left, rc.top,
-                                    rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr,
+
+        if( !native )
+            return PRINT_RESULT::FAILED_TO_PRINT;
+
+        RECT rc{ 0, 0, 100, 100 }; // Set minimum size to avoid 1x1 computation problems
+        m_host = ::CreateWindowExW( 0, L"STATIC", L"", WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                                    rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr,
                                     ::GetModuleHandleW( nullptr ), nullptr );
-        check_hresult( native->AttachToWindow( m_host ) );
+
+        if( !m_host )
+        {
+            Cleanup();
+            return PRINT_RESULT::FAILED_TO_PRINT;
+        }
+
+        HRESULT hr = native->AttachToWindow( m_host );
+        if( FAILED(hr) )
+        {
+            Cleanup();
+            return PRINT_RESULT::FAILED_TO_PRINT;
+        }
 
         m_root = Grid();
         m_xamlSource.Content( m_root );
@@ -121,7 +189,6 @@ public:
         m_docSrc = m_printDoc.DocumentSource();
         m_pageCount = std::max<uint32_t>( 1, m_pdf.PageCount() );
 
-    InMemoryRandomAccessStream stream;
         m_paginateRevoker = m_printDoc.Paginate( auto_revoke,
                 [this]( auto const&, PaginateEventArgs const& )
                 {
@@ -132,8 +199,13 @@ public:
                 [this]( auto const&, GetPreviewPageEventArgs const& e )
                 {
                     const uint32_t index = e.PageNumber() - 1; // 1-based from system
-                    auto visual = RenderPdfPageToImage( m_pdf, m_preview_stream, index, /*dpi*/ 300.0 );
-                    m_printDoc.SetPreviewPage( e.PageNumber(), visual );
+                    auto managedImg = RenderPdfPageToImage( m_pdf, index, /*dpi*/ 300.0 );
+
+                    if( managedImg.image )
+                    {
+                        m_previewImages[index] = std::move(managedImg);
+                        m_printDoc.SetPreviewPage( e.PageNumber(), m_previewImages[index].image );
+                    }
                 } );
 
         m_addPagesRevoker = m_printDoc.AddPages( auto_revoke,
@@ -141,19 +213,36 @@ public:
                 {
                     for( uint32_t i = 0; i < m_pageCount; ++i )
                     {
-                        auto visual = RenderPdfPageToImage( m_pdf, m_print_stream, i, /*dpi*/ 600.0 );
-                        if( visual )
-                            m_printDoc.AddPage( visual );
+                        auto managedImg = RenderPdfPageToImage( m_pdf, i, /*dpi*/ 600.0 );
+
+                        if( managedImg.image )
+                        {
+                            m_printImages[i] = std::move(managedImg);
+                            m_printDoc.AddPage( m_printImages[i].image );
+                        }
                     }
                     m_printDoc.AddPagesComplete();
                 } );
 
         com_ptr<IPrintManagerInterop> pmInterop;
-        check_hresult( RoGetActivationFactory(
-                HStringReference( RuntimeClass_Windows_Graphics_Printing_PrintManager ).Get(), pmInterop.put() ) );
+        HRESULT hrActivation = RoGetActivationFactory(
+                HStringReference( RuntimeClass_Windows_Graphics_Printing_PrintManager ).Get(),
+                __uuidof(IPrintManagerInterop), pmInterop.put_void() );
+
+        if( FAILED(hrActivation) )
+        {
+            Cleanup();
+            return PRINT_RESULT::FAILED_TO_PRINT;
+        }
 
         com_ptr<ABI::Windows::Graphics::Printing::IPrintManager> pmAbi;
-        check_hresult( pmInterop->GetForWindow( m_hwnd, __uuidof( pmAbi ), pmAbi.put_void() ) );
+        HRESULT hrGetForWindow = pmInterop->GetForWindow( m_hwnd, __uuidof( pmAbi ), pmAbi.put_void() );
+
+        if( FAILED(hrGetForWindow) )
+        {
+            Cleanup();
+            return PRINT_RESULT::FAILED_TO_PRINT;
+        }
 
         // Bridge back ABI->WinRT
         m_rtPM = PrintManager( pmAbi.as<IInspectable>() );
@@ -168,10 +257,17 @@ public:
                             } );
                 } );
 
-        com_ptr<IAsyncOperation<bool>> op;
+        com_ptr<ABI::Windows::Foundation::IAsyncOperation<bool>> op;
 
         // Immediately wait for results to keep this in thread
-        check_hresult( pmInterop->ShowPrintUIForWindowAsync( m_hwnd, op.put() ) );
+        HRESULT hrShowPrint = pmInterop->ShowPrintUIForWindowAsync( m_hwnd, op.put() );
+
+        if( FAILED(hrShowPrint) )
+        {
+            Cleanup();
+            return PRINT_RESULT::FAILED_TO_PRINT;
+        }
+
         bool shown = false;
 
         try
@@ -191,9 +287,13 @@ public:
 private:
     void Cleanup()
     {
+        // This needs to happen first to release the streams
+        m_previewImages.clear();
+        m_printImages.clear();
+
         if( m_rtPM )
         {
-            m_rtPM.PrintTaskRequested( m_taskRequestedToken );
+            m_rtPM.PrintTaskRequested({});
             m_rtPM = nullptr;
         }
 
@@ -227,14 +327,15 @@ private:
     PrintManager       m_rtPM{ nullptr };
     winrt::event_token m_taskRequestedToken{};
 
-    InMemoryRandomAccessStream m_preview_stream;
-    InMemoryRandomAccessStream m_page_stream;
-
     Windows::Foundation::EventRevoker<PrintDocument> m_paginateRevoker;
     Windows::Foundation::EventRevoker<PrintDocument> m_getPreviewRevoker;
     Windows::Foundation::EventRevoker<PrintDocument> m_addPagesRevoker;
 
     HWND m_host{ nullptr };
+
+    // Holds images for each page, keeping the bitmap lifetime with the printer
+    std::map<uint32_t, ManagedImage> m_previewImages;
+    std::map<uint32_t, ManagedImage> m_printImages;
 };
 
 
@@ -251,13 +352,11 @@ private:
 
 PRINT_RESULT PrintPDF(std::string const& aFile )
 {
-    // Validate path
     DWORD attrs = GetFileAttributesA( aFile.c_str() );
 
     if( attrs == INVALID_FILE_ATTRIBUTES )
         return PRINT_RESULT::FILE_NOT_FOUND;
 
-    // Load PDF via Windows.Data.Pdf
     PdfDocument pdf{ nullptr };
 
     try

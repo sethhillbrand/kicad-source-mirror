@@ -62,27 +62,34 @@ PRINT_RESULT PrintPDF( const std::string& aFile, bool fit_to_page)
         [op setShowsPrintPanel:YES];
         [op setShowsProgressPanel:YES];
 
-        NSPrintOperationResult result = [op runOperation];
-        [document release];
+        BOOL success = [op runOperation];
 
-        switch(result) {
-        case NSPrintingSuccess:
-            return PRINT_RESULT::OK;
-        case NSPrintingCancelled:
-            return PRINT_RESULT::CANCELLED;
-        case NSPrintingFailure:
-        default:
-            return PRINT_RESULT::FAILED_TO_PRINT;
+        PRINT_RESULT result;
+
+        if (success)
+        {
+            result = PRINT_RESULT::OK;
+        } else
+        {
+            // Check if operation was cancelled (uncertain that this works)
+            NSPrintInfo* info = [op printInfo];
+            NSDictionary* settings = [info printSettings];
+
+            if ([[settings objectForKey:NSPrintJobDisposition] isEqualToString:NSPrintCancelJob]) {
+                result = PRINT_RESULT::CANCELLED;
+            } else {
+                result = PRINT_RESULT::FAILED_TO_PRINT;
+            }
         }
 
-        return PRINT_RESULT::FAILED_TO_PRINT;
-    }
-
-    PRINT_RESULT PrintPDF(const std::string& aFile)
-    {
-        return PrintPDF(aFile, true);
-    }
+        [document release];
+        return result;
 }
+
+PRINT_RESULT PrintPDF(const std::string& aFile)
+{
+    return PrintPDF(aFile, true);
+}
+
 } // namespace PRINTING
 } // namespace KIPLATFORM
-
