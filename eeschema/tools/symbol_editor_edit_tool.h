@@ -51,6 +51,7 @@ public:
     int PinTable( const TOOL_EVENT& aEvent );
     int SetUnitDisplayName( const TOOL_EVENT& aEvent );
     int UpdateSymbolFields( const TOOL_EVENT& aEvent );
+    int EditLibrarySymbolFields( const TOOL_EVENT& aEvent );
 
     int Undo( const TOOL_EVENT& aEvent );
     int Redo( const TOOL_EVENT& aEvent );

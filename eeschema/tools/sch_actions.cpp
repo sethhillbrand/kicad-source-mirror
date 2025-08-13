@@ -270,6 +270,13 @@ TOOL_ACTION SCH_ACTIONS::updateSymbolFields( TOOL_ACTION_ARGS()
         .Tooltip( _( "Update symbol to match changes made in parent symbol" ) )
         .Icon( BITMAPS::refresh ) );
 
+TOOL_ACTION SCH_ACTIONS::editLibrarySymbolFields( TOOL_ACTION_ARGS()
+        .Name( "eeschema.SymbolLibraryControl.editLibrarySymbolFields" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Edit Library Symbol Fields..." ) )
+        .Tooltip( _( "Bulk-edit fields of all symbols in current library" ) )
+        .Icon( BITMAPS::spreadsheet ) );
+
 TOOL_ACTION SCH_ACTIONS::setUnitDisplayName( TOOL_ACTION_ARGS()
         .Name( "eeschema.SymbolLibraryControl.setUnitDisplayName" )
         .Scope( AS_GLOBAL )

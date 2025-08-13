@@ -151,6 +151,7 @@ set( EESCHEMA_DLGS
     dialogs/dialog_symbol_chooser.cpp
     dialogs/dialog_symbol_fields_table.cpp
     dialogs/dialog_symbol_fields_table_base.cpp
+    dialogs/dialog_lib_symbol_fields_table.cpp
     dialogs/dialog_symbol_properties.cpp
     dialogs/dialog_symbol_properties_base.cpp
     dialogs/dialog_symbol_remap.cpp

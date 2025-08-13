@@ -115,6 +115,7 @@ void SYMBOL_EDIT_FRAME::doReCreateMenuBar()
     editMenu->Add( SCH_ACTIONS::pinTable );
     editMenu->Add( SCH_ACTIONS::setUnitDisplayName );
     editMenu->Add( SCH_ACTIONS::updateSymbolFields );
+    editMenu->Add( SCH_ACTIONS::editLibrarySymbolFields );
 
 
     //-- View menu -----------------------------------------------

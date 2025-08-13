@@ -402,6 +402,12 @@ std::list<LIB_SYMBOL*> SYMBOL_LIBRARY_MANAGER::EnumerateSymbols( const wxString&
 }
 
 
+LIB_BUFFER& SYMBOL_LIBRARY_MANAGER::GetLibraryBuffer( const wxString& aLibrary )
+{
+    return getLibraryBuffer( aLibrary );
+}
+
+
 LIB_SYMBOL* SYMBOL_LIBRARY_MANAGER::GetBufferedSymbol( const wxString& aSymbolName,
                                                        const wxString& aLibrary )
 {

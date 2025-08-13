@@ -38,6 +38,7 @@
 #include <symbol_edit_frame.h>
 #include <sch_commit.h>
 #include <dialogs/dialog_shape_properties.h>
+#include <dialogs/dialog_lib_symbol_fields_table.h>
 #include <dialogs/dialog_text_properties.h>
 #include <dialogs/dialog_field_properties.h>
 #include <dialogs/dialog_lib_symbol_properties.h>
@@ -826,6 +827,19 @@ int SYMBOL_EDITOR_EDIT_TOOL::UpdateSymbolFields( const TOOL_EVENT& aEvent )
 }
 
 
+int SYMBOL_EDITOR_EDIT_TOOL::EditLibrarySymbolFields( const TOOL_EVENT& aEvent )
+{
+    DIALOG_LIB_SYMBOL_FIELDS_TABLE* dlg = m_frame->GetLibSymbolFieldsTableDialog();
+
+    wxCHECK( dlg, 0 );
+
+    dlg->Show( true );
+    dlg->Raise();
+
+    return 0;
+}
+
+
 int SYMBOL_EDITOR_EDIT_TOOL::SetUnitDisplayName( const TOOL_EVENT& aEvent )
 {
     LIB_SYMBOL* symbol = m_frame->GetCurSymbol();
@@ -1263,6 +1277,8 @@ void SYMBOL_EDITOR_EDIT_TOOL::setTransitions()
     Go( &SYMBOL_EDITOR_EDIT_TOOL::Properties,         SCH_ACTIONS::symbolProperties.MakeEvent() );
     Go( &SYMBOL_EDITOR_EDIT_TOOL::PinTable,           SCH_ACTIONS::pinTable.MakeEvent() );
     Go( &SYMBOL_EDITOR_EDIT_TOOL::UpdateSymbolFields, SCH_ACTIONS::updateSymbolFields.MakeEvent() );
+    Go( &SYMBOL_EDITOR_EDIT_TOOL::EditLibrarySymbolFields,
+         SCH_ACTIONS::editLibrarySymbolFields.MakeEvent() );
     Go( &SYMBOL_EDITOR_EDIT_TOOL::SetUnitDisplayName, SCH_ACTIONS::setUnitDisplayName.MakeEvent() );
     // clang-format on
 }

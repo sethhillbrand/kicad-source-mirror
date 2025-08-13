@@ -211,6 +211,7 @@ public:
     static TOOL_ACTION importSymbol;
     static TOOL_ACTION exportSymbol;
     static TOOL_ACTION updateSymbolFields;
+    static TOOL_ACTION editLibrarySymbolFields;
     static TOOL_ACTION setUnitDisplayName;
 
     // Hierarchy navigation

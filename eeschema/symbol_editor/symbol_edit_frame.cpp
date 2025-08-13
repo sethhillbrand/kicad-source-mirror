@@ -83,6 +83,7 @@
 #include <widgets/filedlg_hook_new_library.h>
 #include <wildcards_and_files_ext.h>
 #include <panel_sym_lib_table.h>
+#include <dialogs/dialog_lib_symbol_fields_table.h>
 #include <string_utils.h>
 #include <wx/msgdlg.h>
 #include <wx/log.h>
@@ -112,12 +113,16 @@ SYMBOL_EDIT_FRAME::SYMBOL_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
                         wxDefaultPosition, wxDefaultSize, KICAD_DEFAULT_DRAWFRAME_STYLE,
                         LIB_EDIT_FRAME_NAME ),
         m_unitSelectBox( nullptr ),
+        m_libFieldsTableDialog( nullptr ),
         m_isSymbolFromSchematic( false )
 {
     SetShowDeMorgan( false );
     m_SyncPinEdit = false;
 
     m_symbol = nullptr;
+
+    Bind( EDA_EVT_CLOSE_DIALOG_SYMBOL_FIELDS_TABLE,
+          &SYMBOL_EDIT_FRAME::onCloseLibSymbolFieldsTableDialog, this );
     m_treePane = nullptr;
     m_libMgr = nullptr;
     m_unit = 1;
@@ -308,6 +313,15 @@ SYMBOL_EDIT_FRAME::~SYMBOL_EDIT_FRAME()
 
     if( SYMBOL_EDITOR_SETTINGS* cfg = GetAppSettings<SYMBOL_EDITOR_SETTINGS>( "symbol_editor" ) )
         Pgm().GetSettingsManager().Save( cfg );
+
+    if( m_libFieldsTableDialog )
+    {
+        m_libFieldsTableDialog->Destroy();
+        m_libFieldsTableDialog = nullptr;
+    }
+
+    Unbind( EDA_EVT_CLOSE_DIALOG_SYMBOL_FIELDS_TABLE,
+            &SYMBOL_EDIT_FRAME::onCloseLibSymbolFieldsTableDialog, this );
 
     delete m_libMgr;
 }
@@ -681,6 +695,9 @@ bool SYMBOL_EDIT_FRAME::canCloseWindow( wxCloseEvent& aEvent )
     if( !saveAllLibraries( true ) )
         return false;
 
+    if( m_libFieldsTableDialog && !m_libFieldsTableDialog->Close( false ) )
+        return false;
+
     // Save symbol tree column widths
     m_libMgr->GetAdapter()->SaveSettings();
 
@@ -729,6 +746,24 @@ void SYMBOL_EDIT_FRAME::RebuildSymbolUnitsList()
         m_unit = 1;
 
     m_unitSelectBox->SetSelection(( m_unit > 0 ) ? m_unit - 1 : 0 );
+}
+
+
+DIALOG_LIB_SYMBOL_FIELDS_TABLE* SYMBOL_EDIT_FRAME::GetLibSymbolFieldsTableDialog()
+{
+    if( !m_libFieldsTableDialog )
+        m_libFieldsTableDialog = new DIALOG_LIB_SYMBOL_FIELDS_TABLE( this );
+
+    return m_libFieldsTableDialog;
+}
+
+void SYMBOL_EDIT_FRAME::onCloseLibSymbolFieldsTableDialog( wxCommandEvent& aEvent )
+{
+    if( m_libFieldsTableDialog )
+    {
+        m_libFieldsTableDialog->Destroy();
+        m_libFieldsTableDialog = nullptr;
+    }
 }
 
 

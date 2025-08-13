@@ -219,6 +219,11 @@ public:
     std::list<LIB_SYMBOL*> EnumerateSymbols( const wxString& aLibrary ) const;
 
     /**
+     * Return the buffered representation of a library.
+     */
+    LIB_BUFFER& GetLibraryBuffer( const wxString& aLibrary );
+
+    /**
      * Create an empty library and adds it to the library table.
      *
      * The library file is created.

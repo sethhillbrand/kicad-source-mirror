@@ -41,6 +41,7 @@ class LIB_ID;
 class LIB_SYMBOL_LIBRARY_MANAGER;
 class SYMBOL_EDITOR_SETTINGS;
 class EDA_LIST_DIALOG;
+class DIALOG_LIB_SYMBOL_FIELDS_TABLE;
 
 
 /**
@@ -113,6 +114,9 @@ public:
     void SetCurSymbol( LIB_SYMBOL* aSymbol, bool aUpdateZoom );
 
     LIB_SYMBOL_LIBRARY_MANAGER& GetLibManager();
+
+    DIALOG_LIB_SYMBOL_FIELDS_TABLE* GetLibSymbolFieldsTableDialog();
+    void onCloseLibSymbolFieldsTableDialog( wxCommandEvent& aEvent );
 
     SELECTION& GetCurrentSelection() override;
 
@@ -554,6 +558,7 @@ private:
     SYMBOL_TREE_PANE*       m_treePane;          // symbol search tree widget
     LIB_SYMBOL_LIBRARY_MANAGER* m_libMgr;        // manager taking care of temporary modifications
     SYMBOL_EDITOR_SETTINGS* m_settings;          // Handle to the settings
+    DIALOG_LIB_SYMBOL_FIELDS_TABLE* m_libFieldsTableDialog; // library fields table dialog
 
     LIB_ID                  m_centerItemOnIdle;
 
