@@ -51,6 +51,7 @@ if( APPLE )
         os/apple/policy.mm
         os/apple/secrets.mm
         os/apple/sysinfo.cpp
+        os/apple/printing.mm
         )
 
     set( PLATFORM_LIBS
@@ -68,6 +69,7 @@ elseif( WIN32 )
         os/windows/policy.cpp
         os/windows/secrets.cpp
         os/windows/sysinfo.cpp
+        os/windows/printing.cpp
         )
 
     set( PLATFORM_LIBS
@@ -85,6 +87,7 @@ elseif( UNIX )
         os/unix/policy.cpp
         os/unix/secrets.cpp
         os/unix/sysinfo.cpp
+        os/unix/printing.cpp
         )
 
     # Detect the secret library and configure it

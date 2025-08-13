@@ -177,6 +177,10 @@ void PGM_BASE::Destroy()
     APP_MONITOR::SENTRY::Instance()->Cleanup();
 
     m_pgm_checker.reset();
+
+#ifdef __WINDOWS__
+    winrt::uninit_apartment();
+#endif
 }
 
 
@@ -439,6 +443,10 @@ bool PGM_BASE::InitPgm( bool aHeadless, bool aSkipPyInit, bool aIsUnitTest )
         // Also don't set it because we need it in QA cli tests to be set by ctest
         wxSetEnv( "FONTCONFIG_PATH", PATHS::GetWindowsFontConfigDir() );
     }
+#endif
+
+#ifdef __WINDOWS__
+    winrt::init_apartment(winrt::apartment_type::single_threaded);
 #endif
 
     m_settings_manager = std::make_unique<SETTINGS_MANAGER>( aHeadless );
