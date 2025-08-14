@@ -26,6 +26,7 @@
 #include <common.h>     // For ExpandEnvVarSubstitutions
 #include <dialogs/dialog_global_sym_lib_table_config.h>
 #include <dialogs/dialog_plugin_options.h>
+#include <dialogs/dialog_generate_database_connection.h>
 #include <project.h>
 #include <panel_sym_lib_table.h>
 #include <lib_id.h>
@@ -590,6 +591,16 @@ bool PANEL_SYM_LIB_TABLE::verifyTables()
 
 void PANEL_SYM_LIB_TABLE::OnUpdateUI( wxUpdateUIEvent& event )
 {
+    int   row      = m_cur_grid->GetGridCursorRow();
+    bool  enable   = false;
+    wxString dbType = SCH_IO_MGR::ShowType( SCH_IO_MGR::SCH_DATABASE );
+
+    if( row >= 0 )
+        enable = m_cur_grid->GetCellValue( row, COL_TYPE ) == dbType;
+
+    m_connectionWizard->Enable( enable );
+
+    event.Skip();
 }
 
 
@@ -856,6 +867,28 @@ void PANEL_SYM_LIB_TABLE::onPageChange( wxBookCtrlEvent& event )
     {
         m_cur_grid = m_project_grid;
         m_resetGlobal->Disable();
+    }
+}
+
+
+void PANEL_SYM_LIB_TABLE::onConnectionWizard( wxCommandEvent& event )
+{
+    int row = m_cur_grid->GetGridCursorRow();
+
+    if( row < 0 )
+        return;
+
+    wxString dbType = SCH_IO_MGR::ShowType( SCH_IO_MGR::SCH_DATABASE );
+
+    if( m_cur_grid->GetCellValue( row, COL_TYPE ) != dbType )
+        return;
+
+    DIALOG_GENERATE_DATABASE_CONNECTION dlg( this );
+
+    if( dlg.ShowModal() == wxID_OK )
+    {
+        wxString filename = dlg.GetFileName();
+        m_cur_grid->SetCellValue( row, COL_URI, filename );
     }
 }
 

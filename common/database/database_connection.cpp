@@ -118,6 +118,24 @@ DATABASE_CONNECTION::~DATABASE_CONNECTION()
     m_conn.reset();
 }
 
+bool DATABASE_CONNECTION::ListDataSources( std::vector<std::string>& aSources )
+{
+    try
+    {
+        auto sources = nanodbc::list_datasources();
+
+        for( const auto& src : sources )
+            aSources.push_back( toUTF8( src.name ) );
+    }
+    catch( nanodbc::database_error& e )
+    {
+        wxLogTrace( traceDatabase, wxT( "Error listing data sources: %s" ), e.what() );
+        return false;
+    }
+
+    return !aSources.empty();
+}
+
 
 void DATABASE_CONNECTION::init()
 {
@@ -204,6 +222,34 @@ bool DATABASE_CONNECTION::IsConnected() const
         return false;
 
     return m_conn->connected();
+}
+
+
+bool DATABASE_CONNECTION::GetTables( std::vector<std::string>& aTables )
+{
+    if( !m_conn )
+        return false;
+
+    try
+    {
+        nanodbc::catalog catalog( *m_conn );
+        nanodbc::catalog::tables tables = catalog.find_tables( NANODBC_TEXT( "%" ) );
+
+        while( tables.next() )
+        {
+            std::string type = toUTF8( tables.table_type() );
+
+            if( type == "TABLE" || type == "VIEW" )
+                aTables.push_back( toUTF8( tables.table_name() ) );
+        }
+    }
+    catch( nanodbc::database_error& e )
+    {
+        m_lastError = e.what();
+        return false;
+    }
+
+    return !aTables.empty();
 }
 
 

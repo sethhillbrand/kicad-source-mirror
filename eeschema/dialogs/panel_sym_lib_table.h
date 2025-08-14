@@ -60,6 +60,7 @@ private:
     void onConvertLegacyLibraries( wxCommandEvent& event ) override;
 
     void onPageChange( wxBookCtrlEvent& event ) override;
+    void onConnectionWizard( wxCommandEvent& event ) override;
     void onReset( wxCommandEvent& event ) override;
 
     void setupGrid( WX_GRID* aGrid );

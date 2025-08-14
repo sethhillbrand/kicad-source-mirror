@@ -89,6 +89,10 @@ public:
 
     std::string GetLastError() const { return m_lastError; }
 
+    bool GetTables( std::vector<std::string>& aTables );
+
+    static bool ListDataSources( std::vector<std::string>& aSources );
+
 private:
     void init();
 

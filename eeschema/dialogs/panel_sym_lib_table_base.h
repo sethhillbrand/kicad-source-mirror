@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version 4.0.0-0-g0efcecf0)
+// C++ code generated with wxFormBuilder (version 4.2.1-0-g80c4cb6a-dirty)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO *NOT* EDIT THIS FILE!
@@ -31,7 +31,6 @@ class WX_GRID;
 
 ///////////////////////////////////////////////////////////////////////////
 
-
 ///////////////////////////////////////////////////////////////////////////////
 /// Class PANEL_SYM_LIB_TABLE_BASE
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,6 +49,7 @@ class PANEL_SYM_LIB_TABLE_BASE : public wxPanel
 		STD_BITMAP_BUTTON* m_move_up_button;
 		STD_BITMAP_BUTTON* m_move_down_button;
 		STD_BITMAP_BUTTON* m_delete_button;
+		wxButton* m_connectionWizard;
 		wxButton* m_resetGlobal;
 		wxButton* m_convertLegacy;
 		WX_GRID* m_path_subs_grid;
@@ -62,6 +62,7 @@ class PANEL_SYM_LIB_TABLE_BASE : public wxPanel
 		virtual void moveUpHandler( wxCommandEvent& event ) { event.Skip(); }
 		virtual void moveDownHandler( wxCommandEvent& event ) { event.Skip(); }
 		virtual void deleteRowHandler( wxCommandEvent& event ) { event.Skip(); }
+		virtual void onConnectionWizard( wxCommandEvent& event ) { event.Skip(); }
 		virtual void onReset( wxCommandEvent& event ) { event.Skip(); }
 		virtual void onConvertLegacyLibraries( wxCommandEvent& event ) { event.Skip(); }
 		virtual void onSizeGrid( wxSizeEvent& event ) { event.Skip(); }
