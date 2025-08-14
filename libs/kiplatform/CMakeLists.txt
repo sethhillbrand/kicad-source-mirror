@@ -78,6 +78,7 @@ elseif( WIN32 )
         "winhttp"
         "wintrust"
         "imm32"
+        "windowsapp"
         )
 elseif( UNIX )
     list( APPEND PLATFORM_SRCS

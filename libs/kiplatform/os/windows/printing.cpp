@@ -19,6 +19,10 @@
 
 
 #include <windows.h>
+#include <algorithm>
+#include <cmath>
+#include <map>
+#include <utility>
 #include <roapi.h>
 
 #include <winrt/base.h>
@@ -34,8 +38,6 @@
 #include <winrt/Windows.Data.Pdf.h>
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <printing.h>
-
-#pragma comment(lib, "windowsapp.lib")
 
 using namespace winrt;
 
@@ -117,7 +119,8 @@ static ManagedImage RenderPdfPageToImage( winrt::Windows::Data::Pdf::PdfDocument
 
     try
     {
-        bmp.SetSourceAsync( stream ).get();
+        winrt::Windows::Foundation::IAsyncAction operation = bmp.SetSourceAsync( stream );
+        operation.get();
     }
     catch( ... )
     {
@@ -162,18 +165,14 @@ public:
                                     rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr,
                                     ::GetModuleHandleW( nullptr ), nullptr );
 
-        if( !m_host )
-        {
-            Cleanup();
-            return PRINT_RESULT::FAILED_TO_PRINT;
-        }
+        auto cleanup_guard = std::unique_ptr<void, decltype([this](void*){ this->cleanup(); })>
+            ( (void*)1, [this](void*){ this->cleanup(); } );
 
-        HRESULT hr = native->AttachToWindow( m_host );
-        if( FAILED(hr) )
-        {
-            Cleanup();
+        if( !m_host )
             return PRINT_RESULT::FAILED_TO_PRINT;
-        }
+
+        if( FAILED( native->AttachToWindow( m_host ) ) )
+            return PRINT_RESULT::FAILED_TO_PRINT;
 
         m_root = winrt::Windows::UI::Xaml::Controls::Grid();
         m_xamlSource.Content( m_root );
@@ -182,13 +181,13 @@ public:
         m_docSrc = m_printDoc.DocumentSource();
         m_pageCount = std::max<uint32_t>( 1, m_pdf.PageCount() );
 
-        m_paginateRevoker = m_printDoc.Paginate( auto_revoke,
+        m_paginateToken = m_printDoc.Paginate(
                 [this]( auto const&, winrt::Windows::UI::Xaml::Printing::PaginateEventArgs const& )
                 {
                     m_printDoc.SetPreviewPageCount( m_pageCount, winrt::Windows::UI::Xaml::Printing::PreviewPageCountType::Final );
                 } );
 
-        m_getPreviewRevoker = m_printDoc.GetPreviewPage( auto_revoke,
+        m_getPreviewToken = m_printDoc.GetPreviewPage(
                 [this]( auto const&, winrt::Windows::UI::Xaml::Printing::GetPreviewPageEventArgs const& e )
                 {
                     const uint32_t index = e.PageNumber() - 1; // 1-based from system
@@ -201,7 +200,7 @@ public:
                     }
                 } );
 
-        m_addPagesRevoker = m_printDoc.AddPages( auto_revoke,
+        m_addPagesToken = m_printDoc.AddPages(
                 [this]( auto const&, winrt::Windows::UI::Xaml::Printing::AddPagesEventArgs const& )
                 {
                     for( uint32_t i = 0; i < m_pageCount; ++i )
@@ -223,11 +222,11 @@ public:
             auto pmInterop = factory.as<IPrintManagerInterop>();
 
             winrt::Windows::Graphics::Printing::PrintManager printManager{ nullptr };
-            HRESULT hrGetForWindow = pmInterop->GetForWindow( m_hwnd, winrt::guid_of<winrt::Windows::Graphics::Printing::PrintManager>(), winrt::put_abi(printManager) );
 
-            if( FAILED(hrGetForWindow) )
+            if( FAILED( pmInterop->GetForWindow( m_hwnd,
+                                                 winrt::guid_of<winrt::Windows::Graphics::Printing::PrintManager>(),
+                                                 winrt::put_abi( printManager ) ) ) )
             {
-                Cleanup();
                 return PRINT_RESULT::FAILED_TO_PRINT;
             }
 
@@ -247,12 +246,8 @@ public:
             winrt::Windows::Foundation::IAsyncOperation<bool> asyncOp{ nullptr };
 
             // Immediately wait for results to keep this in thread
-            HRESULT hrShowPrint = pmInterop->ShowPrintUIForWindowAsync( m_hwnd, winrt::put_abi(asyncOp) );
-            if( FAILED(hrShowPrint) )
-            {
-                Cleanup();
+            if( FAILED( pmInterop->ShowPrintUIForWindowAsync( m_hwnd, winrt::put_abi(asyncOp) ) ) )
                 return PRINT_RESULT::FAILED_TO_PRINT;
-            }
 
             bool shown = false;
 
@@ -262,22 +257,19 @@ public:
             }
             catch( ... )
             {
-                Cleanup();
                 return PRINT_RESULT::FAILED_TO_PRINT;
             }
 
-            Cleanup();
             return shown ? PRINT_RESULT::OK : PRINT_RESULT::CANCELLED;
         }
         catch( ... )
         {
-            Cleanup();
             return PRINT_RESULT::FAILED_TO_PRINT;
         }
     }
 
 private:
-    void Cleanup()
+    void cleanup()
     {
         // Clear image containers first to release streams
         m_previewImages.clear();
@@ -285,13 +277,16 @@ private:
 
         if( m_rtPM )
         {
-            m_rtPM.PrintTaskRequested({});
+            m_rtPM.PrintTaskRequested( m_taskRequestedToken );
             m_rtPM = nullptr;
         }
 
-        m_addPagesRevoker.revoke();
-        m_getPreviewRevoker.revoke();
-        m_paginateRevoker.revoke();
+        if( m_printDoc )
+        {
+            m_printDoc.AddPages( m_addPagesToken );
+            m_printDoc.GetPreviewPage( m_getPreviewToken );
+            m_printDoc.Paginate( m_paginateToken );
+        }
 
         m_docSrc = nullptr;
         m_printDoc = nullptr;
@@ -313,15 +308,15 @@ private:
     winrt::Windows::UI::Xaml::Hosting::DesktopWindowXamlSource m_xamlSource{ nullptr };
     winrt::Windows::UI::Xaml::Controls::Grid                   m_root{ nullptr };
     winrt::Windows::UI::Xaml::Printing::PrintDocument          m_printDoc{ nullptr };
-    winrt::Windows::UI::Xaml::Printing::IPrintDocumentSource  m_docSrc{ nullptr };
+    winrt::Windows::Graphics::Printing::IPrintDocumentSource   m_docSrc{ nullptr };
 
-    uint32_t           m_pageCount{ 0 };
-    winrt::Windows::Graphics::Printing::PrintManager       m_rtPM{ nullptr };
-    winrt::event_token m_taskRequestedToken{};
+    uint32_t                                         m_pageCount{ 0 };
+    winrt::Windows::Graphics::Printing::PrintManager m_rtPM{ nullptr };
+    winrt::event_token                               m_taskRequestedToken{};
 
-    winrt::Windows::Foundation::EventRevoker<winrt::Windows::UI::Xaml::Printing::PrintDocument> m_paginateRevoker;
-    winrt::Windows::Foundation::EventRevoker<winrt::Windows::UI::Xaml::Printing::PrintDocument> m_getPreviewRevoker;
-    winrt::Windows::Foundation::EventRevoker<winrt::Windows::UI::Xaml::Printing::PrintDocument> m_addPagesRevoker;
+    winrt::event_token m_paginateToken{};
+    winrt::event_token m_getPreviewToken{};
+    winrt::event_token m_addPagesToken{};
 
     HWND m_host{ nullptr };
 
@@ -331,16 +326,16 @@ private:
 };
 
 
-    static std::wstring Utf8ToWide( std::string const& s )
-    {
-        if( s.empty() ) return {};
+static std::wstring Utf8ToWide( std::string const& s )
+{
+    if( s.empty() ) return {};
 
-        int          len = MultiByteToWideChar( CP_UTF8, 0, s.data(), (int) s.size(), nullptr, 0 );
-        std::wstring out( len, L'\0' );
+    int          len = MultiByteToWideChar( CP_UTF8, 0, s.data(), (int) s.size(), nullptr, 0 );
+    std::wstring out( len, L'\0' );
 
-        MultiByteToWideChar( CP_UTF8, 0, s.data(), (int) s.size(), out.data(), len );
-        return out;
-    }
+    MultiByteToWideChar( CP_UTF8, 0, s.data(), (int) s.size(), out.data(), len );
+    return out;
+}
 
 PRINT_RESULT PrintPDF(std::string const& aFile )
 {
