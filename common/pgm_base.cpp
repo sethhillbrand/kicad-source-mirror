@@ -75,6 +75,9 @@
 #include <python_manager.h>
 #endif
 
+#ifdef _MSC_VER
+#include <winrt/base.h>
+#endif
 /**
  * Current list of languages supported by KiCad.
  *
@@ -178,7 +181,7 @@ void PGM_BASE::Destroy()
 
     m_pgm_checker.reset();
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
     winrt::uninit_apartment();
 #endif
 }
@@ -445,7 +448,7 @@ bool PGM_BASE::InitPgm( bool aHeadless, bool aSkipPyInit, bool aIsUnitTest )
     }
 #endif
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
     winrt::init_apartment(winrt::apartment_type::single_threaded);
 #endif
 

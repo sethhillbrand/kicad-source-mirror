@@ -117,10 +117,12 @@ DIALOG_PRINT::DIALOG_PRINT( SCH_EDIT_FRAME* aParent ) :
 #endif
 
     // New printing subsystem has print preview on all platforms
+#if defined( _MSC_VER )
     if( ADVANCED_CFG::GetCfg().m_UsePdfPrint )
     {
         m_sdbSizerApply->Hide();
     }
+#endif
 
     m_sdbSizerOK->SetFocus();
 
@@ -307,6 +309,7 @@ bool DIALOG_PRINT::TransferDataFromWindow()
 
     SavePrintOptions();
 
+#if defined( _MSC_VER )
     if( ADVANCED_CFG::GetCfg().m_UsePdfPrint )
     {
         EESCHEMA_SETTINGS* cfg = m_parent->eeconfig();
@@ -349,6 +352,7 @@ bool DIALOG_PRINT::TransferDataFromWindow()
 
         return true;
     }
+#endif
 
     int sheet_count = m_parent->Schematic().Root().CountSheets();
 

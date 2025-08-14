@@ -18,6 +18,9 @@
 */
 
 
+#include <printing.h>
+
+#if defined( _MSC_VER )
 #include <windows.h>
 #include <algorithm>
 #include <cmath>
@@ -37,7 +40,6 @@
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.Data.Pdf.h>
 #include <winrt/Windows.Graphics.Imaging.h>
-#include <printing.h>
 
 using namespace winrt;
 
@@ -119,8 +121,7 @@ static ManagedImage RenderPdfPageToImage( winrt::Windows::Data::Pdf::PdfDocument
 
     try
     {
-        winrt::Windows::Foundation::IAsyncAction operation = bmp.SetSourceAsync( stream );
-        operation.get();
+        co_await bmp.SetSourceAsync( stream );
     }
     catch( ... )
     {
@@ -165,8 +166,8 @@ public:
                                     rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, m_hwnd, nullptr,
                                     ::GetModuleHandleW( nullptr ), nullptr );
 
-        auto cleanup_guard = std::unique_ptr<void, decltype([this](void*){ this->cleanup(); })>
-            ( (void*)1, [this](void*){ this->cleanup(); } );
+        auto cleanup_guard = std::unique_ptr<void, std::function<void( void* )>>
+                            ( (void*) 1, [this]( void* ){ this->cleanup(); } );
 
         if( !m_host )
             return PRINT_RESULT::FAILED_TO_PRINT;
@@ -378,3 +379,18 @@ PRINT_RESULT PrintPDF(std::string const& aFile )
 
 } // namespace PRINTING
 } // namespace KIPLATFORM
+
+#else
+
+namespace KIPLATFORM
+{
+namespace PRINTING
+{
+    PRINT_RESULT PrintPDF( std::string const& )
+    {
+        return PRINT_RESULT::UNSUPPORTED;
+    }
+} // namespace PRINTING
+} // namespace KIPLATFORM
+
+#endif

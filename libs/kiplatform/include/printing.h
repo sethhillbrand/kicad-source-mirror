@@ -38,7 +38,7 @@ namespace PRINTING
         UNKNOWN_ERROR
     };
 
-    inline const char* PrintResultToString( PRINT_RESULT aResult )
+    inline const wxString PrintResultToString( PRINT_RESULT aResult )
     {
         switch( aResult )
         {
