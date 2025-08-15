@@ -62,6 +62,7 @@ public:
     int PageSetup( const TOOL_EVENT& aEvent );
     int Print( const TOOL_EVENT& aEvent );
     int Plot( const TOOL_EVENT& aEvent );
+    int NewTopSheet( const TOOL_EVENT& aEvent );
     int Quit( const TOOL_EVENT& aEvent );
 
     /**

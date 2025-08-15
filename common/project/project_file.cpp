@@ -44,6 +44,7 @@ PROJECT_FILE::PROJECT_FILE( const wxString& aFullPath ) :
         m_BoardSettings(),
         m_sheets(),
         m_boards(),
+        m_topSheets(),
         m_project( nullptr ),
         m_wasMigrated( false )
 {
@@ -53,6 +54,9 @@ PROJECT_FILE::PROJECT_FILE( const wxString& aFullPath ) :
     m_params.emplace_back( new PARAM_LIST<FILE_INFO_PAIR>( "sheets", &m_sheets, {} ) );
 
     m_params.emplace_back( new PARAM_LIST<FILE_INFO_PAIR>( "boards", &m_boards, {} ) );
+
+    m_params.emplace_back( new PARAM_PATH_LIST( "schematic.top_sheets",
+            &m_topSheets, {} ) );
 
     m_params.emplace_back( new PARAM_WXSTRING_MAP( "text_variables",
             &m_TextVars, {}, false, true /* array behavior, even though stored as a map */ ) );

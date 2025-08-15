@@ -85,6 +85,7 @@ public:
     static TOOL_ACTION placeSheetPin;
     static TOOL_ACTION autoplaceAllSheetPins;
     static TOOL_ACTION importSheet;
+    static TOOL_ACTION newTopSheet;
     // Sync sheet pins for selected sheet symbol
     static TOOL_ACTION syncSheetPins;
     // Sync sheet pins for all sheet symbols

@@ -609,6 +609,13 @@ TOOL_ACTION SCH_ACTIONS::importSheet( TOOL_ACTION_ARGS()
         .Flags( AF_ACTIVATE )
         .Parameter<wxString*> ( nullptr ) );
 
+TOOL_ACTION SCH_ACTIONS::newTopSheet( TOOL_ACTION_ARGS()
+        .Name( "eeschema.EditorControl.newTopSheet" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "New Top Sheet" ) )
+        .Tooltip( _( "Create a new top-level sheet" ) )
+        .Icon( BITMAPS::add_hierarchical_subsheet ) );
+
 TOOL_ACTION SCH_ACTIONS::placeGlobalLabel( TOOL_ACTION_ARGS()
         .Name( "eeschema.InteractiveDrawing.placeGlobalLabel" )
         .Scope( AS_GLOBAL )

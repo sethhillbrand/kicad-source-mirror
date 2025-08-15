@@ -310,6 +310,40 @@ int SCH_EDITOR_CONTROL::Plot( const TOOL_EVENT& aEvent )
 }
 
 
+int SCH_EDITOR_CONTROL::NewTopSheet( const TOOL_EVENT& aEvent )
+{
+    SCHEMATIC& schematic = m_frame->Schematic();
+    SCH_SHEET& root = schematic.Root();
+
+    SCH_SHEET* sheet = new SCH_SHEET( &root );
+    SCH_SCREEN* screen = new SCH_SCREEN( &schematic );
+    sheet->SetScreen( screen );
+
+    SCH_SHEET_PATH rootPath;
+    bool updateHierarchy = false;
+
+    if( m_frame->EditSheetProperties( sheet, &rootPath, nullptr, nullptr, &updateHierarchy, nullptr ) )
+    {
+        SCH_COMMIT commit( m_toolMgr );
+
+        schematic.RefreshHierarchy();
+        m_frame->UpdateHierarchyNavigator();
+
+        SCH_SHEET_PATH newPath;
+        newPath.push_back( sheet );
+        m_toolMgr->RunAction<SCH_SHEET_PATH*>( SCH_ACTIONS::changeSheet, &newPath );
+
+        std::vector<wxString>& topSheets = m_frame->Prj().GetProjectFile().GetTopSheets();
+        topSheets.emplace_back( screen->GetFileName() );
+    }
+    else
+    {
+        delete sheet;
+    }
+
+    return 0;
+}
+
 int SCH_EDITOR_CONTROL::Quit( const TOOL_EVENT& aEvent )
 {
     m_frame->Close( false );
@@ -3039,6 +3073,7 @@ void SCH_EDITOR_CONTROL::setTransitions()
     Go( &SCH_EDITOR_CONTROL::PageSetup,             ACTIONS::pageSettings.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::Print,                 ACTIONS::print.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::Plot,                  ACTIONS::plot.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::NewTopSheet,           SCH_ACTIONS::newTopSheet.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::Quit,                  ACTIONS::quit.MakeEvent() );
 
     Go( &SCH_EDITOR_CONTROL::RescueSymbols,         SCH_ACTIONS::rescueSymbols.MakeEvent() );

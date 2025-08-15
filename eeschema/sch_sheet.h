@@ -402,6 +402,9 @@ public:
     bool GetDNP() const override { return m_DNP; }
     void SetDNP( bool aDNP ) override { m_DNP = aDNP; }
 
+    bool IsSyntheticRoot() const { return m_isSyntheticRoot; }
+    void SetSyntheticRoot( bool aSynthetic ) { m_isSyntheticRoot = aSynthetic; }
+
     wxString GetItemDescription( UNITS_PROVIDER* aUnitsProvider, bool aFull ) const override;
 
     BITMAPS GetMenuImage() const override;
@@ -564,6 +567,7 @@ private:
     int                         m_borderWidth;
     KIGFX::COLOR4D              m_borderColor;
     KIGFX::COLOR4D              m_backgroundColor;
+    bool                        m_isSyntheticRoot;
 
     std::vector<SCH_SHEET_INSTANCE> m_instances;
 };

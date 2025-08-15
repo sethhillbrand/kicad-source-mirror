@@ -261,14 +261,27 @@ void HIERARCHY_PANE::UpdateHierarchyTree( bool aClear )
     }
 
     m_list.clear();
-    m_list.push_back( &m_frame->Schematic().Root() );
 
     m_tree->DeleteAllItems();
 
     wxTreeItemId root = m_tree->AddRoot( getRootString(), 0, 1 );
     m_tree->SetItemData( root, new TREE_ITEM_DATA( m_list ) );
 
-    buildHierarchyTree( &m_list, root );
+    std::vector<SCH_ITEM*> sheetChildren;
+    m_frame->Schematic().Root().GetScreen()->GetSheets( &sheetChildren );
+
+    for( SCH_ITEM* item : sheetChildren )
+    {
+        SCH_SHEET* sheet = static_cast<SCH_SHEET*>( item );
+        SCH_SHEET_PATH path;
+        path.push_back( sheet );
+        wxString sheetNameBase = sheet->GetField( FIELD_T::SHEET_NAME )->GetShownText( false );
+        wxString sheetName = formatPageString( sheetNameBase, path.GetPageNumber() );
+        wxTreeItemId child = m_tree->AppendItem( root, sheetName, 0, 1 );
+        m_tree->SetItemData( child, new TREE_ITEM_DATA( path ) );
+        buildHierarchyTree( &path, child );
+    }
+
     UpdateHierarchySelection();
 
     m_tree->ExpandAll();
@@ -427,11 +440,17 @@ void HIERARCHY_PANE::onRightClick( wxTreeItemId aItem )
 
     if( itemData )
     {
+        ctxMenu.Append( NEW_TOP_SHEET, _( "Add Top Level Sheet" ) );
         ctxMenu.Append( EDIT_PAGE_NUMBER, _( "Edit Page Number" ) );
         // The root item cannot be renamed
         if( m_tree->GetRootItem() != aItem.GetID() )
         {
             ctxMenu.Append( RENAME, _( "Rename" ), _( "Change name of this sheet" ) );
+
+            if( m_tree->GetItemParent( aItem ) == m_tree->GetRootItem() )
+            {
+                ctxMenu.Append( DELETE_SHEET, _( "Delete Sheet" ) );
+            }
         }
 
         ctxMenu.AppendSeparator();
@@ -491,6 +510,13 @@ void HIERARCHY_PANE::onRightClick( wxTreeItemId aItem )
         m_tree->SetItemText( aItem, itemData->m_SheetPath.Last()->GetName() );
         m_tree->EditLabel( aItem );
         setIdenticalSheetsHighlighted( itemData->m_SheetPath );
+        break;
+    case NEW_TOP_SHEET:
+        m_frame->GetToolManager()->RunAction( SCH_ACTIONS::newTopSheet );
+        break;
+    case DELETE_SHEET:
+        m_tree->SelectItem( aItem );
+        m_frame->GetToolManager()->RunAction( ACTIONS::deleteTool );
         break;
     }
 }
@@ -577,6 +603,10 @@ void HIERARCHY_PANE::onCharHook( wxKeyEvent& aKeyStroke )
 wxString HIERARCHY_PANE::getRootString()
 {
     SCH_SHEET*     rootSheet = &m_frame->Schematic().Root();
+
+    if( rootSheet->IsSyntheticRoot() )
+        return wxString();
+
     SCH_SHEET_PATH rootPath;
     rootPath.push_back( rootSheet );
 

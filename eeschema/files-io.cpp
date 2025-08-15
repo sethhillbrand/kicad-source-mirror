@@ -272,10 +272,40 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
         try
         {
             {
-                wxBusyCursor    busy;
                 WINDOW_DISABLER raii( this );
 
-                Schematic().SetRoot( pi->LoadSchematicFile( fullFileName, &Schematic() ) );
+                const std::vector<wxString>& topSheets = Prj().GetProjectFile().GetTopSheets();
+
+                SCH_SHEET* synthetic = new SCH_SHEET( &Schematic() );
+                synthetic->SetSyntheticRoot( true );
+                SCH_SCREEN* rootScreen = new SCH_SCREEN( &Schematic() );
+                synthetic->SetScreen( rootScreen );
+
+                if( topSheets.empty() )
+                {
+                    SCH_SHEET* loaded = pi->LoadSchematicFile( fullFileName, &Schematic() );
+
+                    if( loaded )
+                    {
+                        rootScreen->Append( loaded );
+                        loaded->SetParent( synthetic );
+                    }
+                }
+                else
+                {
+                    for( const wxString& topFile : topSheets )
+                    {
+                        SCH_SHEET* loaded = pi->LoadSchematicFile( Prj().AbsolutePath( topFile ), &Schematic() );
+
+                        if( loaded )
+                        {
+                            rootScreen->Append( loaded );
+                            loaded->SetParent( synthetic );
+                        }
+                    }
+                }
+
+                Schematic().SetRoot( synthetic );
 
                 // Make ${SHEETNAME} work on the root sheet until we properly support
                 // naming the root sheet
@@ -1152,12 +1182,23 @@ bool SCH_EDIT_FRAME::SaveProject( bool aSaveAs )
     // Save the sheet name map to the project file
     std::vector<FILE_INFO_PAIR>& sheets = Prj().GetProjectFile().GetSheets();
     sheets.clear();
+    std::vector<wxString>& topSheets = Prj().GetProjectFile().GetTopSheets();
+    topSheets.clear();
 
     for( SCH_SHEET_PATH& sheetPath : Schematic().Hierarchy() )
     {
         SCH_SHEET* sheet = sheetPath.Last();
 
         wxCHECK2( sheet, continue );
+
+        if( sheetPath.size() == 1 )
+        {
+            SCH_SCREEN* topScreen = sheet->GetScreen();
+
+            wxCHECK2( topScreen, continue );
+
+            topSheets.emplace_back( topScreen->GetFileName() );
+        }
 
         // Use the schematic UUID for the root sheet.
         if( sheet->IsRootSheet() )

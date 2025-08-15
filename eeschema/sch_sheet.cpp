@@ -53,7 +53,8 @@ SCH_SHEET::SCH_SHEET( EDA_ITEM* aParent, const VECTOR2I& aPos, VECTOR2I aSize ) 
         m_excludedFromSim( false ),
         m_excludedFromBOM( false ),
         m_excludedFromBoard( false ),
-        m_DNP( false )
+        m_DNP( false ),
+        m_isSyntheticRoot( false )
 {
     m_layer = LAYER_SHEET;
     m_pos = aPos;
@@ -90,6 +91,7 @@ SCH_SHEET::SCH_SHEET( const SCH_SHEET& aSheet ) :
     m_excludedFromBOM = aSheet.m_excludedFromBOM;
     m_excludedFromBoard = aSheet.m_excludedFromBoard;
     m_DNP = aSheet.m_DNP;
+    m_isSyntheticRoot = aSheet.m_isSyntheticRoot;
 
     m_borderWidth = aSheet.m_borderWidth;
     m_borderColor = aSheet.m_borderColor;

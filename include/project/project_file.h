@@ -96,6 +96,11 @@ public:
         return m_boards;
     }
 
+    std::vector<wxString>& GetTopSheets()
+    {
+        return m_topSheets;
+    }
+
     std::shared_ptr<NET_SETTINGS>& NetSettings()
     {
         return m_NetSettings;
@@ -225,6 +230,8 @@ private:
 
     /// A list of board files in this project
     std::vector<FILE_INFO_PAIR> m_boards;
+
+    std::vector<wxString> m_topSheets;
 
     /// A link to the owning PROJECT
     PROJECT* m_project;

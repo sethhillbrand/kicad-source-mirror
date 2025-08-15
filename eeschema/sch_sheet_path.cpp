@@ -770,6 +770,17 @@ void SCH_SHEET_LIST::BuildSheetList( SCH_SHEET* aSheet, bool aCheckIntegrity )
     if( !aSheet )
         return;
 
+    if( aSheet->IsSyntheticRoot() )
+    {
+        std::vector<SCH_ITEM*> rootChildren;
+        aSheet->GetScreen()->GetSheets( &rootChildren );
+
+        for( SCH_ITEM* item : rootChildren )
+            BuildSheetList( static_cast<SCH_SHEET*>( item ), aCheckIntegrity );
+
+        return;
+    }
+
     std::vector<SCH_SHEET*> badSheets;
 
     m_currentSheetPath.push_back( aSheet );

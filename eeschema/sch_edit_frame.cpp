@@ -941,10 +941,29 @@ void SCH_EDIT_FRAME::SetCurrentSheet( const SCH_SHEET_PATH& aSheet )
 {
     if( aSheet != GetCurrentSheet() )
     {
+        const SCH_SHEET_PATH* destSheet = &aSheet;
+
+        // If the code tries to SetCurrentSheet to the root sheet, we need to instead
+        // set it to the first, non-root sheet
+        if( aSheet.size() == 1 && aSheet.GetSheet( 0 )->IsRootSheet() )
+        {
+            SCH_SHEET_LIST sheetList = Schematic().BuildSheetListSortedByPageNumbers();
+
+            // Find the first non-root sheet
+            for( const SCH_SHEET_PATH& sheetPath : sheetList )
+            {
+                if( sheetPath.size() > 1 || ( sheetPath.size() == 1 && !sheetPath.GetSheet( 0 )->IsRootSheet() ) )
+                {
+                    destSheet = &sheetPath;
+                    break;
+                }
+            }
+        }
+
         ClearFocus();
 
-        Schematic().SetCurrentSheet( aSheet );
-        GetCanvas()->DisplaySheet( aSheet.LastScreen() );
+        Schematic().SetCurrentSheet( *destSheet );
+        GetCanvas()->DisplaySheet( destSheet->LastScreen() );
     }
 }
 
