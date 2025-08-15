@@ -37,9 +37,11 @@
 #include <pcb_text.h>
 #include <pcb_track.h>
 #include <pcb_generator.h>
+#include <generators/pcb_tuning_pattern.h>
 #include <pad.h>
 #include <settings/color_settings.h>
 #include <string_utils.h>
+
 
 
 PCB_PROPERTIES_PANEL::PCB_PROPERTIES_PANEL( wxWindow* aParent, PCB_BASE_EDIT_FRAME* aFrame ) :
@@ -276,6 +278,7 @@ void PCB_PROPERTIES_PANEL::updateLists( const BOARD* aBoard )
     m_propMgr.GetProperty( TYPE_HASH( BOARD_CONNECTED_ITEM ), _HKI( "Layer" ) )->SetChoices( layersCu );
     m_propMgr.GetProperty( TYPE_HASH( PCB_VIA ), _HKI( "Layer Top" ) )->SetChoices( layersCu );
     m_propMgr.GetProperty( TYPE_HASH( PCB_VIA ), _HKI( "Layer Bottom" ) )->SetChoices( layersCu );
+    m_propMgr.GetProperty( TYPE_HASH( PCB_TUNING_PATTERN ), _HKI( "Layer" ) )->SetChoices( layersCu );
 
     // Regenerate nets
 
@@ -295,4 +298,5 @@ void PCB_PROPERTIES_PANEL::updateLists( const BOARD* aBoard )
 
     auto netProperty = m_propMgr.GetProperty( TYPE_HASH( BOARD_CONNECTED_ITEM ), _HKI( "Net" ) );
     netProperty->SetChoices( nets );
+    m_propMgr.GetProperty( TYPE_HASH( PCB_TUNING_PATTERN ), _HKI( "Net" ) )->SetChoices( nets );
 }
