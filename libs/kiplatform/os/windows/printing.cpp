@@ -34,6 +34,7 @@
 #include <winrt/Windows.UI.Xaml.h>
 #include <winrt/Windows.UI.Xaml.Controls.h>
 #include <winrt/Windows.UI.Xaml.Media.h>
+#include <winrt/Windows.UI.Xaml.Media.Imaging.h>
 #include <winrt/Windows.UI.Xaml.Printing.h>
 #include <winrt/Windows.UI.Xaml.Hosting.h>
 #include <winrt/Windows.Storage.h>
@@ -109,7 +110,7 @@ static ManagedImage RenderPdfPageToImage( winrt::Windows::Data::Pdf::PdfDocument
 
     try
     {
-        page.RenderToStreamAsync( stream, opts ).get(); // sync for simplicity
+        co_await page.RenderToStreamAsync( stream, opts );
     }
     catch( ... )
     {
