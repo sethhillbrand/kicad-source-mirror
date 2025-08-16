@@ -30,15 +30,16 @@
 
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.UI.Xaml.Media.Imaging.h>
+
 #include <winrt/Windows.Graphics.Printing.h>
 #include <winrt/Windows.UI.Xaml.h>
 #include <winrt/Windows.UI.Xaml.Controls.h>
 #include <winrt/Windows.UI.Xaml.Media.h>
-#include <winrt/Windows.UI.Xaml.Media.Imaging.h>
 #include <winrt/Windows.UI.Xaml.Printing.h>
 #include <winrt/Windows.UI.Xaml.Hosting.h>
 #include <winrt/Windows.Storage.h>
-#include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.Data.Pdf.h>
 #include <winrt/Windows.Graphics.Imaging.h>
 
@@ -110,19 +111,20 @@ static ManagedImage RenderPdfPageToImage( winrt::Windows::Data::Pdf::PdfDocument
 
     try
     {
-        co_await page.RenderToStreamAsync( stream, opts );
+        page.RenderToStreamAsync( stream, opts ).get();
     }
     catch( ... )
     {
         return {};
     }
 
-    // Use a BitmapImage that sources directly from the stream (efficient; no extra copies)
+    // Use a BitmapImage that sources directly from the stream
     winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage bmp;
 
     try
     {
-        co_await bmp.SetSourceAsync( stream );
+        stream.Seek(0);
+        bmp.SetSourceAsync( stream ).get();
     }
     catch( ... )
     {
