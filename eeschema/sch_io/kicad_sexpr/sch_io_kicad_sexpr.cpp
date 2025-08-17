@@ -33,6 +33,7 @@
 #include <sch_selection.h>
 #include <font/fontconfig.h>
 #include <io/kicad/kicad_io_utils.h>
+#include <libraries/symbol_library_adapter.h>
 #include <progress_reporter.h>
 #include <schematic.h>
 #include <schematic_lexer.h>
@@ -59,7 +60,6 @@
 #include <sch_text.h>
 #include <sch_textbox.h>
 #include <string_utils.h>
-#include <symbol_lib_table.h>  // for PropPowerSymsOnly definition.
 #include <trace_helpers.h>
 
 using namespace TSCHEMATIC_T;
@@ -1576,7 +1576,7 @@ void SCH_IO_KICAD_SEXPR::EnumerateSymbolLib( wxArrayString&    aSymbolNameList,
                                              const std::map<std::string, UTF8>* aProperties )
 {
     bool powerSymbolsOnly = ( aProperties &&
-                              aProperties->find( SYMBOL_LIB_TABLE::PropPowerSymsOnly ) != aProperties->end() );
+                              aProperties->find( SYMBOL_LIBRARY_ADAPTER::PropPowerSymsOnly ) != aProperties->end() );
 
     cacheLib( aLibraryPath, aProperties );
 
@@ -1595,7 +1595,7 @@ void SCH_IO_KICAD_SEXPR::EnumerateSymbolLib( std::vector<LIB_SYMBOL*>& aSymbolLi
                                              const std::map<std::string, UTF8>* aProperties )
 {
     bool powerSymbolsOnly = ( aProperties &&
-                              aProperties->find( SYMBOL_LIB_TABLE::PropPowerSymsOnly ) != aProperties->end() );
+                              aProperties->find( SYMBOL_LIBRARY_ADAPTER::PropPowerSymsOnly ) != aProperties->end() );
 
     cacheLib( aLibraryPath, aProperties );
 

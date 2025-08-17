@@ -35,7 +35,6 @@
 #include <symbol_editor/symbol_editor_settings.h>
 #include <symbol_viewer_frame.h>
 #include <symbol_tree_model_adapter.h>
-#include <symbol_lib_table.h>
 #include <wildcards_and_files_ext.h>
 #include <bitmaps/bitmap_types.h>
 #include <confirm.h>

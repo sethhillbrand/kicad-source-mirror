@@ -38,8 +38,6 @@
 #include <json_common.h>
 #include <project_sch.h>
 
-#include <symbol_lib_table.h>
-
 #include <set>
 #include <libraries/symbol_library_adapter.h>
 
