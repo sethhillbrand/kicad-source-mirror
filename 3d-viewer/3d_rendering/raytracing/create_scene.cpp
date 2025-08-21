@@ -38,6 +38,8 @@
 #include "3d_fastmath.h"
 #include "3d_math.h"
 
+#include "../../3d_cache/3d_cache.h"
+
 #include <board.h>
 #include <footprint.h>
 #include <fp_lib_table.h>
@@ -46,6 +48,10 @@
 
 #include <base_units.h>
 #include <core/profile.h>        // To use GetRunningMicroSecs or another profiling utility
+#include <atomic>
+#include <thread_pool.h>
+#include <widgets/wx_progress_reporters.h>
+#include <wx/app.h>
 
 /**
  * Perform an interpolation step to easy control the transparency based on the
@@ -1223,7 +1229,19 @@ void RENDER_3D_RAYTRACE_BASE::load3DModels( CONTAINER_3D& aDstContainer,
         return;
     }
 
-    // Go for all footprints
+    struct MODEL_TASK
+    {
+        wxString                                fullPath;
+        glm::mat4                               matrix;
+        float                                   opacity;
+        FOOTPRINT*                              footprint;
+        S3D_CACHE_ENTRY*                        cacheEntry = nullptr;
+    };
+
+    std::vector<MODEL_TASK> tasks;
+
+    S3D_CACHE* cacheMgr = m_boardAdapter.Get3dCacheManager();
+
     for( FOOTPRINT* fp : m_boardAdapter.GetBoard()->Footprints() )
     {
         if( !fp->Models().empty()
@@ -1260,12 +1278,8 @@ void RENDER_3D_RAYTRACE_BASE::load3DModels( CONTAINER_3D& aDstContainer,
                     fpMatrix, SFVEC3F( modelunit_to_3d_units_factor, modelunit_to_3d_units_factor,
                                        modelunit_to_3d_units_factor ) );
 
-            // Get the list of model files for this model
-            S3D_CACHE* cacheMgr = m_boardAdapter.Get3dCacheManager();
-
-            wxString                libraryName = fp->GetFPID().GetLibNickname();
-
-            wxString                footprintBasePath = wxEmptyString;
+            wxString libraryName = fp->GetFPID().GetLibNickname();
+            wxString footprintBasePath = wxEmptyString;
 
             if( m_boardAdapter.GetBoard()->GetProject() )
             {
@@ -1290,42 +1304,101 @@ void RENDER_3D_RAYTRACE_BASE::load3DModels( CONTAINER_3D& aDstContainer,
                 if( !model.m_Show || model.m_Filename.empty() )
                     continue;
 
-                // get it from cache
-                std::vector<const EMBEDDED_FILES*> embeddedFilesStack;
-                embeddedFilesStack.push_back( fp->GetEmbeddedFiles() );
-                embeddedFilesStack.push_back( m_boardAdapter.GetBoard()->GetEmbeddedFiles() );
+                std::vector<const EMBEDDED_FILES*> stack;
+                stack.push_back( fp->GetEmbeddedFiles() );
+                stack.push_back( m_boardAdapter.GetBoard()->GetEmbeddedFiles() );
+                wxString fullPath;
+                const S3DMODEL* cached = cacheMgr->FindModel( model.m_Filename, footprintBasePath,
+                                                              std::move( stack ), fullPath );
 
-                const S3DMODEL* modelPtr = cacheMgr->GetModel( model.m_Filename, footprintBasePath,
-                                                               std::move( embeddedFilesStack ) );
+                glm::mat4 matrix = fpMatrix;
+                matrix = glm::translate( matrix,
+                        SFVEC3F( model.m_Offset.x, model.m_Offset.y, model.m_Offset.z ) );
+                matrix = glm::rotate( matrix,
+                        (float) -( model.m_Rotation.z / 180.0f ) * glm::pi<float>(),
+                        SFVEC3F( 0.0f, 0.0f, 1.0f ) );
+                matrix = glm::rotate( matrix,
+                        (float) -( model.m_Rotation.y / 180.0f ) * glm::pi<float>(),
+                        SFVEC3F( 0.0f, 1.0f, 0.0f ) );
+                matrix = glm::rotate( matrix,
+                        (float) -( model.m_Rotation.x / 180.0f ) * glm::pi<float>(),
+                        SFVEC3F( 1.0f, 0.0f, 0.0f ) );
+                matrix = glm::scale( matrix,
+                        SFVEC3F( model.m_Scale.x, model.m_Scale.y, model.m_Scale.z ) );
 
-                // only add it if the return is not NULL.
-                if( modelPtr )
+                if( cached )
                 {
-                    glm::mat4 modelMatrix = fpMatrix;
-
-                    modelMatrix = glm::translate( modelMatrix,
-                            SFVEC3F( model.m_Offset.x, model.m_Offset.y, model.m_Offset.z ) );
-
-                    modelMatrix = glm::rotate( modelMatrix,
-                            (float) -( model.m_Rotation.z / 180.0f ) * glm::pi<float>(),
-                            SFVEC3F( 0.0f, 0.0f, 1.0f ) );
-
-                    modelMatrix = glm::rotate( modelMatrix,
-                            (float) -( model.m_Rotation.y / 180.0f ) * glm::pi<float>(),
-                            SFVEC3F( 0.0f, 1.0f, 0.0f ) );
-
-                    modelMatrix = glm::rotate( modelMatrix,
-                            (float) -( model.m_Rotation.x / 180.0f ) * glm::pi<float>(),
-                            SFVEC3F( 1.0f, 0.0f, 0.0f ) );
-
-                    modelMatrix = glm::scale( modelMatrix,
-                            SFVEC3F( model.m_Scale.x, model.m_Scale.y, model.m_Scale.z ) );
-
-                    addModels( aDstContainer, modelPtr, modelMatrix, (float) model.m_Opacity,
+                    addModels( aDstContainer, cached, matrix, (float) model.m_Opacity,
                                aSkipMaterialInformation, fp );
+                }
+                else if( !fullPath.empty() )
+                {
+                    MODEL_TASK task;
+                    task.fullPath = fullPath;
+                    task.matrix = matrix;
+                    task.opacity = (float) model.m_Opacity;
+                    task.footprint = fp;
+                    tasks.push_back( std::move( task ) );
                 }
             }
         }
+    }
+
+    if( tasks.empty() )
+        return;
+
+    std::atomic<size_t> done( 0 );
+    thread_pool& tp = GetKiCadThreadPool();
+    std::vector<std::future<S3D_CACHE_ENTRY*>> returns;
+    returns.reserve( tasks.size() );
+
+    wxWindow* parent = wxTheApp ? wxTheApp->GetTopWindow() : nullptr;
+    std::unique_ptr<WX_PROGRESS_REPORTER> progress;
+
+    if( parent )
+    {
+        progress = std::make_unique<WX_PROGRESS_REPORTER>( parent, _( "Loading 3D Models" ), 1,
+                                                           PR_NO_ABORT );
+        progress->SetMaxProgress( tasks.size() );
+    }
+
+    WX_PROGRESS_REPORTER* progressPtr = progress.get();
+
+    for( MODEL_TASK& task : tasks )
+    {
+        returns.emplace_back( tp.submit( [cacheMgr, &task, &done]() -> S3D_CACHE_ENTRY* {
+            S3D_CACHE_ENTRY* entry = cacheMgr->LoadModel( task.fullPath );
+            done.fetch_add( 1 );
+            return entry;
+        } ) );
+    }
+
+    for( const std::future<S3D_CACHE_ENTRY*>& ret : returns )
+    {
+        std::future_status status = ret.wait_for( std::chrono::milliseconds( 250 ) );
+
+        while( status != std::future_status::ready )
+        {
+            if( progressPtr )
+            {
+                progressPtr->SetCurrentProgress( done.load() + 1 );
+                progressPtr->KeepRefreshing();
+            }
+
+            status = ret.wait_for( std::chrono::milliseconds( 250 ) );
+        }
+    }
+
+    for( size_t i = 0; i < returns.size(); ++i )
+        tasks[i].cacheEntry = returns[i].get();
+
+    for( const MODEL_TASK& task : tasks )
+    {
+        cacheMgr->CacheModel( task.fullPath, task.cacheEntry );
+
+        if( task.cacheEntry && task.cacheEntry->renderData )
+            addModels( aDstContainer, task.cacheEntry->renderData, task.matrix, task.opacity,
+                       aSkipMaterialInformation, task.footprint );
     }
 }
 

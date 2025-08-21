@@ -67,30 +67,6 @@ static bool checkTag( const char* aTag, void* aPluginMgrPtr )
 }
 
 
-class S3D_CACHE_ENTRY
-{
-public:
-    S3D_CACHE_ENTRY();
-    ~S3D_CACHE_ENTRY();
-
-    void SetHash( const HASH_128& aHash );
-    const wxString GetCacheBaseName();
-
-    wxDateTime    modTime;      // file modification time
-    HASH_128      m_hash;
-    std::string   pluginInfo;   // PluginName:Version string
-    SCENEGRAPH*   sceneData;
-    S3DMODEL*     renderData;
-
-private:
-    // prohibit assignment and default copy constructor
-    S3D_CACHE_ENTRY( const S3D_CACHE_ENTRY& source );
-    S3D_CACHE_ENTRY& operator=( const S3D_CACHE_ENTRY& source );
-
-    wxString m_CacheBaseName;  // base name of cache file
-};
-
-
 S3D_CACHE_ENTRY::S3D_CACHE_ENTRY()
 {
     sceneData = nullptr;
@@ -547,32 +523,99 @@ void S3D_CACHE::ClosePlugins()
         m_Plugins->ClosePlugins();
 }
 
-
-S3DMODEL* S3D_CACHE::GetModel( const wxString& aModelFileName, const wxString& aBasePath,
-                               std::vector<const EMBEDDED_FILES*> aEmbeddedFilesStack )
+S3DMODEL* S3D_CACHE::FindModel( const wxString& aModelFileName, const wxString& aBasePath,
+                                std::vector<const EMBEDDED_FILES*> aEmbeddedFilesStack,
+                                wxString& aFullPath )
 {
-    S3D_CACHE_ENTRY* cp = nullptr;
-    SCENEGRAPH*      sp = load( aModelFileName, aBasePath, &cp, std::move( aEmbeddedFilesStack ) );
+    aFullPath = m_FNResolver->ResolvePath( aModelFileName, aBasePath,
+                                           std::move( aEmbeddedFilesStack ) );
 
-    if( !sp )
+    if( aFullPath.empty() )
         return nullptr;
 
-    if( !cp )
+    std::lock_guard<std::mutex> lock( mutex3D_cache );
+
+    auto mi = m_CacheMap.find( aFullPath );
+
+    if( mi != m_CacheMap.end() )
     {
-        wxLogTrace( MASK_3D_CACHE,
-                    wxT( "%s:%s:%d\n  * [BUG] model loaded with no associated S3D_CACHE_ENTRY" ),
-                    __FILE__, __FUNCTION__, __LINE__ );
+        wxFileName fname( aFullPath );
+        bool       reload = ADVANCED_CFG::GetCfg().m_Skip3DModelMemoryCache;
 
-        return nullptr;
+        if( fname.FileExists() )
+        {
+            wxDateTime fmdate = fname.GetModificationTime();
+
+            if( fmdate != mi->second->modTime )
+            {
+                HASH_128 hashSum;
+                getHash( aFullPath, hashSum );
+                mi->second->modTime = fmdate;
+
+                if( hashSum != mi->second->m_hash )
+                {
+                    mi->second->SetHash( hashSum );
+                    reload = true;
+                }
+            }
+        }
+
+        if( reload )
+        {
+            m_CacheList.remove( mi->second );
+            delete mi->second;
+            m_CacheMap.erase( mi );
+            return nullptr;
+        }
+
+        return mi->second->renderData;
     }
 
-    if( cp->renderData )
-        return cp->renderData;
+    return nullptr;
+}
 
-    S3DMODEL* mp = S3D::GetModel( sp );
-    cp->renderData = mp;
+S3D_CACHE_ENTRY* S3D_CACHE::LoadModel( const wxString& aFullPath )
+{
+    S3D_CACHE_ENTRY* ep = new S3D_CACHE_ENTRY;
+    wxFileName fname( aFullPath );
+    ep->modTime = fname.GetModificationTime();
+    HASH_128 hashSum;
 
-    return mp;
+    if( getHash( aFullPath, hashSum ) )
+        ep->SetHash( hashSum );
+
+    if( !ADVANCED_CFG::GetCfg().m_Skip3DModelFileCache && !m_CacheDir.empty() )
+    {
+        wxString cachename = m_CacheDir + ep->GetCacheBaseName() + wxT( ".3dc" );
+
+        if( wxFileName::FileExists( cachename ) && loadCacheData( ep ) )
+        {
+            ep->renderData = S3D::GetModel( ep->sceneData );
+            return ep;
+        }
+    }
+
+    ep->sceneData = m_Plugins->Load3DModel( aFullPath, ep->pluginInfo );
+
+    if( ep->sceneData )
+    {
+        if( !ADVANCED_CFG::GetCfg().m_Skip3DModelFileCache )
+            saveCacheData( ep );
+
+        ep->renderData = S3D::GetModel( ep->sceneData );
+    }
+
+    return ep;
+}
+
+void S3D_CACHE::CacheModel( const wxString& aFullPath, S3D_CACHE_ENTRY* aEntry )
+{
+    if( !aEntry )
+        return;
+
+    std::lock_guard<std::mutex> lock( mutex3D_cache );
+    m_CacheList.push_back( aEntry );
+    m_CacheMap[aFullPath] = aEntry;
 }
 
 void S3D_CACHE::CleanCacheDir( int aNumDaysOld )

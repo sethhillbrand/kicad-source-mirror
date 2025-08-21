@@ -33,8 +33,12 @@
 #include <project.h>
 #include <core/profile.h>        // To use GetRunningMicroSecs or another profiling utility
 #include <fp_lib_table.h>
+#include "../../3d_cache/3d_cache.h"
 #include <eda_3d_viewer_frame.h>
 #include <project_pcb.h>
+#include <thread_pool.h>
+#include <widgets/wx_progress_reporters.h>
+#include <atomic>
 
 
 void RENDER_3D_OPENGL::addObjectTriangles( const FILLED_CIRCLE_2D* aCircle,
@@ -923,8 +927,17 @@ void RENDER_3D_OPENGL::load3dModels( REPORTER* aStatusReporter )
         return;
     }
 #endif
+    struct MODEL_TASK
+    {
+        wxString        filename;
+        wxString        fullPath;
+        S3D_CACHE_ENTRY* cacheEntry = nullptr;
+    };
 
-    // Go for all footprints
+    std::vector<MODEL_TASK> tasks;
+    S3D_CACHE* cacheMgr = m_boardAdapter.Get3dCacheManager();
+    MATERIAL_MODE materialMode = m_boardAdapter.m_Cfg->m_Render.material_mode;
+
     for( const FOOTPRINT* footprint : m_boardAdapter.GetBoard()->Footprints() )
     {
         wxString libraryName = footprint->GetFPID().GetLibNickname();
@@ -934,7 +947,6 @@ void RENDER_3D_OPENGL::load3dModels( REPORTER* aStatusReporter )
         {
             try
             {
-                // FindRow() can throw an exception
                 const FP_LIB_TABLE_ROW* fpRow =
                     PROJECT_PCB::PcbFootprintLibs( m_boardAdapter.GetBoard()->GetProject() )
                             ->FindRow( libraryName, false );
@@ -944,46 +956,90 @@ void RENDER_3D_OPENGL::load3dModels( REPORTER* aStatusReporter )
             }
             catch( ... )
             {
-                // Do nothing if the libraryName is not found in lib table
             }
         }
 
         for( const FP_3DMODEL& fp_model : footprint->Models() )
         {
-            if( fp_model.m_Show && !fp_model.m_Filename.empty() )
+            if( fp_model.m_Show && !fp_model.m_Filename.empty()
+                && !m_3dModelMap.contains( fp_model.m_Filename ) )
             {
-                if( aStatusReporter )
+                std::vector<const EMBEDDED_FILES*> stack;
+                stack.push_back( footprint->GetEmbeddedFiles() );
+                stack.push_back( m_boardAdapter.GetBoard()->GetEmbeddedFiles() );
+                wxString fullPath;
+                const S3DMODEL* cached = cacheMgr->FindModel( fp_model.m_Filename, footprintBasePath,
+                                                              std::move( stack ), fullPath );
+
+                if( cached )
                 {
-                    // Display the short filename of the 3D fp_model loaded:
-                    // (the full name is usually too long to be displayed)
-                    wxFileName fn( fp_model.m_Filename );
-                    aStatusReporter->Report( wxString::Format( _( "Loading %s..." ),
-                                                               fn.GetFullName() ) );
+                    MODEL_3D* model = new MODEL_3D( *cached, materialMode );
+                    m_3dModelMap[ fp_model.m_Filename ] = model;
                 }
-
-                // Check if the fp_model is not present in our cache map
-                // (Not already loaded in memory)
-                if( !m_3dModelMap.contains( fp_model.m_Filename ) )
+                else if( !fullPath.empty() )
                 {
-                    // It is not present, try get it from cache
-                    std::vector<const EMBEDDED_FILES*> embeddedFilesStack;
-                    embeddedFilesStack.push_back( footprint->GetEmbeddedFiles() );
-                    embeddedFilesStack.push_back( m_boardAdapter.GetBoard()->GetEmbeddedFiles() );
-
-                    const S3DMODEL* modelPtr = m_boardAdapter.Get3dCacheManager()->GetModel( fp_model.m_Filename,
-                                                                                             footprintBasePath,
-                                                                                             embeddedFilesStack );
-
-                    // only add it if the return is not NULL
-                    if( modelPtr )
-                    {
-                        MATERIAL_MODE materialMode = m_boardAdapter.m_Cfg->m_Render.material_mode;
-                        MODEL_3D*     model        = new MODEL_3D( *modelPtr, materialMode );
-
-                        m_3dModelMap[ fp_model.m_Filename ] = model;
-                    }
+                    MODEL_TASK task;
+                    task.filename = fp_model.m_Filename;
+                    task.fullPath = fullPath;
+                    tasks.push_back( std::move( task ) );
                 }
             }
+        }
+    }
+
+    if( tasks.empty() )
+        return;
+
+    std::atomic<size_t> done( 0 );
+    thread_pool& tp = GetKiCadThreadPool();
+    std::vector<std::future<S3D_CACHE_ENTRY*>> returns;
+    returns.reserve( tasks.size() );
+
+    wxWindow* parent = wxTheApp ? wxTheApp->GetTopWindow() : nullptr;
+    std::unique_ptr<WX_PROGRESS_REPORTER> progress;
+
+    if( parent )
+    {
+        progress = std::make_unique<WX_PROGRESS_REPORTER>( parent, _( "Loading 3D Models" ), 1, PR_NO_ABORT );
+        progress->SetMaxProgress( tasks.size() );
+        progress->KeepRefreshing();
+    }
+
+    for( MODEL_TASK& task : tasks )
+    {
+        returns.emplace_back( tp.submit( [cacheMgr, &task, &done]() -> S3D_CACHE_ENTRY* {
+            S3D_CACHE_ENTRY* entry = cacheMgr->LoadModel( task.fullPath );
+            done.fetch_add( 1 );
+            return entry;
+        } ) );
+    }
+
+    for( const std::future<S3D_CACHE_ENTRY*>& ret : returns )
+    {
+        std::future_status status = ret.wait_for( std::chrono::milliseconds( 250 ) );
+
+        while( status != std::future_status::ready )
+        {
+            if( parent )
+            {
+                progress->SetCurrentProgress( done.load() + 1 );
+                progress->KeepRefreshing();
+            }
+
+            status = ret.wait_for( std::chrono::milliseconds( 250 ) );
+        }
+    }
+    for( size_t i = 0; i < returns.size(); ++i )
+        tasks[i].cacheEntry = returns[i].get();
+
+    for( const MODEL_TASK& task : tasks )
+    {
+        cacheMgr->CacheModel( task.fullPath, task.cacheEntry );
+
+        if( task.cacheEntry && task.cacheEntry->renderData )
+        {
+            MODEL_3D* model = new MODEL_3D( *task.cacheEntry->renderData, materialMode );
+            m_3dModelMap[ task.filename ] = model;
         }
     }
 }

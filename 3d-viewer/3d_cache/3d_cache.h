@@ -41,11 +41,35 @@
 
 class  EMBEDDED_FILES;
 class  PGM_BASE;
-class  S3D_CACHE_ENTRY;
 class  SCENEGRAPH;
 class  FILENAME_RESOLVER;
 class  S3D_PLUGIN_MANAGER;
 
+
+
+
+class S3D_CACHE_ENTRY
+{
+public:
+    S3D_CACHE_ENTRY();
+    ~S3D_CACHE_ENTRY();
+
+    void SetHash( const HASH_128& aHash );
+    const wxString GetCacheBaseName();
+
+    wxDateTime    modTime;      // file modification time
+    HASH_128      m_hash;
+    std::string   pluginInfo;   // PluginName:Version string
+    SCENEGRAPH*   sceneData;
+    S3DMODEL*     renderData;
+
+private:
+    // prohibit assignment and default copy constructor
+    S3D_CACHE_ENTRY( const S3D_CACHE_ENTRY& source );
+    S3D_CACHE_ENTRY& operator=( const S3D_CACHE_ENTRY& source );
+
+    wxString m_CacheBaseName;  // base name of cache file
+};
 
 /**
  * Cache for storing the 3D shapes. This cache is able to be stored as a project
@@ -123,18 +147,13 @@ public:
      */
     void ClosePlugins();
 
-    /**
-     * Attempt to load the scene data for a model and to translate it into an S3D_MODEL
-     * structure for display by a renderer.
-     *
-     * @param aModelFileName is the full path to the model to be loaded.
-     * @param aBasePath is the path to search for any relative files.
-     * @param aEmbeddedFilesStack is a stack of pointers to the embedded files lists.  They will
-     *                            be searched from the bottom of the stack.
-     * @return is a pointer to the render data or NULL if not available.
-     */
-    S3DMODEL* GetModel( const wxString& aModelFileName, const wxString& aBasePath,
-                        std::vector<const EMBEDDED_FILES*> aEmbeddedFilesStack );
+    S3DMODEL* FindModel( const wxString& aModelFileName, const wxString& aBasePath,
+                        std::vector<const EMBEDDED_FILES*> aEmbeddedFilesStack,
+                        wxString& aFullPath );
+
+    S3D_CACHE_ENTRY* LoadModel( const wxString& aFullPath );
+
+    void CacheModel( const wxString& aFullPath, S3D_CACHE_ENTRY* aEntry );
 
     /**
      * Delete up old cache files in cache directory.
