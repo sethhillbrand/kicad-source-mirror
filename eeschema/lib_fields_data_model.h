@@ -18,7 +18,7 @@
  */
 #include <sch_reference_list.h>
 #include <wx/grid.h>
-
+#include <widgets/grid_striped_renderer.h>
 // The field name in the data model (translated)
 #define DISPLAY_NAME_COLUMN   0
 
@@ -75,15 +75,21 @@ struct LIB_DATA_ELEMENT
         m_originalData = wxEmptyString;
         m_currentData = wxEmptyString;
         m_originallyEmpty = false;
-        m_isRemoved = false;
+        m_currentlyEmpty = false;
         m_isModified = false;
+        m_isStriped = false;
+        m_createDerivedSymbol = false;
+        m_derivedSymbolName = wxEmptyString;
     }
 
     wxString m_originalData;
     wxString m_currentData;
     bool     m_originallyEmpty;
-    bool     m_isRemoved;
+    bool     m_currentlyEmpty;
     bool     m_isModified;
+    bool     m_isStriped;
+    bool     m_createDerivedSymbol;
+    wxString m_derivedSymbolName;
 };
 
 
@@ -101,12 +107,22 @@ public:
             m_symbolsList( aSymbolsList ), m_edited( false ), m_sortColumn( 0 ),
             m_sortAscending( false ), m_filter( wxEmptyString ), m_scope( SCOPE_ALL ),
             m_path(), m_groupingEnabled( false ), m_cols(), m_rows(),
-            m_dataStore()
+            m_dataStore(), m_stripedStringRenderer( nullptr )
     {
+    }
+
+    ~LIB_FIELDS_EDITOR_GRID_DATA_MODEL()
+    {
+        for (auto& pair : m_stripedRenderers)
+            pair.second->DecRef();
+
+        m_stripedRenderers.clear();
     }
 
     static const wxString QUANTITY_VARIABLE;
     static const wxString ITEM_NUMBER_VARIABLE;
+
+    void CreateDerivedSymbol( int aRow, int aCol, wxString& aNewSymbolName );
 
     void AddColumn( const wxString& aFieldName, const wxString& aLabel, bool aAddedByUser, bool aIsCheckbox );
     void RemoveColumn( int aCol );
@@ -164,6 +180,7 @@ public:
 
     wxGridCellAttr* GetAttr( int row, int col, wxGridCellAttr::wxAttrKind kind ) override;
     void            RevertRow( int aRow );
+    void            ClearCell( int aRow, int aCol );
 
     bool ColIsValue( int aCol );
     bool ColIsCheck( int aCol );
@@ -227,6 +244,13 @@ public:
         return m_rows[aRow].m_Flag == GROUP_SINGLETON || m_rows[aRow].m_Flag == GROUP_SINGLETON;
     }
 
+    bool IsCellEdited( int aRow, int aCol )
+    {
+        wxCHECK_MSG( aRow >= 0 && aRow < (int) m_rows.size(), false, "Invalid Row Number" );
+        wxCHECK_MSG( aCol >= 0 && aCol < (int) m_cols.size(), false, "Invalid Column Number" );
+        return m_dataStore[m_rows[aRow].m_Refs[0]->GetUuid()][m_cols[aCol].m_fieldName].m_isModified;
+    }
+
 private:
     static bool cmp( const LIB_DATA_MODEL_ROW& lhGroup, const LIB_DATA_MODEL_ROW& rhGroup,
                      LIB_FIELDS_EDITOR_GRID_DATA_MODEL* dataModel, int sortCol, bool ascending );
@@ -236,9 +260,15 @@ private:
     void     setAttributeValue( LIB_SYMBOL* aSymbol, const wxString& aAttributeName,
                                 const wxString& aValue );
 
+    void     createActualDerivedSymbol( const LIB_SYMBOL* aParentSymbol, const wxString& aNewSymbolName, 
+                                        const KIID& aNewSymbolUuid );
+
     void Sort();
 
     void updateDataStoreSymbolField( const LIB_SYMBOL* aSymbol, const wxString& aFieldName );
+
+    bool isStripeableField( int aCol );
+    wxGridCellRenderer* getStripedRenderer( int aCol ) const;
 
 protected:
     std::vector<LIB_SYMBOL*> m_symbolsList;
@@ -257,4 +287,8 @@ protected:
     // The data model is fundamentally m_componentRefs X m_fieldNames.
     // A map of compID : fieldSet, where fieldSet is a map of fieldName : LIB_DATA_ELEMENT
     std::map<KIID, std::map<wxString, LIB_DATA_ELEMENT>> m_dataStore;
+
+    // stripe bitmap support
+    mutable STRIPED_STRING_RENDERER* m_stripedStringRenderer;
+    mutable std::map<wxString, wxGridCellRenderer*> m_stripedRenderers;
 };

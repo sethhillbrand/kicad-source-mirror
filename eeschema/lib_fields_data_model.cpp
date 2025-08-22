@@ -21,6 +21,7 @@
 #include <wx/debug.h>
 #include <wx/grid.h>
 #include <wx/settings.h>
+#include <wx/brush.h>
 #include <common.h>
 #include <widgets/wx_grid.h>
 #include <sch_reference_list.h>
@@ -58,7 +59,7 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::updateDataStoreSymbolField( const LIB_SY
         dataElement.m_originalData = getAttributeValue( aSymbol, aFieldName );
         dataElement.m_currentData = getAttributeValue( aSymbol, aFieldName );
         dataElement.m_originallyEmpty = false;
-        dataElement.m_isRemoved = false;
+        dataElement.m_currentlyEmpty = false;
         dataElement.m_isModified = false;
     }
     else if( const SCH_FIELD* field = aSymbol->GetField( aFieldName ) )
@@ -66,7 +67,7 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::updateDataStoreSymbolField( const LIB_SY
         dataElement.m_originalData = field->GetText();
         dataElement.m_currentData = field->GetText();
         dataElement.m_originallyEmpty = false;
-        dataElement.m_isRemoved = false;
+        dataElement.m_currentlyEmpty = false;
         dataElement.m_isModified = false;
     }
     else
@@ -74,17 +75,31 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::updateDataStoreSymbolField( const LIB_SY
         m_dataStore[aSymbol->m_Uuid][aFieldName].m_originalData = wxEmptyString;
         m_dataStore[aSymbol->m_Uuid][aFieldName].m_currentData = wxEmptyString;
         m_dataStore[aSymbol->m_Uuid][aFieldName].m_originallyEmpty = true;
-
+        m_dataStore[aSymbol->m_Uuid][aFieldName].m_currentlyEmpty = true;
+        m_dataStore[aSymbol->m_Uuid][aFieldName].m_isModified = false;
     }
 }
 
 
 void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::RemoveColumn( int aCol )
 {
+    const wxString fieldName = m_cols[aCol].m_fieldName;
+
     for( LIB_SYMBOL* symbol : m_symbolsList )
-        m_dataStore[symbol->m_Uuid].erase( m_cols[aCol].m_fieldName );
+    {
+        std::map<wxString, LIB_DATA_ELEMENT>& fieldStore = m_dataStore[symbol->m_Uuid];
+        auto it = fieldStore.find( fieldName );
+        if( it != fieldStore.end() )
+        {
+            it->second.m_currentData = wxEmptyString;
+            it->second.m_currentlyEmpty = true;
+            it->second.m_isModified = true;
+            fieldStore.erase( it );
+        }
+    }
 
     m_cols.erase( m_cols.begin() + aCol );
+    m_edited = true;
 }
 
 
@@ -96,12 +111,14 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::RenameColumn( int aCol, const wxString& 
         if( auto node = m_dataStore[symbol->m_Uuid].extract( m_cols[aCol].m_fieldName ) )
         {
             node.key() = newName;
+            node.mapped().m_isModified = true;
             m_dataStore[symbol->m_Uuid].insert( std::move( node ) );
         }
     }
 
     m_cols[aCol].m_fieldName = newName;
     m_cols[aCol].m_label = newName;
+    m_edited = true;
 }
 
 
@@ -231,7 +248,7 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::SetValue( int aRow, int aCol, const wxSt
         LIB_DATA_ELEMENT& dataElement = m_dataStore[ref->m_Uuid][m_cols[aCol].m_fieldName];
         dataElement.m_currentData = aValue;
         dataElement.m_isModified = ( dataElement.m_currentData != dataElement.m_originalData );
-        dataElement.m_isRemoved = false;
+        dataElement.m_currentlyEmpty = false;
     }
 
     m_edited = true;
@@ -246,6 +263,8 @@ wxGridCellAttr* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetAttr( int aRow, int aCol, 
 
     bool rowModified = false;
     bool cellModified = false;
+    bool cellEmpty = true;
+    bool blankModified = false;
 
     const wxString& fieldName = m_cols[aCol].m_fieldName;
 
@@ -255,6 +274,15 @@ wxGridCellAttr* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetAttr( int aRow, int aCol, 
 
         if( element.m_isModified )
             cellModified = true;
+
+        bool elementEmpty = element.m_currentlyEmpty
+                             || ( element.m_originallyEmpty && !element.m_isModified );
+
+        if( !elementEmpty )
+            cellEmpty = false;
+
+        if( element.m_currentData.IsEmpty() && element.m_isModified )
+            blankModified = true;
 
         if( !rowModified )
         {
@@ -268,12 +296,46 @@ wxGridCellAttr* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetAttr( int aRow, int aCol, 
             }
         }
 
-        if( cellModified && rowModified )
+        if( cellModified && rowModified && !cellEmpty )
             break;
     }
 
-    if( rowModified )
-        attr->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOWFRAME ) );
+    // Apply striped renderer for appropriate empty cells
+    if( cellEmpty && isStripeableField( aCol ) )
+    {
+        wxGridCellRenderer* stripedRenderer = getStripedRenderer( aCol );
+
+        if( stripedRenderer )
+        {
+            attr->SetRenderer( stripedRenderer );
+
+            for( const LIB_SYMBOL* ref : m_rows[aRow].m_Refs )
+                m_dataStore[ref->m_Uuid][fieldName].m_isStriped = true;
+        }
+    }
+    else
+    {
+        bool wasStriped = false;
+
+        for( const LIB_SYMBOL* ref : m_rows[aRow].m_Refs )
+        {
+            if( m_dataStore[ref->m_Uuid][fieldName].m_isStriped )
+            {
+                wasStriped = true;
+                m_dataStore[ref->m_Uuid][fieldName].m_isStriped = false;
+            }
+        }
+
+        // If the cell was previously striped, we need to reset the attribute
+        if( wasStriped )
+            attr = new wxGridCellAttr;
+
+        if( rowModified )
+            attr->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOWFRAME ) );
+
+        if( blankModified )
+            attr->SetBackgroundColour( wxColour( 0xC0, 0xFF, 0xC0 ) );
+    }
 
     if( cellModified )
     {
@@ -288,7 +350,7 @@ wxGridCellAttr* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetAttr( int aRow, int aCol, 
         }
         else
         {
-            font = wxFont();  // Create a default font
+            font = wxFont();
         }
 
         if( font.IsOk() )
@@ -299,6 +361,99 @@ wxGridCellAttr* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetAttr( int aRow, int aCol, 
     }
 
     return attr;
+}
+
+
+void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::CreateDerivedSymbol( int aRow, int aCol, wxString& aNewSymbolName )
+{
+    wxCHECK_RET( aRow >= 0 && aRow < (int) m_rows.size(), "Invalid Row Number" );
+    wxCHECK_RET( aCol >= 0 && aCol < (int) m_cols.size(), "Invalid Column Number" );
+
+    const LIB_SYMBOL* parentSymbol = m_rows[aRow].m_Refs[0];
+    const wxString& fieldName = m_cols[aCol].m_fieldName;
+
+    // Generate a new UUID for the derived symbol
+    KIID newSymbolUuid;
+
+    // Copy all data from parent symbol to the new derived symbol entry
+    std::map<wxString, LIB_DATA_ELEMENT>& parentFieldStore = m_dataStore[parentSymbol->m_Uuid];
+    std::map<wxString, LIB_DATA_ELEMENT>& newFieldStore = m_dataStore[newSymbolUuid];
+
+    for( const auto& [name, element] : parentFieldStore )
+    {
+        newFieldStore[name] = element;
+        newFieldStore[name].m_createDerivedSymbol = false; // Reset flag for copied fields
+    }
+
+    // Mark the specific field for derived symbol creation and update its value
+    LIB_DATA_ELEMENT& targetElement = newFieldStore[fieldName];
+    targetElement.m_createDerivedSymbol = true;
+    targetElement.m_derivedSymbolName = aNewSymbolName;
+    targetElement.m_currentData = aNewSymbolName;
+    targetElement.m_isModified = true;
+
+    // Store the parent symbol UUID for reference during actual creation
+    targetElement.m_originalData = parentSymbol->m_Uuid.AsString();
+
+    m_edited = true;
+}
+
+void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::createActualDerivedSymbol( const LIB_SYMBOL* aParentSymbol, const wxString& aNewSymbolName, const KIID& aNewSymbolUuid )
+{
+    // TODO: Implement actual derived symbol creation
+    // This will need access to the symbol library and editor frame
+    // For now, this is a placeholder that will be called during TransferDataFromWindow
+
+    // Steps needed:
+    // 1. Create a new LIB_SYMBOL as a copy of the parent
+    // 2. Set the new symbol's name to aNewSymbolName
+    // 3. Apply all field data from the datastore for this derived symbol
+    // 4. Add the new symbol to the library
+    // 5. Update any references if needed
+
+    wxLogDebug( "Creating derived symbol '%s' from parent '%s'",
+                aNewSymbolName, aParentSymbol->GetName() );
+
+    // Get the field data for this derived symbol from the datastore
+    const std::map<wxString, LIB_DATA_ELEMENT>& derivedFieldStore = m_dataStore.at( aNewSymbolUuid );
+
+    // TODO: Create the actual LIB_SYMBOL here
+    // LIB_SYMBOL* newSymbol = new LIB_SYMBOL( *aParentSymbol );  // Copy constructor
+    // newSymbol->SetName( aNewSymbolName );
+    // newSymbol->m_Uuid = aNewSymbolUuid;
+
+    // Apply all field data from the datastore
+    for( const auto& [fieldName, dataElement] : derivedFieldStore )
+    {
+        if( IsGeneratedField( fieldName ) )
+            continue;
+
+        const wxString& fieldValue = dataElement.m_currentData;
+        int col = GetFieldNameCol( fieldName );
+
+        wxLogDebug( "  Setting field '%s' = '%s'", fieldName, fieldValue );
+
+        // TODO: Apply field data to the new symbol
+        // Handle checkbox fields (attributes)
+        if( col != -1 && ColIsCheck( col ) )
+        {
+            // setAttributeValue( newSymbol, fieldName, fieldValue );
+        }
+        else
+        {
+            // SCH_FIELD* field = newSymbol->GetField( fieldName );
+            // if( !field && !fieldValue.IsEmpty() )
+            // {
+            //     field = new SCH_FIELD( newSymbol, FIELD_T::USER, fieldName );
+            //     newSymbol->AddField( field );
+            // }
+            // if( field )
+            //     field->SetText( fieldValue );
+        }
+    }
+
+    // TODO: Add the new symbol to the library
+    // symbolLibrary->AddSymbol( newSymbol );
 }
 
 void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::RevertRow( int aRow )
@@ -313,7 +468,7 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::RevertRow( int aRow )
         {
             element.m_currentData = element.m_originalData;
             element.m_isModified = false;
-            element.m_isRemoved = false;
+            element.m_currentlyEmpty = false;
         }
     }
 
@@ -330,6 +485,25 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::RevertRow( int aRow )
             }
         }
     }
+}
+
+
+void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::ClearCell( int aRow, int aCol )
+{
+    wxCHECK_RET( aCol >= 0 && aCol < (int) m_cols.size(), wxS( "Invalid column number" ) );
+
+    LIB_DATA_MODEL_ROW& rowGroup = m_rows[aRow];
+
+    for( const LIB_SYMBOL* ref : rowGroup.m_Refs )
+    {
+        LIB_DATA_ELEMENT& dataElement = m_dataStore[ref->m_Uuid][m_cols[aCol].m_fieldName];
+        dataElement.m_currentData = wxEmptyString;
+        dataElement.m_currentlyEmpty = true;
+        dataElement.m_isModified = ( dataElement.m_currentData != dataElement.m_originalData )
+                                   || ( dataElement.m_currentlyEmpty != dataElement.m_originallyEmpty );
+    }
+
+    m_edited = true;
 }
 
 
@@ -709,8 +883,8 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::ApplyData(
 
             dataElement.m_originalData = dataElement.m_currentData;
             dataElement.m_isModified = false;
-            dataElement.m_isRemoved = false;
-            dataElement.m_originallyEmpty = dataElement.m_currentData.IsEmpty();
+            dataElement.m_currentlyEmpty = false;
+            dataElement.m_originallyEmpty = dataElement.m_currentlyEmpty;
         }
 
         std::vector<SCH_FIELD*> symbolFields;
@@ -727,6 +901,51 @@ void LIB_FIELDS_EDITOR_GRID_DATA_MODEL::ApplyData(
             {
                 symbol->RemoveField( field );
                 delete field;
+            }
+        }
+    }
+
+    // Process derived symbol creation requests
+    for( const auto& [symId, fieldStore] : m_dataStore )
+    {
+        // Check if this is a derived symbol entry (not in our original symbols list)
+        bool isOriginalSymbol = false;
+
+        for( const LIB_SYMBOL* originalSym : m_symbolsList )
+        {
+            if( originalSym->m_Uuid == symId )
+            {
+                isOriginalSymbol = true;
+                break;
+            }
+        }
+
+        if( !isOriginalSymbol )
+        {
+            // This is a derived symbol entry, look for creation markers
+            for( const auto& [fieldName, element] : fieldStore )
+            {
+                if( element.m_createDerivedSymbol )
+                {
+                    // Find the parent symbol by UUID stored in originalData
+                    KIID parentUuid( element.m_originalData );
+                    const LIB_SYMBOL* parentSymbol = nullptr;
+
+                    for( const LIB_SYMBOL* sym : m_symbolsList )
+                    {
+                        if( sym->m_Uuid == parentUuid )
+                        {
+                            parentSymbol = sym;
+                            break;
+                        }
+                    }
+
+                    if( parentSymbol )
+                    {
+                        createActualDerivedSymbol( parentSymbol, element.m_derivedSymbolName, symId );
+                    }
+                    break; // Only need to process one creation marker per symbol
+                }
             }
         }
     }
@@ -757,4 +976,41 @@ wxString LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetTypeName( int row, int col )
         return wxGRID_VALUE_BOOL;
 
     return wxGridTableBase::GetTypeName( row, col );
+}
+
+
+wxGridCellRenderer* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::getStripedRenderer( int aCol ) const
+{
+    wxCHECK( aCol >= 0 && aCol < (int) m_cols.size(), nullptr );
+
+    const wxString& fieldName = m_cols[aCol].m_fieldName;
+
+    // Check if we already have a striped renderer for this field type
+    auto it = m_stripedRenderers.find( fieldName );
+    if( it != m_stripedRenderers.end() )
+    {
+        it->second->IncRef();
+        return it->second;
+    }
+
+    wxGridCellRenderer* stripedRenderer = nullptr;
+    // Default to striped string renderer
+    stripedRenderer = new STRIPED_STRING_RENDERER();
+
+    // Cache the renderer for future use - the cache owns one reference
+    stripedRenderer->IncRef();
+    m_stripedRenderers[fieldName] = stripedRenderer;
+
+    // Return with IncRef for the caller (SetRenderer will consume this reference)
+    stripedRenderer->IncRef();
+    return stripedRenderer;
+}
+
+// lib_fields_data_model.cpp - Add the isStripeableField method
+bool LIB_FIELDS_EDITOR_GRID_DATA_MODEL::isStripeableField( int aCol )
+{
+    wxCHECK( aCol >= 0 && aCol < (int) m_cols.size(), false );
+
+    // Don't apply stripes to checkbox fields
+    return !ColIsCheck( aCol );
 }

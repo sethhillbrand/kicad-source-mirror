@@ -51,7 +51,9 @@ enum
 {
     MYID_SELECT_FOOTPRINT = GRIDTRICKS_FIRST_CLIENT_ID,
     MYID_SHOW_DATASHEET,
-    MYID_REVERT_ROW
+    MYID_REVERT_ROW,
+    MYID_CLEAR_CELL,
+    MYID_CREATE_DERIVED_SYMBOL
 };
 class LIB_FIELDS_EDITOR_GRID_TRICKS : public GRID_TRICKS
 {
@@ -69,10 +71,26 @@ public:
 protected:
     void showPopupMenu( wxMenu& menu, wxGridEvent& aEvent ) override
     {
-        menu.Append( MYID_REVERT_ROW, _( "Revert to Original" ) );
+        auto& revertMenu = menu.Append( MYID_REVERT_ROW, _( "Revert symbol" ), _( "Revert the symbol to its last saved state" ), wxITEM_NORMAL );
+        auto& clearMenu = menu.Append( MYID_CLEAR_CELL, _( "Clear cell" ), _( "Clear the cell value" ), wxITEM_NORMAL );
         menu.AppendSeparator();
+        auto& createDerivedSymbolMenu = menu.Append( MYID_CREATE_DERIVED_SYMBOL, _( "Create Derived Symbol" ), _( "Create a new symbol derived from the selected one" ), wxITEM_NORMAL );
 
-        int col = m_grid->GetGridCursorCol();
+        // Get global mouse position and convert to grid client coords
+        wxPoint mousePos = wxGetMousePosition();
+        wxPoint gridPt = m_grid->ScreenToClient( mousePos );
+
+        // Offset by grid header (column label) height so header area doesn't map to a row.
+        int headerHeight = m_grid->GetColLabelSize();
+        gridPt.y -= headerHeight;
+        if ( gridPt.y < 0 )
+            gridPt.y = 0;
+
+        int row = m_grid->YToRow( gridPt.y );
+        int col = m_grid->XToCol( gridPt.x );
+        m_grid->SetGridCursor( row, col );
+
+        revertMenu.Enable( m_dataModel->IsCellEdited( row, col ) );
 
         if( m_dataModel->GetColFieldName( col ) == GetCanonicalFieldName( FIELD_T::FOOTPRINT ) )
         {
@@ -99,6 +117,18 @@ protected:
         {
             if( m_grid->CommitPendingChanges( false ) )
                 m_dataModel->RevertRow( row );
+
+            if( m_dataModel->IsEdited() )
+                m_dlg->OnModify();
+            else
+                m_dlg->ClearModify();
+
+            m_grid->ForceRefresh();
+        }
+        else if( event.GetId() == MYID_CLEAR_CELL )
+        {
+            if( m_grid->CommitPendingChanges( false ) )
+                m_dataModel->ClearCell( row, col );
 
             if( m_dataModel->IsEdited() )
                 m_dlg->OnModify();
@@ -169,7 +199,7 @@ protected:
 
 
 DIALOG_LIB_FIELDS::DIALOG_LIB_FIELDS( SYMBOL_EDIT_FRAME* parent, wxString libId ) :
-        DIALOG_LIB_FIELDS_BASE( parent ),
+        DIALOG_LIB_FIELDS_BASE( parent, wxID_ANY, wxString::Format( _( "Symbol Library Fields: %s" ), libId ) ),
         m_libId( libId ),
         m_parent( parent )
 {
@@ -267,12 +297,7 @@ DIALOG_LIB_FIELDS::DIALOG_LIB_FIELDS( SYMBOL_EDIT_FRAME* parent, wxString libId 
 
     finishDialogSettings();
 
-    // EESCHEMA_SETTINGS* cfg = m_parent->eeconfig();
-    // EESCHEMA_SETTINGS::PANEL_FIELD_EDITOR& panelCfg = cfg->m_FieldEditorPanel;
-
-    // wxSize dlgSize( panelCfg.width > 0 ? panelCfg.width : horizPixelsFromDU( 600 ),
-    //                 panelCfg.height > 0 ? panelCfg.height : vertPixelsFromDU( 300 ) );
-    // SetSize( dlgSize );
+    SetSize( wxSize( horizPixelsFromDU( 600 ), vertPixelsFromDU( 300 ) ) );
 
     Center();
 
@@ -281,7 +306,7 @@ DIALOG_LIB_FIELDS::DIALOG_LIB_FIELDS( SYMBOL_EDIT_FRAME* parent, wxString libId 
     m_grid->Bind( wxEVT_GRID_COL_MOVE, &DIALOG_LIB_FIELDS::OnColMove, this );
     m_fieldsCtrl->Bind( wxEVT_DATAVIEW_ITEM_VALUE_CHANGED, &DIALOG_LIB_FIELDS::OnColLabelChange, this );
 
-    CallAfter( &DIALOG_LIB_FIELDS::OnInit );
+    OnInit();
 }
 
 
@@ -298,9 +323,6 @@ DIALOG_LIB_FIELDS::~DIALOG_LIB_FIELDS()
 
 void DIALOG_LIB_FIELDS::OnInit()
 {
-    // Update the window title with the library name
-    SetTitle( wxString::Format( _( "Symbol Library Fields: %s" ), m_libId ) );
-
     // Update the field list and refresh the grid
     UpdateFieldList();
 
@@ -589,12 +611,77 @@ void DIALOG_LIB_FIELDS::OnAddField(wxCommandEvent& event)
 
 void DIALOG_LIB_FIELDS::OnRenameField(wxCommandEvent& event)
 {
-    event.Skip();
+    int row = m_fieldsCtrl->GetSelectedRow();
+
+    if( row == -1 )
+    {
+        wxBell();
+        return;
+    }
+
+    wxString fieldName = m_fieldsCtrl->GetTextValue( row, FIELD_NAME_COLUMN );
+
+    int col = m_dataModel->GetFieldNameCol( fieldName );
+    wxCHECK_RET( col != -1, wxS( "Existing field name missing from data model" ) );
+
+    wxTextEntryDialog dlg( this, _( "New field name:" ), _( "Rename Field" ), fieldName );
+
+    if( dlg.ShowModal() != wxID_OK )
+        return;
+
+    wxString newFieldName = dlg.GetValue();
+
+    if( newFieldName == fieldName )
+        return;
+
+    if( m_dataModel->GetFieldNameCol( newFieldName ) != -1 )
+    {
+        DisplayError( this, wxString::Format( _( "Field name '%s' already exists." ), newFieldName ) );
+        return;
+    }
+
+    RenameField( fieldName, newFieldName );
+
+    m_fieldsCtrl->SetTextValue( newFieldName, row, DISPLAY_NAME_COLUMN );
+    m_fieldsCtrl->SetTextValue( newFieldName, row, FIELD_NAME_COLUMN );
+    m_fieldsCtrl->SetTextValue( newFieldName, row, LABEL_COLUMN );
+
+    SetupColumnProperties( col );
+    OnModify();
 }
 
 void DIALOG_LIB_FIELDS::OnRemoveField(wxCommandEvent& event)
 {
-    event.Skip();
+    int row = m_fieldsCtrl->GetSelectedRow();
+
+    if( row == -1 )
+    {
+        wxBell();
+        return;
+    }
+
+    wxString fieldName = m_fieldsCtrl->GetTextValue( row, FIELD_NAME_COLUMN );
+    wxString displayName = m_fieldsCtrl->GetTextValue( row, DISPLAY_NAME_COLUMN );
+
+    wxString confirm_msg = wxString::Format( _( "Are you sure you want to remove the field '%s'?" ),
+                                             displayName );
+
+    if( !IsOK( this, confirm_msg ) )
+        return;
+
+    int col = m_dataModel->GetFieldNameCol( fieldName );
+
+    RemoveField( fieldName );
+
+    m_fieldsCtrl->DeleteItem( row );
+
+    if( row > 0 )
+        m_fieldsCtrl->SelectRow( row - 1 );
+
+    wxGridTableMessage msg( m_dataModel, wxGRIDTABLE_NOTIFY_COLS_DELETED, col, 1 );
+    m_grid->ProcessTableMessage( msg );
+
+    OnModify();
 }
 
 void DIALOG_LIB_FIELDS::OnFilterMouseMoved(wxMouseEvent& aEvent)
@@ -612,26 +699,25 @@ void DIALOG_LIB_FIELDS::OnFilterMouseMoved(wxMouseEvent& aEvent)
         SetCursor( wxCURSOR_IBEAM );
 }
 
-void DIALOG_LIB_FIELDS::OnFilterText(wxCommandEvent& event)
+void DIALOG_LIB_FIELDS::OnFilterText( wxCommandEvent& event )
 {
     m_dataModel->SetFilter( m_filter->GetValue() );
     RegroupSymbols();
 }
 
-void DIALOG_LIB_FIELDS::OnRegroupSymbols(wxCommandEvent& event)
+void DIALOG_LIB_FIELDS::OnRegroupSymbols( wxCommandEvent& event )
 {
     event.Skip();
 }
 
-void DIALOG_LIB_FIELDS::OnTableValueChanged(wxGridEvent& event)
+void DIALOG_LIB_FIELDS::OnTableValueChanged( wxGridEvent& event )
 {
     m_grid->ForceRefresh();
     OnModify();
 }
 
-void DIALOG_LIB_FIELDS::OnTableCellClick(wxGridEvent& event)
+void DIALOG_LIB_FIELDS::OnTableCellClick( wxGridEvent& event )
 {
-    printf( "OnTableCellClick\n" );
     wxString cellValue = m_grid->GetCellValue( event.GetRow(), event.GetCol() );
 
     if( cellValue.StartsWith( wxS( ">  " ) ) || cellValue.StartsWith( wxS( "v  " ) ) )
@@ -646,8 +732,26 @@ void DIALOG_LIB_FIELDS::OnTableCellClick(wxGridEvent& event)
     }
 }
 
-void DIALOG_LIB_FIELDS::OnTableItemContextMenu(wxGridEvent& event)
+void DIALOG_LIB_FIELDS::OnTableItemContextMenu( wxGridEvent& event )
 {
+    // Try to use the mouse position to determine the actual cell under the cursor.
+    // Fall back to the event's row/col if mapping fails.
+    int col = event.GetCol();
+    int row = event.GetRow();
+
+    if ( m_grid )
+    {
+        // Get global mouse position and convert to grid client coords
+        wxPoint mousePos = wxGetMousePosition();
+        wxPoint gridPt = m_grid->ScreenToClient( mousePos );
+
+        row = m_grid->YToRow( gridPt.y );
+        col = m_grid->XToCol( gridPt.x );
+    }
+
+    if ( row != -1 && col != -1 )
+        m_grid->SetGridCursor( row, col );
+
     event.Skip();
 }
 
@@ -755,12 +859,18 @@ void DIALOG_LIB_FIELDS::AddField( const wxString& aFieldName, const wxString& aL
 
 void DIALOG_LIB_FIELDS::RemoveField(const wxString& fieldName)
 {
-    // Placeholder implementation
+    int col = m_dataModel->GetFieldNameCol( fieldName );
+    wxCHECK_RET( col != -1, wxS( "Field name not found" ) );
+
+    m_dataModel->RemoveColumn( col );
 }
 
 void DIALOG_LIB_FIELDS::RenameField(const wxString& oldName, const wxString& newName)
 {
-    // Placeholder implementation
+    int col = m_dataModel->GetFieldNameCol( oldName );
+    wxCHECK_RET( col != -1, wxS( "Existing field name missing from data model" ) );
+
+    m_dataModel->RenameColumn( col, newName );
 }
 
 void DIALOG_LIB_FIELDS::RegroupSymbols()
