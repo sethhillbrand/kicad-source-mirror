@@ -317,10 +317,10 @@ public:
 
     bool IsClockwise() const { return !IsCCW(); }
 
+    bool SliceContainsPoint( const VECTOR2I& p ) const;
+
 private:
     void update_values();
-
-    bool sliceContainsPoint( const VECTOR2I& p ) const;
 
 private:
     VECTOR2I m_start;

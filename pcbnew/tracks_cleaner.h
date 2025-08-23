@@ -95,6 +95,7 @@ private:
      * @param aSeg2 is the candidate, and after merging, the removed segment
      */
     bool mergeCollinearSegments( PCB_TRACK* aSeg1, PCB_TRACK* aSeg2 );
+    bool mergeArcSegment( PCB_ARC* aArc, PCB_TRACK* aSeg );
 
     /**
      * helper function

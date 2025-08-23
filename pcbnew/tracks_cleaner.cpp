@@ -37,7 +37,62 @@
 #include <tools/pcb_actions.h>
 #include <tools/global_edit_tool.h>
 #include <drc/drc_rtree.h>
+#include <base_units.h>
+#include <geometry/shape_arc.h>
 #include <tracks_cleaner.h>
+
+static bool segmentWithinExpandedArc( const PCB_ARC* aArc, const PCB_TRACK* aSeg )
+{
+    VECTOR2I segStart = aSeg->GetStart();
+    VECTOR2I segEnd = aSeg->GetEnd();
+
+    if( ( aArc->GetStart() != segStart && aArc->GetEnd() != segStart )
+            && ( aArc->GetStart() != segEnd && aArc->GetEnd() != segEnd ) )
+        return false;
+
+    VECTOR2I center = aArc->GetCenter();
+    bool clockwise = !aArc->IsCCW();
+    VECTOR2I fixedEnd;
+    VECTOR2I newEnd;
+    VECTOR2I insidePt;
+
+    if( aArc->GetStart() == segStart || aArc->GetEnd() == segStart )
+    {
+        fixedEnd = ( aArc->GetStart() == segStart ) ? aArc->GetEnd() : aArc->GetStart();
+        newEnd = segEnd;
+        insidePt = segStart;
+    }
+    else
+    {
+        fixedEnd = ( aArc->GetStart() == segEnd ) ? aArc->GetEnd() : aArc->GetStart();
+        newEnd = segStart;
+        insidePt = segEnd;
+    }
+
+    SHAPE_ARC testArc;
+    testArc.ConstructFromStartEndCenter( fixedEnd, newEnd, center, clockwise, aArc->GetWidth() );
+
+    auto pointOnArc = [&]( const VECTOR2I& aPt, int aTol ) -> bool
+    {
+        int radius = KiROUND( testArc.GetRadius() );
+        int dist = ( aPt - testArc.GetCenter() ).EuclideanNorm();
+
+        if( std::abs( dist - radius ) > aTol )
+            return false;
+
+        return testArc.SliceContainsPoint( aPt );
+    };
+
+    if( !pointOnArc( insidePt, ARC_HIGH_DEF * 2 ) )
+        return false;
+
+    VECTOR2I mid = ( segStart + segEnd ) / 2;
+
+    if( !pointOnArc( mid, ARC_HIGH_DEF * 4 ) )
+        return false;
+
+    return true;
+}
 
 TRACKS_CLEANER::TRACKS_CLEANER( BOARD* aPcb, BOARD_COMMIT& aCommit ) :
         m_brd( aPcb ),
@@ -514,7 +569,7 @@ void TRACKS_CLEANER::cleanup( bool aDeleteDuplicateVias, bool aDeleteNullSegment
             {
                 PCB_TRACK* segment = m_brd->Tracks()[ii];
 
-                // one can merge only collinear segments, not vias or arcs.
+                // one can merge only collinear segments, not vias.
                 if( segment->Type() != PCB_TRACE_T )
                     continue;
 
@@ -539,8 +594,8 @@ void TRACKS_CLEANER::cleanup( bool aDeleteDuplicateVias, bool aDeleteNullSegment
 
                         BOARD_CONNECTED_ITEM* candidate = connected->Parent();
 
-                        if( candidate->Type() == PCB_TRACE_T && !candidate->HasFlag( IS_DELETED )
-                            && !filterItem( candidate ) )
+                        if( ( candidate->Type() == PCB_TRACE_T || candidate->Type() == PCB_ARC_T )
+                            && !candidate->HasFlag( IS_DELETED ) && !filterItem( candidate ) )
                         {
                             PCB_TRACK* candidateSegment = static_cast<PCB_TRACK*>( candidate );
 
@@ -564,11 +619,22 @@ void TRACKS_CLEANER::cleanup( bool aDeleteDuplicateVias, bool aDeleteNullSegment
                         if( candidate < segment ) // avoid duplicate merges
                             continue;
 
-                        if( segment->ApproxCollinear( *candidate )
-                            && testMergeCollinearSegments( segment, candidate ) )
+                        if( candidate->Type() == PCB_TRACE_T )
                         {
-                            tracks.emplace_back( segment, candidate );
-                            break;
+                            if( segment->ApproxCollinear( *candidate )
+                                && testMergeCollinearSegments( segment, candidate ) )
+                            {
+                                tracks.emplace_back( segment, candidate );
+                                break;
+                            }
+                        }
+                        else if( candidate->Type() == PCB_ARC_T )
+                        {
+                            if( segmentWithinExpandedArc( static_cast<PCB_ARC*>( candidate ), segment ) )
+                            {
+                                tracks.emplace_back( candidate, segment );
+                                break;
+                            }
                         }
                     }
                 }
@@ -597,7 +663,10 @@ void TRACKS_CLEANER::cleanup( bool aDeleteDuplicateVias, bool aDeleteNullSegment
                     if( seg1->HasFlag( IS_DELETED ) || seg2->HasFlag( IS_DELETED ) )
                         continue;
 
-                    mergeCollinearSegments( seg1, seg2 );
+                    if( seg1->Type() == PCB_ARC_T )
+                        mergeArcSegment( static_cast<PCB_ARC*>( seg1 ), seg2 );
+                    else
+                        mergeCollinearSegments( seg1, seg2 );
                 }
             }
         }
@@ -790,6 +859,46 @@ bool TRACKS_CLEANER::mergeCollinearSegments( PCB_TRACK* aSeg1, PCB_TRACK* aSeg2 
         // Merge successful, seg2 has to go away
         m_brd->Remove( aSeg2 );
         m_commit.Removed( aSeg2 );
+    }
+
+    return true;
+}
+
+bool TRACKS_CLEANER::mergeArcSegment( PCB_ARC* aArc, PCB_TRACK* aSeg )
+{
+    std::shared_ptr<CLEANUP_ITEM> item = std::make_shared<CLEANUP_ITEM>( CLEANUP_MERGE_TRACKS );
+    item->SetItems( aArc, aSeg );
+    m_itemsList->push_back( std::move( item ) );
+
+    aSeg->SetFlags( IS_DELETED );
+
+    if( !m_dryRun )
+    {
+        VECTOR2I center = aArc->GetCenter();
+        bool clockwise = !aArc->IsCCW();
+        SHAPE_ARC newArc;
+
+        if( aArc->GetStart() == aSeg->GetStart() || aArc->GetEnd() == aSeg->GetStart() )
+        {
+            VECTOR2I fixedEnd = ( aArc->GetStart() == aSeg->GetStart() ) ? aArc->GetEnd() : aArc->GetStart();
+            newArc.ConstructFromStartEndCenter( fixedEnd, aSeg->GetEnd(), center, clockwise, aArc->GetWidth() );
+        }
+        else
+        {
+            VECTOR2I fixedEnd = ( aArc->GetStart() == aSeg->GetEnd() ) ? aArc->GetEnd() : aArc->GetStart();
+            newArc.ConstructFromStartEndCenter( fixedEnd, aSeg->GetStart(), center, clockwise, aArc->GetWidth() );
+        }
+
+        m_commit.Modify( aArc );
+
+        aArc->SetStart( newArc.GetP0() );
+        aArc->SetMid( newArc.GetArcMid() );
+        aArc->SetEnd( newArc.GetP1() );
+
+        m_brd->GetConnectivity()->Update( aArc );
+
+        m_brd->Remove( aSeg );
+        m_commit.Removed( aSeg );
     }
 
     return true;

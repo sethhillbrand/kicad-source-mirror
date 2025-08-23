@@ -315,7 +315,7 @@ int SHAPE_ARC::IntersectLine( const SEG& aSeg, std::vector<VECTOR2I>* aIpsBuffer
 
     for( const VECTOR2I& intersection : intersections )
     {
-        if( sliceContainsPoint( intersection ) )
+        if( SliceContainsPoint( intersection ) )
             aIpsBuffer->push_back( intersection );
     }
 
@@ -333,7 +333,7 @@ int SHAPE_ARC::Intersect( const CIRCLE& aCircle, std::vector<VECTOR2I>* aIpsBuff
 
     for( const VECTOR2I& intersection : intersections )
     {
-        if( sliceContainsPoint( intersection ) )
+        if( SliceContainsPoint( intersection ) )
             aIpsBuffer->push_back( intersection );
     }
 
@@ -352,7 +352,7 @@ int SHAPE_ARC::Intersect( const SHAPE_ARC& aArc, std::vector<VECTOR2I>* aIpsBuff
 
     for( const VECTOR2I& intersection : intersections )
     {
-        if( sliceContainsPoint( intersection ) && aArc.sliceContainsPoint( intersection ) )
+        if( SliceContainsPoint( intersection ) && aArc.SliceContainsPoint( intersection ) )
             aIpsBuffer->push_back( intersection );
     }
 
@@ -437,7 +437,7 @@ VECTOR2I SHAPE_ARC::NearestPoint( const VECTOR2I& aP ) const
     if( ( nearestPt - m_end ).SquaredEuclideanNorm() <= s_epsilon )
         return m_end;
 
-    if( sliceContainsPoint( nearestPt ) )
+    if( SliceContainsPoint( nearestPt ) )
         return nearestPt;
 
     if( ( aP - m_start ).SquaredEuclideanNorm() <= ( aP - m_end ).SquaredEuclideanNorm() )
@@ -465,7 +465,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_CIRCLE& aCircle, VECTOR2I& aPtA, VECT
 
     for( const VECTOR2I& pt : intersections )
     {
-        if( sliceContainsPoint( pt ) )
+        if( SliceContainsPoint( pt ) )
         {
             aPtA = aPtB = pt;
             aDistSq = 0;
@@ -477,7 +477,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_CIRCLE& aCircle, VECTOR2I& aPtA, VECT
 
     for( const VECTOR2I& pt : pts )
     {
-        if( sliceContainsPoint( pt ) )
+        if( SliceContainsPoint( pt ) )
         {
             VECTOR2I nearestPt2 = circle2.NearestPoint( pt );
             int64_t distSq = pt.SquaredDistance( nearestPt2 );
@@ -506,7 +506,7 @@ bool SHAPE_ARC::NearestPoints( const SEG& aSeg, VECTOR2I& aPtA, VECTOR2I& aPtB,
 
     for( const VECTOR2I& pt : intersections )
     {
-        if( sliceContainsPoint( pt ) )
+        if( SliceContainsPoint( pt ) )
         {
             aPtA = aPtB = pt;
             aDistSq = 0;
@@ -517,7 +517,7 @@ bool SHAPE_ARC::NearestPoints( const SEG& aSeg, VECTOR2I& aPtA, VECTOR2I& aPtB,
     // Check the endpoints of the segment against the nearest point on the arc
     for( const VECTOR2I& pt : { aSeg.A, aSeg.B } )
     {
-        if( sliceContainsPoint( pt ) )
+        if( SliceContainsPoint( pt ) )
         {
             VECTOR2I nearestPt = circle.NearestPoint( pt );
             int64_t distSq = pt.SquaredDistance( nearestPt );
@@ -548,7 +548,7 @@ bool SHAPE_ARC::NearestPoints( const SEG& aSeg, VECTOR2I& aPtA, VECTOR2I& aPtB,
     // Check the closest points on the segment to the circle
     VECTOR2I segNearestPt = aSeg.NearestPoint( GetCenter() );
 
-    if( sliceContainsPoint( segNearestPt ) )
+    if( SliceContainsPoint( segNearestPt ) )
     {
         VECTOR2I circleNearestPt = circle.NearestPoint( segNearestPt );
         int64_t distSq = segNearestPt.SquaredDistance( circleNearestPt );
@@ -583,7 +583,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_RECT& aRect, VECTOR2I& aPtA, VECTOR2I
 
         for( const VECTOR2I& pt : intersections )
         {
-            if( sliceContainsPoint( pt ) )
+            if( SliceContainsPoint( pt ) )
             {
                 aPtA = aPtB = pt;
                 aDistSq = 0;
@@ -609,7 +609,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_RECT& aRect, VECTOR2I& aPtA, VECTOR2I
     // Check the closest points on the rectangle to the circle
     VECTOR2I rectNearestPt = bbox.NearestPoint( GetCenter() );
 
-    if( sliceContainsPoint( rectNearestPt ) )
+    if( SliceContainsPoint( rectNearestPt ) )
     {
         VECTOR2I circleNearestPt = circle.NearestPoint( rectNearestPt );
         int64_t distSq = rectNearestPt.SquaredDistance( circleNearestPt );
@@ -660,7 +660,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_ARC& aArc, VECTOR2I& aPtA, VECTOR2I& 
 
     for( const VECTOR2I& pt : pts1 )
     {
-        if( aArc.sliceContainsPoint( pt ) )
+        if( aArc.SliceContainsPoint( pt ) )
         {
             CIRCLE circle( center2, aArc.GetRadius() );
             aPtA = circle.NearestPoint( pt );
@@ -674,7 +674,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_ARC& aArc, VECTOR2I& aPtA, VECTOR2I& 
 
     for( const VECTOR2I& pt : pts2 )
     {
-        if( sliceContainsPoint( pt ) )
+        if( SliceContainsPoint( pt ) )
         {
             CIRCLE circle( center1, GetRadius() );
             aPtA = pt;
@@ -698,7 +698,7 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_ARC& aArc, VECTOR2I& aPtA, VECTOR2I& 
 
     for( const VECTOR2I& pt : intersections )
     {
-        if( sliceContainsPoint( pt ) && aArc.sliceContainsPoint( pt ) )
+        if( SliceContainsPoint( pt ) && aArc.SliceContainsPoint( pt ) )
         {
             aPtA = pt;
             aPtB = pt;
@@ -710,8 +710,8 @@ bool SHAPE_ARC::NearestPoints( const SHAPE_ARC& aArc, VECTOR2I& aPtA, VECTOR2I& 
     // Check for the closest points on the circles
     VECTOR2I pt1 = circle1.NearestPoint( center2 );
     VECTOR2I pt2 = circle2.NearestPoint( center1 );
-    bool     pt1InSlice = sliceContainsPoint( pt1 );
-    bool     pt2InSlice = aArc.sliceContainsPoint( pt2 );
+    bool     pt1InSlice = SliceContainsPoint( pt1 );
+    bool     pt2InSlice = aArc.SliceContainsPoint( pt2 );
 
     if( pt1InSlice && pt2InSlice )
     {
@@ -1022,7 +1022,7 @@ SHAPE_ARC SHAPE_ARC::Reversed() const
 }
 
 
-bool SHAPE_ARC::sliceContainsPoint( const VECTOR2I& p ) const
+bool SHAPE_ARC::SliceContainsPoint( const VECTOR2I& p ) const
 {
     EDA_ANGLE sa = GetStartAngle().Normalize();
     EDA_ANGLE ca = GetCentralAngle();
