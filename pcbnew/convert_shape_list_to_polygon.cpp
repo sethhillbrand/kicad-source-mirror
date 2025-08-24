@@ -199,7 +199,7 @@ static PCB_SHAPE* findNext( PCB_SHAPE* aShape, const VECTOR2I& aPoint, const KDT
         if( candidate == aShape )
             continue;
 
-        if( match.second < closest_dist_sq && !candidate->HasFlag( SKIP_STRUCT ) )
+        if( match.second < closest_dist_sq )
         {
             closest_dist_sq = match.second;
             closest_graphic = candidate;
@@ -523,15 +523,16 @@ bool doConvertOutlineToPolygon( std::vector<PCB_SHAPE*>& aShapeList, SHAPE_POLY_
                 else if( nextGraphic )  // encountered already-used segment, but not at the start
                 {
                     if( aErrorHandler )
-                        (*aErrorHandler)( _( "(self-intersecting)" ), graphic, nextGraphic,
-                                          prevPt );
+                        ( *aErrorHandler )( _( "(self-intersecting)" ), graphic, nextGraphic, prevPt );
 
                     break;
                 }
                 else                    // encountered discontinuity
                 {
+                    PCB_SHAPE* nextClosest = findNext( graphic, prevPt, kdTree, adaptor, pcbIUScale.mmToIU( 100 ) );
+
                     if( aErrorHandler )
-                        (*aErrorHandler)( _( "(not a closed shape)" ), graphic, nullptr, prevPt );
+                        ( *aErrorHandler )( _( "(not a closed shape)" ), graphic, nextClosest, prevPt );
 
                     break;
                 }
