@@ -35,6 +35,8 @@
 #include <widgets/grid_checkbox.h>
 #include <widgets/grid_text_button_helpers.h>
 #include <widgets/std_bitmap_button.h>
+#include <tools/sch_actions.h>
+#include <tool/tool_manager.h>
 
 #include <wx/msgdlg.h>
 #include <wx/srchctrl.h>
@@ -71,10 +73,10 @@ public:
 protected:
     void showPopupMenu( wxMenu& menu, wxGridEvent& aEvent ) override
     {
-        auto& revertMenu = menu.Append( MYID_REVERT_ROW, _( "Revert symbol" ), _( "Revert the symbol to its last saved state" ), wxITEM_NORMAL );
-        auto& clearMenu = menu.Append( MYID_CLEAR_CELL, _( "Clear cell" ), _( "Clear the cell value" ), wxITEM_NORMAL );
+        wxMenuItem* revertMenu = menu.Append( MYID_REVERT_ROW, _( "Revert symbol" ), _( "Revert the symbol to its last saved state" ), wxITEM_NORMAL );
+        wxMenuItem* clearMenu = menu.Append( MYID_CLEAR_CELL, _( "Clear cell" ), _( "Clear the cell value" ), wxITEM_NORMAL );
         menu.AppendSeparator();
-        auto& createDerivedSymbolMenu = menu.Append( MYID_CREATE_DERIVED_SYMBOL, _( "Create Derived Symbol" ), _( "Create a new symbol derived from the selected one" ), wxITEM_NORMAL );
+        wxMenuItem* createDerivedSymbolMenu = menu.Append( MYID_CREATE_DERIVED_SYMBOL, _( "Create Derived Symbol" ), _( "Create a new symbol derived from the selected one" ), wxITEM_NORMAL );
 
         // Get global mouse position and convert to grid client coords
         wxPoint mousePos = wxGetMousePosition();
@@ -90,7 +92,9 @@ protected:
         int col = m_grid->XToCol( gridPt.x );
         m_grid->SetGridCursor( row, col );
 
-        revertMenu.Enable( m_dataModel->IsCellEdited( row, col ) );
+        revertMenu->Enable( m_dataModel->IsCellEdited( row, col ) );
+        clearMenu->Enable( !m_dataModel->IsCellClear( row, col ) );
+        createDerivedSymbolMenu->Enable( m_dataModel->IsRowSingleSymbol( row ) );
 
         if( m_dataModel->GetColFieldName( col ) == GetCanonicalFieldName( FIELD_T::FOOTPRINT ) )
         {
@@ -134,6 +138,32 @@ protected:
                 m_dlg->OnModify();
             else
                 m_dlg->ClearModify();
+
+            m_grid->ForceRefresh();
+        }
+        else if( event.GetId() == MYID_CREATE_DERIVED_SYMBOL )
+        {
+            // Prompt user for the derived symbol name
+            wxTextEntryDialog nameDlg( m_dlg, _( "Enter name for derived symbol:" ),
+                                      _( "Create Derived Symbol" ), wxEmptyString );
+            if( nameDlg.ShowModal() != wxID_OK )
+                return;
+
+            wxString derivedName = nameDlg.GetValue();
+            if( derivedName.IsEmpty() )
+            {
+                wxMessageBox( _( "Symbol name cannot be empty." ), _( "Error" ),
+                             wxOK | wxICON_ERROR, m_dlg );
+                return;
+            }
+
+            // Use the data model's CreateDerivedSymbol method
+            // This will mark the field for derived symbol creation
+            m_dataModel->CreateDerivedSymbol( row, col, derivedName );
+
+            // Mark the dialog as modified
+            if( m_dataModel->IsEdited() )
+                m_dlg->OnModify();
 
             m_grid->ForceRefresh();
         }

@@ -248,19 +248,31 @@ public:
     {
         wxCHECK_MSG( aRow >= 0 && aRow < (int) m_rows.size(), false, "Invalid Row Number" );
         wxCHECK_MSG( aCol >= 0 && aCol < (int) m_cols.size(), false, "Invalid Column Number" );
-        return m_dataStore[m_rows[aRow].m_Refs[0]->GetUuid()][m_cols[aCol].m_fieldName].m_isModified;
+        return m_dataStore[m_rows[aRow].m_Refs[0]->m_Uuid][m_cols[aCol].m_fieldName].m_isModified;
+    }
+
+    bool IsCellClear( int aRow, int aCol )
+    {
+        wxCHECK_MSG( aRow >= 0 && aRow < (int) m_rows.size(), false, "Invalid Row Number" );
+        wxCHECK_MSG( aCol >= 0 && aCol < (int) m_cols.size(), false, "Invalid Column Number" );
+        return m_dataStore[m_rows[aRow].m_Refs[0]->m_Uuid][m_cols[aCol].m_fieldName].m_currentlyEmpty;
+    }
+
+    bool IsRowSingleSymbol( int aRow )
+    {
+        wxCHECK_MSG( aRow >= 0 && aRow < (int) m_rows.size(), false, "Invalid Row Number" );
+        return m_rows[aRow].m_Flag == GROUP_SINGLETON || m_rows[aRow].m_Flag == CHILD_ITEM;
     }
 
 private:
     static bool cmp( const LIB_DATA_MODEL_ROW& lhGroup, const LIB_DATA_MODEL_ROW& rhGroup,
                      LIB_FIELDS_EDITOR_GRID_DATA_MODEL* dataModel, int sortCol, bool ascending );
-    bool        unitMatch( const LIB_SYMBOL* lhRef, const LIB_SYMBOL* rhRef );
     bool        groupMatch( const LIB_SYMBOL* lhRef, const LIB_SYMBOL* rhRef );
     wxString getAttributeValue( const LIB_SYMBOL*, const wxString& aAttributeName );
     void     setAttributeValue( LIB_SYMBOL* aSymbol, const wxString& aAttributeName,
                                 const wxString& aValue );
 
-    void     createActualDerivedSymbol( const LIB_SYMBOL* aParentSymbol, const wxString& aNewSymbolName, 
+    void     createActualDerivedSymbol( const LIB_SYMBOL* aParentSymbol, const wxString& aNewSymbolName,
                                         const KIID& aNewSymbolUuid );
 
     void Sort();

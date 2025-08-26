@@ -308,9 +308,39 @@ wxGridCellAttr* LIB_FIELDS_EDITOR_GRID_DATA_MODEL::GetAttr( int aRow, int aCol, 
         if( stripedRenderer )
         {
             attr->SetRenderer( stripedRenderer );
+            attr->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOW ) );
 
             for( const LIB_SYMBOL* ref : m_rows[aRow].m_Refs )
-                m_dataStore[ref->m_Uuid][fieldName].m_isStriped = true;
+            {
+                if( m_dataStore[ref->m_Uuid][fieldName].m_isModified )
+                {
+                    m_dataStore[ref->m_Uuid][fieldName].m_isStriped = true;
+
+                    if( m_dataStore[ref->m_Uuid][fieldName].m_currentlyEmpty )
+                    {
+                        if( m_dataStore[ref->m_Uuid][fieldName].m_originallyEmpty )
+                        {
+                            attr->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOW ) );
+                        }
+                        else if( m_dataStore[ref->m_Uuid][fieldName].m_originalData.empty() )
+                        {
+                            attr->SetBackgroundColour( wxColour( 180, 220, 180 ) );
+                        }
+                        else
+                        {
+                            attr->SetBackgroundColour( wxColour( 220, 180, 180 ) );
+                        }
+                    }
+                    else if( m_dataStore[ref->m_Uuid][fieldName].m_currentData.IsEmpty() )
+                    {
+                        attr->SetBackgroundColour( wxColour( 180, 200, 180 ) );
+                    }
+                    else
+                    {
+                        attr->SetBackgroundColour( wxColour( 200, 180, 180 ) );
+                    }
+                }
+            }
         }
     }
     else

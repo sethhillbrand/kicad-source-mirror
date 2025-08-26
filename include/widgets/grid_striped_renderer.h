@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <wx/colour.h>
 #include <wx/grid.h>
 #include <wx/generic/gridctrl.h>
 
@@ -35,20 +36,20 @@ public:
     template<typename... Args>
     explicit STRIPED_CELL_RENDERER(Args&&... args) : T(std::forward<Args>(args)...) {}
 
-    void Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc,
-              const wxRect& rect, int row, int col, bool isSelected) override
+    void Draw( wxGrid& grid, wxGridCellAttr& attr, wxDC& dc,
+               const wxRect& rect, int row, int col, bool isSelected ) override
     {
         // First draw the striped background for empty cells
-        wxString cellValue = grid.GetCellValue(row, col);
+        wxString cellValue = grid.GetCellValue( row, col );
 
-        if (cellValue.IsEmpty())
+        if( cellValue.IsEmpty() )
         {
-            drawStripedBackground(dc, rect, isSelected);
-            attr.SetBackgroundColour( wxColour( 240, 240, 240, wxALPHA_TRANSPARENT ) );
+            drawStripedBackground( dc, attr, rect, isSelected );
+            attr.SetBackgroundColour( wxColour( 0, 0, 0, wxALPHA_TRANSPARENT ) );
         }
 
         // Then draw the foreground content using the base renderer
-        T::Draw(grid, attr, dc, rect, row, col, isSelected);
+        T::Draw( grid, attr, dc, rect, row, col, isSelected );
     }
 
     wxGridCellRenderer* Clone() const override
@@ -57,7 +58,7 @@ public:
     }
 
 private:
-    void drawStripedBackground(wxDC& dc, const wxRect& rect, bool isSelected) const
+    void drawStripedBackground(wxDC& dc, wxGridCellAttr& attr, const wxRect& rect, bool isSelected) const
     {
         if( isSelected )
         {
@@ -69,14 +70,22 @@ private:
         }
 
         // First fill with background color
-        wxColour bgColor = wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOW );
+        wxColour bgColor = attr.GetBackgroundColour();
         dc.SetBrush( wxBrush( bgColor ) );
         dc.SetPen( *wxTRANSPARENT_PEN );
         dc.DrawRectangle( rect );
 
         // Draw diagonal stripes
         const int stripeSpacing = 20;           // Distance between diagonal lines
-        wxColour  stripeColor( 220, 100, 100 ); // Light red for stripes
+
+        wxColour stripeColor;
+
+        int bgLuminance = bgColor.GetLuminance();
+
+        if( bgLuminance < 128 )
+            stripeColor = wxColour( 220, 180, 180 ); // Light red for stripes
+        else
+            stripeColor = wxColour( 100, 10, 10 ); // Dark red for stripes
 
         wxPen stripePen( stripeColor, 1, wxPENSTYLE_SOLID );
         dc.SetPen( stripePen );
