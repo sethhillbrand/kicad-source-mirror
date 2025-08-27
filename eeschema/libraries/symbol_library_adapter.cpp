@@ -83,7 +83,7 @@ std::optional<LIB_STATUS> SYMBOL_LIBRARY_ADAPTER::LoadOne( const wxString& aNick
         }
         catch( IO_ERROR& e )
         {
-            lib->status.load_status = LOAD_STATUS::ERROR;
+            lib->status.load_status = LOAD_STATUS::LOAD_ERROR;
             lib->status.error = LIBRARY_ERROR( { e.What() } );
             wxLogTrace( traceLibraries, "Sym: %s: plugin threw exception: %s", aNickname, e.What() );
         }
@@ -308,7 +308,7 @@ void SYMBOL_LIBRARY_ADAPTER::AsyncLoad()
                     }
                     catch( IO_ERROR& e )
                     {
-                        lib->status.load_status = LOAD_STATUS::ERROR;
+                        lib->status.load_status = LOAD_STATUS::LOAD_ERROR;
                         lib->status.error = LIBRARY_ERROR( { e.What() } );
                         wxLogTrace( traceLibraries, "Sym: %s: plugin threw exception: %s", aNickname, e.What() );
                     }
@@ -322,7 +322,7 @@ void SYMBOL_LIBRARY_ADAPTER::AsyncLoad()
                         std::lock_guard lock( GlobalLibraryMutex );
 
                         GlobalLibraries[aNickname].status = LIB_STATUS( {
-                            .load_status = LOAD_STATUS::ERROR,
+                            .load_status = LOAD_STATUS::LOAD_ERROR,
                             .error = result.error()
                         } );
 
@@ -335,7 +335,7 @@ void SYMBOL_LIBRARY_ADAPTER::AsyncLoad()
                         std::lock_guard lock( m_libraries_mutex );
 
                         m_libraries[aNickname].status = LIB_STATUS( {
-                            .load_status = LOAD_STATUS::ERROR,
+                            .load_status = LOAD_STATUS::LOAD_ERROR,
                             .error = result.error()
                         } );
 
@@ -421,7 +421,7 @@ std::vector<std::pair<wxString, LIB_STATUS>> SYMBOL_LIBRARY_ADAPTER::GetLibraryS
         {
             // This should probably never happen, but until that can be proved...
             ret.emplace_back( std::make_pair( row->Nickname(), LIB_STATUS( {
-                    .load_status = LOAD_STATUS::ERROR,
+                    .load_status = LOAD_STATUS::LOAD_ERROR,
                     .error = LIBRARY_ERROR( _( "Library not found in library table" ) )
                 } ) ) );
         }

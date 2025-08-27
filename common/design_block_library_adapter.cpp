@@ -171,7 +171,7 @@ void DESIGN_BLOCK_LIBRARY_ADAPTER::AsyncLoad()
                     }
                     catch( IO_ERROR& e )
                     {
-                        lib->status.load_status = LOAD_STATUS::ERROR;
+                        lib->status.load_status = LOAD_STATUS::LOAD_ERROR;
                         lib->status.error = LIBRARY_ERROR( { e.What() } );
                         wxLogTrace( traceLibraries, "DB: %s: plugin threw exception: %s", aNickname, e.What() );
                     }
@@ -185,7 +185,7 @@ void DESIGN_BLOCK_LIBRARY_ADAPTER::AsyncLoad()
                         std::lock_guard lock( GlobalLibraryMutex );
 
                         GlobalLibraries[aNickname].status = LIB_STATUS( {
-                            .load_status = LOAD_STATUS::ERROR,
+                            .load_status = LOAD_STATUS::LOAD_ERROR,
                             .error = result.error()
                         } );
 
@@ -198,7 +198,7 @@ void DESIGN_BLOCK_LIBRARY_ADAPTER::AsyncLoad()
                         std::lock_guard lock( m_libraries_mutex );
 
                         m_libraries[aNickname].status = LIB_STATUS( {
-                            .load_status = LOAD_STATUS::ERROR,
+                            .load_status = LOAD_STATUS::LOAD_ERROR,
                             .error = result.error()
                         } );
 
