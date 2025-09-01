@@ -202,6 +202,7 @@ SYMBOL_EDIT_FRAME::SYMBOL_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.SetManagedWindow( this );
 
     CreateInfoBar();
+    CreateRulers();
 
     // Rows; layers 4 - 6
     m_auimgr.AddPane( m_tbTopMain, EDA_PANE().HToolbar().Name( "TopMainToolbar" )
@@ -490,6 +491,7 @@ void SYMBOL_EDIT_FRAME::setupUIConditions()
 
     mgr->SetConditions( ACTIONS::toggleGrid,          CHECK( cond.GridVisible() ) );
     mgr->SetConditions( ACTIONS::toggleGridOverrides, CHECK( cond.GridOverrides() ) );
+    mgr->SetConditions( ACTIONS::toggleRulers,        CHECK( cond.RulersVisible() ) );
     mgr->SetConditions( ACTIONS::cursorSmallCrosshairs,   CHECK( cond.CursorSmallCrosshairs() ) );
     mgr->SetConditions( ACTIONS::cursorFullCrosshairs,    CHECK( cond.CursorFullCrosshairs() ) );
     mgr->SetConditions( ACTIONS::cursor45Crosshairs,      CHECK( cond.Cursor45Crosshairs() ) );

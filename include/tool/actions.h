@@ -196,6 +196,7 @@ public:
     static TOOL_ACTION gridPreset;
     static TOOL_ACTION toggleGrid;
     static TOOL_ACTION toggleGridOverrides;
+    static TOOL_ACTION toggleRulers;
     static TOOL_ACTION gridProperties;
     static TOOL_ACTION gridOrigin;
 

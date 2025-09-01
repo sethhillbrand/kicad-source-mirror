@@ -96,6 +96,17 @@ SELECTION_CONDITION EDITOR_CONDITIONS::GridOverrides()
 }
 
 
+SELECTION_CONDITION EDITOR_CONDITIONS::RulersVisible()
+{
+    // The rulers visibility check requires a draw frame
+    EDA_DRAW_FRAME* drwFrame = dynamic_cast<EDA_DRAW_FRAME*>( m_frame );
+
+    wxASSERT( drwFrame );
+
+    return std::bind( &EDITOR_CONDITIONS::rulersFunc, _1, drwFrame );
+}
+
+
 SELECTION_CONDITION EDITOR_CONDITIONS::PolarCoordinates()
 {
     // The polar coordinates require a draw frame
@@ -207,6 +218,12 @@ bool EDITOR_CONDITIONS::gridFunc( const SELECTION& aSelection, EDA_DRAW_FRAME* a
 bool EDITOR_CONDITIONS::gridOverridesFunc( const SELECTION& aSelection, EDA_DRAW_FRAME* aFrame )
 {
     return aFrame->IsGridOverridden();
+}
+
+
+bool EDITOR_CONDITIONS::rulersFunc( const SELECTION& aSelection, EDA_DRAW_FRAME* aFrame )
+{
+    return aFrame->RulersVisible();
 }
 
 

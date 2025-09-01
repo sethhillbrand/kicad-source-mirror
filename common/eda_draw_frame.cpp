@@ -66,6 +66,7 @@
 #include <widgets/msgpanel.h>
 #include <widgets/properties_panel.h>
 #include <widgets/net_inspector_panel.h>
+#include <widgets/ruler_widget.h>
 #include <widgets/filedlg_hook_new_library.h>
 #include <wx/event.h>
 #include <wx/snglinst.h>
@@ -121,6 +122,9 @@ EDA_DRAW_FRAME::EDA_DRAW_FRAME( KIWAY* aKiway, wxWindow* aParent, FRAME_T aFrame
     m_hotkeyPopup         = nullptr;
     m_propertiesPanel     = nullptr;
     m_netInspectorPanel   = nullptr;
+    m_rulerH             = nullptr;
+    m_rulerV             = nullptr;
+    m_rulersVisible      = false;
 
     SetUserUnits( EDA_UNITS::MM );
 
@@ -1474,4 +1478,64 @@ void EDA_DRAW_FRAME::OnApiPluginInvoke( wxCommandEvent& aEvent )
     if( mgr.ButtonBindings().count( aEvent.GetId() ) )
         mgr.InvokeAction( mgr.ButtonBindings().at( aEvent.GetId() ) );
 #endif
+}
+
+void EDA_DRAW_FRAME::CreateRulers()
+{
+    m_rulerH = new RULER_WIDGET( this, RULER_WIDGET::ORIENTATION::HORIZONTAL );
+    m_rulerV = new RULER_WIDGET( this, RULER_WIDGET::ORIENTATION::VERTICAL );
+    m_auimgr.AddPane( m_rulerH, EDA_PANE().Name( wxS( "HorzRuler" ) )
+                                          .Top()
+                                          .Layer( 2 )
+                                          .CaptionVisible( false )
+                                          .CloseButton( false ) );
+    m_auimgr.AddPane( m_rulerV, EDA_PANE().Name( wxS( "VertRuler" ) )
+                                          .Left()
+                                          .Layer( 2 )
+                                          .CaptionVisible( false )
+                                          .CloseButton( false ) );
+    m_auimgr.GetPane( wxS( "HorzRuler" ) ).Hide();
+    m_auimgr.GetPane( wxS( "VertRuler" ) ).Hide();
+}
+
+void EDA_DRAW_FRAME::SetRulersVisible( bool aVisible )
+{
+    m_rulersVisible = aVisible;
+
+    if( m_rulerH && m_rulerV )
+    {
+        if( GetCanvas() )
+        {
+            if( aVisible )
+                GetCanvas()->Bind( wxEVT_MOTION, &EDA_DRAW_FRAME::onCanvasMouseMove, this );
+            else
+                GetCanvas()->Unbind( wxEVT_MOTION, &EDA_DRAW_FRAME::onCanvasMouseMove, this );
+        }
+
+        m_auimgr.GetPane( wxS( "HorzRuler" ) ).Show( aVisible );
+        m_auimgr.GetPane( wxS( "VertRuler" ) ).Show( aVisible );
+        m_auimgr.Update();
+
+        if( aVisible )
+        {
+            m_rulerH->SetUnits( GetUserUnits() );
+            m_rulerV->SetUnits( GetUserUnits() );
+            double scale = GetCanvas()->GetGAL()->GetZoomFactor();
+            m_rulerH->SetPixelsPerUnit( scale );
+            m_rulerV->SetPixelsPerUnit( scale );
+        }
+    }
+}
+
+void EDA_DRAW_FRAME::onCanvasMouseMove( wxMouseEvent& aEvent )
+{
+    wxPoint pos = aEvent.GetPosition();
+
+    if( m_rulerH )
+        m_rulerH->SetCursorPos( pos );
+
+    if( m_rulerV )
+        m_rulerV->SetCursorPos( pos );
+
+    aEvent.Skip();
 }

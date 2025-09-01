@@ -1079,6 +1079,14 @@ TOOL_ACTION ACTIONS::toggleGridOverrides( TOOL_ACTION_ARGS()
         .ToolbarState( TOOLBAR_STATE::TOGGLE )
         .Icon( BITMAPS::grid_override ) );
 
+TOOL_ACTION ACTIONS::toggleRulers( TOOL_ACTION_ARGS()
+        .Name( "common.Control.toggleRulers" )
+        .Scope( AS_GLOBAL)
+        .FriendlyName( _( "Show Rulers" ) )
+        .Tooltip( _( "Display rulers along canvas edges" ) )
+        .ToolbarState( TOOLBAR_STATE::TOGGLE )
+        .Icon( BITMAPS::measurement ) );
+
 TOOL_ACTION ACTIONS::gridProperties( TOOL_ACTION_ARGS()
         .Name( "common.Control.editGrids" )
         .Scope( AS_GLOBAL )

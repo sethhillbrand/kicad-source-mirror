@@ -501,6 +501,7 @@ set( COMMON_WIDGET_SRCS
     widgets/paged_dialog.cpp
     widgets/panel_design_block_chooser.cpp
     widgets/properties_panel.cpp
+    widgets/ruler_widget.cpp
     widgets/search_pane.cpp
     widgets/search_pane_base.cpp
     widgets/search_pane_tab.cpp

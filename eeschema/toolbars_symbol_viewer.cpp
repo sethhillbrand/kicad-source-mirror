@@ -139,12 +139,13 @@ void SYMBOL_VIEWER_FRAME::doReCreateMenuBar()
     //
     ACTION_MENU* viewMenu = new ACTION_MENU( false, libControl );
 
+    viewMenu->Add( ACTIONS::toggleRulers, ACTION_MENU::CHECK );
+    viewMenu->AppendSeparator();
+
     viewMenu->Add( ACTIONS::zoomInCenter );
     viewMenu->Add( ACTIONS::zoomOutCenter );
     viewMenu->Add( ACTIONS::zoomFitScreen );
     viewMenu->Add( ACTIONS::zoomRedraw );
-
-    viewMenu->AppendSeparator();
 
     viewMenu->AppendSeparator();
     viewMenu->Add( SCH_ACTIONS::showElectricalTypes, ACTION_MENU::CHECK );

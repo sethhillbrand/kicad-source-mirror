@@ -205,6 +205,7 @@ SYMBOL_VIEWER_FRAME::SYMBOL_VIEWER_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.SetManagedWindow( this );
 
     CreateInfoBar();
+    CreateRulers();
 
     // Manage main toolbar
     m_auimgr.AddPane( m_tbTopMain, EDA_PANE().HToolbar().Name( "TopMainToolbar" ).Top().Layer(6) );
@@ -361,6 +362,7 @@ void SYMBOL_VIEWER_FRAME::setupUIConditions()
 #define CHECK( x )  ACTION_CONDITIONS().Check( x )
 
     mgr->SetConditions( ACTIONS::toggleGrid,          CHECK( cond.GridVisible() ) );
+    mgr->SetConditions( ACTIONS::toggleRulers,        CHECK( cond.RulersVisible() ) );
 
     auto electricalTypesShownCondition =
             [this]( const SELECTION& aSel )

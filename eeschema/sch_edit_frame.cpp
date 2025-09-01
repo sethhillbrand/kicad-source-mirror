@@ -212,6 +212,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.SetManagedWindow( this );
 
     CreateInfoBar();
+    CreateRulers();
 
     // Fetch a COPY of the config as a lot of these initializations are going to overwrite our
     // data.
@@ -246,7 +247,7 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     m_auimgr.AddPane( createHighlightedNetNavigator(), defaultNetNavigatorPaneInfo() );
 
     m_auimgr.AddPane( m_tbLeft, EDA_PANE().VToolbar().Name( wxS( "LeftToolbar" ) )
-                      .Left().Layer( 2 ) );
+                      .Left().Layer( 3 ) );
 
     m_auimgr.AddPane( m_tbRight, EDA_PANE().VToolbar().Name( wxS( "RightToolbar" ) )
                       .Right().Layer( 2 ) );
@@ -640,6 +641,7 @@ void SCH_EDIT_FRAME::setupUIConditions()
     mgr->SetConditions( SCH_ACTIONS::showDesignBlockPanel, CHECK( designBlockCond ) );
     mgr->SetConditions( ACTIONS::toggleGrid,               CHECK( cond.GridVisible() ) );
     mgr->SetConditions( ACTIONS::toggleGridOverrides,      CHECK( cond.GridOverrides() ) );
+    mgr->SetConditions( ACTIONS::toggleRulers,             CHECK( cond.RulersVisible() ) );
     mgr->SetConditions( ACTIONS::cursorSmallCrosshairs,        CHECK( cond.CursorSmallCrosshairs() ) );
     mgr->SetConditions( ACTIONS::cursorFullCrosshairs,         CHECK( cond.CursorFullCrosshairs() ) );
     mgr->SetConditions( ACTIONS::cursor45Crosshairs,           CHECK( cond.Cursor45Crosshairs() ) );

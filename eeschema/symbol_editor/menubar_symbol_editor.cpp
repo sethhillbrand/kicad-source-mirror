@@ -125,6 +125,7 @@ void SYMBOL_EDIT_FRAME::doReCreateMenuBar()
     showHidePanels->Add( ACTIONS::showProperties,  ACTION_MENU::CHECK );
     showHidePanels->Add( ACTIONS::showLibraryTree, ACTION_MENU::CHECK );
     viewMenu->Add( showHidePanels );
+    viewMenu->Add( ACTIONS::toggleRulers, ACTION_MENU::CHECK );
     viewMenu->AppendSeparator();
 
     viewMenu->Add( ACTIONS::showSymbolBrowser );

@@ -599,6 +599,13 @@ int COMMON_TOOLS::ToggleGridOverrides( const TOOL_EVENT& aEvent )
 }
 
 
+int COMMON_TOOLS::ToggleRulers( const TOOL_EVENT& aEvent )
+{
+    m_frame->SetRulersVisible( !m_frame->RulersVisible() );
+    return 0;
+}
+
+
 int COMMON_TOOLS::GridProperties( const TOOL_EVENT& aEvent )
 {
     auto showGridPrefs =
@@ -811,6 +818,7 @@ void COMMON_TOOLS::setTransitions()
     Go( &COMMON_TOOLS::GridFastCycle,       ACTIONS::gridFastCycle.MakeEvent() );
     Go( &COMMON_TOOLS::ToggleGrid,          ACTIONS::toggleGrid.MakeEvent() );
     Go( &COMMON_TOOLS::ToggleGridOverrides, ACTIONS::toggleGridOverrides.MakeEvent() );
+    Go( &COMMON_TOOLS::ToggleRulers,        ACTIONS::toggleRulers.MakeEvent() );
     Go( &COMMON_TOOLS::GridProperties,      ACTIONS::gridProperties.MakeEvent() );
     Go( &COMMON_TOOLS::GridOrigin,          ACTIONS::gridOrigin.MakeEvent() );
 

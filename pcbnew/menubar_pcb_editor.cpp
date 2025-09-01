@@ -225,6 +225,7 @@ void PCB_EDIT_FRAME::doReCreateMenuBar()
         showHidePanels->Add( PCB_ACTIONS::showDesignBlockPanel, ACTION_MENU::CHECK, _( "Design Blocks" ) );
 
     viewMenu->Add( showHidePanels );
+    viewMenu->Add( ACTIONS::toggleRulers, ACTION_MENU::CHECK );
 
     viewMenu->AppendSeparator();
     viewMenu->Add( ACTIONS::showFootprintBrowser );

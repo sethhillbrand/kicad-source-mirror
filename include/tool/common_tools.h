@@ -69,6 +69,7 @@ public:
     int Cursor45Crosshairs( const TOOL_EVENT& aEvent );
 
     int ToggleBoundingBoxes( const TOOL_EVENT& aEvent );
+    int ToggleRulers( const TOOL_EVENT& aEvent );
 
     // Units control
     int SwitchUnits( const TOOL_EVENT& aEvent );

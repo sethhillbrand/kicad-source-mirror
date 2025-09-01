@@ -115,6 +115,15 @@ public:
     SELECTION_CONDITION GridOverrides();
 
     /**
+     * Create a functor testing if rulers are visible in a frame.
+     *
+     * @note This requires the frame passed into the constructor be be derived from EDA_DRAW_FRAME.
+     *
+     * @return Functor testing if the rulers are visible
+     */
+    SELECTION_CONDITION RulersVisible();
+
+    /**
      * Create a functor testing if polar coordinates are current being used.
      *
      * @note This requires the frame passed into the constructor be be derived from EDA_DRAW_FRAME.
@@ -170,6 +179,9 @@ protected:
 
     /// Helper function used by GridOverrides().
     static bool gridOverridesFunc( const SELECTION& aSelection, EDA_DRAW_FRAME* aFrame );
+
+    /// Helper function used by RulersVisible().
+    static bool rulersFunc( const SELECTION& aSelection, EDA_DRAW_FRAME* aFrame );
 
     /// Helper function used by PolarCoordinates().
     static bool polarCoordFunc( const SELECTION& aSelection, EDA_DRAW_FRAME* aFrame );

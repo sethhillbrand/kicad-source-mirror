@@ -51,6 +51,8 @@ class SEARCH_PANE;
 class HOTKEY_CYCLE_POPUP;
 class PROPERTIES_PANEL;
 class NET_INSPECTOR_PANEL;
+class RULER_WIDGET;
+class wxMouseEvent;
 enum class BITMAP_TYPE;
 class FILEDLG_HOOK_NEW_LIBRARY;
 
@@ -229,6 +231,10 @@ public:
 
     bool         IsGridOverridden() const;
     virtual void SetGridOverrides( bool aOverride );
+
+    bool         RulersVisible() const { return m_rulersVisible; }
+    virtual void SetRulersVisible( bool aVisible );
+    void CreateRulers();
 
     virtual COLOR4D GetGridColor() { return m_gridColor; }
     virtual void SetGridColor( const COLOR4D& aColor ) { m_gridColor = aColor; }
@@ -571,6 +577,7 @@ protected:
      */
     virtual void handleActivateEvent( wxActivateEvent& aEvent );
     void onActivate( wxActivateEvent& aEvent );
+    void onCanvasMouseMove( wxMouseEvent& aEvent );
 
     wxSocketServer*             m_socketServer;
 
@@ -602,6 +609,9 @@ protected:
     SEARCH_PANE*         m_searchPane;
     PROPERTIES_PANEL*    m_propertiesPanel;
     NET_INSPECTOR_PANEL* m_netInspectorPanel;
+    RULER_WIDGET*        m_rulerH;
+    RULER_WIDGET*        m_rulerV;
+    bool                 m_rulersVisible;
 
     HOTKEY_CYCLE_POPUP* m_hotkeyPopup;
 
