@@ -38,6 +38,7 @@
 #include <sch_marker.h>
 #include <sch_pin.h>
 #include <sch_rule_area.h>
+#include <wx/log.h>
 #include <sch_signal.h>
 #include <sch_label.h>
 #include <sch_sheet.h>
@@ -2624,61 +2625,193 @@ void CONNECTION_GRAPH::buildConnectionGraph( std::function<void( SCH_ITEM* )>* a
 
 void CONNECTION_GRAPH::RebuildSignals()
 {
-    m_signals.clear();
-
-    if( !m_schematic )
-        return;
-    std::map<wxString, SCH_SIGNAL*> netToSignal;
-    std::map<SCH_SYMBOL*, SCH_SIGNAL*> symbolToSignal;
-
-    for( SCH_ITEM* item : m_items )
+    try
     {
-        if( item->Type() == SCH_SYMBOL_T )
-            static_cast<SCH_SYMBOL*>( item )->SetSignalName( wxEmptyString );
-    }
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: begin (items=%zu, schematic=%p)",
+                    m_items.size(), (void*) m_schematic );
+        m_signals.clear();
 
-    SCH_SCREEN* screen = m_schematic->CurrentSheet().LastScreen();
+        if( !m_schematic )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: no schematic" );
+            return;
+        }
+    std::map<wxString, SCH_SIGNAL*> netToSignal;
+
+        SCH_SCREEN* screen = m_schematic->CurrentSheet().LastScreen();
+        // Clear any previous signal names on symbols in the current screen
+        if( screen )
+        {
+            for( SCH_ITEM* item : screen->Items().OfType( SCH_SYMBOL_T ) )
+                static_cast<SCH_SYMBOL*>( item )->SetSignalName( wxEmptyString );
+        }
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: current screen=%p", (void*) screen );
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: debug start passes (pre-pass signals=%zu)", m_signals.size() );
 
     auto findWire = [&]( SCH_PIN* aPin, SCH_LINE*& aWire )
     {
-        for( SCH_ITEM* candidate : screen->Items().Overlapping( SCH_LINE_T, aPin->GetPosition() ) )
+        const VECTOR2I p = aPin->GetPosition();
+
+        // Prefer a localized search first
+        auto consider = [&]( SCH_ITEM* candidate ) -> bool
         {
-            if( candidate->Type() == SCH_LINE_T && candidate->GetLayer() == LAYER_WIRE
-                    && candidate->HitTest( aPin->GetPosition(), -1 ) )
+            if( candidate->Type() != SCH_LINE_T )
+                return false;
+
+            SCH_LINE* line = static_cast<SCH_LINE*>( candidate );
+
+            if( line->GetLayer() != LAYER_WIRE )
+                return false;
+
+            const VECTOR2I s = line->GetStartPoint();
+            const VECTOR2I e = line->GetEndPoint();
+
+            // Horizontal wire
+            if( s.y == e.y && p.y == s.y )
             {
-                aWire = static_cast<SCH_LINE*>( candidate );
-                return true;
+                int minx = std::min( s.x, e.x );
+                int maxx = std::max( s.x, e.x );
+                if( p.x >= minx && p.x <= maxx )
+                {
+                    aWire = line;
+                    return true;
+                }
             }
+            // Vertical wire
+            else if( s.x == e.x && p.x == s.x )
+            {
+                int miny = std::min( s.y, e.y );
+                int maxy = std::max( s.y, e.y );
+                if( p.y >= miny && p.y <= maxy )
+                {
+                    aWire = line;
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        // First try overlapping items at the point
+        for( SCH_ITEM* candidate : screen->Items().Overlapping( SCH_LINE_T, p ) )
+        {
+            if( consider( candidate ) )
+                return true;
+        }
+
+        // Fallback: scan all wires on the screen (robust for degenerate bbox cases)
+        for( SCH_ITEM* candidate : screen->Items().OfType( SCH_LINE_T ) )
+        {
+            if( consider( candidate ) )
+                return true;
         }
 
         return false;
     };
 
-    for( SCH_ITEM* item : m_items )
+    // Resolve a net name for a pin with robust fallbacks when connectivity hasn't assigned one yet
+    auto resolveNetNameForPin = [&]( SCH_PIN* aPin ) -> wxString
     {
-        if( item->Type() != SCH_SYMBOL_T )
-            continue;
+        wxString net;
 
+        // 1) Use the pin's connection name if present (sheet-aware)
+        if( SCH_CONNECTION* c = aPin->Connection( &m_schematic->CurrentSheet() ) )
+        {
+            net = c->Name();
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pin conn=%p name='%s'", (void*) c, net );
+        }
+
+        // 2) Use the subgraph's resolved name if available
+        if( net.IsEmpty() )
+        {
+            if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( aPin ) )
+            {
+                net = sg->GetNetName();
+                if( !net.IsEmpty() )
+                    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pin sg=%p net='%s'", (void*) sg, net );
+            }
+        }
+
+        // 3) Fall back to a deterministic default based on any pin in the subgraph
+        if( net.IsEmpty() )
+        {
+            if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( aPin ) )
+            {
+                // Prefer a pin-derived default name (stable, human-friendly)
+                for( SCH_ITEM* it : sg->GetItems() )
+                {
+                    if( it->Type() == SCH_PIN_T )
+                    {
+                        SCH_PIN* p = static_cast<SCH_PIN*>( it );
+                        // Use the subgraph's sheet for correct ref resolution
+                        wxString def = p->GetDefaultNetName( sg->m_sheet );
+                        if( !def.IsEmpty() )
+                        {
+                            net = def;
+                            wxLogTrace( "KICAD_SCH_HIGHLIGHT",
+                                        "RebuildSignals: fallback default name from pin in sg=%p -> '%s'",
+                                        (void*) sg, net );
+                            break;
+                        }
+                    }
+                }
+
+                // If still empty, synthesize a unique, stable identifier from subgraph code
+                if( net.IsEmpty() )
+                {
+                    net = wxString::Format( wxT( "__SG_%ld" ), sg->m_code );
+                    wxLogTrace( "KICAD_SCH_HIGHLIGHT",
+                                "RebuildSignals: synthesized name for sg=%p code=%ld -> '%s'",
+                                (void*) sg, sg->m_code, net );
+                }
+            }
+        }
+
+        return net;
+    };
+
+    // Build signals by scanning 2-pin symbols on the current screen
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 1 (2-pin symbols)" );
+    for( SCH_ITEM* item : screen->Items().OfType( SCH_SYMBOL_T ) )
+    {
         SCH_SYMBOL* symbol = static_cast<SCH_SYMBOL*>( item );
         std::vector<SCH_PIN*> pins = symbol->GetPins( &m_schematic->CurrentSheet() );
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: symbol=%p pins=%zu mode=%d",
+            (void*) symbol, pins.size(), (int) symbol->GetPassthroughMode() );
 
         if( pins.size() != 2 )
             continue;
 
+        // If user has blocked passthrough on this symbol, don't use it to bridge nets
+        if( symbol->GetPassthroughMode() == SCH_SYMBOL::PASSTHROUGH_MODE::BLOCK )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: skipping symbol=%p due to passthrough=BLOCK", (void*) symbol );
+            continue;
+        }
+
         SCH_LINE* wireA = nullptr;
         SCH_LINE* wireB = nullptr;
 
-        if( !findWire( pins[0], wireA ) || !findWire( pins[1], wireB ) )
+        bool foundA = findWire( pins[0], wireA );
+        bool foundB = findWire( pins[1], wireB );
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: findWire A=%d B=%d", foundA, foundB );
+        if( !foundA || !foundB )
             continue;
 
         bool parallel = false;
 
-        if( symbol->GetPassthrough() )
+        if( symbol->GetPassthroughMode() == SCH_SYMBOL::PASSTHROUGH_MODE::FORCE )
+        {
             parallel = true;
+        }
         else
         {
+            // DEFAULT heuristic: require parallel wires and avoid power pins
             if( pins[0]->IsPower() || pins[1]->IsPower() )
+            {
+                wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: skipping symbol=%p due to power pin in DEFAULT mode", (void*) symbol );
                 continue;
+            }
 
             VECTOR2I aStart = wireA->GetStartPoint();
             VECTOR2I aEnd   = wireA->GetEndPoint();
@@ -2691,81 +2824,106 @@ void CONNECTION_GRAPH::RebuildSignals()
                 parallel = true;
         }
 
-        if( !parallel )
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: parallel=%d", parallel );
+    if( !parallel )
             continue;
 
-        wxString netA;
-        wxString netB;
+    wxString netA = resolveNetNameForPin( pins[0] );
+    wxString netB = resolveNetNameForPin( pins[1] );
 
-        if( CONNECTION_SUBGRAPH* sgA = GetSubgraphForItem( pins[0] ) )
-            netA = sgA->GetNetName();
-
-        if( CONNECTION_SUBGRAPH* sgB = GetSubgraphForItem( pins[1] ) )
-            netB = sgB->GetNetName();
-
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: nets A='%s' B='%s'", netA, netB );
         if( netA.IsEmpty() || netB.IsEmpty() )
             continue;
 
         SCH_SIGNAL* sigA = netToSignal.count( netA ) ? netToSignal[netA] : nullptr;
         SCH_SIGNAL* sigB = netToSignal.count( netB ) ? netToSignal[netB] : nullptr;
 
-        if( sigA && sigB && sigA != sigB )
+    if( sigA && sigB && sigA != sigB )
         {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: merging sigA=%p (size=%zu) with sigB=%p (size=%zu)",
+                        (void*) sigA, sigA->GetNets().size(), (void*) sigB, sigB->GetNets().size() );
+
             for( const wxString& n : sigB->GetNets() )
             {
                 sigA->AddNet( n );
                 netToSignal[n] = sigA;
             }
 
+            // Transfer symbol membership
+            sigA->AbsorbSymbolsFrom( *sigB );
+
             auto it = std::find_if( m_signals.begin(), m_signals.end(),
                     [&]( const std::unique_ptr<SCH_SIGNAL>& p ){ return p.get() == sigB; } );
 
             if( it != m_signals.end() )
+            {
+                wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: erasing merged signal sigB=%p", (void*) sigB );
                 m_signals.erase( it );
+                wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: post-erase signals size=%zu", m_signals.size() );
+            }
 
-            symbolToSignal[symbol] = sigA;
+            sigA->AddSymbol( symbol );
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: symbol=%p recorded in sigA=%p", (void*) symbol, (void*) sigA );
         }
         else if( sigA )
         {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: extending sigA=%p with net '%s'", (void*) sigA, netB );
             sigA->AddNet( netB );
             netToSignal[netB] = sigA;
-            symbolToSignal[symbol] = sigA;
+            sigA->AddSymbol( symbol );
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: symbol=%p recorded in sigA=%p", (void*) symbol, (void*) sigA );
         }
         else if( sigB )
         {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: extending sigB=%p with net '%s'", (void*) sigB, netA );
             sigB->AddNet( netA );
             netToSignal[netA] = sigB;
-            symbolToSignal[symbol] = sigB;
+            sigB->AddSymbol( symbol );
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: symbol=%p recorded in sigB=%p", (void*) symbol, (void*) sigB );
         }
         else
         {
             std::unique_ptr<SCH_SIGNAL> sig( new SCH_SIGNAL );
             sig->AddNet( netA );
             sig->AddNet( netB );
+            sig->AddSymbol( symbol );
             netToSignal[netA] = sig.get();
             netToSignal[netB] = sig.get();
-            symbolToSignal[symbol] = sig.get();
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: created signal %p with nets '%s','%s'", (void*) sig.get(), netA, netB );
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: symbol=%p recorded in new signal=%p", (void*) symbol, (void*) sig.get() );
             m_signals.push_back( std::move( sig ) );
         }
     }
 
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 2 (label naming)" );
     for( SCH_ITEM* item : m_items )
     {
-        if( item->Type() != SCH_SIGNAL_LABEL_T )
+        const KICAD_T t = item->Type();
+        if( t != SCH_SIGNAL_LABEL_T && t != SCH_LABEL_T )
             continue;
 
-        SCH_SIGNAL_LABEL* label = static_cast<SCH_SIGNAL_LABEL*>( item );
-        wxString net;
+        SCH_TEXT* label = static_cast<SCH_TEXT*>( item );
+        wxString  net;
 
-        if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( label ) )
+        if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( item ) )
             net = sg->GetNetName();
 
-        if( netToSignal.count( net ) )
-            netToSignal[net]->SetName( label->GetText() );
+        // Defensive: guard against pathological names
+        if( !net.IsEmpty() && net.Length() < 2048 && netToSignal.count( net ) )
+        {
+            wxString name = label->GetText();
+            if( name.Length() > 512 )
+                name.Truncate( 512 );
+            if( name.StartsWith( wxS( "/" ) ) )
+                name = name.Mid( 1 );
+
+            netToSignal[net]->SetName( name );
+        }
     }
 
     int idx = 1;
 
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 3 (default naming)" );
     for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
     {
         if( sig->GetName().IsEmpty() )
@@ -2775,27 +2933,25 @@ void CONNECTION_GRAPH::RebuildSignals()
         }
     }
 
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 4 (terminal pins)" );
     for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
     {
         std::vector<SCH_PIN*> pins;
 
-        for( SCH_ITEM* item : m_items )
+        if( screen )
         {
-            if( item->Type() != SCH_SYMBOL_T )
-                continue;
-
-            SCH_SYMBOL* sym = static_cast<SCH_SYMBOL*>( item );
-            std::vector<SCH_PIN*> sp = sym->GetPins( &m_schematic->CurrentSheet() );
-
-            for( SCH_PIN* p : sp )
+            for( SCH_ITEM* item : screen->Items().OfType( SCH_SYMBOL_T ) )
             {
-                wxString net;
+                SCH_SYMBOL* sym = static_cast<SCH_SYMBOL*>( item );
+                std::vector<SCH_PIN*> sp = sym->GetPins( &m_schematic->CurrentSheet() );
 
-                if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( p ) )
-                    net = sg->GetNetName();
+                for( SCH_PIN* p : sp )
+                {
+                    wxString net = resolveNetNameForPin( p );
 
-                if( sig->GetNets().count( net ) )
-                    pins.push_back( p );
+                    if( sig->GetNets().count( net ) )
+                        pins.push_back( p );
+                }
             }
         }
 
@@ -2830,31 +2986,64 @@ void CONNECTION_GRAPH::RebuildSignals()
         }
     }
 
-    for( auto& it : symbolToSignal )
-        it.first->SetSignalName( it.second->GetName() );
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 5 (apply symbol names)" );
+    for( auto& sigUP : m_signals )
+    {
+        SCH_SIGNAL* sig = sigUP.get();
+        for( SCH_SYMBOL* sym : sig->GetSymbols() )
+        {
+            if( sym )
+                sym->SetSignalName( sig->GetName() );
+        }
+    }
+
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: built %zu signals", m_signals.size() );
+    }
+    catch( const std::exception& e )
+    {
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: exception: %s", e.what() );
+        m_signals.clear();
+        return;
+    }
+    catch( ... )
+    {
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: unknown exception" );
+        m_signals.clear();
+        return;
+    }
 }
 
 
 SCH_SIGNAL* CONNECTION_GRAPH::GetSignalForNet( const wxString& aNet )
 {
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "CONNECTION_GRAPH::GetSignalForNet(%s)", aNet );
     for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
     {
         if( sig->GetNets().count( aNet ) )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetSignalForNet: found signal '%s'", sig->GetName() );
             return sig.get();
+        }
     }
 
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetSignalForNet: no signal found" );
     return nullptr;
 }
 
 
 SCH_SIGNAL* CONNECTION_GRAPH::GetSignalByName( const wxString& aName )
 {
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "CONNECTION_GRAPH::GetSignalByName(%s)", aName );
     for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
     {
         if( sig->GetName() == aName )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetSignalByName: found" );
             return sig.get();
+        }
     }
 
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetSignalByName: not found" );
     return nullptr;
 }
 
@@ -2862,11 +3051,15 @@ SCH_SIGNAL* CONNECTION_GRAPH::GetSignalByName( const wxString& aName )
 void CONNECTION_GRAPH::ReplaceSignalTerminalPin( const wxString& aSignal, const KIID& aPrev,
                                                 const KIID& aNew )
 {
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ReplaceSignalTerminalPin: signal='%s' prev=%s new=%s",
+                aSignal, aPrev.AsString(), aNew.AsString() );
     if( SCH_SIGNAL* sig = GetSignalByName( aSignal ) )
     {
         sig->ReplaceTerminalPin( aPrev, aNew );
         m_signalTerminalOverrides[aSignal] = std::make_pair( sig->GetTerminalPinA(),
                                                              sig->GetTerminalPinB() );
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ReplaceSignalTerminalPin: updated overrides to (%s,%s)",
+                    sig->GetTerminalPinA().AsString(), sig->GetTerminalPinB().AsString() );
     }
 }
 
@@ -2875,6 +3068,8 @@ void CONNECTION_GRAPH::SetSignalTerminalOverrides( const std::map<wxString,
                                                 std::pair<KIID, KIID>>& aOverrides )
 {
     m_signalTerminalOverrides = aOverrides;
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "SetSignalTerminalOverrides: count=%zu",
+                m_signalTerminalOverrides.size() );
 }
 
 

@@ -67,7 +67,7 @@ class DIALOG_SYMBOL_PROPERTIES_BASE : public DIALOG_SHIM
                 wxCheckBox* m_cbExcludeFromBom;
                 wxCheckBox* m_cbExcludeFromBoard;
                 wxCheckBox* m_cbDNP;
-                wxCheckBox* m_cbPassthrough;
+				wxChoice* m_choicePassthrough;
                 wxButton* m_updateSymbolBtn;
 		wxButton* m_changeSymbolBtn;
 		wxButton* m_editSchematicSymbolBtn;

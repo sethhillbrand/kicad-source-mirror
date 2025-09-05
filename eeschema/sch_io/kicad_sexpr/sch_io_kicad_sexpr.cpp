@@ -23,6 +23,7 @@
 #include <algorithm>
 
 #include <fmt/format.h>
+#include <magic_enum.hpp>
 
 #include <wx/log.h>
 #include <wx/mstream.h>
@@ -758,7 +759,16 @@ void SCH_IO_KICAD_SEXPR::saveSymbol( SCH_SYMBOL* aSymbol, const SCHEMATIC& aSche
     KICAD_FORMAT::FormatBool( m_out, "in_bom", !aSymbol->GetExcludedFromBOM() );
     KICAD_FORMAT::FormatBool( m_out, "on_board", !aSymbol->GetExcludedFromBoard() );
     KICAD_FORMAT::FormatBool( m_out, "dnp", aSymbol->GetDNP() );
-    KICAD_FORMAT::FormatBool( m_out, "passthrough", aSymbol->GetPassthrough() );
+    // Persist passthrough mode as enum string for tri-state support, but omit when DEFAULT
+    // to avoid file churn and keep files compact/back-compatible.
+    if( aSymbol->GetPassthroughMode() != SCH_SYMBOL::PASSTHROUGH_MODE::DEFAULT )
+    {
+        using magic_enum::enum_name;
+        std::string name = std::string( enum_name( aSymbol->GetPassthroughMode() ) );
+        // enum names are UPPER_CASE; write lowercase tokens
+        std::transform( name.begin(), name.end(), name.begin(), []( unsigned char c ){ return (char) std::tolower( c ); } );
+        m_out->Print( "(passthrough %s)", name.c_str() );
+    }
 
     AUTOPLACE_ALGO fieldsAutoplaced = aSymbol->GetFieldsAutoplaced();
 

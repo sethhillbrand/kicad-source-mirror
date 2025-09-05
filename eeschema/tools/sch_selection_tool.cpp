@@ -174,9 +174,20 @@ protected:
     {
         Clear();
 
-        SCH_SELECTION_TOOL* selTool = getToolManager()->GetTool<SCH_SELECTION_TOOL>();
-        SCH_PIN* pin = dynamic_cast<SCH_PIN*>( selTool->GetSelection().Front() );
-        SCH_EDIT_FRAME* frame = static_cast<SCH_EDIT_FRAME*>( getToolManager()->GetToolHolder() );
+        TOOL_MANAGER* toolMgr = getToolManager();
+        if( !toolMgr )
+            return;
+
+        SCH_SELECTION_TOOL* selTool = toolMgr->GetTool<SCH_SELECTION_TOOL>();
+        if( !selTool )
+            return;
+
+        const SELECTION& sel = selTool->GetSelection();
+        if( sel.Empty() )
+            return;
+
+        SCH_PIN* pin = dynamic_cast<SCH_PIN*>( sel.Front() );
+        SCH_EDIT_FRAME* frame = static_cast<SCH_EDIT_FRAME*>( toolMgr->GetToolHolder() );
 
         if( !pin || !frame || !pin->Connection() )
             return;
@@ -234,6 +245,7 @@ public:
         SetTitle( _( "Signals..." ) );
         m_replaceMenu = new REPLACE_TERMINAL_PIN_MENU();
     Add( SCH_ACTIONS::highlightSignal );
+    Add( SCH_ACTIONS::removeFromSignal );
     Add( m_replaceMenu );
         Add( SCH_ACTIONS::nameSignal );
     }
@@ -402,6 +414,28 @@ bool SCH_SELECTION_TOOL::Init()
         return aSel.GetSize() == 1 && aSel.OnlyContains( { SCH_PIN_T } );
     };
 
+    // Also expose Signals menu when right-clicking a single wire or bus that belongs to a signal
+    SELECTION_CONDITION wireOrBusInSignal = []( const SELECTION& aSel )
+    {
+        if( aSel.GetSize() != 1 )
+            return false;
+
+        EDA_ITEM* item = aSel.Front();
+
+        if( !item )
+            return false;
+
+        if( item->Type() != SCH_ITEM_LOCATE_WIRE_T && item->Type() != SCH_ITEM_LOCATE_BUS_T )
+            return false;
+
+        SCH_ITEM* schItem = static_cast<SCH_ITEM*>( item );
+
+        if( !schItem->Connection() )
+            return false;
+
+        return true; // Allow menu; handlers will rebuild/validate as needed
+    };
+
     std::shared_ptr<SIGNALS_MENU> signalsMenu = std::make_shared<SIGNALS_MENU>();
     m_menu->RegisterSubMenu( signalsMenu );
 
@@ -445,7 +479,7 @@ bool SCH_SELECTION_TOOL::Init()
     menu.AddSeparator( 400 );
     menu.AddItem( SCH_ACTIONS::symbolProperties,      haveSymbol && SCH_CONDITIONS::Empty, 400 );
     menu.AddItem( SCH_ACTIONS::pinTable,              haveSymbol && SCH_CONDITIONS::Empty, 400 );
-    menu.AddMenu( signalsMenu.get(),                 pinSelection && SCH_CONDITIONS::Idle, 400 );
+    menu.AddMenu( signalsMenu.get(),                 ( pinSelection || wireOrBusInSignal ) && SCH_CONDITIONS::Idle, 400 );
 
     menu.AddSeparator( 1000 );
     m_frame->AddStandardSubMenus( *m_menu.get() );

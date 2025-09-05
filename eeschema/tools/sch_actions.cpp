@@ -990,6 +990,12 @@ TOOL_ACTION SCH_ACTIONS::highlightSignal( TOOL_ACTION_ARGS()
         .Tooltip( _( "Highlight signal under cursor" ) )
         .Icon( BITMAPS::net_highlight_schematic ) );
 
+TOOL_ACTION SCH_ACTIONS::removeFromSignal( TOOL_ACTION_ARGS()
+        .Name( "eeschema.EditorControl.removeFromSignal" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Remove from Signal" ) )
+        .Tooltip( _( "Remove the selected net from its signal by disabling propagation on the bridging component(s)" ) ) );
+
 TOOL_ACTION SCH_ACTIONS::replaceTerminalPin( TOOL_ACTION_ARGS()
         .Name( "eeschema.EditorControl.replaceTerminalPin" )
         .Scope( AS_GLOBAL )

@@ -51,7 +51,20 @@ void LoadSheetSchematicContents( const std::string& fileName, SCH_SHEET* sheet )
     STDISTREAM_LINE_READER reader;
     reader.SetStream( fileStream );
     SCH_IO_KICAD_SEXPR_PARSER parser( &reader, nullptr, 0, sheet );
-    parser.ParseSchematic( sheet );
+    try
+    {
+        parser.ParseSchematic( sheet );
+    }
+    catch( const std::exception& e )
+    {
+        // Re-throw; Boost will report std::exception types normally.
+        throw;
+    }
+    catch( ... )
+    {
+        // Wrap unknown exception types so the test harness reports a useful message.
+        throw std::runtime_error( "LoadSheetSchematicContents: non-std exception during ParseSchematic" );
+    }
 }
 
 void LoadHierarchy( SCHEMATIC* schematic, SCH_SHEET* sheet, const std::string& sheetFilename,

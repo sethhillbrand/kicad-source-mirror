@@ -93,6 +93,7 @@ public:
 
     ///< Highlight signal under the cursor.
     int HighlightSignal( const TOOL_EVENT& aEvent );
+    int RemoveFromSignal( const TOOL_EVENT& aEvent );
 
     ///< Remove any net highlighting
     int ClearHighlight( const TOOL_EVENT& aEvent );

@@ -296,6 +296,7 @@ public:
     static TOOL_ACTION updateNetHighlighting;
     static TOOL_ACTION highlightNetTool;
     static TOOL_ACTION highlightSignal;
+    static TOOL_ACTION removeFromSignal;
     static TOOL_ACTION replaceTerminalPin;
     static TOOL_ACTION nameSignal;
     static TOOL_ACTION showNetNavigator;

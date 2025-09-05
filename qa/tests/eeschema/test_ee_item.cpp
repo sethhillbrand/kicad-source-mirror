@@ -37,6 +37,7 @@
 #include <sch_shape.h>
 #include <sch_bitmap.h>
 #include <sch_text.h>
+#include <sch_label.h>
 #include <sch_textbox.h>
 #include <sch_table.h>
 #include <sch_tablecell.h>
@@ -124,6 +125,7 @@ public:
             return table;
         }
         case SCH_LABEL_T:           return new SCH_LABEL( VECTOR2I( 0, 0 ), "test label" );
+        case SCH_SIGNAL_LABEL_T:    return new SCH_SIGNAL_LABEL( VECTOR2I( 0, 0 ), "sig" );
         case SCH_DIRECTIVE_LABEL_T: return new SCH_DIRECTIVE_LABEL( VECTOR2I( 0, 0 ) );
         case SCH_GLOBAL_LABEL_T:    return new SCH_GLOBALLABEL();
         case SCH_HIER_LABEL_T:      return new SCH_HIERLABEL();

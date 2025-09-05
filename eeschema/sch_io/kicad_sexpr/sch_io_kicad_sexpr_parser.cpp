@@ -3213,9 +3213,28 @@ SCH_SYMBOL* SCH_IO_KICAD_SEXPR_PARSER::parseSchematicSymbol()
             break;
 
         case T_passthrough:
-            symbol->SetPassthrough( parseBool() );
+        {
+            // (passthrough default|block|force)
+            T t = NextTok();
+
+            // Expect a string-like token
+            if( !IsSymbol( t ) )
+                Expecting( "default, block or force" );
+
+            wxString mode = FromUTF8();
+
+            if( mode.IsSameAs( wxT("default"), false ) )
+                symbol->SetPassthroughMode( SCH_SYMBOL::PASSTHROUGH_MODE::DEFAULT );
+            else if( mode.IsSameAs( wxT("block"), false ) )
+                symbol->SetPassthroughMode( SCH_SYMBOL::PASSTHROUGH_MODE::BLOCK );
+            else if( mode.IsSameAs( wxT("force"), false ) )
+                symbol->SetPassthroughMode( SCH_SYMBOL::PASSTHROUGH_MODE::FORCE );
+            else
+                Expecting( "default, block or force" );
+
             NeedRIGHT();
             break;
+        }
 
         case T_fields_autoplaced:
             if( parseMaybeAbsentBool( true ) )
@@ -4097,7 +4116,7 @@ SCH_SHAPE* SCH_IO_KICAD_SEXPR_PARSER::parseSchArc()
 
         case T_uuid:
             NeedSYMBOL();
-            const_cast<KIID&>( arc->m_Uuid ) = KIID( FromUTF8() );
+            const_cast<KIID&>( arc->m_Uuid ) = parseKIID();
             NeedRIGHT();
             break;
 
@@ -4157,7 +4176,7 @@ SCH_SHAPE* SCH_IO_KICAD_SEXPR_PARSER::parseSchCircle()
 
         case T_uuid:
             NeedSYMBOL();
-            const_cast<KIID&>( circle->m_Uuid ) = KIID( FromUTF8() );
+            const_cast<KIID&>( circle->m_Uuid ) = parseKIID();
             NeedRIGHT();
             break;
 
@@ -4221,7 +4240,7 @@ SCH_SHAPE* SCH_IO_KICAD_SEXPR_PARSER::parseSchRectangle()
 
         case T_uuid:
             NeedSYMBOL();
-            const_cast<KIID&>( rectangle->m_Uuid ) = KIID( FromUTF8() );
+            const_cast<KIID&>( rectangle->m_Uuid ) = parseKIID();
             NeedRIGHT();
             break;
 
@@ -4362,7 +4381,7 @@ SCH_SHAPE* SCH_IO_KICAD_SEXPR_PARSER::parseSchBezier()
 
         case T_uuid:
             NeedSYMBOL();
-            const_cast<KIID&>( bezier->m_Uuid ) = KIID( FromUTF8() );
+            const_cast<KIID&>( bezier->m_Uuid ) = parseKIID();
             NeedRIGHT();
             break;
 
@@ -4669,7 +4688,7 @@ void SCH_IO_KICAD_SEXPR_PARSER::parseSchTextBoxContent( SCH_TEXTBOX* aTextBox )
 
         case T_uuid:
             NeedSYMBOL();
-            const_cast<KIID&>( aTextBox->m_Uuid ) = KIID( FromUTF8() );
+            const_cast<KIID&>( aTextBox->m_Uuid ) = parseKIID();
             NeedRIGHT();
             break;
 
@@ -4894,10 +4913,26 @@ void SCH_IO_KICAD_SEXPR_PARSER::parseBusAlias( SCH_SCREEN* aScreen )
 
 void SCH_IO_KICAD_SEXPR_PARSER::parseSchSignal()
 {
+    // (signal "name" (uuid "...") (uuid "..."))
     NeedSYMBOL();
     wxString name = FromUTF8();
-    KIID     a = parseKIID();
-    KIID     b = parseKIID();
+
+    // First terminal
+    NeedLEFT();
+    if( NextTok() != T_uuid )
+        Expecting( "uuid" );
+    NeedSYMBOL();
+    KIID a = parseKIID();
+    NeedRIGHT();
+
+    // Second terminal
+    NeedLEFT();
+    if( NextTok() != T_uuid )
+        Expecting( "uuid" );
+    NeedSYMBOL();
+    KIID b = parseKIID();
+    NeedRIGHT();
+
     NeedRIGHT();
 
     m_signalTerminals[name] = std::make_pair( a, b );

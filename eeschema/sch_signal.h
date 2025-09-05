@@ -39,6 +39,14 @@ public:
 
     void AddNet( const wxString& aNet ) { m_nets.insert( aNet ); }
 
+    // Track a symbol that participates in this signal (2-pin passthrough component).
+    void AddSymbol( class SCH_SYMBOL* aSymbol ) { m_symbols.insert( aSymbol ); }
+    const std::set<class SCH_SYMBOL*>& GetSymbols() const { return m_symbols; }
+    void AbsorbSymbolsFrom( const SCH_SIGNAL& aOther )
+    {
+        m_symbols.insert( aOther.m_symbols.begin(), aOther.m_symbols.end() );
+    }
+
     const std::set<wxString>& GetNets() const { return m_nets; }
 
     void SetTerminalPins( const KIID& aPinA, const KIID& aPinB )
@@ -59,9 +67,10 @@ public:
     }
 
 private:
-    wxString              m_name;
-    std::set<wxString>    m_nets;
-    KIID                  m_terminalPins[2];
+    wxString                       m_name;
+    std::set<wxString>             m_nets;
+    std::set<class SCH_SYMBOL*>    m_symbols; // owning symbol pointers (non-owning, symbols live elsewhere)
+    KIID                           m_terminalPins[2];
 };
 
 #endif

@@ -739,9 +739,22 @@ public:
      */
     bool IsInNetlist() const;
 
-    bool GetPassthrough() const { return m_passthrough; }
+    enum class PASSTHROUGH_MODE
+    {
+        DEFAULT,
+        BLOCK,
+        FORCE
+    };
 
-    void SetPassthrough( bool aEnable ) { m_passthrough = aEnable; }
+    PASSTHROUGH_MODE GetPassthroughMode() const { return m_passthroughMode; }
+    void SetPassthroughMode( PASSTHROUGH_MODE aMode ) { m_passthroughMode = aMode; }
+
+    // Back-compat helpers used by existing code and old file formats
+    bool GetPassthrough() const { return m_passthroughMode != PASSTHROUGH_MODE::BLOCK; }
+    void SetPassthrough( bool aEnable )
+    {
+        m_passthroughMode = aEnable ? PASSTHROUGH_MODE::FORCE : PASSTHROUGH_MODE::BLOCK;
+    }
 
     const wxString& GetSignalName() const { return m_signalName; }
     void SetSignalName( const wxString& aName ) { m_signalName = aName; }
@@ -877,7 +890,7 @@ private:
                                                  ///< #PROJECT object's libraries.
     bool                        m_isInNetlist;   ///< True if the symbol should appear in netlist
 
-    bool                        m_passthrough;
+    PASSTHROUGH_MODE            m_passthroughMode;
 
     wxString                    m_signalName;
 

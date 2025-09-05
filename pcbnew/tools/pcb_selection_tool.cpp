@@ -125,9 +125,20 @@ protected:
     {
         Clear();
 
-        PCB_SELECTION_TOOL* selTool = getToolManager()->GetTool<PCB_SELECTION_TOOL>();
-        PAD* pad = dynamic_cast<PAD*>( selTool->GetSelection().Front() );
-        PCB_EDIT_FRAME* frame = static_cast<PCB_EDIT_FRAME*>( getToolManager()->GetToolHolder() );
+        TOOL_MANAGER* toolMgr = getToolManager();
+        if( !toolMgr )
+            return;
+
+        PCB_SELECTION_TOOL* selTool = toolMgr->GetTool<PCB_SELECTION_TOOL>();
+        if( !selTool )
+            return;
+
+        const SELECTION& sel = selTool->GetSelection();
+        if( sel.Empty() )
+            return;
+
+        PAD* pad = dynamic_cast<PAD*>( sel.Front() );
+        PCB_EDIT_FRAME* frame = static_cast<PCB_EDIT_FRAME*>( toolMgr->GetToolHolder() );
 
         if( !pad || !frame )
             return;
