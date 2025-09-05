@@ -38,6 +38,8 @@
 #include <sch_marker.h>
 #include <sch_pin.h>
 #include <sch_rule_area.h>
+#include <sch_signal.h>
+#include <sch_label.h>
 #include <sch_sheet.h>
 #include <sch_sheet_path.h>
 #include <sch_sheet_pin.h>
@@ -67,6 +69,14 @@ static const wxChar DanglingProfileMask[] = wxT( "CONN_PROFILE" );
  * @ingroup trace_env_vars
  */
 static const wxChar ConnTrace[] = wxT( "CONN" );
+
+
+CONNECTION_GRAPH::~CONNECTION_GRAPH()
+{
+    // Ensure destruction happens in a translation unit that includes full SCH_SIGNAL
+    // definition to avoid incomplete type issues with std::unique_ptr<SCH_SIGNAL>.
+    Reset();
+}
 
 
 void CONNECTION_SUBGRAPH::RemoveItem( SCH_ITEM* aItem )
@@ -2608,6 +2618,263 @@ void CONNECTION_GRAPH::buildConnectionGraph( std::function<void( SCH_ITEM* )>* a
             netSettings->SetNetclassLabelAssignment( netname, netclasses );
         }
     }
+
+    RebuildSignals();
+}
+
+void CONNECTION_GRAPH::RebuildSignals()
+{
+    m_signals.clear();
+
+    if( !m_schematic )
+        return;
+    std::map<wxString, SCH_SIGNAL*> netToSignal;
+    std::map<SCH_SYMBOL*, SCH_SIGNAL*> symbolToSignal;
+
+    for( SCH_ITEM* item : m_items )
+    {
+        if( item->Type() == SCH_SYMBOL_T )
+            static_cast<SCH_SYMBOL*>( item )->SetSignalName( wxEmptyString );
+    }
+
+    SCH_SCREEN* screen = m_schematic->CurrentSheet().LastScreen();
+
+    auto findWire = [&]( SCH_PIN* aPin, SCH_LINE*& aWire )
+    {
+        for( SCH_ITEM* candidate : screen->Items().Overlapping( SCH_LINE_T, aPin->GetPosition() ) )
+        {
+            if( candidate->Type() == SCH_LINE_T && candidate->GetLayer() == LAYER_WIRE
+                    && candidate->HitTest( aPin->GetPosition(), -1 ) )
+            {
+                aWire = static_cast<SCH_LINE*>( candidate );
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    for( SCH_ITEM* item : m_items )
+    {
+        if( item->Type() != SCH_SYMBOL_T )
+            continue;
+
+        SCH_SYMBOL* symbol = static_cast<SCH_SYMBOL*>( item );
+        std::vector<SCH_PIN*> pins = symbol->GetPins( &m_schematic->CurrentSheet() );
+
+        if( pins.size() != 2 )
+            continue;
+
+        SCH_LINE* wireA = nullptr;
+        SCH_LINE* wireB = nullptr;
+
+        if( !findWire( pins[0], wireA ) || !findWire( pins[1], wireB ) )
+            continue;
+
+        bool parallel = false;
+
+        if( symbol->GetPassthrough() )
+            parallel = true;
+        else
+        {
+            if( pins[0]->IsPower() || pins[1]->IsPower() )
+                continue;
+
+            VECTOR2I aStart = wireA->GetStartPoint();
+            VECTOR2I aEnd   = wireA->GetEndPoint();
+            VECTOR2I bStart = wireB->GetStartPoint();
+            VECTOR2I bEnd   = wireB->GetEndPoint();
+
+            if( aStart.x == aEnd.x && bStart.x == bEnd.x && aStart.x == bStart.x )
+                parallel = true;
+            else if( aStart.y == aEnd.y && bStart.y == bEnd.y && aStart.y == bStart.y )
+                parallel = true;
+        }
+
+        if( !parallel )
+            continue;
+
+        wxString netA;
+        wxString netB;
+
+        if( CONNECTION_SUBGRAPH* sgA = GetSubgraphForItem( pins[0] ) )
+            netA = sgA->GetNetName();
+
+        if( CONNECTION_SUBGRAPH* sgB = GetSubgraphForItem( pins[1] ) )
+            netB = sgB->GetNetName();
+
+        if( netA.IsEmpty() || netB.IsEmpty() )
+            continue;
+
+        SCH_SIGNAL* sigA = netToSignal.count( netA ) ? netToSignal[netA] : nullptr;
+        SCH_SIGNAL* sigB = netToSignal.count( netB ) ? netToSignal[netB] : nullptr;
+
+        if( sigA && sigB && sigA != sigB )
+        {
+            for( const wxString& n : sigB->GetNets() )
+            {
+                sigA->AddNet( n );
+                netToSignal[n] = sigA;
+            }
+
+            auto it = std::find_if( m_signals.begin(), m_signals.end(),
+                    [&]( const std::unique_ptr<SCH_SIGNAL>& p ){ return p.get() == sigB; } );
+
+            if( it != m_signals.end() )
+                m_signals.erase( it );
+
+            symbolToSignal[symbol] = sigA;
+        }
+        else if( sigA )
+        {
+            sigA->AddNet( netB );
+            netToSignal[netB] = sigA;
+            symbolToSignal[symbol] = sigA;
+        }
+        else if( sigB )
+        {
+            sigB->AddNet( netA );
+            netToSignal[netA] = sigB;
+            symbolToSignal[symbol] = sigB;
+        }
+        else
+        {
+            std::unique_ptr<SCH_SIGNAL> sig( new SCH_SIGNAL );
+            sig->AddNet( netA );
+            sig->AddNet( netB );
+            netToSignal[netA] = sig.get();
+            netToSignal[netB] = sig.get();
+            symbolToSignal[symbol] = sig.get();
+            m_signals.push_back( std::move( sig ) );
+        }
+    }
+
+    for( SCH_ITEM* item : m_items )
+    {
+        if( item->Type() != SCH_SIGNAL_LABEL_T )
+            continue;
+
+        SCH_SIGNAL_LABEL* label = static_cast<SCH_SIGNAL_LABEL*>( item );
+        wxString net;
+
+        if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( label ) )
+            net = sg->GetNetName();
+
+        if( netToSignal.count( net ) )
+            netToSignal[net]->SetName( label->GetText() );
+    }
+
+    int idx = 1;
+
+    for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
+    {
+        if( sig->GetName().IsEmpty() )
+        {
+            sig->SetName( wxString::Format( wxT( "Signal%d" ), idx ) );
+            idx++;
+        }
+    }
+
+    for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
+    {
+        std::vector<SCH_PIN*> pins;
+
+        for( SCH_ITEM* item : m_items )
+        {
+            if( item->Type() != SCH_SYMBOL_T )
+                continue;
+
+            SCH_SYMBOL* sym = static_cast<SCH_SYMBOL*>( item );
+            std::vector<SCH_PIN*> sp = sym->GetPins( &m_schematic->CurrentSheet() );
+
+            for( SCH_PIN* p : sp )
+            {
+                wxString net;
+
+                if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( p ) )
+                    net = sg->GetNetName();
+
+                if( sig->GetNets().count( net ) )
+                    pins.push_back( p );
+            }
+        }
+
+        long best = -1;
+        KIID a;
+        KIID b;
+
+        for( size_t i = 0; i < pins.size(); ++i )
+        {
+            for( size_t j = i + 1; j < pins.size(); ++j )
+            {
+                VECTOR2I pa = pins[i]->GetPosition();
+                VECTOR2I pb = pins[j]->GetPosition();
+                long d = (long) ( pa.x - pb.x ) * ( pa.x - pb.x )
+                       + (long) ( pa.y - pb.y ) * ( pa.y - pb.y );
+
+                if( d > best )
+                {
+                    best = d;
+                    a = pins[i]->m_Uuid;
+                    b = pins[j]->m_Uuid;
+                }
+            }
+        }
+
+        sig->SetTerminalPins( a, b );
+
+        if( m_signalTerminalOverrides.count( sig->GetName() ) )
+        {
+            auto ov = m_signalTerminalOverrides[sig->GetName()];
+            sig->SetTerminalPins( ov.first, ov.second );
+        }
+    }
+
+    for( auto& it : symbolToSignal )
+        it.first->SetSignalName( it.second->GetName() );
+}
+
+
+SCH_SIGNAL* CONNECTION_GRAPH::GetSignalForNet( const wxString& aNet )
+{
+    for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
+    {
+        if( sig->GetNets().count( aNet ) )
+            return sig.get();
+    }
+
+    return nullptr;
+}
+
+
+SCH_SIGNAL* CONNECTION_GRAPH::GetSignalByName( const wxString& aName )
+{
+    for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
+    {
+        if( sig->GetName() == aName )
+            return sig.get();
+    }
+
+    return nullptr;
+}
+
+
+void CONNECTION_GRAPH::ReplaceSignalTerminalPin( const wxString& aSignal, const KIID& aPrev,
+                                                const KIID& aNew )
+{
+    if( SCH_SIGNAL* sig = GetSignalByName( aSignal ) )
+    {
+        sig->ReplaceTerminalPin( aPrev, aNew );
+        m_signalTerminalOverrides[aSignal] = std::make_pair( sig->GetTerminalPinA(),
+                                                             sig->GetTerminalPinB() );
+    }
+}
+
+
+void CONNECTION_GRAPH::SetSignalTerminalOverrides( const std::map<wxString,
+                                                std::pair<KIID, KIID>>& aOverrides )
+{
+    m_signalTerminalOverrides = aOverrides;
 }
 
 

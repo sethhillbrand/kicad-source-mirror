@@ -51,6 +51,7 @@
 #include <sch_rule_area.h>
 #include <sch_screen.h>
 #include <sch_shape.h>
+#include <sch_signal.h>
 #include <sch_sheet.h>
 #include <sch_sheet_pin.h>
 #include <sch_symbol.h>
@@ -315,6 +316,9 @@ void SCH_IO_KICAD_SEXPR::loadFile( const wxString& aFileName, SCH_SHEET* aSheet 
                                       m_appending );
 
     parser.ParseSchematic( aSheet );
+
+    if( m_schematic && m_schematic->ConnectionGraph() )
+        m_schematic->ConnectionGraph()->SetSignalTerminalOverrides( parser.GetSignalTerminals() );
 }
 
 
@@ -325,6 +329,9 @@ void SCH_IO_KICAD_SEXPR::LoadContent( LINE_READER& aReader, SCH_SHEET* aSheet, i
     SCH_IO_KICAD_SEXPR_PARSER parser( &aReader );
 
     parser.ParseSchematic( aSheet, true, aFileVersion );
+
+    if( m_schematic && m_schematic->ConnectionGraph() )
+        m_schematic->ConnectionGraph()->SetSignalTerminalOverrides( parser.GetSignalTerminals() );
 }
 
 
@@ -471,6 +478,7 @@ void SCH_IO_KICAD_SEXPR::Format( SCH_SHEET* aSheet )
         case SCH_GLOBAL_LABEL_T:
         case SCH_HIER_LABEL_T:
         case SCH_DIRECTIVE_LABEL_T:
+        case SCH_SIGNAL_LABEL_T:
             saveText( static_cast<SCH_TEXT*>( item ) );
             break;
 
@@ -489,6 +497,15 @@ void SCH_IO_KICAD_SEXPR::Format( SCH_SHEET* aSheet )
         default:
             wxASSERT( "Unexpected schematic object type in SCH_IO_KICAD_SEXPR::Format()" );
         }
+    }
+
+    for( const auto& sigPtr : m_schematic->ConnectionGraph()->GetSignals() )
+    {
+        const SCH_SIGNAL& sig = *sigPtr;
+        m_out->Print( "(signal %s ", m_out->Quotew( sig.GetName() ).c_str() );
+        KICAD_FORMAT::FormatUuid( m_out, sig.GetTerminalPinA() );
+        KICAD_FORMAT::FormatUuid( m_out, sig.GetTerminalPinB() );
+        m_out->Print( ")" );
     }
 
     if( aSheet->HasRootInstance() )
@@ -603,6 +620,7 @@ void SCH_IO_KICAD_SEXPR::Format( SCH_SELECTION* aSelection, SCH_SHEET_PATH* aSel
         case SCH_GLOBAL_LABEL_T:
         case SCH_HIER_LABEL_T:
         case SCH_DIRECTIVE_LABEL_T:
+        case SCH_SIGNAL_LABEL_T:
             saveText( static_cast<SCH_TEXT*>( item ) );
             break;
 
@@ -739,6 +757,7 @@ void SCH_IO_KICAD_SEXPR::saveSymbol( SCH_SYMBOL* aSymbol, const SCHEMATIC& aSche
     KICAD_FORMAT::FormatBool( m_out, "in_bom", !aSymbol->GetExcludedFromBOM() );
     KICAD_FORMAT::FormatBool( m_out, "on_board", !aSymbol->GetExcludedFromBoard() );
     KICAD_FORMAT::FormatBool( m_out, "dnp", aSymbol->GetDNP() );
+    KICAD_FORMAT::FormatBool( m_out, "passthrough", aSymbol->GetPassthrough() );
 
     AUTOPLACE_ALGO fieldsAutoplaced = aSymbol->GetFieldsAutoplaced();
 

@@ -116,6 +116,7 @@ output
 page
 paper
 passive
+passthrough
 path
 pin
 pin_del
@@ -151,6 +152,8 @@ sheet
 sheet_instances
 show_name
 size
+signal
+signal_label
 span
 start
 stroke

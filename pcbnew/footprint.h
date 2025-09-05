@@ -800,6 +800,8 @@ public:
      */
     PAD* FindPadByNumber( const wxString& aPadNumber, PAD* aSearchAfterMe = nullptr ) const;
 
+    PAD* FindPadByUuid( const KIID& aUuid ) const;
+
     /**
      * Get a pad at \a aPosition on \a aLayerMask in the footprint.
      *

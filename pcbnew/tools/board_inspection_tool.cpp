@@ -1928,6 +1928,60 @@ int BOARD_INSPECTION_TOOL::HighlightNet( const TOOL_EVENT& aEvent )
 }
 
 
+int BOARD_INSPECTION_TOOL::HighlightSignal( const TOOL_EVENT& aEvent )
+{
+    KIGFX::VIEW_CONTROLS* controls = getViewControls();
+    VECTOR2D cursorPos = controls->GetCursorPosition( !aEvent.DisableGridSnapping() );
+    PCB_SELECTION_TOOL* selTool = m_toolMgr->GetTool<PCB_SELECTION_TOOL>();
+    BOARD_ITEM* item = static_cast<BOARD_ITEM*>( selTool->GetNode( cursorPos ) );
+    wxString sig;
+
+    if( item )
+    {
+        NETINFO_ITEM* net = nullptr;
+
+        if( auto pad = dynamic_cast<PAD*>( item ) )
+            net = pad->GetNet();
+        else if( auto ci = dynamic_cast<BOARD_CONNECTED_ITEM*>( item ) )
+            net = ci->GetNet();
+
+        if( net )
+            sig = net->GetSignal();
+    }
+
+    m_highlightedSignal = sig;
+
+    std::set<int> codes;
+    if( !sig.IsEmpty() )
+    {
+        for( NETINFO_ITEM* net : m_frame->GetBoard()->GetNetInfo() )
+        {
+            if( net->GetSignal() == sig )
+                codes.insert( net->GetNetCode() );
+        }
+    }
+
+    KIGFX::RENDER_SETTINGS* settings = m_toolMgr->GetView()->GetPainter()->GetSettings();
+    settings->SetHighlight( codes, true );
+    m_toolMgr->GetView()->UpdateAllLayersColor();
+    m_currentlyHighlighted = codes;
+
+    return 0;
+}
+
+
+int BOARD_INSPECTION_TOOL::ReplaceTerminalPad( const TOOL_EVENT& aEvent )
+{
+    if( m_highlightedSignal.IsEmpty() )
+        return 0;
+
+    KIID oldId( aEvent.Parameter<wxString>( 0 ) );
+    KIID newId( aEvent.Parameter<wxString>( 1 ) );
+    m_frame->GetBoard()->ReplaceSignalTerminalPad( m_highlightedSignal, oldId, newId );
+    return 0;
+}
+
+
 int BOARD_INSPECTION_TOOL::ClearHighlight( const TOOL_EVENT& aEvent )
 {
     BOARD*                  board = static_cast<BOARD*>( m_toolMgr->GetModel() );
@@ -2203,9 +2257,11 @@ void BOARD_INSPECTION_TOOL::setTransitions()
     Go( &BOARD_INSPECTION_TOOL::HighlightNet,        PCB_ACTIONS::highlightNet.MakeEvent() );
     Go( &BOARD_INSPECTION_TOOL::HighlightNet,        PCB_ACTIONS::highlightNetSelection.MakeEvent() );
     Go( &BOARD_INSPECTION_TOOL::HighlightNet,        PCB_ACTIONS::toggleLastNetHighlight.MakeEvent() );
+    Go( &BOARD_INSPECTION_TOOL::HighlightSignal,     PCB_ACTIONS::highlightSignal.MakeEvent() );
     Go( &BOARD_INSPECTION_TOOL::ClearHighlight,      PCB_ACTIONS::clearHighlight.MakeEvent() );
     Go( &BOARD_INSPECTION_TOOL::HighlightNet,        PCB_ACTIONS::toggleNetHighlight.MakeEvent() );
     Go( &BOARD_INSPECTION_TOOL::HighlightItem,       PCB_ACTIONS::highlightItem.MakeEvent() );
+    Go( &BOARD_INSPECTION_TOOL::ReplaceTerminalPad,  PCB_ACTIONS::setTerminalPad.MakeEvent() );
 
     Go( &BOARD_INSPECTION_TOOL::HideNetInRatsnest,   PCB_ACTIONS::hideNetInRatsnest.MakeEvent() );
     Go( &BOARD_INSPECTION_TOOL::ShowNetInRatsnest,   PCB_ACTIONS::showNetInRatsnest.MakeEvent() );

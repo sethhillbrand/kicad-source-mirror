@@ -59,6 +59,7 @@
 #include <sch_shape.h>
 #include <sch_painter.h>
 #include <sch_sheet_pin.h>
+#include <sch_label.h>
 #include <sch_commit.h>
 #include <sim/simulator_frame.h>
 #include <symbol_lib_table.h>
@@ -80,6 +81,7 @@
 #include <wx/log.h>
 #include <wx/treectrl.h>
 #include <wx/msgdlg.h>
+#include <wx/textdlg.h>
 #include <io/kicad/kicad_io_utils.h>
 #include <printing/dialog_print.h>
 
@@ -863,6 +865,36 @@ int SCH_EDITOR_CONTROL::HighlightNet( const TOOL_EVENT& aEvent )
 }
 
 
+int SCH_EDITOR_CONTROL::HighlightSignal( const TOOL_EVENT& aEvent )
+{
+    KIGFX::VIEW_CONTROLS* controls = getViewControls();
+    VECTOR2D              cursorPos = controls->GetCursorPosition( !aEvent.DisableGridSnapping() );
+    SCH_EDIT_FRAME*       editFrame = static_cast<SCH_EDIT_FRAME*>( m_toolMgr->GetToolHolder() );
+    SCH_SELECTION_TOOL*   selTool   = m_toolMgr->GetTool<SCH_SELECTION_TOOL>();
+    SCH_ITEM*             item      = static_cast<SCH_ITEM*>( selTool->GetNode( cursorPos ) );
+    wxString              signalName;
+
+    if( item )
+    {
+        SCH_CONNECTION* conn = item->Connection();
+
+        if( conn )
+        {
+            if( SCH_SIGNAL* sig = editFrame->Schematic().ConnectionGraph()->GetSignalForNet( conn->Name() ) )
+                signalName = sig->GetName();
+        }
+    }
+
+    editFrame->SetHighlightedConnection( wxEmptyString );
+    editFrame->SetHighlightedSignal( signalName );
+    editFrame->UpdateNetHighlightStatus();
+    TOOL_EVENT dummy;
+    UpdateNetHighlighting( dummy );
+
+    return 0;
+}
+
+
 int SCH_EDITOR_CONTROL::ClearHighlight( const TOOL_EVENT& aEvent )
 {
     highlightNet( m_toolMgr, CLEAR );
@@ -1104,6 +1136,15 @@ int SCH_EDITOR_CONTROL::UpdateNetHighlighting( const TOOL_EVENT& aEvent )
         }
     }
 
+    if( !m_frame->GetHighlightedSignal().IsEmpty() )
+    {
+        if( SCH_SIGNAL* sig = connectionGraph->GetSignalByName( m_frame->GetHighlightedSignal() ) )
+        {
+            for( const wxString& n : sig->GetNets() )
+                connNames.emplace( n );
+        }
+    }
+
     for( SCH_ITEM* item : screen->Items() )
     {
         if( !item || !item->IsConnectable() )
@@ -1234,6 +1275,63 @@ int SCH_EDITOR_CONTROL::HighlightNetCursor( const TOOL_EVENT& aEvent )
         } );
 
     m_toolMgr->RunAction( ACTIONS::pickerTool, &aEvent );
+
+    return 0;
+}
+
+
+int SCH_EDITOR_CONTROL::ReplaceTerminalPin( const TOOL_EVENT& aEvent )
+{
+    SCH_EDIT_FRAME* editFrame = static_cast<SCH_EDIT_FRAME*>( m_toolMgr->GetToolHolder() );
+    wxString oldStr = aEvent.Parameter<wxString>( 0 );
+    wxString newStr = aEvent.Parameter<wxString>( 1 );
+    KIID oldPin( oldStr );
+    KIID newPin( newStr );
+    wxString sig = editFrame->GetHighlightedSignal();
+
+    if( !sig.IsEmpty() )
+        editFrame->Schematic().ConnectionGraph()->ReplaceSignalTerminalPin( sig, oldPin, newPin );
+
+    return 0;
+}
+
+
+int SCH_EDITOR_CONTROL::NameSignal( const TOOL_EVENT& aEvent )
+{
+    SCH_SELECTION_TOOL* selTool = m_toolMgr->GetTool<SCH_SELECTION_TOOL>();
+    SCH_ITEM* item = static_cast<SCH_ITEM*>( selTool->GetSelection().Front() );
+    SCH_PIN* pin = dynamic_cast<SCH_PIN*>( item );
+
+    if( !pin || !pin->Connection() )
+        return 0;
+
+    SCH_EDIT_FRAME* editFrame = static_cast<SCH_EDIT_FRAME*>( m_toolMgr->GetToolHolder() );
+    CONNECTION_GRAPH* graph = editFrame->Schematic().ConnectionGraph();
+
+    if( SCH_SIGNAL* sig = graph->GetSignalForNet( pin->Connection()->Name() ) )
+    {
+        wxString newName = wxGetTextFromUser( _( "Signal name:" ), _( "Name Signal" ), sig->GetName() );
+
+        if( !newName.IsEmpty() && newName != sig->GetName() )
+        {
+            wxString oldName = sig->GetName();
+            sig->SetName( newName );
+
+            SCH_SCREEN* screen = editFrame->GetCurrentSheet().LastScreen();
+
+            for( EDA_ITEM* scrItem : screen->Items() )
+            {
+                SCH_SIGNAL_LABEL* label = dynamic_cast<SCH_SIGNAL_LABEL*>( scrItem );
+                if( label && oldName == label->GetText() )
+                    label->SetText( newName );
+            }
+
+            editFrame->SetHighlightedSignal( newName );
+            TOOL_EVENT dummy;
+            UpdateNetHighlighting( dummy );
+            editFrame->UpdateNetHighlightStatus();
+        }
+    }
 
     return 0;
 }
@@ -3024,6 +3122,9 @@ void SCH_EDITOR_CONTROL::setTransitions()
     Go( &SCH_EDITOR_CONTROL::HighlightNet,            SCH_ACTIONS::highlightNet.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::ClearHighlight,          SCH_ACTIONS::clearHighlight.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::HighlightNetCursor,      SCH_ACTIONS::highlightNetTool.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::HighlightSignal,         SCH_ACTIONS::highlightSignal.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::ReplaceTerminalPin,      SCH_ACTIONS::replaceTerminalPin.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::NameSignal,              SCH_ACTIONS::nameSignal.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::UpdateNetHighlighting,   EVENTS::SelectedItemsModified );
     Go( &SCH_EDITOR_CONTROL::UpdateNetHighlighting,   SCH_ACTIONS::updateNetHighlighting.MakeEvent() );
 

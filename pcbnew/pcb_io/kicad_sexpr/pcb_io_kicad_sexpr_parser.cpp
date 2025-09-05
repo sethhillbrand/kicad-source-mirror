@@ -59,6 +59,7 @@
 #include <font/font.h>
 #include <core/ignore.h>
 #include <netclass.h>
+#include <netinfo.h>
 #include <pcb_io/kicad_sexpr/pcb_io_kicad_sexpr.h>
 #include <pcb_plot_params_parser.h>
 #include <pcb_plot_params.h>
@@ -1250,6 +1251,9 @@ BOARD* PCB_IO_KICAD_SEXPR_PARSER::parseBOARD_unchecked()
 
     // Ensure all footprints have their embedded data from the board
     m_board->FixupEmbeddedData();
+
+    for( NETINFO_ITEM* net : m_board->GetNetInfo() )
+        net->ResolveTerminalPads( m_board );
 
     return m_board;
 }
@@ -2750,22 +2754,44 @@ void PCB_IO_KICAD_SEXPR_PARSER::parseNETINFO_ITEM()
     NeedSYMBOLorNUMBER();
     wxString name = FromUTF8();
 
-    // Convert overbar syntax from `~...~` to `~{...}`.  These were left out of the first merge
-    // so the version is a bit later.
     if( m_requiredVersion < 20210606 )
         name = ConvertToNewOverbarNotation( name );
 
-    NeedRIGHT();
+    wxString signal;
+    std::vector<KIID> terminals;
 
-    // net 0 should be already in list, so store this net
-    // if it is not the net 0, or if the net 0 does not exists.
-    // (TODO: a better test.)
+    for( T t = NextTok(); t != T_RIGHT; t = NextTok() )
+    {
+        if( t == T_LEFT )
+            t = NextTok();
+
+        switch( t )
+        {
+        case T_signal:
+            NeedSYMBOLorNUMBER();
+            signal = FromUTF8();
+            NeedRIGHT();
+            break;
+
+        case T_terminal_pad:
+            NeedSYMBOLorNUMBER();
+            terminals.emplace_back( FromUTF8() );
+            NeedRIGHT();
+            break;
+
+        default:
+            skipCurrent();
+            break;
+        }
+    }
+
     if( netCode > NETINFO_LIST::UNCONNECTED || !m_board->FindNet( NETINFO_LIST::UNCONNECTED ) )
     {
         NETINFO_ITEM* net = new NETINFO_ITEM( m_board, name, netCode );
+        net->SetSignal( signal );
+        for( size_t i = 0; i < terminals.size() && i < 2; ++i )
+            net->SetTerminalPadUuid( i, terminals[i] );
         m_board->Add( net, ADD_MODE::INSERT, true );
-
-        // Store the new code mapping
         pushValueIntoMap( netCode, net->GetNetCode() );
     }
 }

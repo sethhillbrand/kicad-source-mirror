@@ -408,3 +408,5 @@ zone_layer_connections
 zone_type
 zone_defaults
 zones
+signal
+terminal_pad

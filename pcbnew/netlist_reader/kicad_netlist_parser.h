@@ -82,6 +82,8 @@ private:
      */
     void parseGroup();
 
+    void parseSignal();
+
     /**
      * Read the section "libparts" in the netlist:
      * (libparts

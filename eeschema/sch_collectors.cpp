@@ -41,6 +41,7 @@ const std::vector<KICAD_T> SCH_COLLECTOR::EditableItems = {
     SCH_TEXTBOX_T,
     SCH_TABLECELL_T,
     SCH_LABEL_T,
+    SCH_SIGNAL_LABEL_T,
     SCH_GLOBAL_LABEL_T,
     SCH_HIER_LABEL_T,
     SCH_DIRECTIVE_LABEL_T,
@@ -72,6 +73,7 @@ const std::vector<KICAD_T> SCH_COLLECTOR::MovableItems =
     SCH_TABLE_T,
     SCH_TABLECELL_T,    // will be promoted to parent table(s)
     SCH_LABEL_T,
+    SCH_SIGNAL_LABEL_T,
     SCH_GLOBAL_LABEL_T,
     SCH_HIER_LABEL_T,
     SCH_DIRECTIVE_LABEL_T,
@@ -107,6 +109,7 @@ const std::vector<KICAD_T> SCH_COLLECTOR::DeletableItems =
     SCH_TABLECELL_T,    // Clear contents
     SCH_TABLE_T,
     SCH_LABEL_T,
+    SCH_SIGNAL_LABEL_T,
     SCH_GLOBAL_LABEL_T,
     SCH_HIER_LABEL_T,
     SCH_DIRECTIVE_LABEL_T,

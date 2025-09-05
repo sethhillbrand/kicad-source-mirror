@@ -366,6 +366,7 @@ struct KICOMMON_API PANEL_NET_INSPECTOR_SETTINGS
     bool                  filter_by_net_name;
     bool                  filter_by_netclass;
     bool                  group_by_netclass;
+    bool                  group_by_signal;
     bool                  group_by_constraint;
     std::vector<wxString> custom_group_rules;
     bool                  show_zero_pad_nets;
@@ -385,6 +386,7 @@ struct KICOMMON_API PANEL_NET_INSPECTOR_SETTINGS
         filter_by_net_name = true;
         filter_by_netclass = true;
         group_by_netclass = false;
+        group_by_signal = false;
         group_by_constraint = false;
         show_zero_pad_nets = false;
         show_unconnected_nets = false;

@@ -31,6 +31,8 @@
 #include <sch_collectors.h>
 #include <sch_selection_tool.h>
 #include <sch_base_frame.h>
+#include <connection_graph.h>
+#include <sch_signal.h>
 #include <eeschema_id.h>
 #include <symbol_edit_frame.h>
 #include <symbol_viewer_frame.h>
@@ -149,6 +151,100 @@ SELECTION_CONDITION SCH_CONDITIONS::AllPins = []( const SELECTION& aSel )
 SELECTION_CONDITION SCH_CONDITIONS::AllPinsOrSheetPins = []( const SELECTION& aSel )
 {
     return aSel.GetSize() >= 1 && aSel.OnlyContains( { SCH_PIN_T, SCH_SHEET_PIN_T } );
+};
+
+enum
+{
+    ID_REPLACE_TERMINAL_PIN_A = wxID_HIGHEST + 2000,
+    ID_REPLACE_TERMINAL_PIN_B
+};
+
+class REPLACE_TERMINAL_PIN_MENU : public ACTION_MENU
+{
+public:
+    REPLACE_TERMINAL_PIN_MENU() : ACTION_MENU( true )
+    {
+        SetTitle( _( "Replace terminal pin" ) );
+    }
+
+protected:
+    ACTION_MENU* create() const override { return new REPLACE_TERMINAL_PIN_MENU(); }
+
+    void update() override
+    {
+        Clear();
+
+        SCH_SELECTION_TOOL* selTool = getToolManager()->GetTool<SCH_SELECTION_TOOL>();
+        SCH_PIN* pin = dynamic_cast<SCH_PIN*>( selTool->GetSelection().Front() );
+        SCH_EDIT_FRAME* frame = static_cast<SCH_EDIT_FRAME*>( getToolManager()->GetToolHolder() );
+
+        if( !pin || !frame || !pin->Connection() )
+            return;
+
+        CONNECTION_GRAPH* graph = frame->Schematic().ConnectionGraph();
+        if( !graph )
+            return;
+
+        if( SCH_SIGNAL* sig = graph->GetSignalForNet( pin->Connection()->Name() ) )
+        {
+            m_oldA = sig->GetTerminalPinA();
+            m_oldB = sig->GetTerminalPinB();
+            m_new = pin->m_Uuid;
+
+            wxMenuItem* itemA = Append( ID_REPLACE_TERMINAL_PIN_A, _( "Terminal A" ) );
+            wxMenuItem* itemB = Append( ID_REPLACE_TERMINAL_PIN_B, _( "Terminal B" ) );
+
+            if( m_oldA == m_new )
+                itemA->Enable( false );
+
+            if( m_oldB == m_new )
+                itemB->Enable( false );
+        }
+    }
+
+    OPT_TOOL_EVENT eventHandler( const wxMenuEvent& aEvent ) override
+    {
+        if( aEvent.GetId() == ID_REPLACE_TERMINAL_PIN_A )
+        {
+            TOOL_EVENT te( SCH_ACTIONS::replaceTerminalPin );
+            te.SetParameter( m_oldA.AsString() );
+            te.SetParameter( m_new.AsString() );
+            return te;
+        }
+        else if( aEvent.GetId() == ID_REPLACE_TERMINAL_PIN_B )
+        {
+            TOOL_EVENT te( SCH_ACTIONS::replaceTerminalPin );
+            te.SetParameter( m_oldB.AsString() );
+            te.SetParameter( m_new.AsString() );
+            return te;
+        }
+
+        return OPT_TOOL_EVENT();
+    }
+
+private:
+    KIID m_oldA;
+    KIID m_oldB;
+    KIID m_new;
+};
+
+class SIGNALS_MENU : public ACTION_MENU
+{
+public:
+    SIGNALS_MENU() : ACTION_MENU( true )
+    {
+        SetTitle( _( "Signals..." ) );
+        m_replaceMenu = new REPLACE_TERMINAL_PIN_MENU();
+        Add( SCH_ACTIONS::highlightSignal );
+        AddMenu( m_replaceMenu );
+        Add( SCH_ACTIONS::nameSignal );
+    }
+
+protected:
+    ACTION_MENU* create() const override { return new SIGNALS_MENU(); }
+
+private:
+    REPLACE_TERMINAL_PIN_MENU* m_replaceMenu;
 };
 
 
@@ -303,6 +399,14 @@ bool SCH_SELECTION_TOOL::Init()
 
     auto& menu = m_menu->GetMenu();
 
+    SELECTION_CONDITION pinSelection = []( const SELECTION& aSel )
+    {
+        return aSel.GetSize() == 1 && aSel.OnlyContains( { SCH_PIN_T } );
+    };
+
+    std::shared_ptr<SIGNALS_MENU> signalsMenu = std::make_shared<SIGNALS_MENU>();
+    m_menu->RegisterSubMenu( signalsMenu );
+
     // clang-format off
     menu.AddItem( ACTIONS::groupEnter,                groupEnterCondition, 1 );
     menu.AddItem( ACTIONS::groupLeave,                inGroupCondition,    1 );
@@ -343,6 +447,7 @@ bool SCH_SELECTION_TOOL::Init()
     menu.AddSeparator( 400 );
     menu.AddItem( SCH_ACTIONS::symbolProperties,      haveSymbol && SCH_CONDITIONS::Empty, 400 );
     menu.AddItem( SCH_ACTIONS::pinTable,              haveSymbol && SCH_CONDITIONS::Empty, 400 );
+    menu.AddMenu( signalsMenu.get(),                 pinSelection && SCH_CONDITIONS::Idle, 400 );
 
     menu.AddSeparator( 1000 );
     m_frame->AddStandardSubMenus( *m_menu.get() );

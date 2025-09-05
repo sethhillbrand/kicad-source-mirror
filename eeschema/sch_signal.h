@@ -1,0 +1,67 @@
+/*
+ * This program source code file is part of KiCad, a free EDA CAD application.
+ *
+ * Copyright (C) 2023 KiCad Developers
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef SCH_SIGNAL_H
+#define SCH_SIGNAL_H
+
+#include <set>
+#include <utility>
+#include <wx/string.h>
+#include <kiid.h>
+
+/**
+ * A signal is a collection of nets that are connected together through
+ * passive components.
+ */
+class SCH_SIGNAL
+{
+public:
+    SCH_SIGNAL() {}
+
+    void SetName( const wxString& aName ) { m_name = aName; }
+    const wxString& GetName() const { return m_name; }
+
+    void AddNet( const wxString& aNet ) { m_nets.insert( aNet ); }
+
+    const std::set<wxString>& GetNets() const { return m_nets; }
+
+    void SetTerminalPins( const KIID& aPinA, const KIID& aPinB )
+    {
+        m_terminalPins[0] = aPinA;
+        m_terminalPins[1] = aPinB;
+    }
+
+    const KIID& GetTerminalPinA() const { return m_terminalPins[0]; }
+    const KIID& GetTerminalPinB() const { return m_terminalPins[1]; }
+
+    void ReplaceTerminalPin( const KIID& aPrev, const KIID& aNew )
+    {
+        if( m_terminalPins[0] == aPrev )
+            m_terminalPins[0] = aNew;
+        else if( m_terminalPins[1] == aPrev )
+            m_terminalPins[1] = aNew;
+    }
+
+private:
+    wxString              m_name;
+    std::set<wxString>    m_nets;
+    KIID                  m_terminalPins[2];
+};
+
+#endif

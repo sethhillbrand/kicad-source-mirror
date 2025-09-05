@@ -48,6 +48,7 @@
 #include <sch_bitmap.h>
 #include <sch_bus_entry.h>
 #include <sch_symbol.h>
+#include <sch_signal.h>
 #include <sch_edit_frame.h>          // SYM_ORIENT_XXX
 #include <sch_field.h>
 #include <sch_group.h>
@@ -2963,7 +2964,12 @@ void SCH_IO_KICAD_SEXPR_PARSER::ParseSchematic( SCH_SHEET* aSheet, bool aIsCopya
         case T_global_label:
         case T_hierarchical_label:
         case T_directive_label:
+        case T_signal_label:
             screen->Append( parseSchText() );
+            break;
+
+        case T_signal:
+            parseSchSignal();
             break;
 
         case T_text_box:
@@ -3030,7 +3036,7 @@ void SCH_IO_KICAD_SEXPR_PARSER::ParseSchematic( SCH_SHEET* aSheet, bool aIsCopya
         default:
             Expecting( "bitmap, bus, bus_alias, bus_entry, class_label, embedded_files, global_label, "
                        "hierarchical_label, junction, label, line, no_connect, page, paper, rule_area, "
-                       "sheet, symbol, symbol_instances, text, title_block" );
+                       "sheet, signal_label, symbol, symbol_instances, text, title_block" );
         }
     }
 
@@ -3203,6 +3209,11 @@ SCH_SYMBOL* SCH_IO_KICAD_SEXPR_PARSER::parseSchematicSymbol()
 
         case T_dnp:
             symbol->SetDNP( parseBool() );
+            NeedRIGHT();
+            break;
+
+        case T_passthrough:
+            symbol->SetPassthrough( parseBool() );
             NeedRIGHT();
             break;
 
@@ -3444,7 +3455,7 @@ SCH_SYMBOL* SCH_IO_KICAD_SEXPR_PARSER::parseSchematicSymbol()
         }
 
         default:
-            Expecting( "lib_id, lib_name, at, mirror, uuid, exclude_from_sim, on_board, in_bom, dnp, "
+            Expecting( "lib_id, lib_name, at, mirror, uuid, exclude_from_sim, on_board, in_bom, dnp, passthrough, "
                        "default_instance, property, pin, or instances" );
         }
     }
@@ -4379,6 +4390,7 @@ SCH_TEXT* SCH_IO_KICAD_SEXPR_PARSER::parseSchText()
     case T_hierarchical_label:  text = std::make_unique<SCH_HIERLABEL>();       break;
     case T_netclass_flag:       text = std::make_unique<SCH_DIRECTIVE_LABEL>(); break;
     case T_directive_label:     text = std::make_unique<SCH_DIRECTIVE_LABEL>(); break;
+    case T_signal_label:        text = std::make_unique<SCH_SIGNAL_LABEL>();    break;
     default:
         wxCHECK_MSG( false, nullptr, "Cannot parse " + GetTokenString( CurTok() ) + " as text." );
     }
@@ -4877,6 +4889,18 @@ void SCH_IO_KICAD_SEXPR_PARSER::parseBusAlias( SCH_SCREEN* aScreen )
     NeedRIGHT();
 
     aScreen->AddBusAlias( busAlias );
+}
+
+
+void SCH_IO_KICAD_SEXPR_PARSER::parseSchSignal()
+{
+    NeedSYMBOL();
+    wxString name = FromUTF8();
+    KIID     a = parseKIID();
+    KIID     b = parseKIID();
+    NeedRIGHT();
+
+    m_signalTerminals[name] = std::make_pair( a, b );
 }
 
 

@@ -27,6 +27,7 @@
 
 #include <advanced_config.h>
 #include <board.h>
+#include <netinfo.h>
 #include <board_design_settings.h>
 #include <pcb_track.h>
 #include <pcb_group.h>
@@ -1858,6 +1859,20 @@ void PCB_PAINTER::draw( const PAD* aPad, int aLayer )
             std::shared_ptr<SHAPE_SEGMENT> slot = aPad->GetEffectiveHoleShape();
             m_gal->DrawSegment( slot->GetSeg().A, slot->GetSeg().B,
                                 slot->GetWidth() + 2 * clearance );
+        }
+    }
+
+    if( m_highlightEnabled && m_highlightNetcodes.count( aPad->GetNetCode() ) )
+    {
+        NETINFO_ITEM* net = aPad->GetNet();
+        if( net && ( net->GetTerminalPad( 0 ) == aPad || net->GetTerminalPad( 1 ) == aPad ) )
+        {
+            BOX2I box = aPad->GetBoundingBox();
+            m_gal->SetIsFill( false );
+            m_gal->SetIsStroke( true );
+            m_gal->SetStrokeColor( color.Brightened( 0.2 ) );
+            m_gal->SetLineWidth( m_pcbSettings.m_outlineWidth * 2 );
+            m_gal->DrawRectangle( box.GetOrigin(), box.GetEnd() );
         }
     }
 }

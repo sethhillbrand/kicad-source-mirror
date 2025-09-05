@@ -983,6 +983,25 @@ TOOL_ACTION SCH_ACTIONS::highlightNetTool( TOOL_ACTION_ARGS()
         .Icon( BITMAPS::net_highlight_schematic )
         .Flags( AF_ACTIVATE ) );
 
+TOOL_ACTION SCH_ACTIONS::highlightSignal( TOOL_ACTION_ARGS()
+        .Name( "eeschema.EditorControl.highlightSignal" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Highlight Signal" ) )
+        .Tooltip( _( "Highlight signal under cursor" ) )
+        .Icon( BITMAPS::net_highlight_schematic ) );
+
+TOOL_ACTION SCH_ACTIONS::replaceTerminalPin( TOOL_ACTION_ARGS()
+        .Name( "eeschema.EditorControl.replaceTerminalPin" )
+        .Scope( AS_GLOBAL )
+        .Parameters( 2 )
+        .FriendlyName( _( "Replace Terminal Pin" ) ) );
+
+TOOL_ACTION SCH_ACTIONS::nameSignal( TOOL_ACTION_ARGS()
+        .Name( "eeschema.EditorControl.nameSignal" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Name Signal" ) )
+        .Tooltip( _( "Assign a name to the signal" ) ) );
+
 TOOL_ACTION SCH_ACTIONS::showNetNavigator( TOOL_ACTION_ARGS()
         .Name( "eeschema.EditorControl.showNetNavigator" )
         .Scope( AS_GLOBAL )

@@ -693,9 +693,20 @@ void PCB_IO_KICAD_SEXPR::formatNetInformation( const BOARD* aBoard ) const
         if( net == nullptr )    // Skip not actually existing nets (orphan nets)
             continue;
 
-        m_out->Print( "(net %d %s)",
+        m_out->Print( "(net %d %s",
                       m_mapping->Translate( net->GetNetCode() ),
                       m_out->Quotew( net->GetNetname() ).c_str() );
+
+        if( !net->GetSignal().IsEmpty() )
+            m_out->Print( " (signal %s)", m_out->Quotew( net->GetSignal() ).c_str() );
+
+        if( net->GetTerminalPad( 0 ) )
+            m_out->Print( " (terminal_pad %s)", TO_UTF8( net->GetTerminalPad( 0 )->m_Uuid.AsString() ) );
+
+        if( net->GetTerminalPad( 1 ) )
+            m_out->Print( " (terminal_pad %s)", TO_UTF8( net->GetTerminalPad( 1 )->m_Uuid.AsString() ) );
+
+        m_out->Print( ")" );
     }
 }
 

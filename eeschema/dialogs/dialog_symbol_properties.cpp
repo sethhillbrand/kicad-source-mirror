@@ -530,6 +530,7 @@ bool DIALOG_SYMBOL_PROPERTIES::TransferDataToWindow()
     m_cbExcludeFromBom->SetValue( m_symbol->GetExcludedFromBOM() );
     m_cbExcludeFromBoard->SetValue( m_symbol->GetExcludedFromBoard() );
     m_cbDNP->SetValue( m_symbol->GetDNP() );
+    m_cbPassthrough->SetValue( m_symbol->GetPassthrough() );
 
     if( m_part )
     {
@@ -760,6 +761,7 @@ bool DIALOG_SYMBOL_PROPERTIES::TransferDataFromWindow()
     m_symbol->SetExcludedFromBOM( m_cbExcludeFromBom->IsChecked() );
     m_symbol->SetExcludedFromBoard( m_cbExcludeFromBoard->IsChecked() );
     m_symbol->SetDNP( m_cbDNP->IsChecked() );
+    m_symbol->SetPassthrough( m_cbPassthrough->IsChecked() );
 
     // Update any assignments
     if( m_dataModel )

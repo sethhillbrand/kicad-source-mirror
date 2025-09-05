@@ -204,6 +204,7 @@ const char* getTextTypeToken( KICAD_T aType )
     case SCH_GLOBAL_LABEL_T:    return SCHEMATIC_LEXER::TokenName( T_global_label );
     case SCH_HIER_LABEL_T:      return SCHEMATIC_LEXER::TokenName( T_hierarchical_label );
     case SCH_DIRECTIVE_LABEL_T: return SCHEMATIC_LEXER::TokenName( T_netclass_flag );
+    case SCH_SIGNAL_LABEL_T:    return SCHEMATIC_LEXER::TokenName( T_signal_label );
     default:      wxFAIL;       return SCHEMATIC_LEXER::TokenName( T_text );
     }
 }

@@ -38,6 +38,7 @@ using namespace std::placeholders;
 #include <pcb_table.h>
 #include <pcb_tablecell.h>
 #include <pcb_marker.h>
+#include <pad.h>
 #include <pcb_generator.h>
 #include <pcb_base_edit_frame.h>
 #include <zone.h>
@@ -103,6 +104,101 @@ private:
     }
 };
 
+enum
+{
+    ID_REPLACE_TERMINAL_PAD_A = wxID_HIGHEST + 3000,
+    ID_REPLACE_TERMINAL_PAD_B
+};
+
+class REPLACE_TERMINAL_PAD_MENU : public ACTION_MENU
+{
+public:
+    REPLACE_TERMINAL_PAD_MENU() : ACTION_MENU( true )
+    {
+        SetTitle( _( "Set terminal pad" ) );
+    }
+
+protected:
+    ACTION_MENU* create() const override { return new REPLACE_TERMINAL_PAD_MENU(); }
+
+    void update() override
+    {
+        Clear();
+
+        PCB_SELECTION_TOOL* selTool = getToolManager()->GetTool<PCB_SELECTION_TOOL>();
+        PAD* pad = dynamic_cast<PAD*>( selTool->GetSelection().Front() );
+        PCB_EDIT_FRAME* frame = static_cast<PCB_EDIT_FRAME*>( getToolManager()->GetToolHolder() );
+
+        if( !pad || !frame )
+            return;
+
+        NETINFO_ITEM* net = pad->GetNet();
+
+        if( !net || net->GetSignal().IsEmpty() )
+            return;
+
+        PAD* oldA = net->GetTerminalPad( 0 );
+        PAD* oldB = net->GetTerminalPad( 1 );
+        KIID newId = pad->m_Uuid;
+
+        wxMenuItem* itemA = Append( ID_REPLACE_TERMINAL_PAD_A, _( "Terminal A" ) );
+        wxMenuItem* itemB = Append( ID_REPLACE_TERMINAL_PAD_B, _( "Terminal B" ) );
+
+        if( oldA && oldA->m_Uuid == newId )
+            itemA->Enable( false );
+
+        if( oldB && oldB->m_Uuid == newId )
+            itemB->Enable( false );
+
+        m_oldA = oldA ? oldA->m_Uuid : niluuid;
+        m_oldB = oldB ? oldB->m_Uuid : niluuid;
+        m_new = newId;
+    }
+
+    OPT_TOOL_EVENT eventHandler( const wxMenuEvent& aEvent ) override
+    {
+        if( aEvent.GetId() == ID_REPLACE_TERMINAL_PAD_A )
+        {
+            TOOL_EVENT te( PCB_ACTIONS::setTerminalPad );
+            te.SetParameter( m_oldA.AsString() );
+            te.SetParameter( m_new.AsString() );
+            return te;
+        }
+        else if( aEvent.GetId() == ID_REPLACE_TERMINAL_PAD_B )
+        {
+            TOOL_EVENT te( PCB_ACTIONS::setTerminalPad );
+            te.SetParameter( m_oldB.AsString() );
+            te.SetParameter( m_new.AsString() );
+            return te;
+        }
+
+        return OPT_TOOL_EVENT();
+    }
+
+private:
+    KIID m_oldA;
+    KIID m_oldB;
+    KIID m_new;
+};
+
+class SIGNALS_MENU : public ACTION_MENU
+{
+public:
+    SIGNALS_MENU() : ACTION_MENU( true )
+    {
+        SetTitle( _( "Signals..." ) );
+        m_replaceMenu = new REPLACE_TERMINAL_PAD_MENU();
+        Add( PCB_ACTIONS::highlightSignal );
+        AddMenu( m_replaceMenu );
+    }
+
+protected:
+    ACTION_MENU* create() const override { return new SIGNALS_MENU(); }
+
+private:
+    REPLACE_TERMINAL_PAD_MENU* m_replaceMenu;
+};
+
 
 /**
  * Private implementation of firewalled private data.
@@ -161,6 +257,10 @@ bool PCB_SELECTION_TOOL::Init()
     selectMenu->SetTool( this );
     m_menu->RegisterSubMenu( selectMenu );
 
+    std::shared_ptr<SIGNALS_MENU> signalsMenu = std::make_shared<SIGNALS_MENU>();
+    signalsMenu->SetTool( this );
+    m_menu->RegisterSubMenu( signalsMenu );
+
     static const std::vector<KICAD_T> tableCellTypes = { PCB_TABLECELL_T };
 
     auto& menu = m_menu->GetMenu();
@@ -192,9 +292,15 @@ bool PCB_SELECTION_TOOL::Init()
     auto tableCellSelection = SELECTION_CONDITIONS::MoreThan( 0 )
                                 && SELECTION_CONDITIONS::OnlyTypes( tableCellTypes );
 
+    SELECTION_CONDITION padSelection = []( const SELECTION& aSel )
+    {
+        return aSel.GetSize() == 1 && aSel.OnlyContains( { PCB_PAD_T } );
+    };
+
     if( frame && frame->IsType( FRAME_PCB_EDITOR ) )
     {
         menu.AddMenu( selectMenu.get(), SELECTION_CONDITIONS::NotEmpty  );
+        menu.AddMenu( signalsMenu.get(), padSelection );
         menu.AddSeparator( 1000 );
     }
 
