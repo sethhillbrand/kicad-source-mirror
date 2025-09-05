@@ -436,7 +436,17 @@ bool SCH_PIN::IsStacked( const SCH_PIN* aPin ) const
     bool isConnectableType_b = aPin->GetType() == ELECTRICAL_PINTYPE::PT_PASSIVE
                             || aPin->GetType() == ELECTRICAL_PINTYPE::PT_NIC;
 
-    return m_parent == aPin->GetParent()
+    bool sameParent = m_parent == aPin->GetParent();
+    bool samePos = GetPosition() == aPin->GetPosition();
+    bool sameName = GetName() == aPin->GetName();
+    bool typeCompat = ( GetType() == aPin->GetType() || isConnectableType_a || isConnectableType_b );
+
+    wxLogTrace( "KICAD_STACKED_PINS",
+                wxString::Format( "IsStacked: this='%s/%s' other='%s/%s' sameParent=%d samePos=%d sameName=%d typeCompat=%d",
+                                  GetName(), GetNumber(), aPin->GetName(), aPin->GetNumber(), sameParent,
+                                  samePos, sameName, typeCompat ) );
+
+    return sameParent
            && GetPosition() == aPin->GetPosition()
            && GetName() == aPin->GetName()
            && ( GetType() == aPin->GetType() || isConnectableType_a || isConnectableType_b );
@@ -535,6 +545,26 @@ wxString SCH_PIN::GetShownName() const
 wxString SCH_PIN::GetShownNumber() const
 {
     return m_number;
+}
+
+
+std::vector<wxString> SCH_PIN::GetStackedPinNumbers( bool* aValid ) const
+{
+    wxString shown = GetShownNumber();
+    wxLogTrace( "KICAD_STACKED_PINS",
+                wxString::Format( "GetStackedPinNumbers: shown='%s'", shown ) );
+
+    std::vector<wxString> numbers = ExpandStackedPinNotation( shown, aValid );
+
+    // Log the expansion for debugging
+    wxLogTrace( "KICAD_STACKED_PINS",
+                wxString::Format( "Expanded '%s' to %zu pins", shown, numbers.size() ) );
+    for( const wxString& num : numbers )
+    {
+        wxLogTrace( "KICAD_STACKED_PINS", wxString::Format( " -> '%s'", num ) );
+    }
+
+    return numbers;
 }
 
 
@@ -1257,12 +1287,37 @@ wxString SCH_PIN::GetDefaultNetName( const SCH_SHEET_PATH& aPath, bool aForceNoC
     wxString libPinShownName = m_libPin ? m_libPin->GetShownName() : wxString( "??" );
     wxString libPinShownNumber = m_libPin ? m_libPin->GetShownNumber() : wxString( "??" );
 
+    // If this is a stacked pin (valid bracketed/list notation), choose the smallest
+    // logical pin number for use in the generated net name so that the net naming
+    // is deterministic and uses the lowest-value logical pin.  (Requirement: when
+    // naming nets for a stacked pin, use the smallest logical pin name.)
+    wxString effectivePadNumber = libPinShownNumber;
+
+    if( m_libPin )
+    {
+        bool stackedValid = false;
+        std::vector<wxString> logicalNums = m_libPin->GetStackedPinNumbers( &stackedValid );
+
+        if( stackedValid && !logicalNums.empty() )
+        {
+            // Numbers are generated in ascending order, so front() is the smallest.
+            effectivePadNumber = logicalNums.front();
+            wxLogTrace( "KICAD_STACKED_PINS",
+                        wxString::Format( "GetDefaultNetName: stacked pin shown='%s' -> using smallest logical='%s'",
+                                          libPinShownNumber, effectivePadNumber ) );
+        }
+    }
+
     // Use timestamp for unannotated symbols
     if( symbol->GetRef( &aPath, false ).Last() == '?' )
     {
         name << GetParentSymbol()->m_Uuid.AsString();
 
         wxString libPinNumber = m_libPin ? m_libPin->GetNumber() : wxString( "??" );
+        // Apply same smallest-logical substitution for unannotated symbols
+        if( effectivePadNumber != libPinShownNumber && !effectivePadNumber.IsEmpty() )
+            libPinNumber = effectivePadNumber;
+
         name << "-Pad" << libPinNumber << ")";
         annotated = false;
     }
@@ -1274,7 +1329,10 @@ wxString SCH_PIN::GetDefaultNetName( const SCH_SHEET_PATH& aPath, bool aForceNoC
         name << "-" << EscapeString( libPinShownName, CTX_NETNAME );
 
         if( unconnected || has_multiple )
-            name << "-Pad" << EscapeString( libPinShownNumber, CTX_NETNAME );
+        {
+            // Use effective (possibly de-stacked) pad number in net name
+            name << "-Pad" << EscapeString( effectivePadNumber, CTX_NETNAME );
+        }
 
         name << ")";
     }
@@ -1282,7 +1340,7 @@ wxString SCH_PIN::GetDefaultNetName( const SCH_SHEET_PATH& aPath, bool aForceNoC
     {
         // Pin numbers are unique, so we skip the unit token
         name << symbol->GetRef( &aPath, false );
-        name << "-Pad" << EscapeString( libPinShownNumber, CTX_NETNAME ) << ")";
+        name << "-Pad" << EscapeString( effectivePadNumber, CTX_NETNAME ) << ")";
     }
 
     if( annotated )

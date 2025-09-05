@@ -38,6 +38,7 @@
 #include <fmt/chrono.h>
 #include <wx/log.h>
 #include <wx/regex.h>
+#include <wx/tokenzr.h>
 #include "locale_io.h"
 
 
@@ -1502,4 +1503,126 @@ wxString NormalizeFileUri( const wxString& aFileUri )
     retv += tmp;
 
     return retv;
+}
+
+
+std::vector<wxString> ExpandStackedPinNotation( const wxString& aPinName, bool* aValid )
+{
+    if( aValid )
+        *aValid = true;
+
+    std::vector<wxString> expanded;
+
+    // Check for malformed bracket notation
+    bool hasOpenBracket = aPinName.Contains( wxT( "[" ) );
+    bool hasCloseBracket = aPinName.Contains( wxT( "]" ) );
+
+    if( hasOpenBracket || hasCloseBracket )
+    {
+        // If we have any bracket, it must be properly formed stacked notation
+        if( !aPinName.StartsWith( wxT( "[" ) ) || !aPinName.EndsWith( wxT( "]" ) ) )
+        {
+            if( aValid )
+                *aValid = false;
+            expanded.push_back( aPinName );
+            return expanded;
+        }
+    }
+
+    // Check if this uses stacked pin notation
+    if( !aPinName.StartsWith( wxT( "[" ) ) || !aPinName.EndsWith( wxT( "]" ) ) )
+    {
+        expanded.push_back( aPinName );
+        return expanded;
+    }
+
+    wxString inner = aPinName.Mid( 1, aPinName.Length() - 2 );
+    wxStringTokenizer tok( inner, wxT( "," ) );
+
+    while( tok.HasMoreTokens() )
+    {
+        wxString part = tok.GetNextToken();
+        part.Trim( true ).Trim( false );
+
+        if( part.Contains( wxT( '-' ) ) )
+        {
+            wxStringTokenizer rangeTok( part, wxT( "-" ) );
+
+            if( rangeTok.CountTokens() != 2 )
+            {
+                if( aValid )
+                    *aValid = false;
+                expanded.clear();
+                expanded.push_back( aPinName );  // Fallback to original
+                return expanded;
+            }
+
+            wxString startTxt = rangeTok.GetNextToken();
+            wxString endTxt   = rangeTok.GetNextToken();
+
+            // Parse alphanumeric pin numbers: separate prefix from numeric suffix
+            auto parseAlphaNumeric = []( const wxString& pinNum ) -> std::pair<wxString, long>
+            {
+                wxString prefix;
+                long numValue = -1;
+
+                // Find where numeric part starts (scan from end)
+                size_t numStart = pinNum.length();
+                for( int i = pinNum.length() - 1; i >= 0; i-- )
+                {
+                    if( !wxIsdigit( pinNum[i] ) )
+                    {
+                        numStart = i + 1;
+                        break;
+                    }
+                    if( i == 0 )  // All digits
+                        numStart = 0;
+                }
+
+                if( numStart < pinNum.length() )  // Has numeric suffix
+                {
+                    prefix = pinNum.Left( numStart );
+                    wxString numericPart = pinNum.Mid( numStart );
+                    numericPart.ToLong( &numValue );
+                }
+
+                return std::make_pair( prefix, numValue );
+            };
+
+            auto [startPrefix, startVal] = parseAlphaNumeric( startTxt );
+            auto [endPrefix, endVal] = parseAlphaNumeric( endTxt );
+
+            // Validate range: must have same prefix and valid numeric range
+            if( startPrefix != endPrefix || startVal == -1 || endVal == -1 || startVal > endVal )
+            {
+                if( aValid )
+                    *aValid = false;
+                expanded.clear();
+                expanded.push_back( aPinName );  // Fallback to original
+                return expanded;
+            }
+
+            // Expand the range
+            for( long ii = startVal; ii <= endVal; ++ii )
+            {
+                if( startPrefix.IsEmpty() )
+                    expanded.emplace_back( wxString::Format( wxT( "%ld" ), ii ) );
+                else
+                    expanded.emplace_back( wxString::Format( wxT( "%s%ld" ), startPrefix, ii ) );
+            }
+        }
+        else if( !part.IsEmpty() )
+        {
+            expanded.push_back( part );
+        }
+    }
+
+    if( expanded.empty() )
+    {
+        expanded.push_back( aPinName );  // Fallback to original
+        if( aValid )
+            *aValid = false;
+    }
+
+    return expanded;
 }

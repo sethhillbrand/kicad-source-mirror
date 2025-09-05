@@ -2251,11 +2251,11 @@ void SCH_PAINTER::draw( const SCH_SYMBOL* aSymbol, int aLayer )
     // Use dummy symbol if the actual couldn't be found (or couldn't be locked).
     LIB_SYMBOL* originalSymbol =
             aSymbol->GetLibSymbolRef() ? aSymbol->GetLibSymbolRef().get() : LIB_SYMBOL::GetDummy();
-    std::vector<SCH_PIN*> originalPins = originalSymbol->GetPins( unit, bodyStyle );
+    std::vector<SCH_PIN*> originalPins = originalSymbol->GetGraphicalPins( unit, bodyStyle );
 
     // Copy the source so we can re-orient and translate it.
     LIB_SYMBOL            tempSymbol( *originalSymbol );
-    std::vector<SCH_PIN*> tempPins = tempSymbol.GetPins( unit, bodyStyle );
+    std::vector<SCH_PIN*> tempPins = tempSymbol.GetGraphicalPins( unit, bodyStyle );
 
     tempSymbol.SetFlags( aSymbol->GetFlags() );
 

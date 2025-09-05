@@ -94,6 +94,9 @@ set( QA_EESCHEMA_SRCS
     test_sch_symbol.cpp
     test_schematic.cpp
     test_symbol_library_manager.cpp
+    test_stacked_pin_nomenclature.cpp
+    test_stacked_pin_conversion.cpp
+    test_netlist_exporter_xml_stacked.cpp
     test_resolve_drivers.cpp
     test_saveas_copy_subsheets.cpp
     test_update_items_connectivity.cpp
