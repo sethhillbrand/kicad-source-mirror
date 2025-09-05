@@ -1932,8 +1932,18 @@ int BOARD_INSPECTION_TOOL::HighlightSignal( const TOOL_EVENT& aEvent )
 {
     KIGFX::VIEW_CONTROLS* controls = getViewControls();
     VECTOR2D cursorPos = controls->GetCursorPosition( !aEvent.DisableGridSnapping() );
-    PCB_SELECTION_TOOL* selTool = m_toolMgr->GetTool<PCB_SELECTION_TOOL>();
-    BOARD_ITEM* item = static_cast<BOARD_ITEM*>( selTool->GetNode( cursorPos ) );
+    BOARD_ITEM* item = nullptr;
+    {
+        // Collect nearest connectable item at cursor position
+        BOARD* board = m_frame->GetBoard();
+        GENERAL_COLLECTORS_GUIDE guide = m_frame->GetCollectorsGuide();
+        GENERAL_COLLECTOR collector;
+        collector.Collect( board, { PCB_PAD_T, PCB_VIA_T, PCB_TRACE_T, PCB_ARC_T, PCB_SHAPE_T }, cursorPos,
+                           guide );
+
+        if( collector.GetCount() > 0 )
+            item = static_cast<BOARD_ITEM*>( collector[0] );
+    }
     wxString sig;
 
     if( item )
@@ -1975,8 +1985,10 @@ int BOARD_INSPECTION_TOOL::ReplaceTerminalPad( const TOOL_EVENT& aEvent )
     if( m_highlightedSignal.IsEmpty() )
         return 0;
 
-    KIID oldId( aEvent.Parameter<wxString>( 0 ) );
-    KIID newId( aEvent.Parameter<wxString>( 1 ) );
+    // Parameters are passed as a single pair<old,new>
+    auto ids = aEvent.Parameter<std::pair<wxString, wxString>>();
+    KIID oldId( ids.first );
+    KIID newId( ids.second );
     m_frame->GetBoard()->ReplaceSignalTerminalPad( m_highlightedSignal, oldId, newId );
     return 0;
 }

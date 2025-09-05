@@ -1283,8 +1283,9 @@ int SCH_EDITOR_CONTROL::HighlightNetCursor( const TOOL_EVENT& aEvent )
 int SCH_EDITOR_CONTROL::ReplaceTerminalPin( const TOOL_EVENT& aEvent )
 {
     SCH_EDIT_FRAME* editFrame = static_cast<SCH_EDIT_FRAME*>( m_toolMgr->GetToolHolder() );
-    wxString oldStr = aEvent.Parameter<wxString>( 0 );
-    wxString newStr = aEvent.Parameter<wxString>( 1 );
+    auto ids = aEvent.Parameter<std::pair<wxString, wxString>>();
+    wxString oldStr = ids.first;
+    wxString newStr = ids.second;
     KIID oldPin( oldStr );
     KIID newPin( newStr );
     wxString sig = editFrame->GetHighlightedSignal();

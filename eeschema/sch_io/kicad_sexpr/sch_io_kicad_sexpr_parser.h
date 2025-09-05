@@ -114,6 +114,12 @@ public:
 
     int GetParsedRequiredVersion() const { return m_requiredVersion; }
 
+    // Access parsed signal terminal overrides for consumers after ParseSchematic.
+    const std::map<wxString, std::pair<KIID, KIID>>& GetSignalTerminals() const
+    {
+        return m_signalTerminals;
+    }
+
 private:
     // Group membership info refers to other Uuids in the file.
     // We don't want to rely on group declarations being last in the file, so
@@ -253,11 +259,6 @@ private:
     void parseSchSignal();
 
     void resolveGroups( SCH_SCREEN* aParent );
-
-    const std::map<wxString, std::pair<KIID, KIID>>& GetSignalTerminals() const
-    {
-        return m_signalTerminals;
-    }
 
 private:
     int      m_requiredVersion;   ///< Set to the symbol library file version required.

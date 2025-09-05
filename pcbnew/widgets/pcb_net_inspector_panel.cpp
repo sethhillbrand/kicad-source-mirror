@@ -162,6 +162,7 @@ void PCB_NET_INSPECTOR_PANEL::buildColumns()
                                           wxDATAVIEW_CELL_INERT, -1, wxALIGN_LEFT,
                                           wxDATAVIEW_COL_RESIZABLE|wxDATAVIEW_COL_REORDERABLE|wxDATAVIEW_COL_SORTABLE );
         },
+        [&]()
         {
             m_netsList->AppendTextColumn( m_columns[COLUMN_NETCLASS].display_name, m_columns[COLUMN_NETCLASS],
                                           wxDATAVIEW_CELL_INERT, -1, wxALIGN_LEFT,

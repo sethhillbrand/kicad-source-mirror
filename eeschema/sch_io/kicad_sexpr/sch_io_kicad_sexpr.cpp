@@ -62,6 +62,7 @@
 #include <string_utils.h>
 #include <symbol_lib_table.h>  // for PropPowerSymsOnly definition.
 #include <trace_helpers.h>
+#include <connection_graph.h>
 
 using namespace TSCHEMATIC_T;
 

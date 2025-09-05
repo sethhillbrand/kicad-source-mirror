@@ -206,16 +206,14 @@ protected:
     {
         if( aEvent.GetId() == ID_REPLACE_TERMINAL_PIN_A )
         {
-            TOOL_EVENT te( SCH_ACTIONS::replaceTerminalPin );
-            te.SetParameter( m_oldA.AsString() );
-            te.SetParameter( m_new.AsString() );
+            TOOL_EVENT te = SCH_ACTIONS::replaceTerminalPin.MakeEvent();
+            te.SetParameter( std::make_pair( m_oldA.AsString(), m_new.AsString() ) );
             return te;
         }
         else if( aEvent.GetId() == ID_REPLACE_TERMINAL_PIN_B )
         {
-            TOOL_EVENT te( SCH_ACTIONS::replaceTerminalPin );
-            te.SetParameter( m_oldB.AsString() );
-            te.SetParameter( m_new.AsString() );
+            TOOL_EVENT te = SCH_ACTIONS::replaceTerminalPin.MakeEvent();
+            te.SetParameter( std::make_pair( m_oldB.AsString(), m_new.AsString() ) );
             return te;
         }
 
@@ -235,8 +233,8 @@ public:
     {
         SetTitle( _( "Signals..." ) );
         m_replaceMenu = new REPLACE_TERMINAL_PIN_MENU();
-        Add( SCH_ACTIONS::highlightSignal );
-        AddMenu( m_replaceMenu );
+    Add( SCH_ACTIONS::highlightSignal );
+    Add( m_replaceMenu );
         Add( SCH_ACTIONS::nameSignal );
     }
 

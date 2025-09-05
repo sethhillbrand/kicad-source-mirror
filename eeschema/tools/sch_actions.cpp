@@ -993,7 +993,6 @@ TOOL_ACTION SCH_ACTIONS::highlightSignal( TOOL_ACTION_ARGS()
 TOOL_ACTION SCH_ACTIONS::replaceTerminalPin( TOOL_ACTION_ARGS()
         .Name( "eeschema.EditorControl.replaceTerminalPin" )
         .Scope( AS_GLOBAL )
-        .Parameters( 2 )
         .FriendlyName( _( "Replace Terminal Pin" ) ) );
 
 TOOL_ACTION SCH_ACTIONS::nameSignal( TOOL_ACTION_ARGS()

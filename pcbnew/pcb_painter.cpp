@@ -1862,7 +1862,8 @@ void PCB_PAINTER::draw( const PAD* aPad, int aLayer )
         }
     }
 
-    if( m_highlightEnabled && m_highlightNetcodes.count( aPad->GetNetCode() ) )
+    if( m_pcbSettings.IsHighlightEnabled()
+            && m_pcbSettings.GetHighlightNetCodes().contains( aPad->GetNetCode() ) )
     {
         NETINFO_ITEM* net = aPad->GetNet();
         if( net && ( net->GetTerminalPad( 0 ) == aPad || net->GetTerminalPad( 1 ) == aPad ) )

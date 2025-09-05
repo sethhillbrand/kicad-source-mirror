@@ -159,16 +159,14 @@ protected:
     {
         if( aEvent.GetId() == ID_REPLACE_TERMINAL_PAD_A )
         {
-            TOOL_EVENT te( PCB_ACTIONS::setTerminalPad );
-            te.SetParameter( m_oldA.AsString() );
-            te.SetParameter( m_new.AsString() );
+            TOOL_EVENT te = PCB_ACTIONS::setTerminalPad.MakeEvent();
+            te.SetParameter( std::make_pair( m_oldA.AsString(), m_new.AsString() ) );
             return te;
         }
         else if( aEvent.GetId() == ID_REPLACE_TERMINAL_PAD_B )
         {
-            TOOL_EVENT te( PCB_ACTIONS::setTerminalPad );
-            te.SetParameter( m_oldB.AsString() );
-            te.SetParameter( m_new.AsString() );
+            TOOL_EVENT te = PCB_ACTIONS::setTerminalPad.MakeEvent();
+            te.SetParameter( std::make_pair( m_oldB.AsString(), m_new.AsString() ) );
             return te;
         }
 
@@ -189,7 +187,7 @@ public:
         SetTitle( _( "Signals..." ) );
         m_replaceMenu = new REPLACE_TERMINAL_PAD_MENU();
         Add( PCB_ACTIONS::highlightSignal );
-        AddMenu( m_replaceMenu );
+    Add( m_replaceMenu );
     }
 
 protected:
