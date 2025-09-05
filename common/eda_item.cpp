@@ -453,6 +453,7 @@ static struct EDA_ITEM_DESC
             .Map( SCH_TABLE_T,             _HKI( "Table" ) )
             .Map( SCH_TABLECELL_T,         _HKI( "Table Cell" ) )
             .Map( SCH_LABEL_T,             _HKI( "Net Label" ) )
+            .Map( SCH_SIGNAL_LABEL_T,      _HKI( "Signal Label" ) )
             .Map( SCH_DIRECTIVE_LABEL_T,   _HKI( "Directive Label" ) )
             .Map( SCH_GLOBAL_LABEL_T,      _HKI( "Global Label" ) )
             .Map( SCH_HIER_LABEL_T,        _HKI( "Hierarchical Label" ) )

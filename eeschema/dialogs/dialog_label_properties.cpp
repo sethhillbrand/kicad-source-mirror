@@ -67,7 +67,8 @@ DIALOG_LABEL_PROPERTIES::DIALOG_LABEL_PROPERTIES( SCH_EDIT_FRAME* aParent, SCH_L
     m_delayedFocusRow = -1;
     m_delayedFocusColumn = FDC_VALUE;
 
-    if( m_currentLabel->Type() == SCH_GLOBAL_LABEL_T || m_currentLabel->Type() == SCH_LABEL_T )
+    if( m_currentLabel->Type() == SCH_GLOBAL_LABEL_T || m_currentLabel->Type() == SCH_LABEL_T
+            || m_currentLabel->Type() == SCH_SIGNAL_LABEL_T )
     {
         m_activeTextEntry = m_valueCombo;
         SetInitialFocus( m_valueCombo->GetTextCtrl() );
@@ -137,6 +138,7 @@ DIALOG_LABEL_PROPERTIES::DIALOG_LABEL_PROPERTIES( SCH_EDIT_FRAME* aParent, SCH_L
     case SCH_GLOBAL_LABEL_T:    SetTitle( _( "Global Label Properties" ) );           break;
     case SCH_HIER_LABEL_T:      SetTitle( _( "Hierarchical Label Properties" ) );     break;
     case SCH_LABEL_T:           SetTitle( _( "Label Properties" ) );                  break;
+    case SCH_SIGNAL_LABEL_T:    SetTitle( _( "Signal Label Properties" ) );           break;
     case SCH_DIRECTIVE_LABEL_T: SetTitle( _( "Directive Label Properties" ) );        break;
     case SCH_SHEET_PIN_T:       SetTitle( _( "Hierarchical Sheet Pin Properties" ) ); break;
     default:                    UNIMPLEMENTED_FOR( m_currentLabel->GetClass() );      break;
@@ -296,7 +298,8 @@ bool DIALOG_LABEL_PROPERTIES::TransferDataToWindow()
         text = m_currentLabel->Schematic()->ConvertKIIDsToRefs( text );
     }
 
-    if( m_currentLabel->Type() == SCH_GLOBAL_LABEL_T || m_currentLabel->Type() == SCH_LABEL_T )
+    if( m_currentLabel->Type() == SCH_GLOBAL_LABEL_T || m_currentLabel->Type() == SCH_LABEL_T
+            || m_currentLabel->Type() == SCH_SIGNAL_LABEL_T )
     {
         // Load the combobox with the existing labels of the same type
         std::set<wxString>                      existingLabels;
@@ -329,7 +332,7 @@ bool DIALOG_LABEL_PROPERTIES::TransferDataToWindow()
             }
 
             // Add local power labels from power symbols
-            if( m_currentLabel->Type() == SCH_LABEL_T )
+            if( m_currentLabel->Type() == SCH_LABEL_T || m_currentLabel->Type() == SCH_SIGNAL_LABEL_T )
             {
                 for( SCH_ITEM* item : screen->Items().OfType( SCH_SYMBOL_LOCATE_POWER_T ) )
                 {
@@ -704,6 +707,13 @@ bool DIALOG_LABEL_PROPERTIES::TransferDataFromWindow()
                 m_labelList->push_back( std::unique_ptr<SCH_LABEL_BASE>( label ) );
                 break;
             }
+            case SCH_SIGNAL_LABEL_T:
+            {
+                SCH_SIGNAL_LABEL* label = new SCH_SIGNAL_LABEL( *static_cast<SCH_SIGNAL_LABEL*>( m_currentLabel ) );
+                label->SetText( text );
+                m_labelList->push_back( std::unique_ptr<SCH_LABEL_BASE>( label ) );
+                break;
+            }
             case SCH_LABEL_T:
             {
                 SCH_LABEL* label = new SCH_LABEL( *static_cast<SCH_LABEL*>( m_currentLabel ) );
@@ -895,7 +905,8 @@ void DIALOG_LABEL_PROPERTIES::OnSizeGrid( wxSizeEvent& event )
 
 void DIALOG_LABEL_PROPERTIES::onMultiLabelCheck( wxCommandEvent& event )
 {
-    if( m_currentLabel->Type() == SCH_GLOBAL_LABEL_T || m_currentLabel->Type() == SCH_LABEL_T )
+    if( m_currentLabel->Type() == SCH_GLOBAL_LABEL_T || m_currentLabel->Type() == SCH_LABEL_T
+            || m_currentLabel->Type() == SCH_SIGNAL_LABEL_T )
     {
         m_labelCombo->Show( !m_cbMultiLine->IsChecked() );
         m_valueCombo->Show( !m_cbMultiLine->IsChecked() );

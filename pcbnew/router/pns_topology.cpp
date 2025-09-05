@@ -418,6 +418,41 @@ const ITEM_SET TOPOLOGY::AssembleTuningPath( ROUTER_IFACE* aRouterIface, ITEM* a
     if( padB )
         processPad( padB, joints.second->Layer() );
 
+    // If both terminal pads identified, trim path to only the portion directly between them.
+    if( padA && padB )
+    {
+        int firstIdx = -1;
+        int lastIdx = -1;
+        const VECTOR2I posA = padA->GetPosition();
+        const VECTOR2I posB = padB->GetPosition();
+
+        for( int idx = 0; idx < initialPath.Size(); ++idx )
+        {
+            ITEM* it = initialPath[idx];
+            if( it->Kind() == ITEM::LINE_T )
+            {
+                LINE* line = static_cast<LINE*>( it );
+                if( line->CPoint( 0 ) == posA || line->CLastPoint() == posA )
+                {
+                    if( firstIdx < 0 )
+                        firstIdx = idx;
+                }
+                if( line->CPoint( 0 ) == posB || line->CLastPoint() == posB )
+                {
+                    lastIdx = idx; // keep updating to get furthest occurrence
+                }
+            }
+        }
+
+        if( firstIdx >= 0 && lastIdx >= firstIdx )
+        {
+            ITEM_SET trimmed;
+            for( int idx = firstIdx; idx <= lastIdx; ++idx )
+                trimmed.Add( initialPath[idx] );
+            return trimmed;
+        }
+    }
+
     return initialPath;
 }
 

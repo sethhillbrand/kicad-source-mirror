@@ -491,13 +491,13 @@ void DRC_RULES_PARSER::parseConstraint( DRC_RULE* aRule )
     else if( (int) token == DSN_RIGHT || token == T_EOF )
     {
         msg.Printf( _( "Missing constraint type.|  Expected %s." ),
-                    wxT( "assertion, clearance, hole_clearance, edge_clearance, physical_clearance, "
-                         "physical_hole_clearance, courtyard_clearance, silk_clearance, hole_size, "
-                         "hole_to_hole, track_width, track_angle, track_segment_length, annular_width, "
-                         "disallow, zone_connection, thermal_relief_gap, thermal_spoke_width, "
-                         "min_resolved_spokes, solder_mask_expansion, solder_paste_abs_margin, "
-                         "solder_paste_rel_margin, length, skew, via_count, via_dangling, via_diameter, "
-                         "diff_pair_gap or diff_pair_uncoupled" ) );
+                wxT( "assertion, clearance, hole_clearance, edge_clearance, physical_clearance, "
+                    "physical_hole_clearance, courtyard_clearance, silk_clearance, hole_size, "
+                    "hole_to_hole, track_width, track_angle, track_segment_length, annular_width, "
+                    "disallow, zone_connection, thermal_relief_gap, thermal_spoke_width, "
+                    "min_resolved_spokes, solder_mask_expansion, solder_paste_abs_margin, "
+                    "solder_paste_rel_margin, length, signal_length, skew, via_count, via_dangling, via_diameter, "
+                    "diff_pair_gap or diff_pair_uncoupled" ) );
         reportError( msg );
         return;
     }
@@ -531,6 +531,7 @@ void DRC_RULES_PARSER::parseConstraint( DRC_RULE* aRule )
     case T_solder_paste_rel_margin:   c.m_Type = SOLDER_PASTE_REL_MARGIN_CONSTRAINT;   break;
     case T_disallow:                  c.m_Type = DISALLOW_CONSTRAINT;                  break;
     case T_length:                    c.m_Type = LENGTH_CONSTRAINT;                    break;
+    case T_signal_length:             c.m_Type = SIGNAL_LENGTH_CONSTRAINT;             break;
     case T_skew:                      c.m_Type = SKEW_CONSTRAINT;                      break;
     case T_via_count:                 c.m_Type = VIA_COUNT_CONSTRAINT;                 break;
     case T_diff_pair_gap:             c.m_Type = DIFF_PAIR_GAP_CONSTRAINT;             break;
@@ -539,13 +540,13 @@ void DRC_RULES_PARSER::parseConstraint( DRC_RULE* aRule )
     case T_physical_hole_clearance:   c.m_Type = PHYSICAL_HOLE_CLEARANCE_CONSTRAINT;   break;
     default:
         msg.Printf( _( "Unrecognized item '%s'.| Expected %s." ), FromUTF8(),
-                    wxT( "assertion, clearance, hole_clearance, edge_clearance, physical_clearance, "
-                         "physical_hole_clearance, courtyard_clearance, silk_clearance, hole_size, "
-                         "hole_to_hole, track_width, track_angle, track_segment_length, annular_width, "
-                         "disallow, zone_connection, thermal_relief_gap, thermal_spoke_width, "
-                         "min_resolved_spokes, solder_mask_expansion, solder_paste_abs_margin, "
-                         "solder_paste_rel_margin, length, skew, via_count, via_dangling, via_diameter, "
-                         "diff_pair_gap or diff_pair_uncoupled" ) );
+                wxT( "assertion, clearance, hole_clearance, edge_clearance, physical_clearance, "
+                    "physical_hole_clearance, courtyard_clearance, silk_clearance, hole_size, "
+                    "hole_to_hole, track_width, track_angle, track_segment_length, annular_width, "
+                    "disallow, zone_connection, thermal_relief_gap, thermal_spoke_width, "
+                    "min_resolved_spokes, solder_mask_expansion, solder_paste_abs_margin, "
+                    "solder_paste_rel_margin, length, signal_length, skew, via_count, via_dangling, via_diameter, "
+                    "diff_pair_gap or diff_pair_uncoupled" ) );
         reportError( msg );
     }
 
@@ -560,7 +561,8 @@ void DRC_RULES_PARSER::parseConstraint( DRC_RULE* aRule )
                     || c.m_Type == TRACK_ANGLE_CONSTRAINT
                     || c.m_Type == VIA_DANGLING_CONSTRAINT;
 
-    allowsTimeDomain = c.m_Type == LENGTH_CONSTRAINT || c.m_Type == SKEW_CONSTRAINT;
+    allowsTimeDomain = c.m_Type == LENGTH_CONSTRAINT || c.m_Type == SIGNAL_LENGTH_CONSTRAINT
+                       || c.m_Type == SKEW_CONSTRAINT;
 
     if( c.m_Type == DISALLOW_CONSTRAINT )
     {

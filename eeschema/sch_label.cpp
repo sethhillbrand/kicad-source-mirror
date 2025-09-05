@@ -1591,6 +1591,80 @@ BITMAPS SCH_LABEL::GetMenuImage() const
 }
 
 
+SCH_SIGNAL_LABEL::SCH_SIGNAL_LABEL( const VECTOR2I& pos, const wxString& text ) :
+        SCH_LABEL_BASE( pos, text, SCH_SIGNAL_LABEL_T )
+{
+    m_layer      = LAYER_LOCLABEL;
+    m_shape      = LABEL_FLAG_SHAPE::L_INPUT;
+    m_isDangling = true;
+}
+
+
+void SCH_SIGNAL_LABEL::Serialize( google::protobuf::Any &aContainer ) const
+{
+    kiapi::schematic::types::LocalLabel label;
+
+    label.mutable_id()->set_value( m_Uuid.AsStdString() );
+    kiapi::common::PackVector2( *label.mutable_position(), GetPosition() );
+
+    aContainer.PackFrom( label );
+}
+
+
+bool SCH_SIGNAL_LABEL::Deserialize( const google::protobuf::Any &aContainer )
+{
+    kiapi::schematic::types::LocalLabel label;
+
+    if( !aContainer.UnpackTo( &label ) )
+        return false;
+
+    const_cast<KIID&>( m_Uuid ) = KIID( label.id().value() );
+    SetPosition( kiapi::common::UnpackVector2( label.position() ) );
+
+    return true;
+}
+
+
+const BOX2I SCH_SIGNAL_LABEL::GetBodyBoundingBox( const RENDER_SETTINGS* aSettings ) const
+{
+    BOX2I rect = GetTextBox( aSettings );
+
+    rect.Offset( 0, -GetTextOffset() );
+    rect.Inflate( GetEffectiveTextPenWidth() );
+
+    if( !GetTextAngle().IsZero() )
+    {
+        VECTOR2I pos = rect.GetOrigin();
+        VECTOR2I end = rect.GetEnd();
+
+        RotatePoint( pos, GetTextPos(), GetTextAngle() );
+        RotatePoint( end, GetTextPos(), GetTextAngle() );
+
+        rect.SetOrigin( pos );
+        rect.SetEnd( end );
+
+        rect.Normalize();
+    }
+
+    rect.Merge( GetPosition() );
+
+    return rect;
+}
+
+
+wxString SCH_SIGNAL_LABEL::GetItemDescription( UNITS_PROVIDER* aUnitsProvider, bool aFull ) const
+{
+    return wxString::Format( _( "Signal Label '%s'" ),
+                             aFull ? GetShownText( false ) : KIUI::EllipsizeMenuText( GetText() ) );
+}
+
+
+BITMAPS SCH_SIGNAL_LABEL::GetMenuImage() const
+{
+    return BITMAPS::add_line_label;
+}
+
+
 SCH_DIRECTIVE_LABEL::SCH_DIRECTIVE_LABEL( const VECTOR2I& pos ) :
         SCH_LABEL_BASE( pos, wxEmptyString, SCH_DIRECTIVE_LABEL_T )
 {

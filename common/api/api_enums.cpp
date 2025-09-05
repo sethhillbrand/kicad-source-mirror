@@ -67,6 +67,7 @@ KICAD_T FromProtoEnum( types::KiCadObjectType aValue )
     case types::KiCadObjectType::KOT_SCH_TABLE:             return SCH_TABLE_T;
     case types::KiCadObjectType::KOT_SCH_TABLECELL:         return SCH_TABLECELL_T;
     case types::KiCadObjectType::KOT_SCH_LABEL:             return SCH_LABEL_T;
+    case types::KiCadObjectType::KOT_SCH_SIGNAL_LABEL:      return SCH_SIGNAL_LABEL_T;
     case types::KiCadObjectType::KOT_SCH_GLOBAL_LABEL:      return SCH_GLOBAL_LABEL_T;
     case types::KiCadObjectType::KOT_SCH_HIER_LABEL:        return SCH_HIER_LABEL_T;
     case types::KiCadObjectType::KOT_SCH_DIRECTIVE_LABEL:   return SCH_DIRECTIVE_LABEL_T;
@@ -126,6 +127,7 @@ types::KiCadObjectType ToProtoEnum( KICAD_T aValue )
     case SCH_TABLE_T:            return types::KiCadObjectType::KOT_SCH_TABLE;
     case SCH_TABLECELL_T:        return types::KiCadObjectType::KOT_SCH_TABLECELL;
     case SCH_LABEL_T:            return types::KiCadObjectType::KOT_SCH_LABEL;
+    case SCH_SIGNAL_LABEL_T:     return types::KiCadObjectType::KOT_SCH_SIGNAL_LABEL;
     case SCH_GLOBAL_LABEL_T:     return types::KiCadObjectType::KOT_SCH_GLOBAL_LABEL;
     case SCH_GROUP_T:            return types::KiCadObjectType::KOT_SCH_GROUP;
     case SCH_HIER_LABEL_T:       return types::KiCadObjectType::KOT_SCH_HIER_LABEL;

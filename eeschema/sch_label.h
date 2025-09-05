@@ -159,6 +159,7 @@ public:
             return true;
 
         case SCH_LABEL_T:
+        case SCH_SIGNAL_LABEL_T:
         case SCH_GLOBAL_LABEL_T:
         case SCH_HIER_LABEL_T:
         case SCH_DIRECTIVE_LABEL_T:
@@ -414,6 +415,56 @@ public:
     EDA_ITEM* Clone() const override
     {
         return new SCH_LABEL( *this );
+    }
+
+    bool IsPointClickableAnchor( const VECTOR2I& aPos ) const override
+    {
+        return m_isDangling && GetPosition() == aPos;
+    }
+
+    bool AutoRotateOnPlacementSupported() const override { return false; }
+
+private:
+    bool doIsConnected( const VECTOR2I& aPosition ) const override
+    {
+        return EDA_TEXT::GetTextPos() == aPosition;
+    }
+};
+
+
+class SCH_SIGNAL_LABEL : public SCH_LABEL_BASE
+{
+public:
+    SCH_SIGNAL_LABEL( const VECTOR2I& aPos = VECTOR2I( 0, 0 ), const wxString& aText = wxEmptyString );
+
+    ~SCH_SIGNAL_LABEL() { }
+
+    void Serialize( google::protobuf::Any &aContainer ) const override;
+    bool Deserialize( const google::protobuf::Any &aContainer ) override;
+
+    static inline bool ClassOf( const EDA_ITEM* aItem )
+    {
+        return aItem && SCH_SIGNAL_LABEL_T == aItem->Type();
+    }
+
+    wxString GetClass() const override
+    {
+        return wxT( "SCH_SIGNAL_LABEL" );
+    }
+
+    const BOX2I GetBodyBoundingBox( const RENDER_SETTINGS* aSettings ) const override;
+
+    bool IsConnectable() const override { return true; }
+
+    wxString GetItemDescription( UNITS_PROVIDER* aUnitsProvider, bool aFull ) const override;
+
+    BITMAPS GetMenuImage() const override;
+
+    bool IsReplaceable() const override { return true; }
+
+    EDA_ITEM* Clone() const override
+    {
+        return new SCH_SIGNAL_LABEL( *this );
     }
 
     bool IsPointClickableAnchor( const VECTOR2I& aPos ) const override

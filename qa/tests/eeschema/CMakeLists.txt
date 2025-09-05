@@ -63,6 +63,7 @@ set( QA_EESCHEMA_SRCS
     erc/test_erc_unconnected_wire_endpoints.cpp
     erc/test_erc_wire_bus_entry.cpp
     erc/test_erc_ground_pins.cpp
+    erc/test_erc_signal_pin_to_pin.cpp
 
     test_annotation_refdes_tracker_units.cpp
     test_annotation_units_conflicts.cpp
@@ -101,6 +102,10 @@ set( QA_EESCHEMA_SRCS
     test_resolve_drivers.cpp
     test_saveas_copy_subsheets.cpp
     test_update_items_connectivity.cpp
+    # Signals test suite (moved into signals/ subdirectory)
+    signals/test_signals.cpp
+    signals/test_signals_remove.cpp
+    signals/test_signals_branching.cpp
 )
 
 if( WIN32 )

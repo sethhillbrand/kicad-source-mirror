@@ -30,6 +30,7 @@
 #include <wx/arrstr.h>
 #include <json_common.h>
 #include <unordered_set>
+#include <map>
 
 #include <lib_id.h>
 #include <footprint.h>
@@ -320,6 +321,34 @@ public:
      */
     void AddGroup( NETLIST_GROUP* aGroup );
 
+    void SetNetSignal( const wxString& aNet, const wxString& aSignal )
+    {
+        m_netSignals[aNet] = aSignal;
+    }
+
+    void AddSignalTerminalPin( const wxString& aSignal, const wxString& aRef, const wxString& aPin )
+    {
+        m_signalTerminals[aSignal].emplace_back( aRef, aPin );
+    }
+
+    const std::vector<std::pair<wxString, wxString>>& GetSignalTerminals( const wxString& aSignal ) const
+    {
+        static const std::vector<std::pair<wxString, wxString>> empty;
+        auto it = m_signalTerminals.find( aSignal );
+        return it != m_signalTerminals.end() ? it->second : empty;
+    }
+
+    const std::map<wxString, std::vector<std::pair<wxString, wxString>>>& GetSignalTerminalPins() const
+    {
+        return m_signalTerminals;
+    }
+
+    wxString GetNetSignal( const wxString& aNet ) const
+    {
+        auto it = m_netSignals.find( aNet );
+        return it != m_netSignals.end() ? it->second : wxString();
+    }
+
     /**
      * @brief Return a #NETLIST_GROUP by \a aUuid.
      *
@@ -385,6 +414,8 @@ public:
 private:
     COMPONENTS m_components;          // Components found in the netlist.
     NETLIST_GROUPS m_groups;          // Groups found in the netlist.
+    std::map<wxString, wxString> m_netSignals;
+    std::map<wxString, std::vector<std::pair<wxString, wxString>>> m_signalTerminals;
 
 
     bool       m_findByTimeStamp;     // Associate components by KIID (or refdes if false)

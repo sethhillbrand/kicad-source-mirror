@@ -29,6 +29,7 @@
 #include <bitmap_base.h>
 #include <connection_graph.h>
 #include <gal/graphics_abstraction_layer.h>
+#include <sch_signal.h>
 #include <callback_gal.h>
 #include <geometry/shape_segment.h>
 #include <geometry/shape_rect.h>
@@ -54,6 +55,7 @@
 #include <sch_sheet.h>
 #include <sch_sheet_pin.h>
 #include <sch_text.h>
+#include <sch_label.h>
 #include <sch_textbox.h>
 #include <sch_table.h>
 #include <schematic.h>
@@ -181,6 +183,9 @@ void SCH_PAINTER::draw( const EDA_ITEM* aItem, int aLayer, bool aDimmed )
         break;
     case SCH_LABEL_T:
         draw( static_cast<const SCH_LABEL*>( aItem ), aLayer, aDimmed );
+        break;
+    case SCH_SIGNAL_LABEL_T:
+        draw( static_cast<const SCH_SIGNAL_LABEL*>( aItem ), aLayer, aDimmed );
         break;
     case SCH_DIRECTIVE_LABEL_T:
         draw( static_cast<const SCH_DIRECTIVE_LABEL*>( aItem ), aLayer, aDimmed );
@@ -535,6 +540,7 @@ float SCH_PAINTER::getTextThickness( const SCH_ITEM* aItem ) const
         break;
 
     case SCH_LABEL_T:
+    case SCH_SIGNAL_LABEL_T:
     case SCH_DIRECTIVE_LABEL_T:
     case SCH_GLOBAL_LABEL_T:
     case SCH_HIER_LABEL_T:
@@ -1707,6 +1713,22 @@ void SCH_PAINTER::draw( const SCH_PIN* aPin, int aLayer, bool aDimmed )
     {
         drawTextInfo( *elecTypeInfo, getColorForLayer( LAYER_PRIVATE_NOTES ) );
     }
+
+    if( aPin->IsBrightened() && m_schematic && !m_schematic->GetHighlightedSignal().IsEmpty() )
+    {
+        if( SCH_SIGNAL* sig = m_schematic->ConnectionGraph()->GetSignalByName( m_schematic->GetHighlightedSignal() ) )
+        {
+            if( sig->GetTerminalPinA() == aPin->m_Uuid || sig->GetTerminalPinB() == aPin->m_Uuid )
+            {
+                CIRCLE c = cache.GetDanglingIndicator();
+                m_gal->SetStrokeColor( color.Brightened( 0.5 ) );
+                m_gal->SetIsFill( false );
+                m_gal->SetIsStroke( true );
+                m_gal->SetLineWidth( getShadowWidth( true ) );
+                m_gal->DrawCircle( c.Center, c.Radius );
+            }
+        }
+    }
 }
 
 
@@ -2229,6 +2251,7 @@ void SCH_PAINTER::draw( const SCH_TEXT* aText, int aLayer, bool aDimmed )
     case SCH_GLOBAL_LABEL_T:    aLayer = LAYER_GLOBLABEL;                         break;
     case SCH_DIRECTIVE_LABEL_T: aLayer = LAYER_NETCLASS_REFS;                     break;
     case SCH_LABEL_T:           aLayer = LAYER_LOCLABEL;                          break;
+    case SCH_SIGNAL_LABEL_T:    aLayer = LAYER_LOCLABEL;                          break;
     case SCH_TEXT_T:            aLayer = aText->GetParentSymbol() ? LAYER_DEVICE
                                                                   : LAYER_NOTES;  break;
     default:                    aLayer = LAYER_NOTES;                             break;
@@ -2427,6 +2450,11 @@ void SCH_PAINTER::draw( const SCH_TEXT* aText, int aLayer, bool aDimmed )
         case SCH_LABEL_T:
             // Don't clutter things up if we're already showing a dangling indicator
             showAnchor = !static_cast<const SCH_LABEL*>( aText )->IsDangling();
+            break;
+
+        case SCH_SIGNAL_LABEL_T:
+            // Don't clutter things up if we're already showing a dangling indicator
+            showAnchor = !static_cast<const SCH_SIGNAL_LABEL*>( aText )->IsDangling();
             break;
 
         case SCH_DIRECTIVE_LABEL_T:
@@ -3070,6 +3098,45 @@ void SCH_PAINTER::draw( const SCH_GLOBALLABEL* aLabel, int aLayer, bool aDimmed 
 
 
 void SCH_PAINTER::draw( const SCH_LABEL* aLabel, int aLayer, bool aDimmed )
+{
+    bool drawingShadows = aLayer == LAYER_SELECTION_SHADOWS;
+
+    if( m_schSettings.IsPrinting() && drawingShadows )
+        return;
+
+    bool drawingDangling = aLayer == LAYER_DANGLING;
+
+    if( !drawingShadows || eeconfig()->m_Selection.draw_selected_children )
+    {
+        for( const SCH_FIELD& field : aLabel->GetFields() )
+            draw( &field, aLayer, false );
+    }
+
+    if( isFieldsLayer( aLayer ) )
+        return;
+
+    if( drawingShadows && !( aLabel->IsBrightened() || aLabel->IsSelected() ) )
+        return;
+
+    COLOR4D color = getRenderColor( aLabel, LAYER_HIERLABEL, drawingShadows, aDimmed, true );
+
+    if( drawingDangling )
+    {
+        if( aLabel->IsDangling() )
+        {
+            drawDanglingIndicator( aLabel->GetTextPos(), color,
+                                   schIUScale.MilsToIU( DANGLING_SYMBOL_SIZE / 2 ), true,
+                                   drawingShadows, aLabel->IsBrightened() );
+        }
+
+        return;
+    }
+
+    draw( static_cast<const SCH_TEXT*>( aLabel ), aLayer, false );
+}
+
+
+void SCH_PAINTER::draw( const SCH_SIGNAL_LABEL* aLabel, int aLayer, bool aDimmed )
 {
     bool drawingShadows = aLayer == LAYER_SELECTION_SHADOWS;
 

@@ -218,6 +218,7 @@ max_length
 max_width
 material
 members
+member
 micro
 mid
 min_thickness
@@ -234,6 +235,7 @@ net_class
 net_name
 net_tie_pad_groups
 nets
+signals
 no
 no_connects
 none
@@ -408,3 +410,5 @@ zone_layer_connections
 zone_type
 zone_defaults
 zones
+signal
+terminal_pad

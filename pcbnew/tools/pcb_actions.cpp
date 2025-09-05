@@ -1477,6 +1477,19 @@ TOOL_ACTION PCB_ACTIONS::highlightNetSelection( TOOL_ACTION_ARGS()
         .Icon( BITMAPS::net_highlight )
         .Parameter<int>( 0 ) );
 
+TOOL_ACTION PCB_ACTIONS::highlightSignal( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.EditorControl.highlightSignal" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Highlight Signal" ) )
+        .Tooltip( _( "Highlight all nets in the signal" ) )
+        .Icon( BITMAPS::net_highlight ) );
+
+TOOL_ACTION PCB_ACTIONS::setTerminalPad( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.EditorControl.setTerminalPad" )
+        .Scope( AS_GLOBAL )
+        .Parameter<std::pair<KIID, KIID>>( { niluuid, niluuid } )
+        .FriendlyName( _( "Set Terminal Pad" ) ) );
+
 TOOL_ACTION PCB_ACTIONS::highlightItem( TOOL_ACTION_ARGS()
         .Name( "pcbnew.EditorControl.highlightItem" )
         .Scope( AS_GLOBAL ) );
@@ -2684,6 +2697,7 @@ TOOL_ACTION PCB_ACTIONS::lengthTunerSettings( TOOL_ACTION_ARGS()
         .MenuText( _( "Length Tuning Settings..." ) )
         .Tooltip( _( "Displays tuning pattern properties dialog" ) )
         .Icon( BITMAPS::router_len_tuner_setup ) );
+
 
 TOOL_ACTION PCB_ACTIONS::ddAppendBoard( TOOL_ACTION_ARGS()
         .Name( "pcbnew.Control.DdAppendBoard" )
