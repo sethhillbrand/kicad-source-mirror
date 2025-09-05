@@ -956,7 +956,6 @@ XNODE* NETLIST_EXPORTER_XML::makeListOfNets( unsigned aCtl )
         for( const NET_NODE& netNode : net_record->m_Nodes )
         {
             wxString refText = netNode.m_Pin->GetParentSymbol()->GetRef( &netNode.m_Sheet );
-            wxString pinText = netNode.m_Pin->GetShownNumber();
 
             // Skip power symbols and virtual symbols
             if( refText[0] == wxChar( '#' ) )
@@ -974,21 +973,29 @@ XNODE* NETLIST_EXPORTER_XML::makeListOfNets( unsigned aCtl )
                 added = true;
             }
 
-            xnet->AddChild( xnode = node( wxT( "node" ) ) );
-            xnode->AddAttribute( wxT( "ref" ), refText );
-            xnode->AddAttribute( wxT( "pin" ), pinText );
+            std::vector<wxString> nums = netNode.m_Pin->GetStackedPinNumbers();
+            wxString              baseName = netNode.m_Pin->GetShownName();
+            wxString              pinType = netNode.m_Pin->GetCanonicalElectricalTypeName();
 
-            wxString pinName = netNode.m_Pin->GetShownName();
-            wxString pinType = netNode.m_Pin->GetCanonicalElectricalTypeName();
+            for( const wxString& num : nums )
+            {
+                xnet->AddChild( xnode = node( wxT( "node" ) ) );
+                xnode->AddAttribute( wxT( "ref" ), refText );
+                xnode->AddAttribute( wxT( "pin" ), num );
 
-            if( !pinName.IsEmpty() )
-                xnode->AddAttribute( wxT( "pinfunction" ), pinName );
+                wxString fullName = baseName.IsEmpty() ? num : baseName + wxT( "_" ) + num;
 
-            if( net_record->m_HasNoConnect
-                && ( net_record->m_Nodes.size() == 1 || allNetPinsStacked ) )
-                pinType += wxT( "+no_connect" );
+                if( !baseName.IsEmpty() || nums.size() > 1 )
+                    xnode->AddAttribute( wxT( "pinfunction" ), fullName );
 
-            xnode->AddAttribute( wxT( "pintype" ), pinType );
+                wxString typeAttr = pinType;
+
+                if( net_record->m_HasNoConnect
+                    && ( net_record->m_Nodes.size() == 1 || allNetPinsStacked ) )
+                    typeAttr += wxT( "+no_connect" );
+
+                xnode->AddAttribute( wxT( "pintype" ), typeAttr );
+            }
         }
     }
 

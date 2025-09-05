@@ -822,7 +822,16 @@ std::vector<SCH_PIN*> LIB_SYMBOL::GetPins() const
 
 int LIB_SYMBOL::GetPinCount()
 {
-    return (int) GetPins( 0 /* all units */, 1 /* single body style */ ).size();
+    int count = 0;
+
+    for( SCH_PIN* pin : GetPins( 0 /* all units */, 1 /* single body style */ ) )
+    {
+        bool                        valid;
+        std::vector<wxString> numbers = pin->GetStackedPinNumbers( &valid );
+        count += numbers.size();
+    }
+
+    return count;
 }
 
 

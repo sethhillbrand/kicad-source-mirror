@@ -176,7 +176,15 @@ std::vector<PIN_INFO> NETLIST_EXPORTER_BASE::CreatePinList( SCH_SYMBOL* aSymbol,
                         continue;
                 }
 
-                pins.emplace_back( pin->GetShownNumber(), netName );
+                bool                        valid;
+                std::vector<wxString> numbers = pin->GetStackedPinNumbers( &valid );
+                wxString                     baseName = pin->GetShownName();
+
+                for( const wxString& num : numbers )
+                {
+                    wxString pinName = baseName.IsEmpty() ? num : baseName + wxT( "_" ) + num;
+                    pins.emplace_back( num, netName, pinName );
+                }
             }
         }
     }
@@ -266,7 +274,15 @@ void NETLIST_EXPORTER_BASE::findAllUnitsOfSymbol( SCH_SYMBOL* aSchSymbol,
                             continue;
                     }
 
-                    aPins.emplace_back( pin->GetShownNumber(), netName );
+                    bool                        valid;
+                    std::vector<wxString> numbers = pin->GetStackedPinNumbers( &valid );
+                    wxString                     baseName = pin->GetShownName();
+
+                    for( const wxString& num : numbers )
+                    {
+                        wxString pinName = baseName.IsEmpty() ? num : baseName + wxT( "_" ) + num;
+                        aPins.emplace_back( num, netName, pinName );
+                    }
                 }
             }
         }

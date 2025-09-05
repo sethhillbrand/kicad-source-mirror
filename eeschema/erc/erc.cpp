@@ -1298,6 +1298,44 @@ int ERC_TESTER::TestGroundPins()
 }
 
 
+int ERC_TESTER::TestStackedPinNotation()
+{
+    int warnings = 0;
+
+    for( const SCH_SHEET_PATH& sheet : m_sheetList )
+    {
+        SCH_SCREEN* screen = sheet.LastScreen();
+
+        for( SCH_ITEM* item : screen->Items().OfType( SCH_SYMBOL_T ) )
+        {
+            SCH_SYMBOL* symbol = static_cast<SCH_SYMBOL*>( item );
+
+            for( SCH_PIN* pin : symbol->GetPins( &sheet ) )
+            {
+                bool valid;
+                pin->GetStackedPinNumbers( &valid );
+
+                if( !valid )
+                {
+                    std::shared_ptr<ERC_ITEM> ercItem =
+                            ERC_ITEM::Create( ERCE_STACKED_PIN_SYNTAX );
+                    ercItem->SetItems( pin );
+                    ercItem->SetSheetSpecificPath( sheet );
+                    ercItem->SetItemsSheetPaths( sheet );
+
+                    SCH_MARKER* marker =
+                            new SCH_MARKER( std::move( ercItem ), pin->GetPosition() );
+                    screen->Append( marker );
+                    warnings++;
+                }
+            }
+        }
+    }
+
+    return warnings;
+}
+
+
 int ERC_TESTER::TestSameLocalGlobalLabel()
 {
     int errCount = 0;
@@ -1963,6 +2001,9 @@ void ERC_TESTER::RunTests( DS_PROXY_VIEW_ITEM* aDrawingSheet, SCH_EDIT_FRAME* aE
 
     if( m_settings.IsTestEnabled( ERCE_GROUND_PIN_NOT_GROUND ) )
         TestGroundPins();
+
+    if( m_settings.IsTestEnabled( ERCE_STACKED_PIN_SYNTAX ) )
+        TestStackedPinNotation();
 
     // Test similar labels (i;e. labels which are identical when
     // using case insensitive comparisons)

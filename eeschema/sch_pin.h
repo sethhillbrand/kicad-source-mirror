@@ -24,6 +24,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <pin_type.h>
 #include <sch_item.h>
@@ -122,6 +123,7 @@ public:
 
     const wxString& GetNumber() const { return m_number; }
     wxString GetShownNumber() const;
+    std::vector<wxString> GetStackedPinNumbers( bool* aValid = nullptr ) const;
     void SetNumber( const wxString& aNumber );
 
     int GetNameTextSize() const;

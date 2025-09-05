@@ -538,6 +538,87 @@ wxString SCH_PIN::GetShownNumber() const
 }
 
 
+std::vector<wxString> SCH_PIN::GetStackedPinNumbers( bool* aValid ) const
+{
+    if( aValid )
+        *aValid = true;
+
+    std::vector<wxString> numbers;
+    wxString shown = GetShownNumber();
+    bool looksStacked = shown.Contains( wxT( '[' ) ) || shown.Contains( wxT( ']' ) )
+                        || shown.Contains( wxT( ',' ) ) || shown.Contains( wxT( '-' ) );
+
+    if( shown.StartsWith( wxT( "[" ) ) && shown.EndsWith( wxT( "]" ) ) )
+    {
+        wxString inner = shown.Mid( 1, shown.Length() - 2 );
+        wxStringTokenizer tok( inner, wxT( "," ) );
+
+        while( tok.HasMoreTokens() )
+        {
+            wxString part = tok.GetNextToken();
+            part.Trim( true ).Trim( false );
+
+            if( part.Contains( wxT( '-' ) ) )
+            {
+                wxStringTokenizer rangeTok( part, wxT( "-" ) );
+
+                if( rangeTok.CountTokens() != 2 )
+                {
+                    if( aValid )
+                        *aValid = false;
+                    numbers.clear();
+                    break;
+                }
+
+                wxString startTxt = rangeTok.GetNextToken();
+                wxString endTxt   = rangeTok.GetNextToken();
+                long     startVal;
+                long     endVal;
+
+                if( !startTxt.ToLong( &startVal ) || !endTxt.ToLong( &endVal ) || startVal > endVal )
+                {
+                    if( aValid )
+                        *aValid = false;
+                    numbers.clear();
+                    break;
+                }
+
+                for( long ii = startVal; ii <= endVal; ++ii )
+                    numbers.emplace_back( wxString::Format( wxT( "%ld" ), ii ) );
+            }
+            else
+            {
+                if( part.IsEmpty() )
+                {
+                    if( aValid )
+                        *aValid = false;
+                    numbers.clear();
+                    break;
+                }
+
+                numbers.push_back( part );
+            }
+        }
+
+        if( numbers.empty() )
+        {
+            numbers.push_back( shown );
+            if( aValid )
+                *aValid = false;
+        }
+    }
+    else
+    {
+        numbers.push_back( shown );
+
+        if( aValid && looksStacked )
+            *aValid = false;
+    }
+
+    return numbers;
+}
+
+
 void SCH_PIN::SetNumber( const wxString& aNumber )
 {
     if( m_number == aNumber )
