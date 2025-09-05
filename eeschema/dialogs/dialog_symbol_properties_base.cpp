@@ -218,8 +218,21 @@ DIALOG_SYMBOL_PROPERTIES_BASE::DIALOG_SYMBOL_PROPERTIES_BASE( wxWindow* parent, 
 
 	sbAttributes->Add( m_cbExcludeFromBoard, 0, wxBOTTOM|wxRIGHT|wxLEFT, 5 );
 
-	m_cbDNP = new wxCheckBox( sbAttributes->GetStaticBox(), wxID_ANY, _("Do not populate"), wxDefaultPosition, wxDefaultSize, 0 );
-	sbAttributes->Add( m_cbDNP, 0, wxBOTTOM|wxLEFT|wxRIGHT, 5 );
+        m_cbDNP = new wxCheckBox( sbAttributes->GetStaticBox(), wxID_ANY, _("Do not populate"), wxDefaultPosition, wxDefaultSize, 0 );
+        sbAttributes->Add( m_cbDNP, 0, wxBOTTOM|wxLEFT|wxRIGHT, 5 );
+
+		{
+			wxBoxSizer* ptSizer = new wxBoxSizer( wxHORIZONTAL );
+			wxStaticText* ptLabel = new wxStaticText( sbAttributes->GetStaticBox(), wxID_ANY, _("Passthrough"), wxDefaultPosition, wxDefaultSize, 0 );
+			ptSizer->Add( ptLabel, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5 );
+			m_choicePassthrough = new wxChoice( sbAttributes->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize );
+			m_choicePassthrough->Append( _( "Default" ) );
+			m_choicePassthrough->Append( _( "Block" ) );
+			m_choicePassthrough->Append( _( "Force" ) );
+			m_choicePassthrough->SetSelection( 0 );
+			ptSizer->Add( m_choicePassthrough, 1, wxEXPAND );
+			sbAttributes->Add( ptSizer, 0, wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND, 5 );
+		}
 
 
 	bMiddleCol->Add( sbAttributes, 1, wxEXPAND|wxRIGHT|wxLEFT, 5 );

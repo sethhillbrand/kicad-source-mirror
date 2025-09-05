@@ -31,6 +31,8 @@
 #include <sch_collectors.h>
 #include <sch_selection_tool.h>
 #include <sch_base_frame.h>
+#include <connection_graph.h>
+#include <sch_signal.h>
 #include <eeschema_id.h>
 #include <symbol_edit_frame.h>
 #include <symbol_viewer_frame.h>
@@ -151,6 +153,257 @@ SELECTION_CONDITION SCH_CONDITIONS::AllPinsOrSheetPins = []( const SELECTION& aS
 {
     return aSel.GetSize() >= 1 && aSel.OnlyContains( { SCH_PIN_T, SCH_SHEET_PIN_T } );
 };
+
+enum
+{
+    ID_REPLACE_TERMINAL_PIN_A = wxID_HIGHEST + 2000,
+    ID_REPLACE_TERMINAL_PIN_B
+};
+
+class REPLACE_TERMINAL_PIN_MENU : public ACTION_MENU
+{
+public:
+    REPLACE_TERMINAL_PIN_MENU() : ACTION_MENU( true )
+    {
+        SetTitle( _( "Replace terminal pin" ) );
+    }
+
+protected:
+    ACTION_MENU* create() const override { return new REPLACE_TERMINAL_PIN_MENU(); }
+
+    void update() override
+    {
+        Clear();
+
+        TOOL_MANAGER* toolMgr = getToolManager();
+        if( !toolMgr )
+            return;
+
+        SCH_SELECTION_TOOL* selTool = toolMgr->GetTool<SCH_SELECTION_TOOL>();
+        if( !selTool )
+            return;
+
+        const SELECTION& sel = selTool->GetSelection();
+        if( sel.Empty() )
+            return;
+
+        SCH_PIN* pin = dynamic_cast<SCH_PIN*>( sel.Front() );
+        SCH_EDIT_FRAME* frame = static_cast<SCH_EDIT_FRAME*>( toolMgr->GetToolHolder() );
+
+        if( !pin || !frame || !pin->Connection() )
+            return;
+
+        CONNECTION_GRAPH* graph = frame->Schematic().ConnectionGraph();
+        if( !graph )
+            return;
+
+        if( SCH_NETCHAIN* sig = graph->GetNetChainForNet( pin->Connection()->Name() ) )
+        {
+            m_oldA = sig->GetTerminalPinA();
+            m_oldB = sig->GetTerminalPinB();
+            m_new = pin->m_Uuid;
+
+            wxMenuItem* itemA = Append( ID_REPLACE_TERMINAL_PIN_A, _( "Terminal A" ) );
+            wxMenuItem* itemB = Append( ID_REPLACE_TERMINAL_PIN_B, _( "Terminal B" ) );
+
+            if( m_oldA == m_new )
+                itemA->Enable( false );
+
+            if( m_oldB == m_new )
+                itemB->Enable( false );
+        }
+    }
+
+    OPT_TOOL_EVENT eventHandler( const wxMenuEvent& aEvent ) override
+    {
+        if( aEvent.GetId() == ID_REPLACE_TERMINAL_PIN_A )
+        {
+            TOOL_EVENT te = SCH_ACTIONS::replaceTerminalPin.MakeEvent();
+            te.SetParameter( std::make_pair( m_oldA.AsString(), m_new.AsString() ) );
+            return te;
+        }
+        else if( aEvent.GetId() == ID_REPLACE_TERMINAL_PIN_B )
+        {
+            TOOL_EVENT te = SCH_ACTIONS::replaceTerminalPin.MakeEvent();
+            te.SetParameter( std::make_pair( m_oldB.AsString(), m_new.AsString() ) );
+            return te;
+        }
+
+        return OPT_TOOL_EVENT();
+    }
+
+private:
+    KIID m_oldA;
+    KIID m_oldB;
+    KIID m_new;
+};
+
+// Forward declaration of helper used inside NETCHAINS_MENU::update
+class NETCHAINS_MENU;
+static bool addCreateNetChainBetweenPinsIfApplicable( NETCHAINS_MENU* aMenu, SCH_EDIT_FRAME* aFrame, const SCH_SELECTION& aSel );
+
+class NETCHAINS_MENU : public ACTION_MENU
+{
+public:
+    NETCHAINS_MENU() : ACTION_MENU( true )
+    {
+        SetTitle( _( "Net Chains..." ) );
+        m_replaceMenu = new REPLACE_TERMINAL_PIN_MENU();
+    }
+
+protected:
+    ACTION_MENU* create() const override { return new NETCHAINS_MENU(); }
+
+    void update() override
+    {
+        Clear();
+
+        wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] update() invoked" );
+
+        TOOL_MANAGER* toolMgr = getToolManager();
+        if( !toolMgr )
+        {
+            // Defer population; parent UpdateAll() will re-run us after SetTool().
+            SetDirty();
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] defer: toolMgr not yet available" );
+            return;
+        }
+
+        SCH_SELECTION_TOOL* selTool = static_cast<SCH_SELECTION_TOOL*>( m_tool );
+        SCH_EDIT_FRAME*      frame   = static_cast<SCH_EDIT_FRAME*>( toolMgr->GetToolHolder() );
+        if( !selTool || !frame )
+        {
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] abort: selTool=%p frame=%p", (void*) selTool, (void*) frame );
+            return;
+        }
+
+        const SCH_SELECTION& sel = selTool->GetSelection();
+        if( sel.Empty() )
+        {
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] abort: empty selection" );
+            return; // nothing to show
+        }
+
+        wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] selection size=%u", sel.GetSize() );
+
+        CONNECTION_GRAPH* graph = frame->Schematic().ConnectionGraph();
+        if( !graph )
+        {
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] abort: no connection graph" );
+            return;
+        }
+
+        auto pinFrom = [&]( int idx ) -> SCH_PIN*
+        {
+            if( idx >= (int) sel.GetSize() )
+                return nullptr;
+            return dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( sel[idx] ) );
+        };
+
+        // Determine context flags
+        bool singlePin = sel.GetSize() == 1 && pinFrom( 0 ) && pinFrom( 0 )->Connection();
+        bool inNetChain  = false; // at least one selected item participates in a committed net chain
+        bool canName   = false; // we can rename a net chain (single pin with committed net chain)
+        bool canRemove = false; // we can remove an item from its net chain
+
+        // Evaluate selection items
+        for( size_t i = 0; i < sel.GetSize(); ++i )
+        {
+            SCH_PIN* p = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( sel[i] ) );
+            if( !p || !p->Connection() )
+            {
+                wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] sel[%zu]: not a pin or no connection", i );
+                continue;
+            }
+
+            wxString netName = p->Connection()->Name();
+            bool hasNetChain = graph->GetNetChainForNet( netName );
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] sel[%zu]: pin uuid=%s net=%s committedNetChain=%d", i,
+                        p->m_Uuid.AsString(), netName, hasNetChain );
+            if( graph->GetNetChainForNet( p->Connection()->Name() ) )
+            {
+                inNetChain = true;
+                canRemove = true; // current remove handler works on a pin in a net chain
+
+                if( sel.GetSize() == 1 )
+                    canName = true; // nameNetChain expects single pin selected
+            }
+        }
+
+        wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] flags: singlePin=%d inNetChain=%d canName=%d canRemove=%d", singlePin, inNetChain, canName, canRemove );
+
+        // highlightNetChain action: only if we have a committed net chain context
+        if( inNetChain )
+        {
+            Add( SCH_ACTIONS::highlightNetChain );
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] added highlightNetChain" );
+        }
+
+        // removeFromNetChain action
+        if( canRemove )
+        {
+            Add( SCH_ACTIONS::removeFromNetChain );
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] added removeFromNetChain" );
+        }
+
+        // Replace terminal pin submenu only when a single pin belonging to a net chain is selected
+        if( singlePin && inNetChain )
+        {
+            Add( m_replaceMenu );
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] added replaceTerminalPin submenu" );
+        }
+
+        // nameNetChain action
+        if( canName )
+        {
+            Add( SCH_ACTIONS::nameNetChain );
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] added nameNetChain" );
+        }
+
+        // createNetChainBetweenPins: two pins selected, share potential (uncommitted) net chain
+        if( sel.GetSize() == 2 )
+        {
+            bool added = addCreateNetChainBetweenPinsIfApplicable( this, frame, sel );
+            wxLogTrace( "KICAD_NETCHAINS_MENU", "[NetChainsMenu] createNetChainBetweenPins attempted added=%d", added );
+        }
+
+        // If nothing ended up enabled, leave a placeholder disabled item to make it
+        // obvious to the user that the submenu exists but just has no applicable
+        // actions for the current selection.
+        if( !HasEnabledItems() )
+        {
+            wxMenuItem* placeholder = Append( wxID_ANY, _( "(No net chain actions)" ) );
+            placeholder->Enable( false );
+        }
+    }
+
+private:
+    REPLACE_TERMINAL_PIN_MENU* m_replaceMenu;
+};
+
+// Extend net chains menu dynamically with createNetChainBetweenPins when two pins are selected
+static bool addCreateNetChainBetweenPinsIfApplicable( NETCHAINS_MENU* aMenu, SCH_EDIT_FRAME* aFrame, const SCH_SELECTION& aSel )
+{
+    if( aSel.GetSize() != 2 )
+        return false;
+
+    SCH_PIN* pa = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( aSel[0] ) );
+    SCH_PIN* pb = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( aSel[1] ) );
+    if( !pa || !pb )
+        return false;
+
+    CONNECTION_GRAPH* graph = aFrame->Schematic().ConnectionGraph();
+
+    if( graph->FindPotentialNetChainBetweenPins( pa, pb ) )
+    {
+        wxString label = wxString::Format( _( "Create Net Chain between %s:%s and %s:%s" ),
+                                           pa->GetParentSymbol()->GetRef( &aFrame->GetCurrentSheet() ), pa->GetNumber(),
+                                           pb->GetParentSymbol()->GetRef( &aFrame->GetCurrentSheet() ), pb->GetNumber() );
+        aMenu->Add( SCH_ACTIONS::createNetChainBetweenPins )->SetItemLabel( label );
+        return true;
+    }
+    return false;
+}
 
 
 static void passEvent( TOOL_EVENT* const aEvent, const TOOL_ACTION* const aAllowedActions[] )
@@ -318,6 +571,40 @@ bool SCH_SELECTION_TOOL::Init()
 
     auto& menu = m_menu->GetMenu();
 
+    SELECTION_CONDITION pinSelection = []( const SELECTION& aSel )
+    {
+    // Allow the Signals... submenu for any selection consisting solely of pins (one or more).
+    // Previously this was restricted to exactly one pin, which prevented showing the menu
+    // (and thus the "Create Signal between ..." action) when exactly two pins were selected.
+    return aSel.GetSize() >= 1 && aSel.OnlyContains( { SCH_PIN_T } );
+    };
+
+    // Also expose Signals menu when right-clicking a single wire or bus that belongs to a signal
+    SELECTION_CONDITION wireOrBusInSignal = []( const SELECTION& aSel )
+    {
+        if( aSel.GetSize() != 1 )
+            return false;
+
+        EDA_ITEM* item = aSel.Front();
+
+        if( !item )
+            return false;
+
+        if( item->Type() != SCH_ITEM_LOCATE_WIRE_T && item->Type() != SCH_ITEM_LOCATE_BUS_T )
+            return false;
+
+        SCH_ITEM* schItem = static_cast<SCH_ITEM*>( item );
+
+        if( !schItem->Connection() )
+            return false;
+
+        return true; // Allow menu; handlers will rebuild/validate as needed
+    };
+
+    std::shared_ptr<NETCHAINS_MENU> netchainsMenu = std::make_shared<NETCHAINS_MENU>();
+    netchainsMenu->SetTool( this );
+    m_menu->RegisterSubMenu( netchainsMenu );
+
     // clang-format off
     menu.AddItem( ACTIONS::groupEnter,                groupEnterCondition, 1 );
     menu.AddItem( ACTIONS::groupLeave,                inGroupCondition,    1 );
@@ -361,6 +648,7 @@ bool SCH_SELECTION_TOOL::Init()
     menu.AddSeparator( 400 );
     menu.AddItem( SCH_ACTIONS::symbolProperties,      haveSymbol && SCH_CONDITIONS::Empty, 400 );
     menu.AddItem( SCH_ACTIONS::pinTable,              haveSymbol && SCH_CONDITIONS::Empty, 400 );
+    menu.AddMenu( netchainsMenu.get(),                 ( pinSelection || wireOrBusInSignal ) && SCH_CONDITIONS::Idle, 400 );
 
     menu.AddSeparator( 1000 );
     m_frame->AddStandardSubMenus( *m_menu.get() );

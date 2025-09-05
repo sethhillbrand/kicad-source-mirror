@@ -20,6 +20,7 @@
  */
 
 #include <optional>
+#include <algorithm>
 
 #include "pns_node.h"
 #include "pns_itemset.h"
@@ -601,11 +602,25 @@ void DP_MEANDER_PLACER::calculateTimeDomainTargets()
     // If this is a time domain tuning, calculate the target length for the desired total delay
     if( m_settings.m_isTimeDomain )
     {
-        const int64_t curDelay = origPathDelay();
+        const int64_t curDelayNetChain = origPathDelay();
+        const int64_t curDelayPair = curDelayNetChain - m_settings.m_netChainExtraDelay; // subtract other nets
 
-        const int64_t desiredDelayMin = m_settings.m_targetLengthDelay.Min();
-        const int64_t desiredDelayOpt = m_settings.m_targetLengthDelay.Opt();
-        const int64_t desiredDelayMax = m_settings.m_targetLengthDelay.Max();
+        bool useNetChainTarget = ( m_settings.m_targetNetChainLengthDelay.Opt() != MEANDER_SETTINGS::DELAY_UNCONSTRAINED );
+        const MINOPTMAX<long long int>& targetDelaySet = useNetChainTarget ? m_settings.m_targetNetChainLengthDelay
+                                                                         : m_settings.m_targetLengthDelay;
+
+        int64_t desiredDelayMin = targetDelaySet.Min();
+        int64_t desiredDelayOpt = targetDelaySet.Opt();
+        int64_t desiredDelayMax = targetDelaySet.Max();
+
+        if( useNetChainTarget )
+        {
+            desiredDelayMin = std::max<int64_t>( 0, desiredDelayMin - m_settings.m_netChainExtraDelay );
+            desiredDelayOpt = std::max<int64_t>( 0, desiredDelayOpt - m_settings.m_netChainExtraDelay );
+            desiredDelayMax = std::max<int64_t>( desiredDelayOpt, desiredDelayMax - m_settings.m_netChainExtraDelay );
+        }
+
+        const int64_t curDelay = useNetChainTarget ? curDelayPair : curDelayNetChain;
 
         const int64_t delayDifferenceOpt = desiredDelayOpt - curDelay;
 

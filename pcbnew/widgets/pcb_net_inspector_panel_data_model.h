@@ -36,7 +36,8 @@ public:
     {
         NONE,
         USER_DEFINED,
-        NETCLASS
+        NETCLASS,
+        NET_CHAIN
     };
 
     LIST_ITEM( unsigned int aGroupNumber, const wxString& aGroupName, GROUP_TYPE aGroupType ) :
@@ -55,6 +56,7 @@ public:
         wxASSERT( aNet );
         m_net_name = UnescapeString( aNet->GetNetname() );
         m_net_class = UnescapeString( aNet->GetNetClass()->GetHumanReadableName() );
+        m_signal_name = UnescapeString( aNet->GetNetChain() );
         m_column_changed.resize( COLUMN_LAST_STATIC_COL + 1 + 2, 0 );
     }
 
@@ -88,6 +90,7 @@ public:
 
     const wxString& GetNetName() const { return m_net_name; }
     const wxString& GetNetclassName() const { return m_net_class; }
+    const wxString& GetNetChainName() const { return m_signal_name; }
 
     void ResetColumnChangedBits()
     {
@@ -105,6 +108,14 @@ public:
 
         m_column_changed[COLUMN_PAD_COUNT] |= ( m_pad_count != aValue );
         m_pad_count = aValue;
+    }
+
+    bool NetChainNameChanged() const { return m_column_changed[COLUMN_NET_CHAIN]; }
+
+    void SetNetChainName( const wxString& aValue )
+    {
+        m_column_changed[COLUMN_NET_CHAIN] |= ( m_signal_name != aValue );
+        m_signal_name = aValue;
     }
 
     void AddPadCount( unsigned int aValue )
@@ -367,6 +378,16 @@ public:
         m_pad_die_length -= aValue;
     }
 
+    int64_t GetNetChainLength() const { return m_signal_length; }
+
+    bool NetChainLengthChanged() const { return m_column_changed[COLUMN_NET_CHAIN_LENGTH]; }
+
+    void SetNetChainLength( int64_t aValue )
+    {
+        m_column_changed[COLUMN_NET_CHAIN_LENGTH] |= ( m_signal_length != aValue );
+        m_signal_length = aValue;
+    }
+
     int64_t GetPadDieDelay() const { return m_pad_die_delay; }
 
     void SetPadDieDelay( int64_t aValue )
@@ -471,6 +492,7 @@ private:
     int64_t       m_via_delay = 0;
     int64_t       m_pad_die_length = 0;
     int64_t       m_pad_die_delay = 0;
+    int64_t       m_signal_length = 0;
 
     std::map<PCB_LAYER_ID, int64_t> m_layer_wire_length{};
     std::map<PCB_LAYER_ID, int64_t> m_layer_wire_delay{};
@@ -484,6 +506,7 @@ private:
     // cached formatted names for faster display sorting
     wxString m_net_name;
     wxString m_net_class;
+    wxString m_signal_name;
     wxString m_group_name;
 };
 
@@ -643,6 +666,23 @@ public:
             }
         }
 
+        // Then add any net chain groups required by this item
+        if( m_parent.m_groupByNetChain && !groupMatched )
+        {
+            LIST_ITEM_ITER groups_begin = m_items.begin();
+            LIST_ITEM_ITER groups_end = std::find_if_not( m_items.begin(), m_items.end(),
+                                                          []( const std::unique_ptr<LIST_ITEM>& x )
+                                                          {
+                                                              return x->GetIsGroup();
+                                                          } );
+
+            wxString match_str = aItem->GetNetChainName();
+            LIST_ITEM* group = addGroup( groups_begin, groups_end, match_str,
+                                         LIST_ITEM::GROUP_TYPE::NET_CHAIN );
+            aItem->SetParent( group );
+            groupMatched = true;
+        }
+
         // Then add any netclass groups required by this item
         if( m_parent.m_groupByNetclass && !groupMatched )
         {
@@ -656,6 +696,7 @@ public:
             wxString match_str = aItem->GetNetclassName();
             LIST_ITEM* group = addGroup( groups_begin, groups_end, match_str, LIST_ITEM::GROUP_TYPE::NETCLASS );
             aItem->SetParent( group );
+            groupMatched = true;
         }
 
         // Now add the item itself. Usually when new nets are added,
@@ -698,7 +739,9 @@ public:
         {
             ItemChanged( wxDataViewItem( parent ) );
 
-            if( m_parent.m_groupByNetclass && parent != nullptr && parent->ChildrenCount() == 0 )
+            if( parent != nullptr && parent->ChildrenCount() == 0
+                && ( ( m_parent.m_groupByNetclass && parent->GetGroupType() == LIST_ITEM::GROUP_TYPE::NETCLASS )
+                     || ( m_parent.m_groupByNetChain && parent->GetGroupType() == LIST_ITEM::GROUP_TYPE::NET_CHAIN ) ) )
             {
                 auto p = std::find_if( m_items.begin(), m_items.end(),
                                        [&]( std::unique_ptr<LIST_ITEM>& x )
@@ -849,6 +892,11 @@ protected:
                     aOutValue = i->GetNetName();
                 }
             }
+
+            else if( aCol == COLUMN_NET_CHAIN )
+            {
+                aOutValue = i->GetNetChainName();
+            }
             else if( aCol == COLUMN_NETCLASS )
             {
                 aOutValue = i->GetNetclassName();
@@ -888,6 +936,10 @@ protected:
                     aOutValue = m_parent.formatDelay( i->GetTotalDelay() );
                 else
                     aOutValue = m_parent.formatLength( i->GetTotalLength() );
+            }
+            else if( aCol == COLUMN_NET_CHAIN_LENGTH )
+            {
+                aOutValue = m_parent.formatLength( i->GetNetChainLength() );
             }
             else if( aCol > COLUMN_LAST_STATIC_COL && aCol <= m_parent.m_columns.size() )
             {
@@ -943,6 +995,16 @@ protected:
             if( res != 0 )
                 return res;
         }
+        else if( aCol == COLUMN_NET_CHAIN )
+        {
+            const wxString& s1 = i1.GetNetChainName();
+            const wxString& s2 = i2.GetNetChainName();
+            int res = aAsc ? ValueStringCompare( s1, s2 ) : ValueStringCompare( s2, s1 );
+
+            if( res != 0 )
+                return res;
+        }
+
         else if( aCol == COLUMN_PAD_COUNT && i1.GetPadCount() != i2.GetPadCount() )
         {
             return compareUInt( i1.GetPadCount(), i2.GetPadCount(), aAsc );
@@ -982,6 +1044,10 @@ protected:
 
             if( !m_show_time_domain_details && i1.GetTotalLength() != i2.GetTotalLength() )
                 return compareUInt( i1.GetTotalLength(), i2.GetTotalLength(), aAsc );
+        }
+        else if( aCol == COLUMN_NET_CHAIN_LENGTH && i1.GetNetChainLength() != i2.GetNetChainLength() )
+        {
+            return compareUInt( i1.GetNetChainLength(), i2.GetNetChainLength(), aAsc );
         }
         else if( aCol > COLUMN_LAST_STATIC_COL && aCol < m_parent.m_columns.size() )
         {

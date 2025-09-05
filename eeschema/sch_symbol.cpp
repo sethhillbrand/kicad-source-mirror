@@ -72,6 +72,8 @@ SCH_SYMBOL::SCH_SYMBOL() :
         SYMBOL( nullptr, SCH_SYMBOL_T )
 {
     Init( VECTOR2I( 0, 0 ) );
+    m_passthroughMode = PASSTHROUGH_MODE::DEFAULT;
+    m_signalName.clear();
 }
 
 
@@ -110,6 +112,8 @@ SCH_SYMBOL::SCH_SYMBOL( const LIB_SYMBOL& aSymbol, const LIB_ID& aLibId,
     m_excludedFromSim = m_part->GetExcludedFromSim();
     m_excludedFromBOM = m_part->GetExcludedFromBOM();
     m_excludedFromBoard = m_part->GetExcludedFromBoard();
+    m_passthroughMode = PASSTHROUGH_MODE::DEFAULT;
+    m_signalName.clear();
 }
 
 
@@ -145,6 +149,8 @@ SCH_SYMBOL::SCH_SYMBOL( const SCH_SYMBOL& aSymbol ) :
     m_prefix = aSymbol.m_prefix;
     m_instanceReferences = aSymbol.m_instanceReferences;
     m_fields = aSymbol.m_fields;
+    m_passthroughMode = aSymbol.m_passthroughMode;
+    m_signalName = aSymbol.m_signalName;
 
     // Re-parent the fields, which before this had aSymbol as parent
     for( SCH_FIELD& field : m_fields )
@@ -199,6 +205,8 @@ void SCH_SYMBOL::Init( const VECTOR2I& pos )
 
     m_prefix = wxString( wxT( "U" ) );
     m_isInNetlist = true;
+    m_passthroughMode = PASSTHROUGH_MODE::DEFAULT;
+    m_signalName.clear();
 }
 
 

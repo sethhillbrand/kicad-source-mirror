@@ -23,6 +23,7 @@
 #include <algorithm>
 
 #include <fmt/format.h>
+#include <magic_enum.hpp>
 
 #include <wx/log.h>
 #include <wx/mstream.h>
@@ -51,6 +52,7 @@
 #include <sch_rule_area.h>
 #include <sch_screen.h>
 #include <sch_shape.h>
+#include <sch_signal.h>
 #include <sch_sheet.h>
 #include <sch_sheet_pin.h>
 #include <sch_symbol.h>
@@ -61,6 +63,7 @@
 #include <string_utils.h>
 #include <symbol_lib_table.h>  // for PropPowerSymsOnly definition.
 #include <trace_helpers.h>
+#include <connection_graph.h>
 
 using namespace TSCHEMATIC_T;
 
@@ -315,6 +318,9 @@ void SCH_IO_KICAD_SEXPR::loadFile( const wxString& aFileName, SCH_SHEET* aSheet 
                                       m_appending );
 
     parser.ParseSchematic( aSheet );
+
+    if( m_schematic && m_schematic->ConnectionGraph() )
+        m_schematic->ConnectionGraph()->SetNetChainTerminalOverrides( parser.GetNetChainTerminals() );
 }
 
 
@@ -325,6 +331,9 @@ void SCH_IO_KICAD_SEXPR::LoadContent( LINE_READER& aReader, SCH_SHEET* aSheet, i
     SCH_IO_KICAD_SEXPR_PARSER parser( &aReader );
 
     parser.ParseSchematic( aSheet, true, aFileVersion );
+
+    if( m_schematic && m_schematic->ConnectionGraph() )
+        m_schematic->ConnectionGraph()->SetNetChainTerminalOverrides( parser.GetNetChainTerminals() );
 }
 
 
@@ -468,6 +477,7 @@ void SCH_IO_KICAD_SEXPR::Format( SCH_SHEET* aSheet )
         case SCH_GLOBAL_LABEL_T:
         case SCH_HIER_LABEL_T:
         case SCH_DIRECTIVE_LABEL_T:
+        case SCH_NETCHAIN_LABEL_T:
             saveText( static_cast<SCH_TEXT*>( item ) );
             break;
 
@@ -486,6 +496,15 @@ void SCH_IO_KICAD_SEXPR::Format( SCH_SHEET* aSheet )
         default:
             wxASSERT( "Unexpected schematic object type in SCH_IO_KICAD_SEXPR::Format()" );
         }
+    }
+
+    for( const auto& ncPtr : m_schematic->ConnectionGraph()->GetNetChains() )
+    {
+        const SCH_NETCHAIN& nc = *ncPtr;
+        m_out->Print( "(net_chain %s ", m_out->Quotew( nc.GetName() ).c_str() );
+        KICAD_FORMAT::FormatUuid( m_out, nc.GetTerminalPinA() );
+        KICAD_FORMAT::FormatUuid( m_out, nc.GetTerminalPinB() );
+        m_out->Print( ")" );
     }
 
     if( aSheet->HasRootInstance() )
@@ -600,6 +619,7 @@ void SCH_IO_KICAD_SEXPR::Format( SCH_SELECTION* aSelection, SCH_SHEET_PATH* aSel
         case SCH_GLOBAL_LABEL_T:
         case SCH_HIER_LABEL_T:
         case SCH_DIRECTIVE_LABEL_T:
+        case SCH_NETCHAIN_LABEL_T:
             saveText( static_cast<SCH_TEXT*>( item ) );
             break;
 
@@ -736,6 +756,16 @@ void SCH_IO_KICAD_SEXPR::saveSymbol( SCH_SYMBOL* aSymbol, const SCHEMATIC& aSche
     KICAD_FORMAT::FormatBool( m_out, "in_bom", !aSymbol->GetExcludedFromBOM() );
     KICAD_FORMAT::FormatBool( m_out, "on_board", !aSymbol->GetExcludedFromBoard() );
     KICAD_FORMAT::FormatBool( m_out, "dnp", ordinalInstance.m_DNP );
+    // Persist passthrough mode as enum string for tri-state support, but omit when DEFAULT
+    // to avoid file churn and keep files compact/back-compatible.
+    if( aSymbol->GetPassthroughMode() != SCH_SYMBOL::PASSTHROUGH_MODE::DEFAULT )
+    {
+        using magic_enum::enum_name;
+        std::string name = std::string( enum_name( aSymbol->GetPassthroughMode() ) );
+        // enum names are UPPER_CASE; write lowercase tokens
+        std::transform( name.begin(), name.end(), name.begin(), []( unsigned char c ){ return (char) std::tolower( c ); } );
+        m_out->Print( "(passthrough %s)", name.c_str() );
+    }
 
     AUTOPLACE_ALGO fieldsAutoplaced = aSymbol->GetFieldsAutoplaced();
 

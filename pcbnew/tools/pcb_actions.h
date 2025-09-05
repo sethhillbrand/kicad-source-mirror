@@ -582,6 +582,8 @@ public:
     static TOOL_ACTION toggleNetHighlight;      // Toggles between highlight off and highlight on
     static TOOL_ACTION highlightNetSelection;   // Turns on highlight and takes net from selection
     static TOOL_ACTION highlightItem;           // Select component via cross-probe
+    static TOOL_ACTION highlightNetChain;        // Highlights all nets in the net chain
+    static TOOL_ACTION setTerminalPad;
 
     // Ratsnest
     static TOOL_ACTION hideNetInRatsnest;

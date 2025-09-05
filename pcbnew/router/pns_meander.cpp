@@ -43,9 +43,12 @@ MEANDER_SETTINGS::MEANDER_SETTINGS()
     m_maxAmplitude = 1000000;
     m_step = 50000;
     m_lenPadToDie = 0;
+    m_netChainExtraLength = 0;
+    m_netChainExtraDelay = 0;
     m_spacing = 600000;
     SetTargetLength( LENGTH_UNCONSTRAINED );
     SetTargetLengthDelay( DELAY_UNCONSTRAINED );
+    SetTargetNetChainLengthDelay( DELAY_UNCONSTRAINED );
     SetTargetSkew( 0 );
     SetTargetSkewDelay( 0 );
     m_overrideCustomRules = false;
@@ -115,6 +118,33 @@ void MEANDER_SETTINGS::SetTargetLengthDelay( const MINOPTMAX<int>& aConstraint )
 
     if( aConstraint.HasMax() )
         m_targetLengthDelay.SetMax( aConstraint.Max() );
+}
+
+void MEANDER_SETTINGS::SetTargetNetChainLengthDelay( long long int aOpt )
+{
+    m_targetNetChainLengthDelay.SetOpt( aOpt );
+
+    if( aOpt == PNS::MEANDER_SETTINGS::DELAY_UNCONSTRAINED )
+    {
+        m_targetNetChainLengthDelay.SetMin( 0 );
+        m_targetNetChainLengthDelay.SetMax( aOpt );
+    }
+    else
+    {
+        m_targetNetChainLengthDelay.SetMin( aOpt - DEFAULT_DELAY_TOLERANCE );
+        m_targetNetChainLengthDelay.SetMax( aOpt + DEFAULT_DELAY_TOLERANCE );
+    }
+}
+
+void MEANDER_SETTINGS::SetTargetNetChainLengthDelay( const MINOPTMAX<int>& aConstraint )
+{
+    SetTargetNetChainLengthDelay( aConstraint.Opt() );
+
+    if( aConstraint.HasMin() )
+        m_targetNetChainLengthDelay.SetMin( aConstraint.Min() );
+
+    if( aConstraint.HasMax() )
+        m_targetNetChainLengthDelay.SetMax( aConstraint.Max() );
 }
 
 

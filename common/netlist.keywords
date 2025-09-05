@@ -30,6 +30,8 @@ members
 name
 names
 net
+netchain
+netchains
 nets
 node
 num
@@ -42,6 +44,8 @@ property
 ref
 sheetpath
 source
+terminal_pins
+terminal_pin
 tool
 tstamp
 tstamps

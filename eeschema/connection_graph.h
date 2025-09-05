@@ -25,11 +25,14 @@
 #include <mutex>
 #include <utility>
 #include <vector>
+#include <map>
 
 #include <erc/erc_settings.h>
 #include <sch_connection.h>
 #include <sch_item.h>
+#include <sch_signal.h>
 #include <wx/treectrl.h>
+#include <wx/string.h>
 #include <advanced_config.h>
 #include <progress_reporter.h>
 
@@ -46,6 +49,7 @@ class SCH_EDIT_FRAME;
 class SCH_HIERLABEL;
 class SCH_PIN;
 class SCH_SHEET_PIN;
+class SCH_NETCHAIN;
 
 
 /**
@@ -365,10 +369,7 @@ public:
               m_schematic( aSchematic )
     {}
 
-    ~CONNECTION_GRAPH()
-    {
-        Reset();
-    }
+    ~CONNECTION_GRAPH();
 
     // We own at least one list of raw pointers.  Don't let the compiler fill in copy c'tors that
     // will only land us in trouble.
@@ -431,6 +432,11 @@ public:
     int RunERC();
 
     const NET_MAP& GetNetMap() const { return m_net_code_to_subgraphs_map; }
+
+    SCH_NETCHAIN* GetNetChainForNet( const wxString& aNet );
+    SCH_NETCHAIN* GetNetChainByName( const wxString& aName );
+    void ReplaceNetChainTerminalPin( const wxString& aNetChain, const KIID& aPrev, const KIID& aNew );
+    void SetNetChainTerminalOverrides( const std::map<wxString, std::pair<KIID, KIID>>& aOverrides );
 
     /**
      * Return the subgraph for a given net name on a given sheet.
@@ -795,6 +801,25 @@ private:
      */
     size_t hasPins( const CONNECTION_SUBGRAPH* aLocSubgraph );
 
+    void RebuildNetChains();
+
+    // Potential Net Chain (inferred) API -------------------------------
+public:
+    /**
+     * Potential net chains are inferred groupings produced by RebuildNetChains() but not
+     * yet user-committed. Existing m_netchains now represents only user-created signals.
+     */
+    const std::vector<std::unique_ptr<SCH_NETCHAIN>>& GetPotentialNetChains() const { return m_netchainCandidates; }
+
+    /** Locate a potential net chain that contains both pins (by subgraph net membership). */
+    SCH_NETCHAIN* FindPotentialNetChainBetweenPins( SCH_PIN* aPinA, SCH_PIN* aPinB );
+
+    /** Promote a potential net chain to an actual user net chain with the provided name. */
+    SCH_NETCHAIN* CreateNetChainFromPotential( SCH_NETCHAIN* aPotential, const wxString& aName );
+
+    /** Return user-created (committed) net chains (legacy accessor retained). */
+    const std::vector<std::unique_ptr<SCH_NETCHAIN>>& GetNetChains() const { return m_netchains; }
+
 
 private:
     /// All the sheets in the schematic (as long as we don't have partial updates).
@@ -830,6 +855,10 @@ private:
     std::unordered_map<SCH_ITEM*, CONNECTION_SUBGRAPH*> m_item_to_subgraph_map;
 
     NET_MAP m_net_code_to_subgraphs_map;
+
+    std::vector<std::unique_ptr<SCH_NETCHAIN>> m_netchains;
+    std::vector<std::unique_ptr<SCH_NETCHAIN>> m_netchainCandidates; ///< last built potential (uncommitted) signals
+    std::map<wxString, std::pair<KIID, KIID>> m_signalTerminalOverrides;
 
     int m_last_net_code;
 

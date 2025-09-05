@@ -89,6 +89,9 @@ public:
     void SetTargetSkewDelay( int aOpt );
     void SetTargetSkewDelay( const MINOPTMAX<int>& aConstraint );
 
+    void SetTargetNetChainLengthDelay( long long int aOpt );
+    void SetTargetNetChainLengthDelay( const MINOPTMAX<int>& aConstraint );
+
     ///< Minimum meandering amplitude.
     int m_minAmplitude;
 
@@ -104,11 +107,23 @@ public:
     ///< Length PadToDie.
     int m_lenPadToDie;
 
+    ///< Additional pre-existing length contributed by other nets in the same logical netchain
+    ///< (used when netchain-level tuning mode is active). Stored in internal units.
+    long long int m_netChainExtraLength;
+
+    ///< Additional pre-existing delay contributed by other nets in the same logical netchain
+    ///< (used when netchain-level tuning mode is active and in time-domain tuning). Stored in internal
+    ///< time internal units (ps * IU_PER_PS).
+    long long int m_netChainExtraDelay;
+
     ///< Desired length of the tuned line/diff pair (this is in nm, so allow more than board width).
     MINOPTMAX<long long int> m_targetLength;
 
     ///< Desired propagation delay of the tuned line
     MINOPTMAX<long long int> m_targetLengthDelay;
+
+    ///< Desired overall netchain propagation delay (sum of this net's tuned delay + other nets in netchain).
+    MINOPTMAX<long long int> m_targetNetChainLengthDelay;
 
     ///< Target skew value for diff pair de-skewing.
     MINOPTMAX<int>           m_targetSkew;

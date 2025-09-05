@@ -7,20 +7,20 @@
 #include <connection_graph.h>
 #include <locale_io.h>
 
-struct ERC_SIGNAL_TEST_FIXTURE
+struct ERC_NETCHAIN_TEST_FIXTURE
 {
-    ERC_SIGNAL_TEST_FIXTURE() : m_settingsManager( true ) {}
+    ERC_NETCHAIN_TEST_FIXTURE() : m_settingsManager( true ) {}
     SETTINGS_MANAGER           m_settingsManager;
     std::unique_ptr<SCHEMATIC> m_schematic;
 };
 
-BOOST_AUTO_TEST_SUITE( ERCSignal )
+BOOST_AUTO_TEST_SUITE( ERCNetChain )
 
-// Validate that pins incompatible across multi-net grouped signals trigger ERC.
-// Schematic now defines 3 separate two-pin signals (X1-X2 power_out vs power_out,
+// Validate that pins incompatible across multi-net grouped net chains trigger ERC.
+// Schematic now defines 3 separate two-pin net chains (X1-X2 power_out vs power_out,
 // X3-X4 power_out vs output, X6-X7 output vs output). All three should produce
 // pin-to-pin mismatch markers (warning or error depending on matrix severity).
-BOOST_FIXTURE_TEST_CASE( ERCSignalPinToPin, ERC_SIGNAL_TEST_FIXTURE )
+BOOST_FIXTURE_TEST_CASE( ERCNetChainPinToPin, ERC_NETCHAIN_TEST_FIXTURE )
 {
     LOCALE_IO dummy;
     KI_TEST::LoadSchematic( m_settingsManager, wxString( "erc_signal_pin_to_pin" ), m_schematic );
@@ -28,17 +28,17 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPinToPin, ERC_SIGNAL_TEST_FIXTURE )
     ERC_SETTINGS& settings = m_schematic->ErcSettings();
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_ISSUES] = RPT_SEVERITY_IGNORE;
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_MISMATCH] = RPT_SEVERITY_IGNORE;
-    // Ensure signals are constructed before ERC tests.
+    // Ensure net chains are constructed before ERC tests.
     m_schematic->ConnectionGraph()->Recalculate( m_schematic->BuildSheetListSortedByPageNumbers(), true );
-    // Manually promote all potential signals prior to ERC.
+    // Manually promote all potential net chains
     {
         CONNECTION_GRAPH* graph = m_schematic->ConnectionGraph();
         int idx = 1;
-        for( const auto& pot : graph->GetPotentialSignals() )
+        for( const auto& pot : graph->GetPotentialNetChains() )
         {
             if( !pot ) continue;
-            wxString name = wxString::Format( wxS("ERC_SIG_%d"), idx++ );
-            graph->CreateSignalFromPotential( pot.get(), name );
+            wxString name = wxString::Format( wxS("ERC_NET_%d"), idx++ );
+            graph->CreateNetChainFromPotential( pot.get(), name );
         }
     }
     m_schematic->ConnectionGraph()->RunERC();
@@ -66,24 +66,24 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPinToPin, ERC_SIGNAL_TEST_FIXTURE )
 
     if( mismatchCount != expectedMismatches )
     {
-        // Debug dump of signals when expectation fails
+        // Debug dump of net chains when expectation fails
         auto* graph = m_schematic->ConnectionGraph();
-        // Ensure signals are rebuilt explicitly in case RunERC did not force it
+        // Ensure net chains are rebuilt explicitly in case RunERC did not force it
         graph->Recalculate( m_schematic->BuildSheetListSortedByPageNumbers(), true );
-        const auto& signals = graph->GetSignals();
+        const auto& netChains = graph->GetNetChains();
         std::ostringstream oss;
         oss << "DEBUG Pin-to-Pin mismatch failure: expected=" << expectedMismatches
             << " got=" << mismatchCount << " totalItems=" << provider.GetCount()
-            << " signals=" << signals.size() << "\n";
-        for( size_t si = 0; si < signals.size(); ++si )
+            << " net chains=" << netChains.size() << "\n";
+        for( size_t si = 0; si < netChains.size(); ++si )
         {
-            const auto& sig = signals[si];
-            if( !sig ) continue;
-            oss << "  Signal[" << si << "] name='" << sig->GetName() << "' nets={";
-            for( const auto& n : sig->GetNets() ) oss << n << ",";
+            const auto& netChain = netChains[si];
+            if( !netChain ) continue;
+            oss << "  Net Chain[" << si << "] name='" << netChain->GetName() << "' nets={";
+            for( const auto& n : netChain->GetNets() ) oss << n << ",";
             oss << "} pins={";
             // Collect pins per net via public GetAllSubgraphs API
-            for( const auto& n : sig->GetNets() )
+            for( const auto& n : netChain->GetNets() )
             {
                 const auto& subgraphs = graph->GetAllSubgraphs( n );
                 for( CONNECTION_SUBGRAPH* sg : subgraphs )
@@ -119,8 +119,8 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPinToPin, ERC_SIGNAL_TEST_FIXTURE )
                              << "\n" << reportWriter.GetTextReport() );
 }
 
-// New test: ensure power input pin on one net is considered driven by power output on another net in same signal.
-BOOST_FIXTURE_TEST_CASE( ERCSignalPowerInputDrivenAcrossSignal, ERC_SIGNAL_TEST_FIXTURE )
+// New test: ensure power input pin on one net is considered driven by power output on another net in same net chain.
+BOOST_FIXTURE_TEST_CASE( ERCNetChainPowerInputDrivenAcrossNetChain, ERC_NETCHAIN_TEST_FIXTURE )
 {
     LOCALE_IO dummy;
     KI_TEST::LoadSchematic( m_settingsManager, wxString( "erc_signal_input_power_driven" ), m_schematic );
@@ -129,15 +129,15 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPowerInputDrivenAcrossSignal, ERC_SIGNAL_TEST_
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_ISSUES] = RPT_SEVERITY_IGNORE;
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_MISMATCH] = RPT_SEVERITY_IGNORE;
     m_schematic->ConnectionGraph()->Recalculate( m_schematic->BuildSheetListSortedByPageNumbers(), true );
-    // Promote potential signals prior to ERC.
+    // Promote potential net chains prior to ERC.
     {
         CONNECTION_GRAPH* graph = m_schematic->ConnectionGraph();
         int idx = 1;
-        for( const auto& pot : graph->GetPotentialSignals() )
+        for( const auto& pot : graph->GetPotentialNetChains() )
         {
             if( !pot ) continue;
-            wxString name = wxString::Format( wxS("ERC_SIG_%d"), idx++ );
-            graph->CreateSignalFromPotential( pot.get(), name );
+            wxString name = wxString::Format( wxS("ERC_NET_%d"), idx++ );
+            graph->CreateNetChainFromPotential( pot.get(), name );
         }
     }
     m_schematic->ConnectionGraph()->RunERC();
@@ -148,7 +148,7 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPowerInputDrivenAcrossSignal, ERC_SIGNAL_TEST_
     SHEETLIST_ERC_ITEMS_PROVIDER provider( m_schematic.get() );
     provider.SetSeverities( RPT_SEVERITY_ERROR | RPT_SEVERITY_WARNING );
 
-    // Count any POWER PIN NOT DRIVEN markers (should be zero due to suppression across signal)
+    // Count any POWER PIN NOT DRIVEN markers (should be zero due to suppression across net chain)
     int powerNotDriven = 0;
     for( size_t i = 0; i < provider.GetCount(); ++i )
     {
@@ -158,7 +158,7 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPowerInputDrivenAcrossSignal, ERC_SIGNAL_TEST_
     }
 
     ERC_REPORT reportWriter( m_schematic.get(), EDA_UNITS::MM );
-    BOOST_CHECK_MESSAGE( powerNotDriven == 0, "Expected no ERCE_POWERPIN_NOT_DRIVEN errors due to cross-signal driver; got " << powerNotDriven << "\n" << reportWriter.GetTextReport() );
+    BOOST_CHECK_MESSAGE( powerNotDriven == 0, "Expected no ERCE_POWERPIN_NOT_DRIVEN errors due to cross-net chain driver; got " << powerNotDriven << "\n" << reportWriter.GetTextReport() );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

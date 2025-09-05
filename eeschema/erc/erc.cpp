@@ -891,6 +891,10 @@ int ERC_TESTER::TestPinToPin()
 {
     int errors = 0;
 
+    // Map each net name to the pins (with sheet context) found on that net so we can later
+    // perform cross-net compatibility checks for grouped net chains.
+    std::unordered_map<wxString, std::vector<ERC_SCH_PIN_CONTEXT>> netToPins;
+
     for( const std::pair<NET_NAME_CODE_CACHE_KEY, std::vector<CONNECTION_SUBGRAPH*>> net : m_nets )
     {
         using iterator_t = std::vector<ERC_SCH_PIN_CONTEXT>::iterator;
@@ -908,6 +912,7 @@ int ERC_TESTER::TestPinToPin()
                 if( item->Type() == SCH_PIN_T )
                 {
                     pins.emplace_back( static_cast<SCH_PIN*>( item ), subgraph->GetSheet() );
+                    netToPins[ net.first.Name ].emplace_back( static_cast<SCH_PIN*>( item ), subgraph->GetSheet() );
                     pinToScreenMap[item] = subgraph->GetSheet().LastScreen();
                 }
             }
@@ -1101,7 +1106,73 @@ int ERC_TESTER::TestPinToPin()
         {
             int err_code = ispowerNet ? ERCE_POWERPIN_NOT_DRIVEN : ERCE_PIN_NOT_DRIVEN;
 
-            if( m_settings.IsTestEnabled( err_code ) )
+            // For power nets, before reporting a not-driven error, look across the
+            // grouped net chain (multi-net chain formed via passives) to see if there is a
+            // power driver pin on any other net in the same chain. If so, suppress the
+            // error because the chain as a whole is driven.
+            bool suppressForNetChainDriver = false;
+
+            if( ispowerNet && m_schematic && m_schematic->ConnectionGraph() )
+            {
+                const wxString& thisNetName = net.first.Name;
+                const auto& netChains = m_schematic->ConnectionGraph()->GetNetChains();
+
+                auto netHasPowerDriver = [&]( const wxString& aNetName ) -> bool
+                {
+                    // Scan m_nets for the named net and test its pins for a power driver type.
+                    for( const auto& n : m_nets )
+                    {
+                        if( n.first.Name != aNetName )
+                            continue;
+
+                        for( CONNECTION_SUBGRAPH* sg : n.second )
+                        {
+                            for( SCH_ITEM* item : sg->GetItems() )
+                            {
+                                if( item->Type() == SCH_PIN_T )
+                                {
+                                    SCH_PIN* p = static_cast<SCH_PIN*>( item );
+                                    if( DrivingPowerPinTypes.contains( p->GetType() ) )
+                                        return true;
+                                }
+                            }
+                        }
+
+                        break; // found matching net (whether driver or not)
+                    }
+
+                    return false;
+                };
+
+                for( const auto& nc : netChains )
+                {
+                    if( !nc )
+                        continue;
+
+                    const auto& ncNets = nc->GetNets();
+                    bool containsThisNet = std::find( ncNets.begin(), ncNets.end(), thisNetName ) != ncNets.end();
+
+                    if( !containsThisNet )
+                        continue;
+
+                    // Look for a different net in this net chain that has a power driver.
+                    for( const wxString& otherNet : ncNets )
+                    {
+                        if( otherNet == thisNetName )
+                            continue; // skip same net (we already know it lacks a driver)
+
+                        if( netHasPowerDriver( otherNet ) )
+                        {
+                            suppressForNetChainDriver = true;
+                            break;
+                        }
+                    }
+
+                    break; // examined the containing net chain
+                }
+            }
+
+            if( !suppressForNetChainDriver && m_settings.IsTestEnabled( err_code ) )
             {
                 std::shared_ptr<ERC_ITEM> ercItem = ERC_ITEM::Create( err_code );
 
@@ -1112,6 +1183,111 @@ int ERC_TESTER::TestPinToPin()
                 SCH_MARKER* marker = new SCH_MARKER( std::move( ercItem ), needsDriver.Pin()->GetPosition() );
                 pinToScreenMap[needsDriver.Pin()]->Append( marker );
                 errors++;
+            }
+        }
+    }
+
+    // --- Additional net chain-level checking ---
+    // If a pin participates in a grouped net chain (spanning multiple nets via passives), ensure
+    // that all other pins reachable through that net chain are electrically compatible even if
+    // they reside on different nets.
+    // We only consider pairs on DIFFERENT nets here to avoid duplicating existing net-level
+    // mismatches already reported above.
+    if( m_schematic && m_schematic->ConnectionGraph() )
+    {
+        auto& netChains = m_schematic->ConnectionGraph()->GetNetChains();
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ERC TestPinToPin: cross-netchain phase start net chains=%zu", netChains.size() );
+
+        for( const auto& nc : netChains )
+        {
+            if( !nc )
+                continue;
+
+            const wxString netChainName = nc->GetName();
+            const auto& netChainNets = nc->GetNets();
+
+            // Collect all pin contexts across the nets in this net chain.
+            std::vector<ERC_SCH_PIN_CONTEXT> netChainPins;
+            netChainPins.reserve( netChainNets.size() * 4 );
+
+            for( const wxString& n : netChainNets )
+            {
+                auto it = netToPins.find( n );
+                if( it != netToPins.end() )
+                {
+                    const auto& vec = it->second;
+                    netChainPins.insert( netChainPins.end(), vec.begin(), vec.end() );
+                }
+            }
+
+            if( netChainPins.size() < 2 )
+                continue; // nothing to compare
+
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ERC TestPinToPin: net chain '%s' nets=%zu collectedPins=%zu", TO_UTF8( netChainName ), netChainNets.size(), netChainPins.size() );
+
+            // For deterministic behavior, sort by reference/pin number similar to earlier pass.
+            std::sort( netChainPins.begin(), netChainPins.end(),
+                       []( const ERC_SCH_PIN_CONTEXT& lhs, const ERC_SCH_PIN_CONTEXT& rhs )
+                       {
+                           int ret = StrNumCmp( lhs.Pin()->GetParentSymbol()->GetRef( &lhs.Sheet() ),
+                                                rhs.Pin()->GetParentSymbol()->GetRef( &rhs.Sheet() ) );
+                           if( ret == 0 )
+                               ret = StrNumCmp( lhs.Pin()->GetNumber(), rhs.Pin()->GetNumber() );
+                           if( ret == 0 )
+                               ret = lhs < rhs;
+                           return ret < 0;
+                       } );
+
+            // Build a quick map from pin -> net name for skipping intra-net pairs.
+            std::unordered_map<SCH_PIN*, wxString> pinNet;
+
+            for( const auto& netEntry : netToPins )
+                for( const auto& ctx : netEntry.second )
+                    pinNet[ ctx.Pin() ] = netEntry.first;
+
+            for( size_t i = 0; i < netChainPins.size(); ++i )
+            {
+                SCH_PIN* aPin = netChainPins[i].Pin();
+                ELECTRICAL_PINTYPE aType = aPin->GetType();
+                const wxString& aNet = pinNet[aPin];
+                wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ERC TestPinToPin: iter a=%s net=%s type=%d", TO_UTF8( aPin->GetParentSymbol()->GetRef( &netChainPins[i].Sheet() ) ), TO_UTF8( aNet ), (int) aType );
+
+                for( size_t j = i + 1; j < netChainPins.size(); ++j )
+                {
+                    SCH_PIN* bPin = netChainPins[j].Pin();
+                    const wxString& bNet = pinNet[bPin];
+
+                    if( aNet == bNet )
+                        continue; // already handled at net-level
+
+                    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ERC TestPinToPin: pair %s(%s)-%s(%s)",
+                                TO_UTF8( aPin->GetParentSymbol()->GetRef( &netChainPins[i].Sheet() ) ),
+                                TO_UTF8( aNet ),
+                                TO_UTF8( bPin->GetParentSymbol()->GetRef( &netChainPins[j].Sheet() ) ),
+                                TO_UTF8( bNet ) );
+
+                    ELECTRICAL_PINTYPE bType = bPin->GetType();
+                    PIN_ERROR erc = m_settings.GetPinMapValue( aType, bType );
+
+                    if( erc != PIN_ERROR::OK && m_settings.IsTestEnabled( ERCE_PIN_TO_PIN_WARNING ) )
+                    {
+                        std::shared_ptr<ERC_ITEM> ercItem = ERC_ITEM::Create(
+                                erc == PIN_ERROR::WARNING ? ERCE_PIN_TO_PIN_WARNING
+                                                          : ERCE_PIN_TO_PIN_ERROR );
+
+                        ercItem->SetItems( aPin, bPin );
+                        ercItem->SetSheetSpecificPath( netChainPins[i].Sheet() );
+                        ercItem->SetItemsSheetPaths( netChainPins[i].Sheet(), netChainPins[j].Sheet() );
+                        ercItem->SetErrorMessage( wxString::Format(
+                                _( "Pins of type %s and %s are connected via net chain %s" ),
+                                ElectricalPinTypeGetText( aType ),
+                                ElectricalPinTypeGetText( bType ), netChainName ) );
+
+                        SCH_MARKER* marker = new SCH_MARKER( std::move( ercItem ), aPin->GetPosition() );
+                        netChainPins[i].Sheet().LastScreen()->Append( marker );
+                        errors++;
+                    }
+                }
             }
         }
     }

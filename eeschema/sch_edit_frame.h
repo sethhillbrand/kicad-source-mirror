@@ -299,10 +299,23 @@ public:
         return m_highlightedConn;
     }
 
+    const wxString& GetHighlightedNetChain() const
+    {
+        return m_highlightedNetChain;
+    }
+
     void SetHighlightedConnection( const wxString& aConnection,
                                    const NET_NAVIGATOR_ITEM_DATA* aSelection = nullptr );
 
     void DirtyHighlightedConnection() { m_highlightedConnChanged = true; }
+
+    void SetHighlightedNetChain( const wxString& aNetChain )
+    {
+        m_highlightedNetChain = aNetChain;
+
+        if( m_schematic )
+            m_schematic->SetHighlightedNetChain( aNetChain );
+    }
 
     /**
      * Check if we are ready to write a netlist file for the current schematic.
@@ -1008,6 +1021,7 @@ private:
 
     SCHEMATIC*                  m_schematic;          ///< The currently loaded schematic
     wxString                    m_highlightedConn;    ///< The highlighted net or bus or empty string.
+    wxString                    m_highlightedNetChain;
 
     wxPageSetupDialogData       m_pageSetupData;
     std::vector<std::unique_ptr<SCH_ITEM>> m_items_to_repeat;  ///< For the repeat-last-item cmd

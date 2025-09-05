@@ -30,6 +30,7 @@
 #include <wx/arrstr.h>
 #include <json_common.h>
 #include <unordered_set>
+#include <map>
 
 #include <lib_id.h>
 #include <footprint.h>
@@ -333,6 +334,34 @@ public:
      */
     void AddGroup( NETLIST_GROUP* aGroup );
 
+    void SetNetChain( const wxString& aNet, const wxString& aNetChain )
+    {
+        m_netChains[aNet] = aNetChain;
+    }
+
+    void AddNetChainTerminalPin( const wxString& aNetChain, const wxString& aRef, const wxString& aPin )
+    {
+        m_netChainTerminals[aNetChain].emplace_back( aRef, aPin );
+    }
+
+    const std::vector<std::pair<wxString, wxString>>& GetNetChainTerminals( const wxString& aNetChain ) const
+    {
+        static const std::vector<std::pair<wxString, wxString>> empty;
+        auto it = m_netChainTerminals.find( aNetChain );
+        return it != m_netChainTerminals.end() ? it->second : empty;
+    }
+
+    const std::map<wxString, std::vector<std::pair<wxString, wxString>>>& GetNetChainTerminalPins() const
+    {
+        return m_netChainTerminals;
+    }
+
+    wxString GetNetChain( const wxString& aNet ) const
+    {
+        auto it = m_netChains.find( aNet );
+        return it != m_netChains.end() ? it->second : wxString();
+    }
+
     /**
      * @brief Return a #NETLIST_GROUP by \a aUuid.
      *
@@ -398,6 +427,8 @@ public:
 private:
     COMPONENTS m_components;          // Components found in the netlist.
     NETLIST_GROUPS m_groups;          // Groups found in the netlist.
+    std::map<wxString, wxString> m_netChains;
+    std::map<wxString, std::vector<std::pair<wxString, wxString>>> m_netChainTerminals;
 
 
     bool       m_findByTimeStamp;     // Associate components by KIID (or refdes if false)

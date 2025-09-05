@@ -121,6 +121,19 @@ public:
      */
     const wxString& GetDisplayNetname() const { return m_displayNetname; }
 
+    const wxString& GetNetChain() const { return m_netChain; }
+    void SetNetChain( const wxString& aNetChain ) { m_netChain = aNetChain; }
+
+    // Aliases for consistency with other naming patterns
+    const wxString& GetNetChainName() const { return m_netChain; }
+    void SetNetChainName( const wxString& aNetChain ) { m_netChain = aNetChain; }
+
+    PAD* GetTerminalPad( int aIndex ) const { return m_terminalPads[aIndex]; }
+    void SetTerminalPad( int aIndex, PAD* aPad ) { m_terminalPads[aIndex] = aPad; }
+    void SetTerminalPadUuid( int aIndex, const KIID& aUuid ) { m_terminalPadUuids[aIndex] = aUuid; }
+    const KIID& GetTerminalPadUuid( int aIndex ) const { return m_terminalPadUuids[aIndex]; }
+    void ResolveTerminalPads( BOARD* aBoard );
+
     /**
      * @return true if the net was not labelled by the user.
      */
@@ -178,9 +191,14 @@ private:
     wxString    m_shortNetname;    ///< Short net name, like vout from /sheet/subsheet/vout.
 
     wxString    m_displayNetname;  ///< Unescaped netname for display.  Usually the short netname,
-                                   ///< but will be the full netname if disambiguation required.
-                                   ///< The NETINFO_LIST is repsonsible for the management of when
-                                   ///< these need to be updated/disambiguated.
+                                  ///< but will be the full netname if disambiguation required.
+                                  ///< The NETINFO_LIST is repsonsible for the management of when
+                                  ///< these need to be updated/disambiguated.
+
+    wxString    m_netChain;      ///< Name of the net chain this net belongs to.
+
+    PAD*        m_terminalPads[2];
+    KIID        m_terminalPadUuids[2];
 
     std::shared_ptr<NETCLASS> m_netClass;
 
@@ -390,6 +408,12 @@ public:
     class iterator
     {
     public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = NETINFO_ITEM*;
+        using difference_type = std::ptrdiff_t;
+        using pointer = NETINFO_ITEM**;
+        using reference = NETINFO_ITEM*&;
+
         iterator( NETNAMES_MAP::const_iterator aIter ) : m_iterator( aIter )
         {
         }

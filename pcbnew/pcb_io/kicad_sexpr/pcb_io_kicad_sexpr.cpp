@@ -698,9 +698,10 @@ void PCB_IO_KICAD_SEXPR::formatNetInformation( const BOARD* aBoard ) const
         if( net == nullptr )    // Skip not actually existing nets (orphan nets)
             continue;
 
-        m_out->Print( "(net %d %s)",
+        m_out->Print( "(net %d %s",
                       m_mapping->Translate( net->GetNetCode() ),
                       m_out->Quotew( net->GetNetname() ).c_str() );
+        m_out->Print( ")" );
     }
 }
 
@@ -818,6 +819,84 @@ void PCB_IO_KICAD_SEXPR::format( const BOARD* aBoard ) const
     // Save the generators
     for( BOARD_ITEM* gen : sorted_generators )
         Format( gen );
+
+    // After writing all items, write the aggregated netchains section (if any)
+    struct NETCHAIN_INFO
+    {
+        std::vector<NETINFO_ITEM*> nets;
+        PAD* pads[2] = { nullptr, nullptr };
+    };
+
+    // Simple lexicographic ordering using ValueStringCompare comparator logic
+    auto cmp = []( const wxString& a, const wxString& b )
+    {
+        return ValueStringCompare( a, b ) < 0;
+    };
+
+    std::map<wxString, NETCHAIN_INFO, decltype( cmp )> netchains( cmp );
+
+    for( NETINFO_ITEM* net : aBoard->GetNetInfo() )
+    {
+        if( !net )
+            continue;
+
+        if( net->GetNetChain().IsEmpty() && !net->GetTerminalPad( 0 ) && !net->GetTerminalPad( 1 ) )
+            continue; // nothing to aggregate
+
+        wxString netChainName = net->GetNetChain();
+
+        if( netChainName.IsEmpty() && ( net->GetTerminalPad( 0 ) || net->GetTerminalPad( 1 ) ) )
+            netChainName = net->GetNetname(); // synthetic name for unnamed terminal association
+
+        NETCHAIN_INFO& info = netchains[netChainName];
+        info.nets.push_back( net );
+        for( int i = 0; i < 2; ++i )
+        {
+            if( net->GetTerminalPad( i ) && !info.pads[i] )
+                info.pads[i] = net->GetTerminalPad( i );
+        }
+    }
+
+    size_t count = 0;
+    for( const auto& kv : netchains )
+    {
+        const NETCHAIN_INFO& ni = kv.second;
+        const wxString& netChainName = kv.first;
+        // Persist if: multi-net OR terminal pads OR explicit (non-empty) net chain name
+        if( ni.nets.size() > 1 || ni.pads[0] || ni.pads[1] || !netChainName.IsEmpty() )
+            ++count;
+    }
+
+    if( count )
+    {
+        m_out->Print( "(netchains" );
+        for( const auto& kv : netchains )
+        {
+            const wxString& name = kv.first;
+            const NETCHAIN_INFO& ni = kv.second;
+            // Skip only if truly empty (no pads, single net, and empty name)
+            if( ni.nets.size() == 1 && !ni.pads[0] && !ni.pads[1] && name.IsEmpty() )
+                continue;
+
+            m_out->Print( " (netchain (name %s)", m_out->Quotew( name ).c_str() );
+            m_out->Print( " (members" );
+            for( NETINFO_ITEM* n : ni.nets )
+            {
+                m_out->Print( " (net %d)", m_mapping->Translate( n->GetNetCode() ) );
+            }
+            m_out->Print( ")" );
+
+            for( int i = 0; i < 2; ++i )
+            {
+                if( ni.pads[i] )
+                    m_out->Print( " (terminal_pad %s)",
+                                   m_out->Quotew( ni.pads[i]->m_Uuid.AsString() ).c_str() );
+            }
+
+            m_out->Print( ")" );
+        }
+        m_out->Print( ")" );
+    }
 
     // Save any embedded files
     // Consolidate the embedded models in footprints into a single map

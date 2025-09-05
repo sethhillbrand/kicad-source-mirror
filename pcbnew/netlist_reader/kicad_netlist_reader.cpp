@@ -147,6 +147,20 @@ void KICAD_NETLIST_PARSER::Parse()
 
             break;
 
+        case T_netchains:
+            while( ( token = NextTok() ) != T_EOF )
+            {
+                if( token == T_RIGHT )
+                    break;
+                else if( token == T_LEFT )
+                    token = NextTok();
+
+                if( token == T_netchain )
+                    parseNetChain();
+            }
+
+            break;
+
         case T_libparts:    // The section libparts starts here.
             wxLogTrace( "CVPCB_PINCOUNT", wxT( "Parse: entering libparts section" ) );
             while( ( token = NextTok() ) != T_EOF )
@@ -770,6 +784,109 @@ void KICAD_NETLIST_PARSER::parseGroup()
     NETLIST_GROUP* group = new NETLIST_GROUP{ std::move( name ), std::move( uuid ), std::move( groupLibId ),
                                               std::move( members ) };
     m_netlist->AddGroup( group );
+}
+
+
+void KICAD_NETLIST_PARSER::parseNetChain()
+{
+    wxString              name;
+    std::vector<wxString> members;
+    std::vector<std::pair<wxString, wxString>> terminals;
+
+    while( ( token = NextTok() ) != T_EOF )
+    {
+        if( token == T_RIGHT )
+            break;
+        else if( token == T_LEFT )
+            token = NextTok();
+
+        switch( token )
+        {
+        case T_name:
+            NeedSYMBOLorNUMBER();
+            name = From_UTF8( CurText() );
+            NeedRIGHT();
+            break;
+
+        case T_members:
+            while( ( token = NextTok() ) != T_RIGHT )
+            {
+                if( token == T_LEFT )
+                    token = NextTok();
+
+                if( token == T_member )
+                {
+                    while( ( token = NextTok() ) != T_RIGHT )
+                    {
+                        if( token == T_LEFT )
+                            token = NextTok();
+
+                        if( token == T_net )
+                        {
+                            NeedSYMBOLorNUMBER();
+                            members.emplace_back( From_UTF8( CurText() ) );
+                            NeedRIGHT();
+                        }
+                        else
+                            skipCurrent();
+                    }
+                }
+                else
+                    skipCurrent();
+            }
+            break;
+
+        case T_terminal_pins:
+            while( ( token = NextTok() ) != T_RIGHT )
+            {
+                if( token == T_LEFT )
+                    token = NextTok();
+
+                if( token == T_terminal_pin )
+                {
+                    wxString ref;
+                    wxString pin;
+
+                    while( ( token = NextTok() ) != T_RIGHT )
+                    {
+                        if( token == T_LEFT )
+                            token = NextTok();
+
+                        if( token == T_ref )
+                        {
+                            NeedSYMBOLorNUMBER();
+                            ref = From_UTF8( CurText() );
+                            NeedRIGHT();
+                        }
+                        else if( token == T_pin )
+                        {
+                            NeedSYMBOLorNUMBER();
+                            pin = From_UTF8( CurText() );
+                            NeedRIGHT();
+                        }
+                        else
+                            skipCurrent();
+                    }
+
+                    if( !ref.IsEmpty() && !pin.IsEmpty() )
+                        terminals.emplace_back( ref, pin );
+                }
+                else
+                    skipCurrent();
+            }
+            break;
+
+        default:
+            skipCurrent();
+            break;
+        }
+    }
+
+    for( const wxString& netName : members )
+        m_netlist->SetNetChain( netName, name );
+
+    for( const auto& term : terminals )
+        m_netlist->AddNetChainTerminalPin( name, term.first, term.second );
 }
 
 

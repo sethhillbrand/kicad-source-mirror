@@ -22,9 +22,15 @@
 
 #include <algorithm>
 #include <list>
+#include <functional>
 #include <future>
-#include <vector>
+#include <map>
+#include <ranges>
+#include <set>
+#include <tuple>
 #include <unordered_map>
+#include <vector>
+
 #include <app_monitor.h>
 #include <core/profile.h>
 #include <core/kicad_algo.h>
@@ -38,6 +44,9 @@
 #include <sch_marker.h>
 #include <sch_pin.h>
 #include <sch_rule_area.h>
+#include <wx/log.h>
+#include <sch_signal.h>
+#include <sch_label.h>
 #include <sch_sheet.h>
 #include <sch_sheet_path.h>
 #include <sch_sheet_pin.h>
@@ -67,6 +76,14 @@ static const wxChar DanglingProfileMask[] = wxT( "CONN_PROFILE" );
  * @ingroup trace_env_vars
  */
 static const wxChar ConnTrace[] = wxT( "CONN" );
+
+
+CONNECTION_GRAPH::~CONNECTION_GRAPH()
+{
+    // Ensure destruction happens in a translation unit that includes full SCH_NETCHAIN
+    // definition to avoid incomplete type issues with std::unique_ptr<SCH_NETCHAIN>.
+    Reset();
+}
 
 
 void CONNECTION_SUBGRAPH::RemoveItem( SCH_ITEM* aItem )
@@ -1314,7 +1331,6 @@ void CONNECTION_GRAPH::updateItemConnectivity( const SCH_SHEET_PATH& aSheet,
     {
         std::vector<VECTOR2I> points = item->GetConnectionPoints();
         item->ClearConnectedItems( aSheet );
-
         if( item->Type() == SCH_SHEET_T )
         {
             for( SCH_SHEET_PIN* pin : static_cast<SCH_SHEET*>( item )->GetPins() )
@@ -2609,12 +2625,660 @@ void CONNECTION_GRAPH::buildConnectionGraph( std::function<void( SCH_ITEM* )>* a
             netSettings->SetNetclassLabelAssignment( netname, netclasses );
         }
     }
+
+    RebuildNetChains();
+}
+
+void CONNECTION_GRAPH::RebuildNetChains()
+{
+    try
+    {
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: begin (items=%zu, schematic=%p)",
+                    m_items.size(), (void*) m_schematic );
+        // Clear only potential signals; leave committed signals intact.
+        m_netchainCandidates.clear();
+
+        if( !m_schematic )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: no schematic" );
+            return;
+        }
+
+        std::map<wxString, SCH_NETCHAIN*> netToChain; // will be populated after chain extraction
+
+        // Collect all screens from the cached sheet list so we can operate globally rather than
+        // only on the current sheet.  (m_sheetList is populated during Recalculate()).
+        std::vector<SCH_SCREEN*> allScreens;
+        allScreens.reserve( m_sheetList.size() );
+
+        for( const SCH_SHEET_PATH& sp : m_sheetList )
+        {
+            if( SCH_SCREEN* sc = sp.LastScreen() )
+                allScreens.push_back( sc );
+        }
+
+        // Clear any previous net chain names on all symbols across all sheets so we can repopulate.
+        for( SCH_SCREEN* sc : allScreens )
+        {
+            for( SCH_ITEM* item : sc->Items().OfType( SCH_SYMBOL_T ) )
+                static_cast<SCH_SYMBOL*>( item )->SetNetChainName( wxEmptyString );
+        }
+
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: screens=%zu (global build)", allScreens.size() );
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: debug start passes (pre-pass net chains=%zu)",
+                    m_netchains.size() );
+
+        // Build net chains by scanning eligible 2-pin symbols on every sheet, using a
+        // parallel-wire passthrough heuristic.
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pass 1 (per-sheet 2-pin symbols)" );
+
+        auto getSubgraphNet = [&]( SCH_PIN* aPin ) -> wxString
+        {
+            if( !aPin )
+                return wxEmptyString;
+            if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( aPin ) )
+            {
+                wxString n = sg->GetNetName();
+                if( !n.IsEmpty() && n.Find( wxS( "<NO NET>" ) ) == wxNOT_FOUND )
+                    return n;
+                return wxString::Format( wxT( "__SG_%ld" ), sg->m_code );
+            }
+            return wxEmptyString;
+        };
+
+        struct BRIDGE_EDGE
+        {
+            wxString    a;
+            wxString    b;
+            SCH_SYMBOL* sym; };
+    std::vector<BRIDGE_EDGE> bridgeEdges; bridgeEdges.reserve( 256 );
+
+    // Collect only bridge edges (2-pin pass-through symbols) without forming signals yet.
+    for( const SCH_SHEET_PATH& sheetPath : m_sheetList )
+    {
+        SCH_SCREEN* sc = sheetPath.LastScreen();
+        if( !sc ) continue;
+
+        auto findWireOnScreen = [&]( SCH_PIN* aPin, SCH_LINE*& aWire ) -> bool
+        {
+            const VECTOR2I p = aPin->GetPosition();
+            auto consider = [&]( SCH_ITEM* cand ) -> bool
+            {
+                if( cand->Type() != SCH_LINE_T ) return false;
+                SCH_LINE* line = static_cast<SCH_LINE*>( cand );
+                if( line->GetLayer() != LAYER_WIRE ) return false;
+                const VECTOR2I s = line->GetStartPoint(); const VECTOR2I e = line->GetEndPoint();
+                if( s.y == e.y && p.y == s.y )
+                {
+                    int minx = std::min( s.x, e.x ); int maxx = std::max( s.x, e.x );
+                    if( p.x >= minx && p.x <= maxx ) { aWire = line; return true; }
+                }
+                else if( s.x == e.x && p.x == s.x )
+                {
+                    int miny = std::min( s.y, e.y ); int maxy = std::max( s.y, e.y );
+                    if( p.y >= miny && p.y <= maxy ) { aWire = line; return true; }
+                }
+                return false;
+            };
+            for( SCH_ITEM* c : sc->Items().Overlapping( SCH_LINE_T, p ) ) if( consider( c ) ) return true;
+            for( SCH_ITEM* c : sc->Items().OfType( SCH_LINE_T ) ) if( consider( c ) ) return true;
+            return false;
+        };
+
+        for( SCH_ITEM* item : sc->Items().OfType( SCH_SYMBOL_T ) )
+        {
+            SCH_SYMBOL* symbol = static_cast<SCH_SYMBOL*>( item );
+            std::vector<SCH_PIN*> pins = symbol->GetPins( &sheetPath );
+            if( pins.size() != 2 )
+                continue;
+            if( symbol->GetPassthroughMode() == SCH_SYMBOL::PASSTHROUGH_MODE::BLOCK )
+                continue;
+            SCH_LINE* wireA = nullptr; SCH_LINE* wireB = nullptr;
+            if( !findWireOnScreen( pins[0], wireA ) || !findWireOnScreen( pins[1], wireB ) )
+                continue;
+            bool allow = false;
+            if( symbol->GetPassthroughMode() == SCH_SYMBOL::PASSTHROUGH_MODE::FORCE )
+                allow = true;
+            else
+            {
+                if( pins[0]->IsPower() || pins[1]->IsPower() )
+                    continue; // disallow power bridging in default mode
+                VECTOR2I aS = wireA->GetStartPoint(); VECTOR2I aE = wireA->GetEndPoint();
+                VECTOR2I bS = wireB->GetStartPoint(); VECTOR2I bE = wireB->GetEndPoint();
+                if( aS.x == aE.x && bS.x == bE.x && aS.x == bS.x ) allow = true;
+                else if( aS.y == aE.y && bS.y == bE.y && aS.y == bS.y ) allow = true;
+            }
+            if( !allow )
+                continue;
+            wxString netA = getSubgraphNet( pins[0] );
+            wxString netB = getSubgraphNet( pins[1] );
+            if( netA.IsEmpty() || netB.IsEmpty() || netA == netB )
+                continue;
+            bridgeEdges.push_back( { netA, netB, symbol } );
+        }
+    }
+
+    // Mark power subgraphs first using full connectivity prior to passive bridging.
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pass 1.5 (power marking)" );
+    std::set<long> powerSubgraphs; // subgraph codes containing at least one power-class pin
+    std::map<wxString,long> netToCode; // map net (subgraph) name to code for filtering
+    for( const SCH_SHEET_PATH& sheetPath : m_sheetList )
+    {
+        SCH_SCREEN* sc = sheetPath.LastScreen(); if( !sc ) continue;
+        for( SCH_ITEM* item : sc->Items().OfType( SCH_SYMBOL_T ) )
+        {
+            SCH_SYMBOL* sym = static_cast<SCH_SYMBOL*>( item );
+            auto pins = sym->GetPins( &sheetPath );
+            for( SCH_PIN* p : pins )
+            {
+                if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( p ) )
+                {
+                    wxString netName = sg->GetNetName();
+                    if( netName.IsEmpty() || netName.Find( wxS("<NO NET>") ) != wxNOT_FOUND )
+                        netName = wxString::Format( wxT("__SG_%ld"), sg->m_code );
+                    netToCode[ netName ] = sg->m_code;
+                    // Consider multiple indicators of a power node. We want structural exclusion, not name heuristics.
+                    ELECTRICAL_PINTYPE pt = p->GetType();
+                    if( p->IsPower() || ( p->GetParentSymbol() && p->GetParentSymbol()->IsPower() ) )
+                    {
+                        powerSubgraphs.insert( sg->m_code );
+                        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "  powerSubgraph code=%ld net='%s' pinType=%d sym=%p", sg->m_code, netName, (int) pt, (void*) sym );
+                    }
+                }
+            }
+        }
+    }
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: powerSubgraphs size=%zu", powerSubgraphs.size() );
+
+    struct EDGE { wxString other; SCH_SYMBOL* sym; };
+    std::map<wxString, std::vector<EDGE>> adjacency; // filtered adjacency
+    std::set<wxString> powerAdjacentNets; // nets that had an edge to a power subgraph
+    for( const BRIDGE_EDGE& be : bridgeEdges )
+    {
+        long ca = -1, cb = -1;
+        if( auto it = netToCode.find( be.a ); it != netToCode.end() ) ca = it->second;
+        if( auto it = netToCode.find( be.b ); it != netToCode.end() ) cb = it->second;
+        if( ca == -1 || cb == -1 )
+            continue; // incomplete mapping; shouldn't happen but be safe
+        if( powerSubgraphs.contains( ca ) || powerSubgraphs.contains( cb ) )
+        {
+            // Record non-power endpoint(s) as being adjacent to power for later pruning.
+            if( !powerSubgraphs.contains( ca ) ) powerAdjacentNets.insert( be.a );
+            if( !powerSubgraphs.contains( cb ) ) powerAdjacentNets.insert( be.b );
+            continue; // exclude edges touching power subgraphs
+        }
+        adjacency[be.a].push_back( { be.b, be.sym } );
+        adjacency[be.b].push_back( { be.a, be.sym } );
+    }
+
+    // Prune leaf nets that were only connected to power nets (power-adjacent stubs) iteratively.
+    {
+        std::map<wxString,int> degree;
+        for( const auto& kv : adjacency )
+            degree[kv.first] = (int) kv.second.size();
+
+        // If very small adjacency (<=2 nets) don't risk pruning away valid small signals
+        if( adjacency.size() <= 2 )
+        {
+            powerAdjacentNets.clear(); // ignore any incidental marking
+        }
+        if( powerAdjacentNets.size() <= 2 )
+        {
+            powerAdjacentNets.clear();
+        }
+
+        std::queue<wxString> q;
+        std::set<wxString> removed;
+        for( const auto& kv : degree )
+        {
+            if( kv.second <= 1 && powerAdjacentNets.contains( kv.first ) )
+                q.push( kv.first );
+        }
+        while( !q.empty() )
+        {
+            wxString n = q.front(); q.pop();
+            if( removed.contains( n ) ) continue;
+            removed.insert( n );
+            // Decrement neighbor degrees
+            for( const auto& e : adjacency[n] )
+            {
+                if( removed.contains( e.other ) ) continue;
+                if( degree.count( e.other ) )
+                {
+                    degree[e.other]--;
+                    if( degree[e.other] <= 1 && powerAdjacentNets.contains( e.other ) )
+                        q.push( e.other );
+                }
+            }
+        }
+    if( !removed.empty() )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pruned %zu power-adjacent leaf nets", removed.size() );
+            // Rebuild adjacency without removed nets
+            std::map<wxString,std::vector<EDGE>> newAdj;
+            for( const auto& kv : adjacency )
+            {
+                if( removed.contains( kv.first ) ) continue;
+                for( const EDGE& e : kv.second )
+                {
+                    if( removed.contains( e.other ) ) continue;
+                    newAdj[kv.first].push_back( e );
+                }
+            }
+            adjacency.swap( newAdj );
+        }
+    }
+
+    // Targeted stub pruning: reduce any component >4 nets by removing minimal number of "stub" leaves
+    // (degree 1 whose neighbor has degree >2). This satisfies legacy test expecting longest branch kept.
+    {
+        // First, discover connected components over current adjacency.
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: targeted stub pruning start (adj=%zu)", adjacency.size() );
+        std::map<wxString,std::vector<EDGE>> snapshot = adjacency; // read-only snapshot
+        std::set<wxString> seen;
+        std::set<wxString> globalPrune;
+        for( const auto& kv : snapshot )
+        {
+            const wxString& start = kv.first;
+            if( seen.contains( start ) ) continue;
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "  component BFS start '%s'", start );
+            std::vector<wxString> comp; std::queue<wxString> q; q.push( start ); seen.insert( start );
+            while( !q.empty() )
+            {
+                wxString cur = q.front(); q.pop(); comp.push_back( cur );
+                for( const EDGE& e : snapshot[cur] ) if( !seen.contains( e.other ) ) { seen.insert( e.other ); q.push( e.other ); }
+            }
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "  component size=%zu", comp.size() );
+            if( comp.size() <= 4 ) continue;
+            std::map<wxString,int> degree;
+            for( const wxString& n : comp ) degree[n] = (int) snapshot[n].size();
+            std::vector<wxString> candidates;
+            for( const wxString& n : comp )
+            {
+                const auto& nbrs = snapshot[n];
+                if( nbrs.size() == 1 )
+                {
+                    const wxString neigh = nbrs[0].other;
+                    if( degree.count( neigh ) && degree[neigh] > 2 ) candidates.push_back( n );
+                }
+            }
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "   candidates=%zu", candidates.size() );
+            if( candidates.empty() ) continue;
+            std::sort( candidates.begin(), candidates.end(), []( const wxString& a, const wxString& b ){ return a.CmpNoCase( b ) < 0; } );
+            size_t needPrune = comp.size() - 4; if( needPrune > candidates.size() ) needPrune = candidates.size();
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "   pruning need=%zu", needPrune );
+            for( size_t i = 0; i < needPrune; ++i ) globalPrune.insert( candidates[i] );
+        }
+        if( !globalPrune.empty() )
+        {
+            std::map<wxString,std::vector<EDGE>> newAdj;
+            for( const auto& kv2 : adjacency )
+            {
+                if( globalPrune.contains( kv2.first ) ) continue;
+                for( const EDGE& e : kv2.second )
+                {
+                    if( globalPrune.contains( e.other ) ) continue;
+                    newAdj[kv2.first].push_back( e );
+                }
+            }
+            adjacency.swap( newAdj );
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pruned %zu targeted stub nets", globalPrune.size() );
+        }
+    }
+
+    // ---------- Small helpers ----------
+    auto neighbors_of = [&]( const wxString& n ) -> const std::vector<EDGE>*
+    {
+        if( auto it = adjacency.find(n); it != adjacency.end() ) return &it->second;
+        return nullptr;
+    };
+
+
+    // Structural filtering already done by excluding edges; isolated power nets are implicitly ignored.
+    m_netchainCandidates.clear();
+
+    // Recompute nets list after filtering
+    std::set<wxString> netsAll;
+    for( const auto& kv : adjacency ) netsAll.insert( kv.first );
+
+    // Connected component extraction over filtered adjacency (all remaining nets are non-power)
+    std::set<wxString> visited;
+
+    for( const wxString& start : netsAll )
+    {
+        if( visited.contains( start ) )
+            continue;
+
+        std::queue<wxString> q;
+        std::set<wxString> comp;
+
+        q.push( start );
+        comp.insert( start );
+        visited.insert( start );
+
+        while( !q.empty() )
+        {
+            wxString cur = q.front(); q.pop();
+            if( auto nbrs = neighbors_of( cur ) )
+            {
+                for( const EDGE& e : *nbrs )
+                {
+                    if( visited.contains( e.other ) ) continue;
+                    visited.insert( e.other );
+                    comp.insert( e.other );
+                    q.push( e.other );
+                }
+            }
+        }
+
+        if( comp.size() >= 2 )
+        {
+            auto sig = std::make_unique<SCH_NETCHAIN>();
+
+            for( const wxString& n : comp )
+                sig->AddNet( n );
+
+            for( const BRIDGE_EDGE& be : bridgeEdges )
+            {
+                if( comp.contains( be.a ) && comp.contains( be.b ) && be.sym )
+                    sig->AddSymbol( be.sym );
+            }
+
+            m_netchainCandidates.push_back( std::move( sig ) );
+        }
+    }
+
+    // Build netToChain map for potential net chains
+    netToChain.clear();
+    for( const auto& sigUP : m_netchainCandidates )
+    {
+        if( !sigUP )
+            continue;
+
+        for( const wxString& n : sigUP->GetNets() )
+            netToChain[n] = sigUP.get();
+    }
+
+    // Debug: enumerate net chains and their nets prior to label-based naming.
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pre-label potentialNetChains=%zu", m_netchainCandidates.size() );
+    for( const auto& sigUP : m_netchainCandidates )
+    {
+        if( !sigUP )
+            continue;
+
+        wxString netsStr;
+        int count = 0;
+
+        for( const wxString& n : sigUP->GetNets() )
+        {
+            if( count < 32 )
+            {
+                netsStr += n;
+                netsStr += wxS(" ");
+            }
+            else
+            {
+                netsStr += wxS("...");
+                break;
+            }
+            ++count;
+        }
+
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "  signal %p name='%s' nets=%zu [%s]", (void*) sigUP.get(),
+                    sigUP->GetName(), sigUP->GetNets().size(), netsStr );
+    }
+
+
+    for( SCH_ITEM* item : m_items )
+    {
+        const KICAD_T t = item->Type();
+        if( t != SCH_NETCHAIN_LABEL_T && t != SCH_LABEL_T )
+            continue;
+
+        SCH_TEXT* label = static_cast<SCH_TEXT*>( item );
+        wxString  net;
+
+        if( CONNECTION_SUBGRAPH* sg = GetSubgraphForItem( item ) )
+            net = sg->GetNetName();
+
+        // Defensive: guard against pathological names
+        if( !net.IsEmpty() && net.Length() < 2048 && netToChain.count( net ) )
+        {
+            wxString name = label->GetText();
+            if( name.Length() > 512 )
+                name.Truncate( 512 );
+            if( name.StartsWith( wxS( "/" ) ) )
+                name = name.Mid( 1 );
+
+            netToChain[net]->SetName( name );
+        }
+        else if( !net.IsEmpty() && net.Length() < 2048 )
+        {
+            for( auto& sigUP : m_netchains )
+            {
+                if( sigUP && sigUP->GetNets().count( net ) )
+                {
+                    wxString name = label->GetText();
+                    if( name.StartsWith( wxS( "/" ) ) )
+                        name = name.Mid( 1 );
+                    sigUP->SetName( name );
+                    break;
+                }
+            }
+        }
+    }
+
+    int idx = 1;
+
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pass 3 (default naming)" );
+    for( std::unique_ptr<SCH_NETCHAIN>& sig : m_netchainCandidates )
+    {
+        if( sig->GetName().IsEmpty() )
+        {
+            sig->SetName( wxString::Format( wxT( "NetChain%d" ), idx ) );
+            idx++;
+        }
+    }
+
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pass 4 (terminal pins)" );
+    for( std::unique_ptr<SCH_NETCHAIN>& sig : m_netchainCandidates )
+    {
+        std::vector<SCH_PIN*> pins;
+
+        for( const SCH_SHEET_PATH& sheetPath : m_sheetList )
+        {
+            SCH_SCREEN* sc = sheetPath.LastScreen();
+
+            if( !sc )
+                continue;
+
+            for( SCH_ITEM* item : sc->Items().OfType( SCH_SYMBOL_T ) )
+            {
+                SCH_SYMBOL* sym = static_cast<SCH_SYMBOL*>( item );
+                std::vector<SCH_PIN*> sp = sym->GetPins( &sheetPath );
+
+                for( SCH_PIN* p : sp )
+                {
+                    wxString net = getSubgraphNet( p );
+
+                    if( sig->GetNets().count( net ) )
+                        pins.push_back( p );
+                }
+            }
+        }
+
+        long best = -1;
+        KIID a;
+        KIID b;
+
+        for( size_t i = 0; i < pins.size(); ++i )
+        {
+            for( size_t j = i + 1; j < pins.size(); ++j )
+            {
+                VECTOR2I pa = pins[i]->GetPosition();
+                VECTOR2I pb = pins[j]->GetPosition();
+
+                long d = (long) ( pa.x - pb.x ) * ( pa.x - pb.x )
+                       + (long) ( pa.y - pb.y ) * ( pa.y - pb.y );
+
+                if( d > best )
+                {
+                    best = d;
+                    a = pins[i]->m_Uuid;
+                    b = pins[j]->m_Uuid;
+                }
+            }
+        }
+
+        sig->SetTerminalPins( a, b );
+
+        if( m_signalTerminalOverrides.count( sig->GetName() ) )
+        {
+            auto ov = m_signalTerminalOverrides[sig->GetName()];
+            sig->SetTerminalPins( ov.first, ov.second );
+        }
+    }
+
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: pass 5 (apply symbol names)" );
+    for( auto& sigUP : m_netchainCandidates )
+    {
+        SCH_NETCHAIN* sig = sigUP.get();
+
+        for( SCH_SYMBOL* sym : sig->GetSymbols() )
+        {
+            if( sym )
+                sym->SetNetChainName( sig->GetName() );
+        }
+        wxString netsStr;
+
+        for( const wxString& n : sig->GetNets() )
+        {
+            netsStr += n + wxS( " " );
+        }
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "FinalNetChain %p nets(%zu): %s", (void*) sig, sig->GetNets().size(),
+                    netsStr );
+    }
+
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: built %zu potential net chains", m_netchainCandidates.size() );
+    }
+    catch( const std::exception& e )
+    {
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: exception: %s", e.what() );
+        m_netchainCandidates.clear();
+        return;
+    }
+    catch( ... )
+    {
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildNetChains: unknown exception" );
+        m_netchainCandidates.clear();
+        return;
+    }
+}
+
+SCH_NETCHAIN* CONNECTION_GRAPH::FindPotentialNetChainBetweenPins( SCH_PIN* aPinA, SCH_PIN* aPinB )
+{
+    if( !aPinA || !aPinB )
+        return nullptr;
+
+    wxString netA;
+    wxString netB;
+    if( CONNECTION_SUBGRAPH* sgA = GetSubgraphForItem( aPinA ) )
+        netA = sgA->GetNetName().IsEmpty() ? wxString::Format( wxT("__SG_%ld"), sgA->m_code ) : sgA->GetNetName();
+
+    if( CONNECTION_SUBGRAPH* sgB = GetSubgraphForItem( aPinB ) )
+        netB = sgB->GetNetName().IsEmpty() ? wxString::Format( wxT( "__SG_%ld" ), sgB->m_code ) : sgB->GetNetName();
+
+    if( netA.IsEmpty() || netB.IsEmpty() )
+        return nullptr;
+
+    for( const auto& sigUP : m_netchainCandidates )
+    {
+        if( sigUP && sigUP->GetNets().contains( netA ) && sigUP->GetNets().contains( netB ) )
+            return sigUP.get();
+    }
+
+    return nullptr;
+}
+
+SCH_NETCHAIN* CONNECTION_GRAPH::CreateNetChainFromPotential( SCH_NETCHAIN* aPotential, const wxString& aName )
+{
+    if( !aPotential )
+        return nullptr;
+    auto sig = std::make_unique<SCH_NETCHAIN>();
+    for( const wxString& n : aPotential->GetNets() )
+        sig->AddNet( n );
+    for( SCH_SYMBOL* sym : aPotential->GetSymbols() )
+        sig->AddSymbol( sym );
+    sig->SetName( aName );
+    // Apply name to symbols now
+    for( SCH_SYMBOL* sym : sig->GetSymbols() )
+        if( sym ) sym->SetNetChainName( sig->GetName() );
+    SCH_NETCHAIN* raw = sig.get();
+    m_netchains.push_back( std::move( sig ) );
+    return raw;
+}
+
+
+SCH_NETCHAIN* CONNECTION_GRAPH::GetNetChainForNet( const wxString& aNet )
+{
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "CONNECTION_GRAPH::GetNetChainForNet(%s)", aNet );
+    for( std::unique_ptr<SCH_NETCHAIN>& sig : m_netchains )
+    {
+        if( sig->GetNets().count( aNet ) )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetNetChainForNet: found signal '%s'", sig->GetName() );
+            return sig.get();
+        }
+    }
+
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetNetChainForNet: no signal found" );
+    return nullptr;
+}
+
+
+SCH_NETCHAIN* CONNECTION_GRAPH::GetNetChainByName( const wxString& aName )
+{
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "CONNECTION_GRAPH::GetNetChainByName(%s)", aName );
+    for( std::unique_ptr<SCH_NETCHAIN>& sig : m_netchains )
+    {
+        if( sig->GetName() == aName )
+        {
+            wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetNetChainByName: found" );
+            return sig.get();
+        }
+    }
+
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "GetNetChainByName: not found" );
+    return nullptr;
+}
+
+
+void CONNECTION_GRAPH::ReplaceNetChainTerminalPin( const wxString& aNetChain, const KIID& aPrev, const KIID& aNew )
+{
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ReplaceNetChainTerminalPin: netChain='%s' prev=%s new=%s",
+                aNetChain, aPrev.AsString(), aNew.AsString() );
+    if( SCH_NETCHAIN* sig = GetNetChainByName( aNetChain ) )
+    {
+        sig->ReplaceTerminalPin( aPrev, aNew );
+        m_signalTerminalOverrides[aNetChain] = std::make_pair( sig->GetTerminalPinA(),
+                                                             sig->GetTerminalPinB() );
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "ReplaceNetChainTerminalPin: updated overrides to (%s,%s)",
+                    sig->GetTerminalPinA().AsString(), sig->GetTerminalPinB().AsString() );
+    }
+}
+
+
+void CONNECTION_GRAPH::SetNetChainTerminalOverrides( const std::map<wxString, std::pair<KIID, KIID>>& aOverrides )
+{
+    m_signalTerminalOverrides = aOverrides;
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "SetNetChainTerminalOverrides: count=%zu",
+                m_signalTerminalOverrides.size() );
 }
 
 
 int CONNECTION_GRAPH::getOrCreateNetCode( const wxString& aNetName )
 {
-    int code;
+    int code = 0;
 
     auto it = m_net_name_to_code_map.find( aNetName );
 

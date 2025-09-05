@@ -35,6 +35,8 @@
 #include <schematic_lexer.h>
 #include <sch_file_versions.h>
 #include <default_values.h>    // For some default values
+#include <map>
+#include <wx/string.h>
 
 
 class SCH_PIN;
@@ -111,6 +113,12 @@ public:
                          int aFileVersion = SEXPR_SCHEMATIC_FILE_VERSION );
 
     int GetParsedRequiredVersion() const { return m_requiredVersion; }
+
+    // Access parsed net chain terminal overrides for consumers after ParseSchematic.
+    const std::map<wxString, std::pair<KIID, KIID>>& GetNetChainTerminals() const
+    {
+        return m_netChainTerminals;
+    }
 
 private:
     // Group membership info refers to other Uuids in the file.
@@ -248,6 +256,7 @@ private:
     SCH_TABLECELL* parseSchTableCell();
     SCH_TABLE* parseSchTable();
     void parseBusAlias( SCH_SCREEN* aScreen );
+    void parseSchNetChain();
 
     void resolveGroups( SCH_SCREEN* aParent );
 
@@ -275,6 +284,7 @@ private:
     int                m_maxError;
 
     std::vector<GROUP_INFO> m_groupInfos;
+    std::map<wxString, std::pair<KIID, KIID>> m_netChainTerminals;
 };
 
 #endif    // SCH_IO_KICAD_SEXPR_PARSER_H_
