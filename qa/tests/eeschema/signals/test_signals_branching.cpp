@@ -84,7 +84,8 @@ BOOST_FIXTURE_TEST_CASE( SignalBuilder_BranchingVariants, SIGNALS_BRANCH_TEST_FI
             size_t count = 0;
             size_t maxNets = 0;
 
-            for( const auto& sig : m_schematic->ConnectionGraph()->GetSignals() )
+            // Use potential signals (auto-inferred, not yet user-created).
+            for( const auto& sig : m_schematic->ConnectionGraph()->GetPotentialSignals() )
             {
                 if( !sig )
                     continue;

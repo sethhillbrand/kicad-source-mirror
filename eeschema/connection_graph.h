@@ -433,7 +433,7 @@ public:
 
     const NET_MAP& GetNetMap() const { return m_net_code_to_subgraphs_map; }
 
-    const std::vector<std::unique_ptr<SCH_SIGNAL>>& GetSignals() const { return m_signals; }
+    // (Deprecated accessor moved to potential signals section; retained later.)
 
     SCH_SIGNAL* GetSignalForNet( const wxString& aNet );
     SCH_SIGNAL* GetSignalByName( const wxString& aName );
@@ -805,6 +805,23 @@ private:
 
     void RebuildSignals();
 
+    // Potential signal (inferred) API -------------------------------
+public:
+    /**
+     * Potential signals are inferred groupings produced by RebuildSignals() but not
+     * yet user-committed. Existing m_signals now represents only user-created signals.
+     */
+    const std::vector<std::unique_ptr<SCH_SIGNAL>>& GetPotentialSignals() const { return m_potentialSignals; }
+
+    /** Locate a potential signal that contains both pins (by subgraph net membership). */
+    SCH_SIGNAL* FindPotentialSignalBetweenPins( SCH_PIN* aPinA, SCH_PIN* aPinB );
+
+    /** Promote a potential signal to an actual user signal with the provided name. */
+    SCH_SIGNAL* CreateSignalFromPotential( SCH_SIGNAL* aPotential, const wxString& aName );
+
+    /** Return user-created (committed) signals (legacy accessor retained). */
+    const std::vector<std::unique_ptr<SCH_SIGNAL>>& GetSignals() const { return m_signals; }
+
 
 private:
     /// All the sheets in the schematic (as long as we don't have partial updates).
@@ -842,6 +859,7 @@ private:
     NET_MAP m_net_code_to_subgraphs_map;
 
     std::vector<std::unique_ptr<SCH_SIGNAL>> m_signals;
+    std::vector<std::unique_ptr<SCH_SIGNAL>> m_potentialSignals; ///< last built potential (uncommitted) signals
     std::map<wxString, std::pair<KIID, KIID>> m_signalTerminalOverrides;
 
     int m_last_net_code;

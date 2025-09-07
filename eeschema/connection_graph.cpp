@@ -2634,7 +2634,8 @@ void CONNECTION_GRAPH::RebuildSignals()
     {
         wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: begin (items=%zu, schematic=%p)",
                     m_items.size(), (void*) m_schematic );
-        m_signals.clear();
+        // Clear only potential signals; leave committed signals intact.
+        m_potentialSignals.clear();
 
         if( !m_schematic )
         {
@@ -2928,7 +2929,7 @@ void CONNECTION_GRAPH::RebuildSignals()
 
 
     // Structural filtering already done by excluding edges; isolated power nets are implicitly ignored.
-    m_signals.clear();
+    m_potentialSignals.clear();
 
     // Recompute nets list after filtering
     std::set<wxString> netsAll;
@@ -2962,17 +2963,17 @@ void CONNECTION_GRAPH::RebuildSignals()
             for( const BRIDGE_EDGE& be : bridgeEdges )
                 if( comp.contains( be.a ) && comp.contains( be.b ) && be.sym )
                     sig->AddSymbol( be.sym );
-            m_signals.push_back( std::move( sig ) );
+            m_potentialSignals.push_back( std::move( sig ) );
         }
     }
-    // Build netToSignal map
+    // Build netToSignal map for potential signals
     netToSignal.clear();
-    for( const auto& sigUP : m_signals )
+    for( const auto& sigUP : m_potentialSignals )
         if( sigUP ) for( const wxString& n : sigUP->GetNets() ) netToSignal[n] = sigUP.get();
 
     // Debug: enumerate signals and their nets prior to label-based naming.
-    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pre-label signals=%zu", m_signals.size() );
-    for( const auto& sigUP : m_signals )
+    wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pre-label potentialSignals=%zu", m_potentialSignals.size() );
+    for( const auto& sigUP : m_potentialSignals )
     {
         if( !sigUP ) continue;
         wxString netsStr;
@@ -3038,7 +3039,7 @@ void CONNECTION_GRAPH::RebuildSignals()
     int idx = 1;
 
     wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 3 (default naming)" );
-    for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
+    for( std::unique_ptr<SCH_SIGNAL>& sig : m_potentialSignals )
     {
         if( sig->GetName().IsEmpty() )
         {
@@ -3048,7 +3049,7 @@ void CONNECTION_GRAPH::RebuildSignals()
     }
 
     wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 4 (terminal pins)" );
-    for( std::unique_ptr<SCH_SIGNAL>& sig : m_signals )
+    for( std::unique_ptr<SCH_SIGNAL>& sig : m_potentialSignals )
     {
         std::vector<SCH_PIN*> pins;
         for( const SCH_SHEET_PATH& sheetPath : m_sheetList )
@@ -3098,7 +3099,7 @@ void CONNECTION_GRAPH::RebuildSignals()
     }
 
     wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: pass 5 (apply symbol names)" );
-    for( auto& sigUP : m_signals )
+    for( auto& sigUP : m_potentialSignals )
     {
         SCH_SIGNAL* sig = sigUP.get();
         for( SCH_SYMBOL* sym : sig->GetSymbols() )
@@ -3111,20 +3112,62 @@ void CONNECTION_GRAPH::RebuildSignals()
     wxLogTrace( "KICAD_SCH_HIGHLIGHT", "FinalSignal %p nets(%zu): %s", (void*) sig, sig->GetNets().size(), netsStr );
     }
 
-        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: built %zu signals", m_signals.size() );
+        wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: built %zu potential signals", m_potentialSignals.size() );
     }
     catch( const std::exception& e )
     {
         wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: exception: %s", e.what() );
-        m_signals.clear();
+        m_potentialSignals.clear();
         return;
     }
     catch( ... )
     {
         wxLogTrace( "KICAD_SCH_HIGHLIGHT", "RebuildSignals: unknown exception" );
-        m_signals.clear();
+        m_potentialSignals.clear();
         return;
     }
+}
+
+SCH_SIGNAL* CONNECTION_GRAPH::FindPotentialSignalBetweenPins( SCH_PIN* aPinA, SCH_PIN* aPinB )
+{
+    if( !aPinA || !aPinB )
+        return nullptr;
+
+    wxString netA;
+    wxString netB;
+    if( CONNECTION_SUBGRAPH* sgA = GetSubgraphForItem( aPinA ) )
+        netA = sgA->GetNetName().IsEmpty() ? wxString::Format( wxT("__SG_%ld"), sgA->m_code ) : sgA->GetNetName();
+    if( CONNECTION_SUBGRAPH* sgB = GetSubgraphForItem( aPinB ) )
+        netB = sgB->GetNetName().IsEmpty() ? wxString::Format( wxT("__SG_%ld"), sgB->m_code ) : sgB->GetNetName();
+
+    if( netA.IsEmpty() || netB.IsEmpty() )
+        return nullptr;
+
+    for( const auto& sigUP : m_potentialSignals )
+    {
+        if( sigUP && sigUP->GetNets().contains( netA ) && sigUP->GetNets().contains( netB ) )
+            return sigUP.get();
+    }
+
+    return nullptr;
+}
+
+SCH_SIGNAL* CONNECTION_GRAPH::CreateSignalFromPotential( SCH_SIGNAL* aPotential, const wxString& aName )
+{
+    if( !aPotential )
+        return nullptr;
+    auto sig = std::make_unique<SCH_SIGNAL>();
+    for( const wxString& n : aPotential->GetNets() )
+        sig->AddNet( n );
+    for( SCH_SYMBOL* sym : aPotential->GetSymbols() )
+        sig->AddSymbol( sym );
+    sig->SetName( aName );
+    // Apply name to symbols now
+    for( SCH_SYMBOL* sym : sig->GetSymbols() )
+        if( sym ) sym->SetSignalName( sig->GetName() );
+    SCH_SIGNAL* raw = sig.get();
+    m_signals.push_back( std::move( sig ) );
+    return raw;
 }
 
 

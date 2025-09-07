@@ -50,7 +50,7 @@ BOOST_FIXTURE_TEST_CASE( RemoveFromSignal_DisablesPropagationAndSplitsGroup, SIG
 
     size_t fourCount = 0;
     SCH_SIGNAL* four = nullptr;
-    for( const auto& sig : graph->GetSignals() )
+    for( const auto& sig : graph->GetPotentialSignals() )
     {
         if( sig && sig->GetNets().size() == 4 )
         {
@@ -97,7 +97,7 @@ BOOST_FIXTURE_TEST_CASE( RemoveFromSignal_DisablesPropagationAndSplitsGroup, SIG
     graph->Recalculate( sheets, /*aUnconditional=*/true );
 
     bool stillHasFour = false;
-    for( const auto& sig : graph->GetSignals() )
+    for( const auto& sig : graph->GetPotentialSignals() )
     {
         if( sig && sig->GetNets().size() == 4 )
         {

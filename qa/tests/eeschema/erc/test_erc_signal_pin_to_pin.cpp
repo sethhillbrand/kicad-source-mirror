@@ -30,6 +30,17 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPinToPin, ERC_SIGNAL_TEST_FIXTURE )
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_MISMATCH] = RPT_SEVERITY_IGNORE;
     // Ensure signals are constructed before ERC tests.
     m_schematic->ConnectionGraph()->Recalculate( m_schematic->BuildSheetListSortedByPageNumbers(), true );
+    // Manually promote all potential signals (new behavior: signals are not auto-created).
+    {
+        CONNECTION_GRAPH* graph = m_schematic->ConnectionGraph();
+        int idx = 1;
+        for( const auto& pot : graph->GetPotentialSignals() )
+        {
+            if( !pot ) continue;
+            wxString name = wxString::Format( wxS("ERC_SIG_%d"), idx++ );
+            graph->CreateSignalFromPotential( pot.get(), name );
+        }
+    }
     m_schematic->ConnectionGraph()->RunERC();
 
     ERC_TESTER tester( m_schematic.get() );
@@ -118,6 +129,17 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPowerInputDrivenAcrossSignal, ERC_SIGNAL_TEST_
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_ISSUES] = RPT_SEVERITY_IGNORE;
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_MISMATCH] = RPT_SEVERITY_IGNORE;
     m_schematic->ConnectionGraph()->Recalculate( m_schematic->BuildSheetListSortedByPageNumbers(), true );
+    // Promote potential signals prior to ERC.
+    {
+        CONNECTION_GRAPH* graph = m_schematic->ConnectionGraph();
+        int idx = 1;
+        for( const auto& pot : graph->GetPotentialSignals() )
+        {
+            if( !pot ) continue;
+            wxString name = wxString::Format( wxS("ERC_SIG_%d"), idx++ );
+            graph->CreateSignalFromPotential( pot.get(), name );
+        }
+    }
     m_schematic->ConnectionGraph()->RunERC();
 
     ERC_TESTER tester( m_schematic.get() );
