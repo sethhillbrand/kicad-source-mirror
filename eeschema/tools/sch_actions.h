@@ -301,6 +301,7 @@ public:
     static TOOL_ACTION removeFromSignal;
     static TOOL_ACTION replaceTerminalPin;
     static TOOL_ACTION nameSignal;
+    static TOOL_ACTION createSignalBetweenPins;
     static TOOL_ACTION showNetNavigator;
 
     // Drag and drop

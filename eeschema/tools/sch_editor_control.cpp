@@ -1519,6 +1519,99 @@ int SCH_EDITOR_CONTROL::NameSignal( const TOOL_EVENT& aEvent )
     return 0;
 }
 
+int SCH_EDITOR_CONTROL::CreateSignalBetweenPins( const TOOL_EVENT& aEvent )
+{
+    SCH_SELECTION_TOOL* selTool = m_toolMgr->GetTool<SCH_SELECTION_TOOL>();
+    auto& selection = selTool->GetSelection();
+
+    if( selection.GetSize() != 2 )
+        return 0;
+
+    SCH_PIN* pinA = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( selection[0] ) );
+    SCH_PIN* pinB = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( selection[1] ) );
+
+    if( !pinA || !pinB )
+        return 0;
+
+    SCH_EDIT_FRAME* editFrame = static_cast<SCH_EDIT_FRAME*>( m_toolMgr->GetToolHolder() );
+    CONNECTION_GRAPH* graph = editFrame->Schematic().ConnectionGraph();
+
+    // Ensure potential signals are current
+    graph->Recalculate( editFrame->Schematic().BuildSheetListSortedByPageNumbers(), false );
+
+    SCH_SIGNAL* potential = graph->FindPotentialSignalBetweenPins( pinA, pinB );
+    if( !potential )
+    {
+        DisplayError( editFrame, _( "No potential signal connects the selected pins." ) );
+        return 0;
+    }
+
+    // Build default suggestion name
+    wxString suggestion = wxString::Format( wxS( "%s_%s" ), pinA->GetParentSymbol()->GetRef( &editFrame->GetCurrentSheet() ), pinB->GetParentSymbol()->GetRef( &editFrame->GetCurrentSheet() ) );
+
+    // Compose display text for dialog
+    wxString msg = wxString::Format( _( "Create Signal between %s:%s and %s:%s" ),
+                                     pinA->GetParentSymbol()->GetRef( &editFrame->GetCurrentSheet() ), pinA->GetNumber(),
+                                     pinB->GetParentSymbol()->GetRef( &editFrame->GetCurrentSheet() ), pinB->GetNumber() );
+
+    // Temporary highlight preview: highlight all nets in potential (reuse SetHighlightedSignal with temp name)
+    // We use the potential's current name as a temporary highlight identifier
+    wxString prevHighlightedSig = editFrame->GetHighlightedSignal();
+    wxString prevHighlightedConn = editFrame->GetHighlightedConnection();
+
+    editFrame->SetHighlightedConnection( wxEmptyString );
+    editFrame->SetHighlightedSignal( potential->GetName() );
+    TOOL_EVENT dummy;
+    UpdateNetHighlighting( dummy );
+    editFrame->UpdateNetHighlightStatus();
+
+    // Zoom to bounding box of the two pins (union) expanded slightly
+    BOX2I bbox = pinA->GetBoundingBox();
+    bbox.Merge( pinB->GetBoundingBox() );
+    // Expand by 25% for context
+    int dx = bbox.GetWidth() / 4; if( dx < 100 ) dx = 100;
+    int dy = bbox.GetHeight() / 4; if( dy < 100 ) dy = 100;
+    bbox.Inflate( dx, dy );
+    if( auto canvas = editFrame->GetCanvas() )
+    {
+        canvas->GetView()->SetCenter( bbox.GetCenter() );
+        // Compute scale so bbox roughly fits viewport height
+        auto view = canvas->GetView();
+        if( view )
+        {
+            BOX2D viewBox = view->GetBoundary();
+            double scaleX = (double) viewBox.GetWidth() / (double) bbox.GetWidth();
+            double scaleY = (double) viewBox.GetHeight() / (double) bbox.GetHeight();
+            double scale = std::min( scaleX, scaleY );
+            if( scale > 0 )
+                view->SetScale( scale );
+        }
+    }
+
+    wxString name = wxGetTextFromUser( msg, _( "Create Signal" ), suggestion, editFrame );
+    if( name.IsEmpty() )
+    {
+        // Restore previous highlight state
+        editFrame->SetHighlightedSignal( prevHighlightedSig );
+        editFrame->SetHighlightedConnection( prevHighlightedConn );
+        UpdateNetHighlighting( dummy );
+        editFrame->UpdateNetHighlightStatus();
+        return 0; // cancelled
+    }
+
+    if( graph->CreateSignalFromPotential( potential, name ) )
+    {
+        // Replace temporary highlight with new signal name
+        editFrame->SetHighlightedSignal( name );
+        editFrame->SetHighlightedConnection( wxEmptyString );
+        UpdateNetHighlighting( dummy );
+        editFrame->UpdateNetHighlightStatus();
+        editFrame->Refresh();
+    }
+
+    return 0;
+}
+
 
 int SCH_EDITOR_CONTROL::Undo( const TOOL_EVENT& aEvent )
 {
@@ -3303,6 +3396,7 @@ void SCH_EDITOR_CONTROL::setTransitions()
     Go( &SCH_EDITOR_CONTROL::SimTune,                 SCH_ACTIONS::simTune.MakeEvent() );
 
     Go( &SCH_EDITOR_CONTROL::HighlightNet,            SCH_ACTIONS::highlightNet.MakeEvent() );
+    Go( &SCH_EDITOR_CONTROL::CreateSignalBetweenPins, SCH_ACTIONS::createSignalBetweenPins.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::ClearHighlight,          SCH_ACTIONS::clearHighlight.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::HighlightNetCursor,      SCH_ACTIONS::highlightNetTool.MakeEvent() );
     Go( &SCH_EDITOR_CONTROL::HighlightSignal,         SCH_ACTIONS::highlightSignal.MakeEvent() );

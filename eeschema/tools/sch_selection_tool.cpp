@@ -237,6 +237,10 @@ private:
     KIID m_new;
 };
 
+// Forward declaration of helper used inside SIGNALS_MENU::update
+class SIGNALS_MENU;
+static bool addCreateSignalBetweenPinsIfApplicable( SIGNALS_MENU* aMenu, SCH_EDIT_FRAME* aFrame, const SCH_SELECTION& aSel );
+
 class SIGNALS_MENU : public ACTION_MENU
 {
 public:
@@ -244,18 +248,147 @@ public:
     {
         SetTitle( _( "Signals..." ) );
         m_replaceMenu = new REPLACE_TERMINAL_PIN_MENU();
-    Add( SCH_ACTIONS::highlightSignal );
-    Add( SCH_ACTIONS::removeFromSignal );
-    Add( m_replaceMenu );
-        Add( SCH_ACTIONS::nameSignal );
     }
 
 protected:
     ACTION_MENU* create() const override { return new SIGNALS_MENU(); }
 
+    void update() override
+    {
+        Clear();
+
+        wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] update() invoked" );
+
+        TOOL_MANAGER* toolMgr = getToolManager();
+        if( !toolMgr )
+        {
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] abort: toolMgr null" );
+            return;
+        }
+
+        SCH_SELECTION_TOOL* selTool = toolMgr->GetTool<SCH_SELECTION_TOOL>();
+        SCH_EDIT_FRAME*      frame   = static_cast<SCH_EDIT_FRAME*>( toolMgr->GetToolHolder() );
+        if( !selTool || !frame )
+        {
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] abort: selTool=%p frame=%p", (void*) selTool, (void*) frame );
+            return;
+        }
+
+        const SCH_SELECTION& sel = selTool->GetSelection();
+        if( sel.Empty() )
+        {
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] abort: empty selection" );
+            return; // nothing to show
+        }
+
+        wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] selection size=%zu", sel.GetSize() );
+
+        CONNECTION_GRAPH* graph = frame->Schematic().ConnectionGraph();
+        if( !graph )
+        {
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] abort: no connection graph" );
+            return;
+        }
+
+        auto pinFrom = [&]( int idx ) -> SCH_PIN*
+        {
+            if( idx >= (int) sel.GetSize() )
+                return nullptr;
+            return dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( sel[idx] ) );
+        };
+
+        // Determine context flags
+        bool singlePin = sel.GetSize() == 1 && pinFrom( 0 ) && pinFrom( 0 )->Connection();
+        bool inSignal  = false; // at least one selected item participates in a committed signal
+        bool canName   = false; // we can rename a signal (single pin with committed signal)
+        bool canRemove = false; // we can remove an item from its signal
+
+        // Evaluate selection items
+        for( size_t i = 0; i < sel.GetSize(); ++i )
+        {
+            SCH_PIN* p = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( sel[i] ) );
+            if( !p || !p->Connection() )
+            {
+                wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] sel[%zu]: not a pin or no connection", i );
+                continue;
+            }
+
+            wxString netName = p->Connection()->Name();
+            bool hasSignal = graph->GetSignalForNet( netName );
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] sel[%zu]: pin uuid=%s net=%s committedSignal=%d", i,
+                        p->m_Uuid.AsString(), netName, hasSignal );
+            if( graph->GetSignalForNet( p->Connection()->Name() ) )
+            {
+                inSignal = true;
+                canRemove = true; // current remove handler works on a pin in a signal
+                if( sel.GetSize() == 1 )
+                    canName = true; // nameSignal expects single pin selected
+            }
+        }
+
+        wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] flags: singlePin=%d inSignal=%d canName=%d canRemove=%d", singlePin, inSignal, canName, canRemove );
+
+        // highlightSignal action: only if we have a committed signal context
+        if( inSignal )
+        {
+            Add( SCH_ACTIONS::highlightSignal );
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] added highlightSignal" );
+        }
+
+        // removeFromSignal action
+        if( canRemove )
+        {
+            Add( SCH_ACTIONS::removeFromSignal );
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] added removeFromSignal" );
+        }
+
+        // Replace terminal pin submenu only when a single pin belonging to a signal is selected
+        if( singlePin && inSignal )
+        {
+            Add( m_replaceMenu );
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] added replaceTerminalPin submenu" );
+        }
+
+        // nameSignal action
+        if( canName )
+        {
+            Add( SCH_ACTIONS::nameSignal );
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] added nameSignal" );
+        }
+
+        // createSignalBetweenPins: two pins selected, share potential (uncommitted) signal
+        if( sel.GetSize() == 2 )
+        {
+            bool added = addCreateSignalBetweenPinsIfApplicable( this, frame, sel );
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] createSignalBetweenPins attempted added=%d", added );
+        }
+    }
+
 private:
     REPLACE_TERMINAL_PIN_MENU* m_replaceMenu;
 };
+
+// Extend signals menu dynamically with createSignalBetweenPins when two pins are selected
+static bool addCreateSignalBetweenPinsIfApplicable( SIGNALS_MENU* aMenu, SCH_EDIT_FRAME* aFrame, const SCH_SELECTION& aSel )
+{
+    if( aSel.GetSize() != 2 )
+        return false;
+    SCH_PIN* pa = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( aSel[0] ) );
+    SCH_PIN* pb = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( aSel[1] ) );
+    if( !pa || !pb )
+        return false;
+    CONNECTION_GRAPH* graph = aFrame->Schematic().ConnectionGraph();
+    // Do not trigger a rebuild here; assume graph already current per user request.
+    if( graph->FindPotentialSignalBetweenPins( pa, pb ) )
+    {
+        wxString label = wxString::Format( _( "Create Signal between %s:%s and %s:%s" ),
+                                           pa->GetParentSymbol()->GetRef( &aFrame->GetCurrentSheet() ), pa->GetNumber(),
+                                           pb->GetParentSymbol()->GetRef( &aFrame->GetCurrentSheet() ), pb->GetNumber() );
+        aMenu->Add( SCH_ACTIONS::createSignalBetweenPins )->SetItemLabel( label );
+        return true;
+    }
+    return false;
+}
 
 
 static void passEvent( TOOL_EVENT* const aEvent, const TOOL_ACTION* const aAllowedActions[] )
@@ -411,7 +544,10 @@ bool SCH_SELECTION_TOOL::Init()
 
     SELECTION_CONDITION pinSelection = []( const SELECTION& aSel )
     {
-        return aSel.GetSize() == 1 && aSel.OnlyContains( { SCH_PIN_T } );
+    // Allow the Signals... submenu for any selection consisting solely of pins (one or more).
+    // Previously this was restricted to exactly one pin, which prevented showing the menu
+    // (and thus the "Create Signal between ..." action) when exactly two pins were selected.
+    return aSel.GetSize() >= 1 && aSel.OnlyContains( { SCH_PIN_T } );
     };
 
     // Also expose Signals menu when right-clicking a single wire or bus that belongs to a signal

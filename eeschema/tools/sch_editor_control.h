@@ -107,6 +107,7 @@ public:
     ///< Replace one of a signal's terminal pins.
     int ReplaceTerminalPin( const TOOL_EVENT& aEvent );
     int NameSignal( const TOOL_EVENT& aEvent );
+    int CreateSignalBetweenPins( const TOOL_EVENT& aEvent );
 
     int AssignNetclass( const TOOL_EVENT& aEvent );
 

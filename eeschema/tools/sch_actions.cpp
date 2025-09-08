@@ -1021,6 +1021,12 @@ TOOL_ACTION SCH_ACTIONS::nameSignal( TOOL_ACTION_ARGS()
         .FriendlyName( _( "Name Signal" ) )
         .Tooltip( _( "Assign a name to the signal" ) ) );
 
+TOOL_ACTION SCH_ACTIONS::createSignalBetweenPins( TOOL_ACTION_ARGS()
+        .Name( "eeschema.EditorControl.createSignalBetweenPins" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "Create Signal Between Pins" ) )
+        .Tooltip( _( "Create a new signal connecting the two selected pins" ) ) );
+
 TOOL_ACTION SCH_ACTIONS::showNetNavigator( TOOL_ACTION_ARGS()
         .Name( "eeschema.EditorControl.showNetNavigator" )
         .Scope( AS_GLOBAL )

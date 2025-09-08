@@ -30,7 +30,7 @@ BOOST_FIXTURE_TEST_CASE( ERCSignalPinToPin, ERC_SIGNAL_TEST_FIXTURE )
     settings.m_ERCSeverities[ERCE_LIB_SYMBOL_MISMATCH] = RPT_SEVERITY_IGNORE;
     // Ensure signals are constructed before ERC tests.
     m_schematic->ConnectionGraph()->Recalculate( m_schematic->BuildSheetListSortedByPageNumbers(), true );
-    // Manually promote all potential signals (new behavior: signals are not auto-created).
+    // Manually promote all potential signals
     {
         CONNECTION_GRAPH* graph = m_schematic->ConnectionGraph();
         int idx = 1;
