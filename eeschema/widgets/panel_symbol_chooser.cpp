@@ -259,6 +259,7 @@ PANEL_SYMBOL_CHOOSER::PANEL_SYMBOL_CHOOSER( SCH_BASE_FRAME* aFrame, wxWindow* aP
     treeSizer->Fit( treePanel );
 
     m_adapter->FinishTreeInitialization();
+    m_tree->SetSearchParameters( m_adapter->GetAvailableColumns() );
 
     if( m_showPower )
         m_tree->SetSearchString( g_powerSearchString );

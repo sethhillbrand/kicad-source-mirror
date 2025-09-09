@@ -26,6 +26,7 @@
 #include <widgets/bitmap_button.h>
 #include <core/kicad_algo.h>
 #include <algorithm>
+#include <vector>
 #include <macros.h>
 #include <bitmaps.h>
 #include <dialogs/eda_reorderable_list_dialog.h>
@@ -76,7 +77,7 @@ LIB_TREE::LIB_TREE( wxWindow* aParent, const wxString& aRecentSearchesKey, LIB_T
     {
         wxBoxSizer* search_sizer = new wxBoxSizer( wxHORIZONTAL );
 
-        m_query_ctrl = new wxSearchCtrl( this, wxID_ANY );
+        m_query_ctrl = new PARAMETRIC_SEARCH_CTRL( this, wxID_ANY );
 
         m_query_ctrl->ShowCancelButton( true );
 
@@ -421,6 +422,12 @@ wxString LIB_TREE::GetSearchString() const
     return m_query_ctrl->GetValue();
 }
 
+void LIB_TREE::SetSearchParameters( const std::vector<wxString>& aParameters )
+{
+    if( m_query_ctrl )
+        m_query_ctrl->SetParameters( aParameters );
+}
+
 
 void LIB_TREE::updateRecentSearchMenu()
 {
@@ -459,7 +466,10 @@ void LIB_TREE::Regenerate( bool aKeepState )
     if( aKeepState )
         current = getState();
 
-    wxString filter = m_query_ctrl->GetValue();
+    wxString filter;
+    std::vector<PARAMETRIC_SEARCH_CTRL::TERM> terms;
+    m_query_ctrl->GetParametricTerms( filter, terms );
+    m_adapter->UpdateSearchParameters( terms );
     m_adapter->UpdateSearchString( filter, aKeepState );
     postPreselectEvent();
 

@@ -29,6 +29,8 @@
 #include <footprint_info.h>
 #include <footprint_info_impl.h>
 #include <generate_footprint_info.h>
+#include <pcb_field.h>
+#include <footprint.h>
 
 #include "fp_tree_model_adapter.h"
 
@@ -68,7 +70,34 @@ void FP_TREE_MODEL_ADAPTER::AddLibraries( EDA_BASE_FRAME* aParent )
         bool pinned = alg::contains( cfg->m_Session.pinned_fp_libs, libName )
                         || alg::contains( project.m_PinnedFootprintLibs, libName );
 
-        DoAddLibrary( libName, library->GetDescr(), getFootprints( libName ), pinned, true );
+        std::vector<LIB_TREE_ITEM*> footprints = getFootprints( libName );
+
+        for( LIB_TREE_ITEM* item : footprints )
+        {
+            if( FOOTPRINT_INFO* info = dynamic_cast<FOOTPRINT_INFO*>( item ) )
+            {
+                const FOOTPRINT* fp =
+                        m_libs->GetEnumeratedFootprint( info->GetLibNickname(),
+                                                         info->GetFootprintName() );
+
+                if( fp )
+                {
+                    std::vector<PCB_FIELD*> fields;
+
+                    fp->GetFields( fields, false );
+
+                    for( PCB_FIELD* field : fields )
+                    {
+                        if( field->IsMandatory() )
+                            continue;
+
+                        addColumnIfNecessary( field->GetName() );
+                    }
+                }
+            }
+        }
+
+        DoAddLibrary( libName, library->GetDescr(), footprints, pinned, true );
     }
 
     m_tree.AssignIntrinsicRanks( m_shownColumns );

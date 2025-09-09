@@ -43,6 +43,7 @@ FOOTPRINT_TREE_PANE::FOOTPRINT_TREE_PANE( FOOTPRINT_EDIT_FRAME* aParent )
     boxSizer->Fit( this );
 
     m_frame->GetLibTreeAdapter()->FinishTreeInitialization();
+    m_tree->SetSearchParameters( m_frame->GetLibTreeAdapter()->GetAvailableColumns() );
 
     // Event handlers
     Bind( EVT_LIBITEM_CHOSEN, &FOOTPRINT_TREE_PANE::onComponentSelected, this );

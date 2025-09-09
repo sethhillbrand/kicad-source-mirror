@@ -300,7 +300,63 @@ void LIB_TREE_MODEL_ADAPTER::UpdateSearchString( const wxString& aSearch, bool a
             termMatchers.emplace_back( std::make_unique<EDA_COMBINED_MATCHER>( term, CTX_LIBITEM ) );
         }
 
-        m_tree.UpdateScore( termMatchers, m_filter );
+        std::function<bool( LIB_TREE_NODE& )> combinedFilter;
+
+        if( m_filter || !m_searchParams.empty() )
+        {
+            combinedFilter = [&]( LIB_TREE_NODE& node ) -> bool
+            {
+                if( m_filter && !(*m_filter)( node ) )
+                    return false;
+
+                if( !m_searchParams.empty() && node.m_Type == LIB_TREE_NODE::TYPE::ITEM )
+                {
+                    for( const auto& term : m_searchParams )
+                    {
+                        wxString value;
+
+                        if( term.parameter == wxT( "Item" ) )
+                            value = node.m_Name;
+                        else if( term.parameter == wxT( "Description" ) )
+                            value = node.m_Desc;
+                        else if( node.m_Fields.count( term.parameter ) )
+                            value = node.m_Fields.at( term.parameter );
+
+                        wxString val = value.Lower();
+                        wxString tval = term.value;
+
+                        if( tval.StartsWith( wxT( "\"" ) ) && tval.EndsWith( wxT( "\"" ) ) )
+                            tval = tval.Mid( 1, tval.Length() - 2 );
+
+                        tval = tval.Lower();
+                        bool match = true;
+
+                        switch( term.compare )
+                        {
+                        case PARAMETRIC_SEARCH_CTRL::COMPARISON::IS:
+                            match = val == tval;
+                            break;
+                        case PARAMETRIC_SEARCH_CTRL::COMPARISON::IS_NOT:
+                            match = val != tval;
+                            break;
+                        case PARAMETRIC_SEARCH_CTRL::COMPARISON::CONTAINS:
+                            match = val.Contains( tval );
+                            break;
+                        case PARAMETRIC_SEARCH_CTRL::COMPARISON::DOES_NOT_CONTAIN:
+                            match = !val.Contains( tval );
+                            break;
+                        }
+
+                        if( !match )
+                            return false;
+                    }
+                }
+
+                return true;
+            };
+        }
+
+        m_tree.UpdateScore( termMatchers, combinedFilter ? &combinedFilter : m_filter );
 
         m_tree.SortNodes( m_sort_mode == BEST_MATCH );
         AfterReset();
@@ -466,6 +522,11 @@ void LIB_TREE_MODEL_ADAPTER::SetShownColumns( const std::vector<wxString>& aColu
 
     for( std::unique_ptr<LIB_TREE_NODE>& lib: m_tree.m_Children )
         lib->AssignIntrinsicRanks( m_shownColumns );
+}
+
+void LIB_TREE_MODEL_ADAPTER::UpdateSearchParameters( const std::vector<PARAMETRIC_SEARCH_CTRL::TERM>& aTerms )
+{
+    m_searchParams = aTerms;
 }
 
 

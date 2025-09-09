@@ -162,6 +162,7 @@ PANEL_FOOTPRINT_CHOOSER::PANEL_FOOTPRINT_CHOOSER( PCB_BASE_FRAME* aFrame, wxTopL
     SetSizer( sizer );
 
     m_adapter->FinishTreeInitialization();
+    m_tree->SetSearchParameters( m_adapter->GetAvailableColumns() );
 
     Bind( wxEVT_TIMER, &PANEL_FOOTPRINT_CHOOSER::onCloseTimer, this, m_dbl_click_timer->GetId() );
     Bind( wxEVT_TIMER, &PANEL_FOOTPRINT_CHOOSER::onOpenLibsTimer, this, m_open_libs_timer->GetId() );

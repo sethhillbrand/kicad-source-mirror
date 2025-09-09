@@ -34,6 +34,7 @@
 #include <functional>
 #include <set>
 #include <map>
+#include <widgets/parametric_search_ctrl.h>
 
 /**
  * Adapter class in the symbol selector Model-View-Adapter (mediated MVC)
@@ -219,6 +220,7 @@ public:
      * @param aState    if true, we are keeping the state and so we shouldn't collapse the tree
      */
     void UpdateSearchString( const wxString& aSearch, bool aState );
+    void UpdateSearchParameters( const std::vector<PARAMETRIC_SEARCH_CTRL::TERM>& aTerms );
 
     /**
      * Attach to a wxDataViewCtrl and initialize it. This will set up columns
@@ -436,6 +438,7 @@ private:
     int                          m_preselect_unit;
     int                          m_freeze;
 
+    std::vector<PARAMETRIC_SEARCH_CTRL::TERM>    m_searchParams;
     std::function<bool( LIB_TREE_NODE& aNode )>* m_filter;
 
     std::vector<wxDataViewColumn*>               m_columns;

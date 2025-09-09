@@ -35,6 +35,8 @@
 #include <symbol_async_loader.h>
 #include <symbol_lib_table.h>
 #include <string_utils.h>
+#include <sch_field.h>
+#include <set>
 
 bool SYMBOL_TREE_MODEL_ADAPTER::m_show_progress = true;
 
@@ -144,10 +146,24 @@ bool SYMBOL_TREE_MODEL_ADAPTER::AddLibraries( const std::vector<wxString>& aNick
             if( !row->GetIsVisible() )
                 continue;
 
-            std::vector<wxString> additionalColumns;
-            row->GetAvailableSymbolFields( additionalColumns );
+            std::set<wxString> fieldNames;
 
-            for( const wxString& column : additionalColumns )
+            for( LIB_SYMBOL* sym : libSymbols )
+            {
+                std::vector<SCH_FIELD*> fields;
+
+                sym->GetFields( fields );
+
+                for( SCH_FIELD* field : fields )
+                {
+                    if( field->IsMandatory() )
+                        continue;
+
+                    fieldNames.insert( field->GetName() );
+                }
+            }
+
+            for( const wxString& column : fieldNames )
                 addColumnIfNecessary( column );
 
             if( row->SupportsSubLibraries() )

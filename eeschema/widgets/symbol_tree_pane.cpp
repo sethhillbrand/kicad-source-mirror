@@ -49,6 +49,7 @@ SYMBOL_TREE_PANE::SYMBOL_TREE_PANE( SYMBOL_EDIT_FRAME* aParent,
     boxSizer->Fit( this );
 
     m_libMgr->GetAdapter()->FinishTreeInitialization();
+    m_tree->SetSearchParameters( m_libMgr->GetAdapter()->GetAvailableColumns() );
 
     // Event handlers
     Bind( EVT_LIBITEM_CHOSEN, &SYMBOL_TREE_PANE::onSymbolSelected, this );

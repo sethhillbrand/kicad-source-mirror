@@ -150,6 +150,7 @@ set( KICOMMON_SRCS
     widgets/ui_common.cpp
     widgets/wx_html_report_panel.cpp
     widgets/wx_html_report_panel_base.cpp
+    widgets/parametric_search_ctrl.cpp
 
     database/database_lib_settings.cpp
 

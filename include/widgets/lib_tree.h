@@ -30,10 +30,11 @@
 #include <lib_tree_model_adapter.h>
 #include <widgets/html_window.h>
 #include <widgets/wx_dataviewctrl.h>
+#include <widgets/parametric_search_ctrl.h>
+#include <vector>
 
 class wxTextCtrl;
 class wxHtmlLinkEvent;
-class wxSearchCtrl;
 class wxTimer;
 class wxTimerEvent;
 class wxPopupWindow;
@@ -147,6 +148,7 @@ public:
      */
     void SetSearchString( const wxString& aSearchString );
     wxString GetSearchString() const;
+    void SetSearchParameters( const std::vector<wxString>& aParameters );
 
     /**
      * Save/restore the sorting mode.
@@ -256,7 +258,7 @@ protected:
 protected:
     wxObjectDataPtr<LIB_TREE_MODEL_ADAPTER> m_adapter;
 
-    wxSearchCtrl*      m_query_ctrl;
+    PARAMETRIC_SEARCH_CTRL* m_query_ctrl;
     BITMAP_BUTTON*     m_sort_ctrl;
     WX_DATAVIEWCTRL*   m_tree_ctrl;
     HTML_WINDOW*       m_details_ctrl;

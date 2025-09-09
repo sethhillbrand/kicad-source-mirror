@@ -125,6 +125,7 @@ PANEL_DESIGN_BLOCK_CHOOSER::PANEL_DESIGN_BLOCK_CHOOSER( EDA_DRAW_FRAME* aFrame, 
 
     RefreshLibs();
     m_adapter->FinishTreeInitialization();
+    m_tree->SetSearchParameters( m_adapter->GetAvailableColumns() );
 
     m_tree->SetSearchString( g_designBlockSearchString );
 
@@ -288,7 +289,7 @@ void PANEL_DESIGN_BLOCK_CHOOSER::RefreshLibs( bool aProgress )
         adapter->SetPreselectNode( m_historyList[0], 0 );
 
     adapter->AddLibraries( m_frame );
-
+    m_tree->SetSearchParameters( m_adapter->GetAvailableColumns() );
     m_tree->Regenerate( true );
 }
 
