@@ -83,6 +83,13 @@ private:
         STAGE3     ///< entering value
     };
 
+    enum class SEGMENT
+    {
+        PARAM,
+        OP,
+        VALUE
+    };
+
     void OnChar( wxKeyEvent& aEvent );
     void OnText( wxStyledTextEvent& aEvent );
     void OnAutoComplete( wxStyledTextEvent& aEvent );
@@ -90,11 +97,20 @@ private:
     void ApplyTermIndicators();
     void NotifyTextChange();
     void RepositionStyledText();
+    // Convert a styled chip adjacent to the caret into plain text (no styling)
+    // Returns true if any styling was cleared.
+    bool ConvertAdjacentChipToPlainText();
+    // Helper to find a segment index at a given position (returns -1 if none)
+    int  FindSegmentAtPos( int aPos ) const;
 
-    struct TERM_RANGE
+    struct SEG_RANGE
     {
-        int start;
-        int length;
+        SEGMENT kind;
+        int     start;
+        int     length;
+        int     termIndex;   // index into m_terms when finalized
+        bool    styled = true; // whether to draw indicator for this segment
+        int     style;       // indicator style index to use (0:param,1:op,2:value)
     };
 
     wxStyledTextCtrl*          m_stc = nullptr;
@@ -104,7 +120,7 @@ private:
     STAGE                      m_stage = STAGE::STAGE1;
     TERM                       m_current;
     bool                       m_inQuotes = false;
-    std::vector<TERM_RANGE>    m_termRanges;
+    std::vector<SEG_RANGE>     m_segRanges;
 };
 
 #endif    // PARAMETRIC_SEARCH_CTRL_H
