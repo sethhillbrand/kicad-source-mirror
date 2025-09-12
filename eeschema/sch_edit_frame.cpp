@@ -34,6 +34,7 @@
 #include <dialogs/dialog_book_reporter.h>
 #include <dialogs/dialog_symbol_fields_table.h>
 #include <widgets/sch_design_block_pane.h>
+#include <local_history.h>
 #include <eeschema_id.h>
 #include <executable_names.h>
 #include <gal/graphics_abstraction_layer.h>
@@ -77,6 +78,8 @@
 #include <tools/sch_inspection_tool.h>
 #include <tools/sch_point_editor.h>
 #include <tools/sch_design_block_control.h>
+#include <sch_io/sch_io_mgr.h>
+#include <sch_io/sch_io.h>
 #include <tools/sch_drawing_tools.h>
 #include <tools/sch_edit_tool.h>
 #include <tools/sch_edit_table_tool.h>
@@ -87,6 +90,7 @@
 #include <tools/sch_move_tool.h>
 #include <tools/sch_navigate_tool.h>
 #include <tools/sch_find_replace_tool.h>
+#include <trace_helpers.h>
 #include <unordered_set>
 #include <view/view_controls.h>
 #include <widgets/wx_infobar.h>
@@ -1122,6 +1126,18 @@ bool SCH_EDIT_FRAME::canCloseWindow( wxCloseEvent& aEvent )
         {
             return false;
         }
+
+        // If user selected 'No' (discard), create duplicate commit of last saved state and
+        // move Last_Save tag forward so history shows an explicit discard event.
+        if( GetLastUnsavedChangesResponse() == wxID_NO )
+        {
+            wxString projPath = Prj().GetProjectPath();
+            if( !projPath.IsEmpty() && LOCAL_HISTORY::HistoryExists( projPath ) )
+            {
+                LOCAL_HISTORY::CommitDuplicateOfLastSave( projPath, wxS("Schematic"),
+                        wxS("Discard unsaved schematic changes") );
+            }
+        }
     }
 
     return true;
@@ -1179,26 +1195,6 @@ void SCH_EDIT_FRAME::doCloseWindow()
         m_auimgr.Update();
     }
 
-    SCH_SCREENS screens( Schematic().Root() );
-    wxFileName fn;
-
-    for( SCH_SCREEN* screen = screens.GetFirst(); screen != nullptr; screen = screens.GetNext() )
-    {
-        fn = Prj().AbsolutePath( screen->GetFileName() );
-
-        // Auto save file name is the normal file name prepended with FILEEXT::AutoSaveFilePrefix.
-        fn.SetName( FILEEXT::AutoSaveFilePrefix + fn.GetName() );
-
-        if( fn.IsFileWritable() )
-            wxRemoveFile( fn.GetFullPath() );
-    }
-
-    wxFileName tmpFn = Prj().GetProjectFullName();
-    wxFileName autoSaveFileName( tmpFn.GetPath(), getAutoSaveFileName() );
-
-    if( autoSaveFileName.IsFileWritable() )
-        wxRemoveFile( autoSaveFileName.GetFullPath() );
-
     sheetlist.ClearModifyStatus();
 
     wxString fileName = Prj().AbsolutePath( Schematic().RootScreen()->GetFileName() );
@@ -1240,7 +1236,10 @@ void SCH_EDIT_FRAME::OnModify()
     EDA_BASE_FRAME::OnModify();
 
     if( GetScreen() )
+    {
         GetScreen()->SetContentModified();
+        LOCAL_HISTORY::NoteFileChange( GetScreen()->GetFileName() );
+    }
 
     if( m_isClosing )
         return;
@@ -2070,9 +2069,82 @@ wxString SCH_EDIT_FRAME::GetCurrentFileName() const
     return Schematic().GetFileName();
 }
 
+// Register saver after construction when first queried for file (simple lazy init)
+static bool s_schSaverRegistered = false;
+static void ensureSchSaverRegistered( SCH_EDIT_FRAME* frame )
+{
+    if( s_schSaverRegistered )
+        return;
+    LOCAL_HISTORY::RegisterSaver( [frame]( std::vector<wxString>& files )
+    {
+        wxString projPath = frame->Prj().GetProjectPath();
+        if( projPath.IsEmpty() )
+            return; // no project yet
+
+        // Ensure project path has trailing separator for StartsWith tests & Mid calculations.
+        if( !projPath.EndsWith( wxFILE_SEP_PATH ) )
+            projPath += wxFILE_SEP_PATH;
+
+        wxFileName historyRoot( projPath, wxEmptyString );
+        historyRoot.AppendDir( wxS( ".history" ) );
+        wxString historyRootPath = historyRoot.GetPath();
+
+        // Iterate full schematic hierarchy (all sheets & their screens).
+        SCH_SHEET_LIST sheetList = frame->Schematic().Hierarchy();
+
+        // Acquire plugin once.
+        IO_RELEASER<SCH_IO> pi( SCH_IO_MGR::FindPlugin( SCH_IO_MGR::SCH_KICAD ) );
+
+        for( const SCH_SHEET_PATH& path : sheetList )
+        {
+            SCH_SHEET*  sheet  = path.Last();
+            SCH_SCREEN* screen = path.LastScreen();
+
+            if( !sheet || !screen )
+                continue;
+
+            wxFileName abs = frame->Prj().AbsolutePath( screen->GetFileName() );
+
+            if( !abs.IsOk() )
+                continue; // no filename
+
+            wxString absPath = abs.GetFullPath();
+
+            if( absPath.IsEmpty() || !absPath.StartsWith( projPath ) )
+                continue; // external / unsaved subsheet
+
+            wxString rel = absPath.Mid( projPath.length() );
+
+            // Destination mirrors project-relative path under .history
+            wxFileName dst( historyRootPath, rel );
+
+            // Ensure destination directory exists
+            wxFileName dstDir( dst );
+            dstDir.SetFullName( wxEmptyString );
+            if( !dstDir.DirExists() )
+                wxFileName::Mkdir( dstDir.GetPath(), 0777, wxPATH_MKDIR_FULL );
+
+            try
+            {
+                pi->SaveSchematicFile( dst.GetFullPath(), sheet, &frame->Schematic() );
+                files.push_back( dst.GetFullPath() );
+                wxLogTrace( traceAutoSave, wxS("[history] sch saver exported sheet '%s' -> '%s'"),
+                            absPath, dst.GetFullPath() );
+            }
+            catch( const IO_ERROR& ioe )
+            {
+                wxLogTrace( traceAutoSave, wxS("[history] sch saver export failed for '%s': %s"),
+                            absPath, wxString::FromUTF8( ioe.What() ) );
+            }
+        }
+    } );
+    s_schSaverRegistered = true;
+}
+
 
 SELECTION& SCH_EDIT_FRAME::GetCurrentSelection()
 {
+    ensureSchSaverRegistered( this );
     return m_toolManager->GetTool<SCH_SELECTION_TOOL>()->GetSelection();
 }
 
@@ -2585,4 +2657,10 @@ void SCH_EDIT_FRAME::SetSchematic( SCHEMATIC* aSchematic )
     static_cast<KIGFX::SCH_PAINTER*>( view->GetPainter() )->SetSchematic( m_schematic );
     m_toolManager->SetEnvironment( m_schematic, GetCanvas()->GetView(), GetCanvas()->GetViewControls(), config(),
                                    this );
+}
+
+bool SCH_EDIT_FRAME::doAutoSave()
+{
+    // Delegate to base auto-save behavior (commits pending local history) for now.
+    return EDA_BASE_FRAME::doAutoSave();
 }

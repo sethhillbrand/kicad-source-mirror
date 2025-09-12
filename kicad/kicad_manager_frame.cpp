@@ -38,9 +38,12 @@
 #include <dialogs/dialog_update_check_prompt.h>
 #include <dialogs/panel_jobset.h>
 #include <dialogs/dialog_edit_cfg.h>
+#include <local_history.h>
+#include <wx/msgdlg.h>
 #include <eda_base_frame.h>
 #include <executable_names.h>
 #include <file_history.h>
+#include <local_history.h>
 #include <policy_keys.h>
 #include <gestfich.h>
 #include <kiplatform/app.h>
@@ -723,6 +726,15 @@ bool KICAD_MANAGER_FRAME::CloseProject( bool aSave )
         }
 
         m_active_project = false;
+        // Enforce local history size limit (if enabled) once all pending saves/backups are done.
+        if( Pgm().GetCommonSettings() && Pgm().GetCommonSettings()->m_Backup.enabled )
+        {
+            auto limit = Pgm().GetCommonSettings()->m_Backup.limit_total_size;
+
+            if( limit > 0 )
+                LOCAL_HISTORY::EnforceSizeLimit( Prj().GetProjectPath(), (size_t) limit );
+        }
+
         mgr.UnloadProject( &Prj() );
     }
 
@@ -814,6 +826,16 @@ void KICAD_MANAGER_FRAME::LoadProject( const wxFileName& aProjectFileName )
 
     if( aProjectFileName.IsDirWritable() )
         SetMruPath( Prj().GetProjectPath() );
+
+    LOCAL_HISTORY::Init( Prj().GetProjectPath() );
+
+    if( LOCAL_HISTORY::HeadNewerThanLastSave( Prj().GetProjectPath() ) )
+    {
+        wxString head = LOCAL_HISTORY::GetHeadHash( Prj().GetProjectPath() );
+        if( wxMessageBox( _( "A newer local history snapshot is available. Restore it?" ),
+                          _( "Restore" ), wxYES_NO | wxICON_QUESTION, this ) == wxYES )
+            LOCAL_HISTORY::RestoreCommit( Prj().GetProjectPath(), head );
+    }
 
     // Save history & window state to disk now.  Don't wait around for a crash.
     KICAD_SETTINGS* settings = kicadSettings();

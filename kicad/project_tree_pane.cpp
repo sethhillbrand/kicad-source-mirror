@@ -2127,8 +2127,7 @@ void PROJECT_TREE_PANE::onGitCommit( wxCommandEvent& aEvent )
             continue;
 
         // Skip autosave, lock, and backup files
-        if( fn.GetName().StartsWith( FILEEXT::AutoSaveFilePrefix )
-            || fn.GetName().StartsWith( FILEEXT::LockFilePrefix )
+        if( fn.GetName().StartsWith( FILEEXT::LockFilePrefix )
             || fn.GetName().EndsWith( FILEEXT::BackupFileSuffix ) )
         {
             continue;
