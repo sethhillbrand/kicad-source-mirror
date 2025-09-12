@@ -22,7 +22,7 @@
  */
 
 #include <local_history.h>
-#include <common_settings.h>
+#include <settings/common_settings.h>
 #include <pgm_base.h>
 #include <trace_helpers.h>
 
@@ -255,7 +255,7 @@ bool LOCAL_HISTORY::CommitPending()
 bool LOCAL_HISTORY::Init( const wxString& aProjectPath )
 {
     if( !Pgm().GetCommonSettings()->m_Backup.enabled )
-        return;
+        return true;
 
     wxString hist = historyPath( aProjectPath );
 
