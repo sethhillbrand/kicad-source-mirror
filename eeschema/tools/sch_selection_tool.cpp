@@ -262,11 +262,13 @@ protected:
         TOOL_MANAGER* toolMgr = getToolManager();
         if( !toolMgr )
         {
-            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] abort: toolMgr null" );
+            // Defer population; parent UpdateAll() will re-run us after SetTool().
+            SetDirty();
+            wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] defer: toolMgr not yet available" );
             return;
         }
 
-        SCH_SELECTION_TOOL* selTool = toolMgr->GetTool<SCH_SELECTION_TOOL>();
+        SCH_SELECTION_TOOL* selTool = static_cast<SCH_SELECTION_TOOL*>( m_tool );
         SCH_EDIT_FRAME*      frame   = static_cast<SCH_EDIT_FRAME*>( toolMgr->GetToolHolder() );
         if( !selTool || !frame )
         {
@@ -281,7 +283,7 @@ protected:
             return; // nothing to show
         }
 
-        wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] selection size=%zu", sel.GetSize() );
+        wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] selection size=%u", sel.GetSize() );
 
         CONNECTION_GRAPH* graph = frame->Schematic().ConnectionGraph();
         if( !graph )
@@ -362,6 +364,15 @@ protected:
             bool added = addCreateSignalBetweenPinsIfApplicable( this, frame, sel );
             wxLogTrace( "KICAD_SIGNALS_MENU", "[SignalsMenu] createSignalBetweenPins attempted added=%d", added );
         }
+
+        // If nothing ended up enabled, leave a placeholder disabled item to make it
+        // obvious to the user that the submenu exists but just has no applicable
+        // actions for the current selection.
+        if( !HasEnabledItems() )
+        {
+            wxMenuItem* placeholder = Append( wxID_ANY, _( "(No signal actions)" ) );
+            placeholder->Enable( false );
+        }
     }
 
 private:
@@ -373,12 +384,14 @@ static bool addCreateSignalBetweenPinsIfApplicable( SIGNALS_MENU* aMenu, SCH_EDI
 {
     if( aSel.GetSize() != 2 )
         return false;
+
     SCH_PIN* pa = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( aSel[0] ) );
     SCH_PIN* pb = dynamic_cast<SCH_PIN*>( static_cast<SCH_ITEM*>( aSel[1] ) );
     if( !pa || !pb )
         return false;
+
     CONNECTION_GRAPH* graph = aFrame->Schematic().ConnectionGraph();
-    // Do not trigger a rebuild here; assume graph already current per user request.
+
     if( graph->FindPotentialSignalBetweenPins( pa, pb ) )
     {
         wxString label = wxString::Format( _( "Create Signal between %s:%s and %s:%s" ),
@@ -573,6 +586,7 @@ bool SCH_SELECTION_TOOL::Init()
     };
 
     std::shared_ptr<SIGNALS_MENU> signalsMenu = std::make_shared<SIGNALS_MENU>();
+    signalsMenu->SetTool( this );
     m_menu->RegisterSubMenu( signalsMenu );
 
     // clang-format off

@@ -1536,9 +1536,6 @@ int SCH_EDITOR_CONTROL::CreateSignalBetweenPins( const TOOL_EVENT& aEvent )
     SCH_EDIT_FRAME* editFrame = static_cast<SCH_EDIT_FRAME*>( m_toolMgr->GetToolHolder() );
     CONNECTION_GRAPH* graph = editFrame->Schematic().ConnectionGraph();
 
-    // Ensure potential signals are current
-    graph->Recalculate( editFrame->Schematic().BuildSheetListSortedByPageNumbers(), false );
-
     SCH_SIGNAL* potential = graph->FindPotentialSignalBetweenPins( pinA, pinB );
     if( !potential )
     {
