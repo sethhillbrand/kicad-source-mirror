@@ -26,6 +26,8 @@
 #pragma once
 
 #include "plotter.h"
+#include <memory>
+#include <plotters/pdf_stroke_font.h>
 
 
 /**
@@ -256,9 +258,12 @@ public:
             m_workFile( nullptr ),
             m_totalOutlineNodes( 0 ),
             m_3dModelHandle( -1 ),
-            m_3dExportMode( false )
+            m_3dExportMode( false ),
+            m_strokeFontManager( nullptr )
     {
     }
+
+    virtual ~PDF_PLOTTER();
 
     virtual PLOT_FORMAT GetPlotterType() const override
     {
@@ -509,6 +514,10 @@ protected:
 
     void endPlotEmitResources();
 
+    void emitStrokeFonts();
+
+    std::string encodeByteString( const std::string& aBytes );
+
     int m_pageTreeHandle;           ///< Handle to the root of the page tree object.
     int m_fontResDictHandle;        ///< Font resource dictionary.
     int m_imgResDictHandle;         ///< Image resource dictionary.
@@ -544,6 +553,7 @@ protected:
 
     int  m_3dModelHandle;
     bool m_3dExportMode;
+    std::unique_ptr<PDF_STROKE_FONT_MANAGER> m_strokeFontManager;
 };
 
 

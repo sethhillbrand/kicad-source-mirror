@@ -28,6 +28,7 @@
  */
 
 #include <algorithm>
+#include <iterator>
 #include <cstdio> // snprintf
 #include <stack>
 
@@ -44,14 +45,20 @@
 #include <font/font.h>
 #include <core/ignore.h>
 #include <macros.h>
+#include <trace_helpers.h>
 #include <trigo.h>
 #include <string_utils.h>
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
 
+#include <plotters/pdf_stroke_font.h>
 #include <plotters/plotters_pslike.h>
 #include <geometry/shape_rect.h>
+#include <text_eval/text_eval_wrapper.h>
+
+
+PDF_PLOTTER::~PDF_PLOTTER() = default;
 
 
 std::string PDF_PLOTTER::encodeStringForPlotter( const wxString& aText )
@@ -112,6 +119,34 @@ std::string PDF_PLOTTER::encodeStringForPlotter( const wxString& aText )
         result += '>';
     }
 
+    return result;
+}
+
+
+std::string PDF_PLOTTER::encodeByteString( const std::string& aBytes )
+{
+    std::string result;
+    result.reserve( aBytes.size() * 4 + 2 );
+    result.push_back( '(' );
+
+    for( unsigned char byte : aBytes )
+    {
+        if( byte == '(' || byte == ')' || byte == '\\' )
+        {
+            result.push_back( '\\' );
+            result.push_back( static_cast<char>( byte ) );
+        }
+        else if( byte < 32 || byte > 126 )
+        {
+            fmt::format_to( std::back_inserter( result ), "\\{:03o}", byte );
+        }
+        else
+        {
+            result.push_back( static_cast<char>( byte ) );
+        }
+    }
+
+    result.push_back( ')' );
     return result;
 }
 
@@ -608,19 +643,29 @@ int PDF_PLOTTER::startPdfStream( int aHandle )
     // you could allocate more object during stream preparation
     m_streamLengthHandle = allocPdfObject();
 
-    if( ADVANCED_CFG::GetCfg().m_DebugPDFWriter )
+    bool debugWriter = ADVANCED_CFG::GetCfg().m_DebugPDFWriter;
+    if( !debugWriter )
     {
-        fmt::println( m_outputFile,
-                      "<< /Length {} 0 R >>\n"
-                      "stream",
-                      handle + 1 );
+        // Allow forcing the debug mode (no compression) via environment for tests
+        wxString env;
+        if( wxGetEnv( wxT("KICAD_DEBUG_PDF_WRITER"), &env ) && !env.IsEmpty() )
+        {
+            debugWriter = true;
+            wxLogTrace( tracePdfPlotter, "PDF writer debug mode enabled via environment variable" );
+        }
+    }
+
+    if( debugWriter )
+    {
+        fmt::print( m_outputFile,
+                     "<< /Length {} 0 R >>\nstream\n",
+                     m_streamLengthHandle );
     }
     else
     {
-        fmt::println( m_outputFile,
-                      "<< /Length {} 0 R /Filter /FlateDecode >>\n"
-                      "stream",
-                      handle + 1 );
+        fmt::print( m_outputFile,
+                     "<< /Length {} 0 R /Filter /FlateDecode >>\nstream\n",
+                     m_streamLengthHandle );
     }
 
     // Open a temporary file to accumulate the stream
@@ -1059,6 +1104,11 @@ bool PDF_PLOTTER::StartPlot( const wxString& aPageNumber, const wxString& aPageN
 
     m_outlineRoot = std::make_unique<OUTLINE_NODE>();
 
+    if( !m_strokeFontManager )
+        m_strokeFontManager = std::make_unique<PDF_STROKE_FONT_MANAGER>();
+    else
+        m_strokeFontManager->Reset();
+
     /* The header (that's easy!). The second line is binary junk required
        to make the file binary from the beginning (the important thing is
        that they must have the bit 7 set) */
@@ -1225,46 +1275,104 @@ int PDF_PLOTTER::emitOutline()
     return -1;
 }
 
+void PDF_PLOTTER::emitStrokeFonts()
+{
+    if( !m_strokeFontManager )
+        return;
+
+    for( PDF_STROKE_FONT_SUBSET* subsetPtr : m_strokeFontManager->AllSubsets() )
+    {
+        PDF_STROKE_FONT_SUBSET& subset = *subsetPtr;
+
+        if( subset.GlyphCount() <= 1 )
+        {
+            subset.SetCharProcsHandle( -1 );
+            subset.SetFontHandle( -1 );
+            subset.SetToUnicodeHandle( -1 );
+            continue;
+        }
+
+        for( PDF_STROKE_FONT_SUBSET::GLYPH& glyph : subset.Glyphs() )
+        {
+            int charProcHandle = startPdfStream();
+
+            if( !glyph.m_stream.empty() )
+                fmt::print( m_workFile, "{}\n", glyph.m_stream );
+
+            closePdfStream();
+            glyph.m_charProcHandle = charProcHandle;
+        }
+
+        int charProcDictHandle = startPdfObject();
+        fmt::println( m_outputFile, "<<" );
+
+        for( const PDF_STROKE_FONT_SUBSET::GLYPH& glyph : subset.Glyphs() )
+            fmt::println( m_outputFile, "    /{} {} 0 R", glyph.m_name, glyph.m_charProcHandle );
+
+        fmt::println( m_outputFile, ">>" );
+        closePdfObject();
+        subset.SetCharProcsHandle( charProcDictHandle );
+
+        int toUnicodeHandle = startPdfStream();
+        std::string cmap = subset.BuildToUnicodeCMap();
+
+        if( !cmap.empty() )
+            fmt::print( m_workFile, "{}", cmap );
+
+        closePdfStream();
+        subset.SetToUnicodeHandle( toUnicodeHandle );
+
+        double fontMatrixScale = 1.0 / subset.UnitsPerEm();
+        double minX = subset.FontBBoxMinX();
+        double minY = subset.FontBBoxMinY();
+        double maxX = subset.FontBBoxMaxX();
+        double maxY = subset.FontBBoxMaxY();
+
+        int fontHandle = startPdfObject();
+        fmt::print( m_outputFile,
+                    "<<\n/Type /Font\n/Subtype /Type3\n/Name {}\n/FontBBox [ {:g} {:g} {:g} {:g} ]\n",
+                    subset.ResourceName(),
+                    minX,
+                    minY,
+                    maxX,
+                    maxY );
+        fmt::print( m_outputFile,
+                    "/FontMatrix [ {:g} 0 0 {:g} 0 0 ]\n/CharProcs {} 0 R\n",
+                    fontMatrixScale,
+                    fontMatrixScale,
+                    subset.CharProcsHandle() );
+        fmt::print( m_outputFile,
+                    "/Encoding << /Type /Encoding /Differences {} >>\n",
+                    subset.BuildDifferencesArray() );
+        fmt::print( m_outputFile,
+                    "/FirstChar {}\n/LastChar {}\n/Widths {}\n",
+                    subset.FirstChar(),
+                    subset.LastChar(),
+                    subset.BuildWidthsArray() );
+        fmt::print( m_outputFile,
+                    "/ToUnicode {} 0 R\n/Resources << /ProcSet [/PDF /Text] >>\n>>\n",
+                    subset.ToUnicodeHandle() );
+        closePdfObject();
+        subset.SetFontHandle( fontHandle );
+    }
+}
+
+
 void PDF_PLOTTER::endPlotEmitResources()
 {
-    /* We need to declare the resources we're using (fonts in particular)
-       The useful standard one is the Helvetica family. Adding external fonts
-       is *very* involved! */
-    struct {
-        const char *psname;
-        const char *rsname;
-        int font_handle;
-    } fontdefs[4] = {
-        { "/Helvetica",             "/KicadFont",   0 },
-        { "/Helvetica-Oblique",     "/KicadFontI",  0 },
-        { "/Helvetica-Bold",        "/KicadFontB",  0 },
-        { "/Helvetica-BoldOblique", "/KicadFontBI", 0 }
-    };
+    emitStrokeFonts();
 
-    /* Declare the font resources. Since they're builtin fonts, no descriptors (yay!)
-       We'll need metrics anyway to do any alignment (these are in the shared with
-       the postscript engine) */
-    for( int i = 0; i < 4; i++ )
-    {
-        fontdefs[i].font_handle = startPdfObject();
-        fmt::println( m_outputFile,
-                      "<< /BaseFont {}\n"
-                      "   /Type /Font\n"
-                      "   /Subtype /Type1\n"
-                      "   /Encoding /WinAnsiEncoding\n"
-                      ">>",
-                      fontdefs[i].psname );
-        closePdfObject();
-    }
-
-    // Named font dictionary (was allocated, now we emit it)
     startPdfObject( m_fontResDictHandle );
     fmt::println( m_outputFile, "<<" );
 
-    for( int i = 0; i < 4; i++ )
+    if( m_strokeFontManager )
     {
-        fmt::println( m_outputFile, "    {} {} 0 R",
-                 fontdefs[i].rsname, fontdefs[i].font_handle );
+        for( PDF_STROKE_FONT_SUBSET* subsetPtr : m_strokeFontManager->AllSubsets() )
+        {
+            const PDF_STROKE_FONT_SUBSET& subset = *subsetPtr;
+            if( subset.FontHandle() >= 0 )
+                fmt::println( m_outputFile, "    {} {} 0 R", subset.ResourceName(), subset.FontHandle() );
+        }
     }
 
     fmt::println( m_outputFile, ">>" );
@@ -1733,13 +1841,20 @@ void PDF_PLOTTER::Text( const VECTOR2I&        aPos,
     if( aSize.x == 0 || aSize.y == 0 )
         return;
 
-    // Render phantom text (which will be searchable) behind the stroke font.  This won't
-    // be pixel-accurate, but it doesn't matter for searching.
-    int render_mode = 3;    // invisible
+    if( !m_strokeFontManager )
+        return;
+
+    wxString text( aText );
+
+    if( text.Contains( wxS( "@{" ) ) )
+    {
+        EXPRESSION_EVALUATOR evaluator;
+        text = evaluator.Evaluate( text );
+    }
+
+    int render_mode = 0;
 
     VECTOR2I pos( aPos );
-    const char *fontname = aItalic ? ( aBold ? "/KicadFontBI" : "/KicadFontI" )
-                                   : ( aBold ? "/KicadFontB"  : "/KicadFont"  );
 
     // Compute the copious transformation parameters of the Current Transform Matrix
     double ctm_a, ctm_b, ctm_c, ctm_d, ctm_e, ctm_f;
@@ -1748,19 +1863,22 @@ void PDF_PLOTTER::Text( const VECTOR2I&        aPos,
     VECTOR2I t_size( std::abs( aSize.x ), std::abs( aSize.y ) );
     bool     textMirrored = aSize.x < 0;
 
-    computeTextParameters( aPos, aText, aOrient, t_size, textMirrored, aH_justify, aV_justify,
+    computeTextParameters( aPos, text, aOrient, t_size, textMirrored, aH_justify, aV_justify,
                            aWidth, aItalic, aBold, &wideningFactor, &ctm_a, &ctm_b, &ctm_c, &ctm_d,
                            &ctm_e, &ctm_f, &heightFactor );
+
+    VECTOR2D dev_size = userToDeviceSize( t_size );
+    double   fontSize = dev_size.y;
 
     SetColor( aColor );
     SetCurrentLineWidth( aWidth, aData );
 
-    wxStringTokenizer str_tok( aText, " ", wxTOKEN_RET_DELIMS );
+    wxStringTokenizer str_tok( text, " ", wxTOKEN_RET_DELIMS );
 
     if( !aFont )
         aFont = KIFONT::FONT::GetFont( m_renderSettings->GetDefaultFont() );
 
-    VECTOR2I full_box( aFont->StringBoundaryLimits( aText, t_size, aWidth, aBold, aItalic,
+    VECTOR2I full_box( aFont->StringBoundaryLimits( text, t_size, aWidth, aBold, aItalic,
                                                     aFontMetrics ) );
 
     if( textMirrored )
@@ -1802,29 +1920,54 @@ void PDF_PLOTTER::Text( const VECTOR2I&        aPos,
         pos += bbox;
 
         // Don't try to output a blank string
-        if( word.Trim( false ).Trim( true ).empty() )
+        if( word.empty() )
             continue;
 
-        /* We use the full CTM instead of the text matrix because the same
-           coordinate system will be used for the overlining. Also the %f
-           for the trig part of the matrix to avoid %g going in exponential
-           format (which is not supported) */
-        fmt::print( m_workFile, "q {:f} {:f} {:f} {:f} {:f} {:f} cm BT {} {:g} Tf {} Tr {:g} Tz ",
-                    ctm_a, ctm_b, ctm_c, ctm_d, ctm_e, ctm_f,
-                    fontname,
-                    heightFactor,
-                    render_mode,
-                    wideningFactor * 100 );
+        heightFactor = fontSize;
 
-        std::string txt_pdf = encodeStringForPlotter( word );
-        fmt::println( m_workFile, "{} Tj ET", txt_pdf );
-        // Restore the CTM
+        double adj_c = ctm_c;
+        double adj_d = ctm_d;
+
+        if( aItalic )
+        {
+            // Y inversion flips perceived italic direction; apply opposite tilt.
+            double tilt = -ITALIC_TILT;
+
+            if( wideningFactor < 0 )
+                tilt = -tilt;
+
+            adj_c -= ctm_a * tilt;
+            adj_d -= ctm_b * tilt;
+        }
+
+    std::vector<PDF_STROKE_FONT_RUN> runs;
+    m_strokeFontManager->EncodeString( word, &runs, aBold, aItalic );
+
+        wxLogTrace( tracePdfPlotter, "Processing stroke font runs for word: %s (bold=%d, italic=%d, %zu runs)",
+                    word, aBold ? 1 : 0, aItalic ? 1 : 0, runs.size() );
+
+        if( runs.empty() )
+            continue;
+
+    fmt::print( m_workFile, "q {:f} {:f} {:f} {:f} {:f} {:f} cm BT {} Tr {:g} Tz ",
+            ctm_a, ctm_b, adj_c, adj_d, ctm_e, ctm_f,
+            render_mode,
+            wideningFactor * 100 );
+
+        for( const PDF_STROKE_FONT_RUN& run : runs )
+        {
+            wxLogTrace( tracePdfPlotter, "  Font run: subset=%s, height=%g, bytes=%s",
+                        run.m_subset->ResourceName(), heightFactor,
+                        encodeByteString( run.m_bytes ) );
+            fmt::print( m_workFile, "{} {:g} Tf {} Tj ",
+                        run.m_subset->ResourceName(),
+                        heightFactor,
+                        encodeByteString( run.m_bytes ) );
+        }
+
+        fmt::println( m_workFile, "ET" );
         fmt::println( m_workFile, "Q" );
     }
-
-    // Plot the stroked text (if requested)
-    PLOTTER::Text( aPos, aColor, aText, aOrient, aSize, aH_justify, aV_justify, aWidth, aItalic,
-                   aBold, aMultilineAllowed, aFont, aFontMetrics );
 }
 
 
