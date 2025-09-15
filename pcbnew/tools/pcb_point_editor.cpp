@@ -662,7 +662,7 @@ public:
 
     void UpdatePoints( EDIT_POINTS& aPoints ) override
     {
-        wxCHECK( aPoints.PointsSize() >= RECT_MAX_POINTS, /* void */ );
+        wxCHECK( aPoints.PointsSize() == 5, /* void */ );
 
         VECTOR2I topLeft = m_barcode.GetTopLeft();
         VECTOR2I botRight = m_barcode.GetBotRight();
@@ -686,7 +686,7 @@ public:
     void UpdateItem( const EDIT_POINT& aEditedPoint, EDIT_POINTS& aPoints, COMMIT& aCommit,
                      std::vector<EDA_ITEM*>& aUpdatedItems ) override
     {
-        CHECK_POINT_COUNT_GE( aPoints, RECT_MAX_POINTS );
+        CHECK_POINT_COUNT( aPoints, 5 );
 
         VECTOR2I topLeft = aPoints.Point( RECT_TOP_LEFT ).GetPosition();
         VECTOR2I topRight = aPoints.Point( RECT_TOP_RIGHT ).GetPosition();

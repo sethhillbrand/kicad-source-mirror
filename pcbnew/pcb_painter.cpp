@@ -2910,7 +2910,9 @@ void PCB_PAINTER::draw( const PCB_BARCODE* aBarcode, int aLayer )
     m_gal->SetStrokeColor( color );
 
     // Draw the barcode
-    const SHAPE_POLY_SET& shape = aBarcode->GetPolyShape();
+    SHAPE_POLY_SET shape;
+
+    aBarcode->TransformShapeToPolySet( shape, ToLAYER_ID( aLayer ), 0, 0, ERROR_INSIDE );
 
     if( shape.OutlineCount() != 0 )
     {
@@ -2925,12 +2927,6 @@ void PCB_PAINTER::draw( const PCB_BARCODE* aBarcode, int aLayer )
 
         m_gal->Restore();
     }
-
-    // Draw text
-    const PCB_TEXT& text = aBarcode->Text();
-
-    if( text.IsVisible() )
-        draw( &text, aLayer );
 }
 
 

@@ -4393,8 +4393,9 @@ void ALTIUM_PCB::ConvertBarcodes6ToBoardItemOnLayer( const ATEXT6& aElem, PCB_LA
 
     pcbBarcode->SetLayer( aLayer );
     pcbBarcode->SetPosition( aElem.position );
-    pcbBarcode->SetWidth( aElem.barcode_size.x );
-    pcbBarcode->SetHeight( aElem.barcode_size.y );
+    pcbBarcode->SetWidth( aElem.textbox_rect_width );
+    pcbBarcode->SetHeight( aElem.textbox_rect_height );
+    pcbBarcode->SetMargin( aElem.barcode_margin );
     pcbBarcode->SetText( aElem.text );
 
     switch( aElem.barcode_type )
@@ -4418,8 +4419,9 @@ void ALTIUM_PCB::ConvertBarcodes6ToFootprintItemOnLayer( FOOTPRINT* aFootprint, 
 
     fpBarcode->SetLayer( aLayer );
     fpBarcode->SetPosition( aElem.position );
-    fpBarcode->SetWidth( aElem.barcode_size.x );
-    fpBarcode->SetHeight( aElem.barcode_size.y );
+    fpBarcode->SetWidth( aElem.textbox_rect_width );
+    fpBarcode->SetHeight( aElem.textbox_rect_height );
+    fpBarcode->SetMargin( aElem.barcode_margin );
     fpBarcode->SetText( aElem.text );
 
     switch( aElem.barcode_type )

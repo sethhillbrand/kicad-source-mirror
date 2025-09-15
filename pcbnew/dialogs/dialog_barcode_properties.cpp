@@ -163,6 +163,21 @@ void DIALOG_BARCODE_PROPERTIES::OnUpdateUI( wxUpdateUIEvent& event )
     // Error correction options are only meaningful for QR codes
     bool enableEC = m_barcode->GetSelection() >= to_underlying( BARCODE_T::QR_CODE );
     m_errorCorrection->Enable( enableEC );
+    
+    if( enableEC )
+    {
+        // Micro QR codes do not support High (H) error correction level
+        bool isMicroQR = ( m_barcode->GetSelection() == to_underlying( BARCODE_T::MICRO_QR_CODE ) );
+        
+        // Enable/disable the High option (index 3)
+        m_errorCorrection->Enable( 3, !isMicroQR );
+        
+        // If currently High is selected and we switched to Micro QR, change to a valid option
+        if( isMicroQR && m_errorCorrection->GetSelection() == 3 )
+        {
+            m_errorCorrection->SetSelection( 2 ); // Default to Q (Quartile), consistent with SetErrorCorrection
+        }
+    }
 }
 
 

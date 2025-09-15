@@ -42,6 +42,7 @@
 #include <settings/color_settings.h>
 #include <settings/settings_manager.h>
 #include <scoped_set_reset.h>
+#include <stdexcept>
 
 #include <backend/zint.h>
 
@@ -51,7 +52,8 @@ PCB_BARCODE::PCB_BARCODE( BOARD_ITEM* aParent ) :
         m_height( pcbIUScale.mmToIU( 40 ) ),
         m_pos( 0, 0 ),
         m_text( this ),
-        m_kind( BARCODE_T::QR_CODE )
+        m_kind( BARCODE_T::QR_CODE ),
+        m_angle( 0 )
 {
     m_layer = Dwgs_User;
 }
@@ -82,9 +84,15 @@ void PCB_BARCODE::SetText( const wxString& aNewText )
 }
 
 
-const wxString PCB_BARCODE::GetText() const
+wxString PCB_BARCODE::GetText() const
 {
     return m_text.GetText();
+}
+
+
+wxString PCB_BARCODE::GetShownText() const
+{
+    return m_text.GetShownText( true );
 }
 
 
@@ -110,14 +118,15 @@ void PCB_BARCODE::Rotate( const VECTOR2I& aRotCentre, const EDA_ANGLE& aAngle )
     BOX2I bbox = m_poly.BBox();
     m_width = bbox.GetWidth();
     m_height = bbox.GetHeight();
+
+    m_angle += aAngle;
 }
 
 
 void PCB_BARCODE::Flip( const VECTOR2I& aCentre, FLIP_DIRECTION aFlipLeftRight )
 {
-    // BARCODE items are not usually on copper layers, so
-    // copper layers count is not taken in accoun in Flip transform
-    SetLayer( FlipLayer( GetLayer() ) );
+    BOARD* board = GetBoard();
+    SetLayer( FlipLayer( GetLayer(), board ? board->GetCopperLayerCount() : 0 ) );
 }
 
 
@@ -141,11 +150,11 @@ void PCB_BARCODE::ComputeBarcode()
     case BARCODE_T::CODE_128: symbol->symbology = BARCODE_CODE128; break;
     case BARCODE_T::QR_CODE:
         symbol->symbology = BARCODE_QRCODE;
-        symbol->option_3 = to_underlying( m_errorCorrection );
+        symbol->option_1 = to_underlying( m_errorCorrection );
         break;
     case BARCODE_T::MICRO_QR_CODE:
         symbol->symbology = BARCODE_MICROQR;
-        symbol->option_3 = to_underlying( m_errorCorrection );
+        symbol->option_1 = to_underlying( m_errorCorrection );
         break;
     case BARCODE_T::DATA_MATRIX: symbol->symbology = BARCODE_DATAMATRIX; break;
     default: wxLogError( wxT( "Zint: invalid barcode type" ) ); return;
@@ -204,6 +213,33 @@ void PCB_BARCODE::ComputeBarcode()
         m_poly.AddOutline( poly );
     }
 
+    if( m_isKnockout )
+    {
+        // Compute rectangle anchored at the barcode top-left/bottom-right.
+        // m_pos is the centre; use GetTopLeft/GetBotRight to get correct corners.
+        VECTOR2I topLeft = GetTopLeft();
+        VECTOR2I botRight = GetBotRight();
+
+        topLeft -= m_margin;            // move top-left further up/left
+        botRight += m_margin;          // move bottom-right further down/right
+
+        // Offset the buffer by the margin so the boolean subtraction aligns as intended.
+        if( m_margin.x || m_margin.y )
+            m_poly.Move( m_margin );
+
+        SHAPE_LINE_CHAIN rect;
+        rect.Append( topLeft );
+        rect.Append( VECTOR2I( botRight.x, topLeft.y ) );
+        rect.Append( botRight );
+        rect.Append( VECTOR2I( topLeft.x, botRight.y ) );
+        rect.SetClosed( true );
+
+        SHAPE_POLY_SET rectPoly;
+        rectPoly.AddOutline( rect );
+        rectPoly.BooleanSubtract( m_poly );
+        m_poly = rectPoly;
+    }
+
     // Set the position of the barcode to the center of the polygon
     if( m_poly.OutlineCount() > 0 )
     {
@@ -211,8 +247,10 @@ void PCB_BARCODE::ComputeBarcode()
         m_poly.Move( -pos );
     }
 
-    SetRect( m_pos - VECTOR2I( m_width / 2, m_height / 2 ),
-             m_pos + VECTOR2I( m_width / 2, m_height / 2 ) );
+    m_poly.CacheTriangulation();
+
+    SetRect( m_pos - VECTOR2I( ( m_width + m_margin.x ) / 2, ( m_height + m_margin.y ) / 2 ),
+             m_pos + VECTOR2I( ( m_width + m_margin.x ) / 2, ( m_height + m_margin.y ) / 2 ) );
 }
 
 
@@ -328,6 +366,62 @@ const BOX2I PCB_BARCODE::ViewBBox() const
 }
 
 
+void PCB_BARCODE::TransformShapeToPolygon( SHAPE_POLY_SET& aBuffer, PCB_LAYER_ID aLayer, int aClearance, int aMaxError,
+                                           ERROR_LOC aErrorLoc, bool ignoreLineWidth ) const
+{
+    if( aLayer != m_layer )
+        return;
+
+    if( aClearance == 0 )
+    {
+        aBuffer.Append( m_poly );
+    }
+    else
+    {
+        SHAPE_POLY_SET poly = m_poly;
+        poly.Inflate( aClearance, CORNER_STRATEGY::CHAMFER_ACUTE_CORNERS, aMaxError, aErrorLoc );
+        aBuffer.Append( poly );
+    }
+
+}
+
+void PCB_BARCODE::SetErrorCorrection( BARCODE_ECC_T aErrorCorrection )
+{
+    // Micro QR codes do not support High (H) error correction level
+    if( m_kind == BARCODE_T::MICRO_QR_CODE && aErrorCorrection == BARCODE_ECC_T::H )
+        m_errorCorrection = BARCODE_ECC_T::Q;
+    else
+        m_errorCorrection = aErrorCorrection;
+    // Don't auto-compute here as it may be called during loading
+}
+
+
+void PCB_BARCODE::SetKind( BARCODE_T aKind )
+{
+    m_kind = aKind;
+
+    // When switching to Micro QR, validate and adjust ECC if needed
+    if( m_kind == BARCODE_T::MICRO_QR_CODE && m_errorCorrection == BARCODE_ECC_T::H )
+        m_errorCorrection = BARCODE_ECC_T::Q;
+
+    // Don't auto-compute here as it may be called during loading
+}
+
+
+void PCB_BARCODE::SetBarcodeErrorCorrection( BARCODE_ECC_T aErrorCorrection )
+{
+    SetErrorCorrection( aErrorCorrection );
+    ComputeBarcode();
+}
+
+
+void PCB_BARCODE::SetBarcodeKind( BARCODE_T aKind )
+{
+    SetKind( aKind );
+    ComputeBarcode();
+}
+
+
 EDA_ITEM* PCB_BARCODE::Clone() const
 {
     PCB_BARCODE* item = new PCB_BARCODE( *this );
@@ -370,3 +464,116 @@ bool PCB_BARCODE::operator==( const BOARD_ITEM& aItem ) const
     return ( GetText() == other->GetText() ) && ( m_width == other->m_width ) && ( m_height == other->m_height )
            && ( GetPosition() == other->GetPosition() ) && ( m_kind == other->m_kind );
 }
+
+// ---- Property registration ----
+static struct PCB_BARCODE_DESC
+{
+    PCB_BARCODE_DESC()
+    {
+        PROPERTY_MANAGER& propMgr = PROPERTY_MANAGER::Instance();
+        REGISTER_TYPE( PCB_BARCODE );
+        propMgr.InheritsAfter( TYPE_HASH( PCB_BARCODE ), TYPE_HASH( BOARD_ITEM ) );
+
+        const wxString groupBarcode = _HKI( "Barcode Properties" );
+
+        ENUM_MAP<BARCODE_T>& kindMap = ENUM_MAP<BARCODE_T>::Instance();
+        if( kindMap.Choices().GetCount() == 0 )
+        {
+            kindMap.Undefined( BARCODE_T::QR_CODE );
+            kindMap.Map( BARCODE_T::CODE_39,       _HKI( "CODE_39" ) )
+                   .Map( BARCODE_T::CODE_128,      _HKI( "CODE_128" ) )
+                   .Map( BARCODE_T::DATA_MATRIX,   _HKI( "DATA_MATRIX" ) )
+                   .Map( BARCODE_T::QR_CODE,       _HKI( "QR_CODE" ) )
+                   .Map( BARCODE_T::MICRO_QR_CODE, _HKI( "MICRO_QR_CODE" ) );
+        }
+
+        ENUM_MAP<BARCODE_ECC_T>& eccMap = ENUM_MAP<BARCODE_ECC_T>::Instance();
+        if( eccMap.Choices().GetCount() == 0 )
+        {
+            eccMap.Undefined( BARCODE_ECC_T::L );
+            eccMap.Map( BARCODE_ECC_T::L, _HKI( "L (Low)" ) )
+                 .Map( BARCODE_ECC_T::M, _HKI( "M (Medium)" ) )
+                 .Map( BARCODE_ECC_T::Q, _HKI( "Q (Quartile)" ) )
+                 .Map( BARCODE_ECC_T::H, _HKI( "H (High)" ) );
+        }
+
+        auto hasKnockout = []( INSPECTABLE* aItem ) -> bool
+        {
+            if( PCB_BARCODE* bc = dynamic_cast<PCB_BARCODE*>( aItem ) )
+                return bc->IsKnockout();
+            return false;
+        };
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, wxString>( _HKI( "Text" ),
+                                    &PCB_BARCODE::SetBarcodeText, &PCB_BARCODE::GetText ), groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, bool>( _HKI( "Show Text" ),
+                                    &PCB_BARCODE::SetShowText, &PCB_BARCODE::GetShowText ), groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, int>( _HKI( "Width" ),
+                                    &PCB_BARCODE::SetBarcodeWidth, &PCB_BARCODE::GetWidth,
+                                    PROPERTY_DISPLAY::PT_COORD ), groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, int>( _HKI( "Height" ),
+                                    &PCB_BARCODE::SetBarcodeHeight, &PCB_BARCODE::GetHeight,
+                                    PROPERTY_DISPLAY::PT_COORD ), groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, double>( _HKI( "Orientation" ),
+                                    &PCB_BARCODE::SetOrientation, &PCB_BARCODE::GetOrientation ), groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY_ENUM<PCB_BARCODE, BARCODE_T>( _HKI( "Kind" ),
+                                    &PCB_BARCODE::SetBarcodeKind, &PCB_BARCODE::GetKind ), groupBarcode );
+
+        auto isQRCode = []( INSPECTABLE* aItem ) -> bool
+        {
+            if( PCB_BARCODE* bc = dynamic_cast<PCB_BARCODE*>( aItem ) )
+                return bc->GetKind() == BARCODE_T::QR_CODE;
+            return false;
+        };
+
+        auto isMicroQR = []( INSPECTABLE* aItem ) -> bool
+        {
+            if( PCB_BARCODE* bc = dynamic_cast<PCB_BARCODE*>( aItem ) )
+                return bc->GetKind() == BARCODE_T::MICRO_QR_CODE;
+            return false;
+        };
+
+        // QR Code Error Correction (all levels including High)
+        auto qrEccProp = new PROPERTY_ENUM<PCB_BARCODE, BARCODE_ECC_T>( _HKI( "Error Correction" ),
+                                    &PCB_BARCODE::SetBarcodeErrorCorrection, &PCB_BARCODE::GetErrorCorrection );
+        qrEccProp->SetAvailableFunc( isQRCode );
+        propMgr.AddProperty( qrEccProp, groupBarcode );
+
+        // Micro QR Code Error Correction (limited levels - no High)
+        // We need a unique name for the properties panel so that we can conditionally display the dropdown
+        // I've been unable to figure out how to conditionally limit which drop down choices are available
+        // So I'll just create a separate property for Micro QR
+        auto microQrEccProp = new PROPERTY_ENUM<PCB_BARCODE, BARCODE_ECC_T>( _HKI( "MicroQR Error Correction" ),
+                                    &PCB_BARCODE::SetBarcodeErrorCorrection, &PCB_BARCODE::GetErrorCorrection );
+        microQrEccProp->SetAvailableFunc( isMicroQR );
+
+        // Create custom choices for Micro QR (excluding High)
+        wxPGChoices microQrChoices;
+        microQrChoices.Add( _( "L (Low)" ), static_cast<int>( BARCODE_ECC_T::L ) );
+        microQrChoices.Add( _( "M (Medium)" ), static_cast<int>( BARCODE_ECC_T::M ) );
+        microQrChoices.Add( _( "Q (Quartile)" ), static_cast<int>( BARCODE_ECC_T::Q ) );
+        microQrEccProp->SetChoices( microQrChoices );
+
+        propMgr.AddProperty( microQrEccProp, groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, bool>( _HKI( "Knockout" ),
+                                    &PCB_BARCODE::SetIsKnockout, &PCB_BARCODE::IsKnockout ), groupBarcode );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, int>( _HKI( "Margin X" ),
+                                    &PCB_BARCODE::SetMarginX, &PCB_BARCODE::GetMarginX,
+                                    PROPERTY_DISPLAY::PT_COORD ), groupBarcode ).SetAvailableFunc( hasKnockout );
+
+        propMgr.AddProperty( new PROPERTY<PCB_BARCODE, int>( _HKI( "Margin Y" ),
+                                    &PCB_BARCODE::SetMarginY, &PCB_BARCODE::GetMarginY,
+                                    PROPERTY_DISPLAY::PT_COORD ), groupBarcode ).SetAvailableFunc( hasKnockout );
+    }
+} _PCB_BARCODE_DESC;
+
+// wxAny conversion implementations for enum properties (declarations in header)
+IMPLEMENT_ENUM_TO_WXANY( BARCODE_T );
+IMPLEMENT_ENUM_TO_WXANY( BARCODE_ECC_T );

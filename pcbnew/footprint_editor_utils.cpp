@@ -180,10 +180,6 @@ void FOOTPRINT_EDIT_FRAME::OnEditItemRequest( BOARD_ITEM* aItem )
         ShowPadPropertiesDialog( static_cast<PAD*>( aItem ) );
         break;
 
-    case PCB_BARCODE_T:
-        ShowBarcodePropertiesDialog( static_cast<PCB_BARCODE*>( aItem ) );
-        break;
-
     case PCB_FOOTPRINT_T:
         editFootprintProperties( static_cast<FOOTPRINT*>( aItem ) );
         GetCanvas()->Refresh();

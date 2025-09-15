@@ -796,7 +796,6 @@ struct ATEXT6
     wxString            barcode_fontname;
 
     // Barcode specific parameters
-    VECTOR2I            barcode_size       = VECTOR2I( 0, 0 );
     VECTOR2I            barcode_margin     = VECTOR2I( 0, 0 );
     ALTIUM_BARCODE_TYPE barcode_type       = ALTIUM_BARCODE_TYPE::CODE39;
     bool                barcode_inverted   = false;
