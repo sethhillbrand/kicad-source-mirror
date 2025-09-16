@@ -261,6 +261,8 @@ public:
      */
     wxString GetClass() const override { return wxT( "BARCODE" ); }
 
+    wxString GetDisplayName() const override { return wxT( "Barcode" ); }
+
     // Virtual function
     /**
      * Get the axis-aligned bounding box of the barcode including text.
