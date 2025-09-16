@@ -24,6 +24,8 @@
  */
 
 #include <future>
+#include <algorithm>
+#include <thread>
 #include <core/kicad_algo.h>
 #include <advanced_config.h>
 #include <board.h>
@@ -52,6 +54,26 @@
 #include "zone_filler.h"
 #include "project.h"
 #include "project/project_local_settings.h"
+
+namespace
+{
+    bool zone_fill_precedes( const ZONE* aLeft, const ZONE* aRight )
+    {
+        TEARDROP_TYPE leftType = aLeft->GetTeardropAreaType();
+        TEARDROP_TYPE rightType = aRight->GetTeardropAreaType();
+
+        if( ( leftType == TEARDROP_TYPE::TD_NONE ) ^ ( rightType == TEARDROP_TYPE::TD_NONE ) )
+            return static_cast<int>( leftType ) > static_cast<int>( rightType );
+
+        if( aLeft->GetAssignedPriority() != aRight->GetAssignedPriority() )
+            return aLeft->GetAssignedPriority() > aRight->GetAssignedPriority();
+
+        if( aLeft->GetNetCode() != aRight->GetNetCode() )
+            return aLeft->GetNetCode() < aRight->GetNetCode();
+
+        return aLeft->m_Uuid > aRight->m_Uuid;
+    }
+}
 
 // Helper classes for connect_nearby_polys
 class RESULTS
@@ -489,6 +511,15 @@ bool ZONE_FILLER::Fill( const std::vector<ZONE*>& aZones, bool aCheck, wxWindow*
         zone->UnFill();
     }
 
+    std::stable_sort( toFill.begin(), toFill.end(),
+            []( const std::pair<ZONE*, PCB_LAYER_ID>& a, const std::pair<ZONE*, PCB_LAYER_ID>& b )
+            {
+                if( a.first == b.first )
+                    return a.second < b.second;
+
+                return zone_fill_precedes( a.first, b.first );
+            } );
+
     auto check_fill_dependency =
             [&]( ZONE* aZone, PCB_LAYER_ID aLayer, ZONE* aOtherZone ) -> bool
             {
@@ -513,7 +544,7 @@ bool ZONE_FILLER::Fill( const std::vector<ZONE*>& aZones, bool aCheck, wxWindow*
                 if( !aOtherZone->GetLayerSet().test( aLayer ) )
                     return false;
 
-                if( aZone->HigherPriority( aOtherZone ) )
+                if( zone_fill_precedes( aZone, aOtherZone ) )
                     return false;
 
                 // Same-net zones always use outlines to produce determinate results
@@ -531,31 +562,29 @@ bool ZONE_FILLER::Fill( const std::vector<ZONE*>& aZones, bool aCheck, wxWindow*
                 return aZone->Outline()->Collide( aOtherZone->Outline(), m_worstClearance );
             };
 
+    std::vector<std::vector<size_t>> fillDependencies( toFill.size() );
+
+    for( size_t idx = 0; idx < toFill.size(); ++idx )
+    {
+        ZONE*        zone = toFill[idx].first;
+        PCB_LAYER_ID layer = toFill[idx].second;
+
+        for( size_t depIdx = 0; depIdx < toFill.size(); ++depIdx )
+        {
+            if( idx == depIdx )
+                continue;
+
+            if( check_fill_dependency( zone, layer, toFill[depIdx].first ) )
+                fillDependencies[idx].push_back( depIdx );
+        }
+    }
+
     auto fill_lambda =
             [&]( std::pair<ZONE*, PCB_LAYER_ID> aFillItem ) -> int
             {
                 PCB_LAYER_ID layer = aFillItem.second;
                 ZONE*        zone = aFillItem.first;
-                bool         canFill = true;
-
-                // Check for any fill dependencies.  If our zone needs to be clipped by
-                // another zone then we can't fill until that zone is filled.
-                for( ZONE* otherZone : aZones )
-                {
-                    if( otherZone == zone )
-                        continue;
-
-                    if( check_fill_dependency( zone, layer, otherZone ) )
-                    {
-                        canFill = false;
-                        break;
-                    }
-                }
-
                 if( m_progressReporter && m_progressReporter->IsCancelled() )
-                    return 0;
-
-                if( !canFill )
                     return 0;
 
                 // Now we're ready to fill.
@@ -603,48 +632,77 @@ bool ZONE_FILLER::Fill( const std::vector<ZONE*>& aZones, bool aCheck, wxWindow*
 
     // Calculate the copper fills (NB: this is multi-threaded)
     //
-    std::vector<std::pair<std::future<int>, int>> returns;
-    returns.reserve( toFill.size() );
+    std::vector<std::pair<std::future<int>, int>> returns( toFill.size() );
     size_t finished = 0;
     bool cancelled = false;
+    size_t totalSteps = 2 * toFill.size();
 
     thread_pool& tp = GetKiCadThreadPool();
 
-    for( const std::pair<ZONE*, PCB_LAYER_ID>& fillItem : toFill )
-        returns.emplace_back( std::make_pair( tp.submit_task( [&, fillItem]() { return fill_lambda( fillItem ); } ), 0 ) );
+    auto dependencies_satisfied =
+            [&]( size_t aIndex ) -> bool
+            {
+                for( size_t depIdx : fillDependencies[aIndex] )
+                {
+                    if( returns[depIdx].second < 1 )
+                        return false;
+                }
 
-    while( !cancelled && finished != 2 * toFill.size() )
+                return true;
+            };
+
+    while( !cancelled && finished != totalSteps )
     {
-        for( size_t ii = 0; ii < returns.size(); ++ii )
+        if( m_progressReporter && m_progressReporter->IsCancelled() )
+            cancelled = true;
+
+        bool didWork = false;
+
+        for( size_t ii = 0; ii < returns.size() && !cancelled; ++ii )
         {
             auto& ret = returns[ii];
 
-            if( ret.second > 1 )
+            if( ret.second >= 2 )
                 continue;
 
-            std::future_status status = ret.first.wait_for( std::chrono::seconds( 0 ) );
-
-            if( status == std::future_status::ready )
+            if( ret.first.valid() )
             {
-                if( ret.first.get() )   // lambda completed
-                {
-                    ++finished;
-                    ret.second++;       // go to next step
-                }
+                std::future_status status = ret.first.wait_for( std::chrono::seconds( 0 ) );
 
-                if( !cancelled )
+                if( status == std::future_status::ready )
                 {
-                    // Queue the next step (will re-queue the existing step if it didn't complete)
-                    if( ret.second == 0 )
-                        returns[ii].first = tp.submit_task( [&, idx = ii]() { return fill_lambda( toFill[idx] ); } );
-                    else if( ret.second == 1 )
-                        returns[ii].first = tp.submit_task( [&, idx = ii]() { return tesselate_lambda( toFill[idx] ); } );
+                    int result = ret.first.get();
+
+                    if( result )
+                    {
+                        ++finished;
+                        ++ret.second;
+                    }
+
+                    didWork = true;
                 }
+            }
+
+            if( cancelled || ret.first.valid() )
+                continue;
+
+            if( ret.second == 0 )
+            {
+                if( dependencies_satisfied( ii ) )
+                {
+                    ret.first = tp.submit_task( [&, idx = ii]() { return fill_lambda( toFill[idx] ); } );
+                    didWork = true;
+                }
+            }
+            else if( ret.second == 1 )
+            {
+                ret.first = tp.submit_task( [&, idx = ii]() { return tesselate_lambda( toFill[idx] ); } );
+                didWork = true;
             }
         }
 
-        std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
-
+        if( finished == totalSteps || cancelled )
+            break;
 
         if( m_progressReporter )
         {
@@ -653,6 +711,9 @@ bool ZONE_FILLER::Fill( const std::vector<ZONE*>& aZones, bool aCheck, wxWindow*
             if( m_progressReporter->IsCancelled() )
                 cancelled = true;
         }
+
+        if( !didWork && !cancelled )
+            std::this_thread::yield();
     }
 
     // Make sure that all futures have finished.
@@ -1587,7 +1648,7 @@ void ZONE_FILLER::buildCopperItemClearances( const ZONE* aZone, PCB_LAYER_ID aLa
             if( otherZone->GetDoNotAllowZoneFills() && !aZone->IsTeardropArea() )
                 knockoutZoneClearance( otherZone );
         }
-        else if( otherZone->HigherPriority( aZone ) )
+        else if( zone_fill_precedes( otherZone, aZone ) )
         {
             if( !otherZone->SameNet( aZone ) )
                 knockoutZoneClearance( otherZone );
@@ -1610,7 +1671,7 @@ void ZONE_FILLER::buildCopperItemClearances( const ZONE* aZone, PCB_LAYER_ID aLa
                 if( otherZone->GetDoNotAllowZoneFills() && !aZone->IsTeardropArea() )
                     knockoutZoneClearance( otherZone );
             }
-            else if( otherZone->HigherPriority( aZone ) )
+            else if( zone_fill_precedes( otherZone, aZone ) )
             {
                 if( !otherZone->SameNet( aZone ) )
                     knockoutZoneClearance( otherZone );
@@ -1623,58 +1684,98 @@ void ZONE_FILLER::buildCopperItemClearances( const ZONE* aZone, PCB_LAYER_ID aLa
 
 
 /**
- * Removes the outlines of higher-proirity zones with the same net.  These zones should be
- * in charge of the fill parameters within their own outlines.
+ * Removes the filled areas of higher-priority zones.  These zones should
+ * be in charge of the fill parameters within their own outlines.
  */
-void ZONE_FILLER::subtractHigherPriorityZones( const ZONE* aZone, PCB_LAYER_ID aLayer,
-                                               SHAPE_POLY_SET& aRawFill )
+void ZONE_FILLER::subtractHigherPriorityZones( const ZONE* aZone, PCB_LAYER_ID aLayer, SHAPE_POLY_SET& aRawFill )
 {
     BOX2I zoneBBox = aZone->GetBoundingBox();
 
-    auto knockoutZoneOutline =
+    // Debug tracing category: enable with WXTRACE=KICAD_ZONE_FILL
+    wxLogTrace( "KICAD_ZONE_FILL", "[zone %p net=%s layer=%d] Begin subtractHigherPriorityZones", (void*) aZone,
+                aZone->GetNetname(), (int) aLayer );
+
+    int tested = 0;
+    int skipped = 0;
+    int subtracted = 0;
+
+    auto subtractZoneFill =
             [&]( ZONE* aKnockout )
             {
-                // If the zones share no common layers
-                if( !aKnockout->GetLayerSet().test( aLayer ) )
-                    return;
-
-                if( aKnockout->GetBoundingBox().Intersects( zoneBBox ) )
+                if( aKnockout == aZone )
                 {
-                    // Processing of arc shapes in zones is not yet supported because Clipper
-                    // can't do boolean operations on them.  The poly outline must be converted to
-                    // segments first.
-                    SHAPE_POLY_SET outline = aKnockout->Outline()->CloneDropTriangulation();
-                    outline.ClearArcs();
-
-                    aRawFill.BooleanSubtract( outline );
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p: %s same zone", (void*) aKnockout, aKnockout->GetNetname() );
+                    return;
                 }
+
+                tested++;
+
+                if( !zone_fill_precedes( aKnockout, aZone ) )
+                {
+                    skipped++;
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p, %s: not higher priority", (void*) aKnockout, aKnockout->GetNetname() );
+                    return;
+                }
+
+                if( aKnockout->IsTeardropArea() )
+                {
+                    skipped++;
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p, %s: teardrop area", (void*) aKnockout, aKnockout->GetNetname() );
+                    return;
+                }
+
+                if( !aKnockout->GetLayerSet().test( aLayer ) )
+                {
+                    skipped++;
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p, %s: not on layer %d", (void*) aKnockout, aKnockout->GetNetname(), (int) aLayer );
+                    return;
+                }
+
+                if( !aKnockout->GetBoundingBox().Intersects( zoneBBox ) )
+                {
+                    skipped++;
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p, %s: bbox no intersection", (void*) aKnockout, aKnockout->GetNetname() );
+                    return;
+                }
+
+                if( !aKnockout->HasFilledPolysForLayer( aLayer ) )
+                {
+                    skipped++;
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p, %s: no filled polys for layer", (void*) aKnockout, aKnockout->GetNetname() );
+                    return;
+                }
+
+                const std::shared_ptr<SHAPE_POLY_SET>& fill = aKnockout->GetFilledPolysList( aLayer );
+
+                if( !fill || fill->IsEmpty() )
+                {
+                    skipped++;
+                    wxLogTrace( "KICAD_ZONE_FILL", "  skip %p, %s: empty fill poly set", (void*) aKnockout, aKnockout->GetNetname() );
+                    return;
+                }
+
+                SHAPE_POLY_SET outline = fill->CloneDropTriangulation();
+
+                double areaBefore = aRawFill.Area();
+                double outlineArea = outline.Area();
+
+                aRawFill.BooleanSubtract( outline );
+                subtracted++;
+                double areaAfter = aRawFill.Area();
+                wxLogTrace( "KICAD_ZONE_FILL", "  subtracted %p, %s: outlines=%d, outline area: %.3f removedArea=%.3f (remaining=%.3f)",
+                            (void*) aKnockout, aKnockout->GetNetname(), outline.OutlineCount(), outlineArea, areaBefore - areaAfter, areaAfter );
             };
 
     for( ZONE* otherZone : m_board->Zones() )
-    {
-        // Don't use the `HigherPriority()` check here because we _only_ want to knock out zones
-        // with explicitly higher priorities, not those with equal priorities
-        if( otherZone->SameNet( aZone )
-                && otherZone->GetAssignedPriority() > aZone->GetAssignedPriority() )
-        {
-            // Do not remove teardrop area: it is not useful and not good
-            if( !otherZone->IsTeardropArea() )
-                knockoutZoneOutline( otherZone );
-        }
-    }
+        subtractZoneFill( otherZone );
 
     for( FOOTPRINT* footprint : m_board->Footprints() )
     {
         for( ZONE* otherZone : footprint->Zones() )
-        {
-            if( otherZone->SameNet( aZone ) && otherZone->HigherPriority( aZone ) )
-            {
-                // Do not remove teardrop area: it is not useful and not good
-                if( !otherZone->IsTeardropArea() )
-                    knockoutZoneOutline( otherZone );
-            }
-        }
+            subtractZoneFill( otherZone );
     }
+
+    wxLogTrace( "KICAD_ZONE_FILL", "[zone %p] subtractHigherPriorityZones summary: tested=%d skipped=%d subtracted=%d finalArea=%.3f", (void*) aZone, tested, skipped, subtracted, aRawFill.Area() );
 }
 
 
