@@ -59,7 +59,8 @@ public:
         LEGACY,                 ///< Legacy Pcbnew file formats prior to s-expression.
         ALTIUM_CIRCUIT_MAKER,
         ALTIUM_CIRCUIT_STUDIO,
-        ALTIUM_DESIGNER,
+    ALTIUM_DESIGNER,
+    ALLEGRO,
         CADSTAR_PCB_ARCHIVE,
         EAGLE,
         EASYEDA,

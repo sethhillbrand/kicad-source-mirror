@@ -45,6 +45,7 @@
 #include <pcb_io/easyedapro/pcb_io_easyedapro.h>
 #include <pcb_io/ipc2581/pcb_io_ipc2581.h>
 #include <pcb_io/odbpp/pcb_io_odbpp.h>
+#include <pcb_io/allegro/pcb_io_allegro.h>
 #include <reporter.h>
 
 
@@ -336,3 +337,8 @@ static PCB_IO_MGR::REGISTER_PLUGIN registerODBPPPlugin(
         wxT( "ODB++" ),
         []() -> PCB_IO* { return new PCB_IO_ODBPP; } );
 // clang-format on
+
+static PCB_IO_MGR::REGISTER_PLUGIN registerAllegroPlugin(
+    PCB_IO_MGR::ALLEGRO,
+    wxT( "Cadence Allegro" ),
+    []() -> PCB_IO* { return new PCB_IO_ALLEGRO; } );

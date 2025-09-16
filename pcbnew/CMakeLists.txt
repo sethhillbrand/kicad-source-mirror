@@ -688,6 +688,7 @@ endif()
 
 add_subdirectory( pcb_io/pcad )
 add_subdirectory( pcb_io/altium )
+add_subdirectory( pcb_io/allegro )
 add_subdirectory( pcb_io/cadstar )
 add_subdirectory( pcb_io/easyeda )
 add_subdirectory( pcb_io/easyedapro )
@@ -695,7 +696,7 @@ add_subdirectory( pcb_io/fabmaster )
 add_subdirectory( pcb_io/ipc2581 )
 add_subdirectory( pcb_io/odbpp )
 
-set( PCBNEW_IO_LIBRARIES pcad2kicadpcb altium2pcbnew cadstar2pcbnew easyeda easyedapro fabmaster ipc2581 odbpp CACHE INTERNAL "")
+set( PCBNEW_IO_LIBRARIES pcad2kicadpcb altium2pcbnew allegro2pcbnew cadstar2pcbnew easyeda easyedapro fabmaster ipc2581 odbpp CACHE INTERNAL "")
 
 # a very small program launcher for pcbnew_kiface
 add_executable( pcbnew WIN32 MACOSX_BUNDLE
