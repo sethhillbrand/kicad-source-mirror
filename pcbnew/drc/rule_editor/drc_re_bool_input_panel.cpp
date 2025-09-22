@@ -23,6 +23,8 @@
 
 #include "drc_re_bool_input_panel.h"
 
+#include <wx/log.h>
+
 
 const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> BoolConstraintBitMapPairs =
 {
@@ -75,4 +77,25 @@ bool DRC_RE_BOOL_INPUT_PANEL::TransferDataFromWindow()
 bool DRC_RE_BOOL_INPUT_PANEL::ValidateInputs( int* aErrorCount, std::string* aValidationMessage )
 {
     return true;
+}
+
+
+wxString DRC_RE_BOOL_INPUT_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "boolean_constraint" );
+
+    const bool enabled = m_constraintData->GetBoolInputValue();
+    const wxString state = enabled ? wxS( "true" ) : wxS( "false" );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ),
+                wxS( "Generating boolean constraint '%s' with state %s." ), code, state );
+
+    wxString clause = wxString::Format( wxS( "(constraint %s (enabled %s))" ), code, state );
+    return buildRule( aContext, { clause } );
 }

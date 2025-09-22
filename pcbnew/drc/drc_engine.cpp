@@ -2099,6 +2099,8 @@ std::vector<BOARD_ITEM*> DRC_ENGINE::GetItemsMatchingCondition( const wxString& 
                                                                 DRC_CONSTRAINT_T aConstraint,
                                                                 REPORTER* aReporter )
 {
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ),
+                wxS( "[ShowMatches] engine enter: expr='%s', constraint=%d" ), aExpression, (int) aConstraint );
     std::vector<BOARD_ITEM*> matches;
 
     if( !m_board )
@@ -2107,7 +2109,10 @@ std::vector<BOARD_ITEM*> DRC_ENGINE::GetItemsMatchingCondition( const wxString& 
     DRC_RULE_CONDITION condition( aExpression );
 
     if( !condition.Compile( aReporter ? aReporter : m_logReporter ) )
+    {
+        wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "[ShowMatches] engine: compile failed" ) );
         return matches;
+    }
 
     BOARD_ITEM_SET items = m_board->GetItemSet();
 
@@ -2121,10 +2126,13 @@ std::vector<BOARD_ITEM*> DRC_ENGINE::GetItemsMatchingCondition( const wxString& 
                                     aReporter ? aReporter : m_logReporter ) )
             {
                 matches.push_back( item );
+                wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ),
+                            wxS( "[ShowMatches] engine: match kiid=%s layer=%d" ), kiid.AsString(), (int) layer );
                 break; // No need to check other layers
             }
         }
     }
 
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "[ShowMatches] engine exit: total=%zu" ), matches.size() );
     return matches;
 }

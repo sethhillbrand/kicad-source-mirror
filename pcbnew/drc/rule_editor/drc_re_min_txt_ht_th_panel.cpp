@@ -23,6 +23,8 @@
 
 #include "drc_re_min_txt_ht_th_panel.h"
 
+#include <wx/log.h>
+
 
 DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL(
         wxWindow* aParent, wxString* aConstraintTitle,
@@ -79,4 +81,26 @@ bool DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::ValidateInputs( int* aErrorCoun
         return false;
 
     return true;
+}
+
+
+wxString DRC_RE_MINIMUM_TEXT_HEIGHT_THICKNESS_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    auto formatDimension = [&]( double aValue )
+    {
+        return formatDouble( aValue ) + wxS( "mm" );
+    };
+
+    wxString heightClause = wxString::Format( wxS( "(constraint text_height (min %s))" ),
+                                              formatDimension( m_constraintData->GetMinTextHeight() ) );
+    wxString thicknessClause = wxString::Format( wxS( "(constraint text_thickness (min %s))" ),
+                                                 formatDimension( m_constraintData->GetMinTextThickness() ) );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ),
+                wxS( "Text constraints: %s | %s" ), heightClause, thicknessClause );
+
+    return buildRule( aContext, { heightClause, thicknessClause } );
 }

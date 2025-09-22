@@ -23,6 +23,8 @@
 
 #include "drc_re_via_style_panel.h"
 
+#include <wx/log.h>
+
 
 DRC_RE_VIA_STYLE_PANEL::DRC_RE_VIA_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_VIA_STYLE_CONSTRAINT_DATA> aConstraintData ) :
@@ -126,4 +128,35 @@ bool DRC_RE_VIA_STYLE_PANEL::ValidateInputs( int* aErrorCount, std::string* aVal
         return false;
 
     return true;
+}
+
+
+wxString DRC_RE_VIA_STYLE_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    auto formatDimension = [&]( double aValue )
+    {
+        return formatDouble( aValue ) + wxS( "mm" );
+    };
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "via_style" );
+
+    wxString clause = wxString::Format(
+            wxS( "(constraint %s (diameter (min %s) (opt %s) (max %s)) (drill (min %s) (opt %s) (max %s)))" ),
+            code,
+            formatDimension( m_constraintData->GetMinViaDiameter() ),
+            formatDimension( m_constraintData->GetPreferredViaDiameter() ),
+            formatDimension( m_constraintData->GetMaxViaDiameter() ),
+            formatDimension( m_constraintData->GetMinViaHoleSize() ),
+            formatDimension( m_constraintData->GetPreferredViaHoleSize() ),
+            formatDimension( m_constraintData->GetMaxViaHoleSize() ) );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Via style clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

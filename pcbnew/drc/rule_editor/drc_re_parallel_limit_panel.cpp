@@ -23,6 +23,8 @@
 
 #include "drc_re_parallel_limit_panel.h"
 
+#include <wx/log.h>
+
 DRC_RE_PARALLEL_LIMIT_PANEL::DRC_RE_PARALLEL_LIMIT_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_PARALLEL_LIMIT_CONSTRAINT_DATA> aConstraintData ) :
         DRC_RE_PARALLEL_LIMIT_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
@@ -73,4 +75,29 @@ bool DRC_RE_PARALLEL_LIMIT_PANEL::ValidateInputs( int* aErrorCount,
         return false;
 
     return true;
+}
+
+
+wxString DRC_RE_PARALLEL_LIMIT_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "parallel_limit" );
+
+    auto formatDistance = [&]( double aValue )
+    {
+        return formatDouble( aValue ) + wxS( "mm" );
+    };
+
+    wxString clause = wxString::Format( wxS( "(constraint %s (gap %s) (length %s))" ), code,
+                                        formatDistance( m_constraintData->GetParallelGap() ),
+                                        formatDistance( m_constraintData->GetParallelLimit() ) );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Parallel limit clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

@@ -23,6 +23,8 @@
 
 #include "drc_re_smd_entry_panel.h"
 
+#include <wx/log.h>
+
 
 DRC_RE_SMD_ENTRY_PANEL::DRC_RE_SMD_ENTRY_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_SMD_ENTRY_CONSTRAINT_DATA> aConstraintData ) :
@@ -68,4 +70,25 @@ bool DRC_RE_SMD_ENTRY_PANEL::ValidateInputs( int* aErrorCount, std::string* aVal
 
     return DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( checkboxes, "SMD Entry Angles",
                                                          aErrorCount, aValidationMessage );
+}
+
+
+wxString DRC_RE_SMD_ENTRY_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "smd_entry" );
+
+    wxString clause = wxString::Format( wxS( "(constraint %s (side %s) (corner %s) (any %s))" ), code,
+                                        m_constraintData->GetIsSideAngleEnabled() ? wxS( "true" ) : wxS( "false" ),
+                                        m_constraintData->GetIsCornerAngleEnabled() ? wxS( "true" ) : wxS( "false" ),
+                                        m_constraintData->GetIsAnyAngleEnabled() ? wxS( "true" ) : wxS( "false" ) );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "SMD entry clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

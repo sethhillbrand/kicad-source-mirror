@@ -88,6 +88,8 @@ public:
 
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
+    wxString GenerateRule( const RULE_GENERATION_CONTEXT& aContext ) override;
+
     void Save( wxCommandEvent& aEvent );
 
     void Cancel( wxCommandEvent& aEvent );
@@ -95,6 +97,8 @@ public:
 private:
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE* getConstraintPanel( wxWindow* aParent,
         const DRC_RULE_EDITOR_CONSTRAINT_NAME& aConstraintType );
+
+    wxString buildLayerClause() const;
 
     /**
      * Handles the save button click event, validating inputs and invoking the save callback if valid.
@@ -167,8 +171,8 @@ private:
     std::string       m_validationMessage;
 
     std::unique_ptr<SCINTILLA_TRICKS>            m_scintillaTricks;
-    wxChoice*                                   m_layerListChoiceCtrl;
-    std::vector<PCB_LAYER_ID>                   m_layerIDs;
+    wxChoice*                                    m_layerListChoiceCtrl;
+    std::vector<PCB_LAYER_ID>                    m_layerIDs;
     DRC_RULE_EDITOR_CONTENT_PANEL_BASE*          m_constraintPanel;
     std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> m_constraintData;
 

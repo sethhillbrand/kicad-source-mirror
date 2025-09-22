@@ -24,6 +24,7 @@
 #include <widgets/std_bitmap_button.h>
 #include <widgets/wx_html_report_box.h>
 #include <widgets/paged_dialog.h>
+#include <wx/log.h>
 
 #include <pgm_base.h>
 #include <settings/settings_manager.h>
@@ -75,6 +76,8 @@
 #include "drc_re_corner_style_constraint_data.h"
 #include "drc_re_smd_entry_constraint_data.h"
 #include "drc_re_custom_rule_constraint_data.h"
+
+static constexpr const wxChar* KI_TRACE_DRC_RULE_EDITOR = wxT( "KI_TRACE_DRC_RULE_EDITOR" );
 
 static bool constraintNeedsTwoObjects( DRC_RULE_EDITOR_CONSTRAINT_NAME aConstraintType )
 {
@@ -132,7 +135,7 @@ PANEL_DRC_RULE_EDITOR::PANEL_DRC_RULE_EDITOR( wxWindow* aParent, BOARD* aBoard,
 
     m_btnShowMatches->Bind( wxEVT_BUTTON, &PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked, this );
 
-    m_btnShowMatches->Enable( !m_constraintData->IsNew() );
+    m_btnShowMatches->Enable( true );
 
     m_checkSyntaxBtnCtrl->SetBitmap( KiBitmapBundle( BITMAPS::drc ) );
 
@@ -298,6 +301,19 @@ bool PANEL_DRC_RULE_EDITOR::TransferDataFromWindow()
 
     m_constraintData->SetRuleCondition( combined );
 
+    DRC_RULE_EDITOR_CONTENT_PANEL_BASE::RULE_GENERATION_CONTEXT context;
+    context.ruleName = m_nameCtrl->GetValue();
+    context.comment = m_commentCtrl->GetValue();
+    context.conditionExpression = combined;
+    context.layerClause = buildLayerClause();
+    context.constraintCode = m_constraintData->GetConstraintCode();
+
+    wxString generatedRule = m_constraintPanel->GenerateRule( context );
+    m_constraintData->SetGeneratedRule( generatedRule );
+
+    wxLogTrace( KI_TRACE_DRC_RULE_EDITOR, wxS( "Generated rule '%s':\n%s" ),
+                context.ruleName, generatedRule );
+
     return true;
 }
 
@@ -417,6 +433,12 @@ bool PANEL_DRC_RULE_EDITOR::ValidateInputs( int* aErrorCount, std::string* aVali
     }
 
     return m_validationSucceeded;
+}
+
+
+wxString PANEL_DRC_RULE_EDITOR::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    return m_constraintPanel->GenerateRule( aContext );
 }
 
 
@@ -980,10 +1002,44 @@ void PANEL_DRC_RULE_EDITOR::onContextMenu( wxMouseEvent& event )
 
 void PANEL_DRC_RULE_EDITOR::onShowMatchesButtonClicked( wxCommandEvent& event )
 {
+    // Trace: user clicked Show Matches in the rule editor
+    if( m_constraintData )
+    {
+        wxLogTrace( KI_TRACE_DRC_RULE_EDITOR,
+                    wxS( "Show Matches clicked: nodeId=%d, rule='%s', code='%s'" ),
+                    m_constraintData->GetId(), m_constraintData->GetRuleName(),
+                    m_constraintData->GetConstraintCode() );
+    }
+    else
+    {
+        wxLogTrace( KI_TRACE_DRC_RULE_EDITOR, wxS( "Show Matches clicked: no constraint data" ) );
+    }
+
     if( m_callBackShowMatches )
     {
         m_callBackShowMatches( m_constraintData->GetId() );
     }
+}
+
+wxString PANEL_DRC_RULE_EDITOR::buildLayerClause() const
+{
+    if( !m_layerListChoiceCtrl || !m_board )
+        return wxEmptyString;
+
+    int selection = m_layerListChoiceCtrl->GetSelection();
+
+    if( selection <= 0 )
+        return wxEmptyString;
+
+    size_t index = static_cast<size_t>( selection - 1 );
+
+    if( index >= m_layerIDs.size() )
+        return wxEmptyString;
+
+    PCB_LAYER_ID layerId = m_layerIDs[index];
+    wxString clause = wxString::Format( wxS( "(layer %s)" ), m_board->GetLayerName( layerId ) );
+    wxLogTrace( KI_TRACE_DRC_RULE_EDITOR, wxS( "Layer clause: %s" ), clause );
+    return clause;
 }
 
 std::vector<PCB_LAYER_ID> PANEL_DRC_RULE_EDITOR::getSelectedLayers()

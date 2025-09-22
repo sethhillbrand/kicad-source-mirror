@@ -23,6 +23,8 @@
 
 #include "drc_re_rtg_diff_pair_panel.h"
 
+#include <wx/log.h>
+
 
 DRC_RE_ROUTING_DIFF_PAIR_PANEL::DRC_RE_ROUTING_DIFF_PAIR_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA> aConstraintData ) :
@@ -127,4 +129,37 @@ bool DRC_RE_ROUTING_DIFF_PAIR_PANEL::ValidateInputs( int* aErrorCount,
         return false;
 
     return true;
+}
+
+
+wxString DRC_RE_ROUTING_DIFF_PAIR_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    auto formatDistance = [&]( double aValue )
+    {
+        return formatDouble( aValue ) + wxS( "mm" );
+    };
+
+    wxString widthClause = wxString::Format(
+            wxS( "(constraint track_width (min %s) (opt %s) (max %s))" ),
+            formatDistance( m_constraintData->GetMinWidth() ),
+            formatDistance( m_constraintData->GetPreferredWidth() ),
+            formatDistance( m_constraintData->GetMaxWidth() ) );
+
+    wxString gapClause = wxString::Format(
+            wxS( "(constraint diff_pair_gap (min %s) (opt %s) (max %s))" ),
+            formatDistance( m_constraintData->GetMinGap() ),
+            formatDistance( m_constraintData->GetPreferredGap() ),
+            formatDistance( m_constraintData->GetMaxGap() ) );
+
+    wxString uncoupledClause = wxString::Format(
+            wxS( "(constraint diff_pair_uncoupled (max %s))" ),
+            formatDistance( m_constraintData->GetMaxUncoupledLength() ) );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Diff pair clauses: %s | %s | %s" ),
+                widthClause, gapClause, uncoupledClause );
+
+    return buildRule( aContext, { widthClause, gapClause, uncoupledClause } );
 }

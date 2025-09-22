@@ -41,6 +41,8 @@ public:
 
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
+    wxString GenerateRule( const RULE_GENERATION_CONTEXT& aContext ) override;
+
 private:
     std::shared_ptr<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA> m_constraintData;
 };

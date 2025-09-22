@@ -43,6 +43,8 @@ public:
 
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
+    wxString GenerateRule( const RULE_GENERATION_CONTEXT& aContext ) override;
+
 private:
     bool m_isCountInput;
     std::shared_ptr<DRC_RE_NUMERIC_INPUT_CONSTRAINT_DATA> m_constraintData;

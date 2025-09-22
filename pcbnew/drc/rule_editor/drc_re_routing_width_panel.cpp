@@ -23,6 +23,8 @@
 
 #include "drc_re_routing_width_panel.h"
 
+#include <wx/log.h>
+
 DRC_RE_ROUTING_WIDTH_PANEL::DRC_RE_ROUTING_WIDTH_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA> aConstraintData ) :
         DRC_RE_ROUTING_WIDTH_PANEL_BASE( aParent ), m_constraintData( aConstraintData )
@@ -88,4 +90,32 @@ bool DRC_RE_ROUTING_WIDTH_PANEL::ValidateInputs( int* aErrorCount, std::string* 
         return false;
 
     return true;
+}
+
+
+wxString DRC_RE_ROUTING_WIDTH_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    auto formatDistance = [&]( double aValue )
+    {
+        return formatDouble( aValue ) + wxS( "mm" );
+    };
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "track_width" );
+
+    wxString clause = wxString::Format(
+            wxS( "(constraint %s (min %s) (opt %s) (max %s))" ),
+            code,
+            formatDistance( m_constraintData->GetMinRoutingWidth() ),
+            formatDistance( m_constraintData->GetPreferredRoutingWidth() ),
+            formatDistance( m_constraintData->GetMaxRoutingWidth() ) );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Routing width clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

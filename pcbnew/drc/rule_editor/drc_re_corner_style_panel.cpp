@@ -23,6 +23,8 @@
 
 #include "drc_re_corner_style_panel.h"
 
+#include <wx/log.h>
+
 
 DRC_RE_CORNER_STYLE_PANEL::DRC_RE_CORNER_STYLE_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_CORNER_STYLE_CONSTRAINT_DATA> aConstraintData ) :
@@ -126,4 +128,34 @@ bool DRC_RE_CORNER_STYLE_PANEL::ValidateInputs( int* aErrorCount, std::string* a
         return false;
 
     return true;
+}
+
+
+wxString DRC_RE_CORNER_STYLE_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "corner_style" );
+
+    wxString styleToken = m_constraintData->GetCornerStyle().Lower();
+    styleToken.Replace( wxS( " " ), wxS( "_" ) );
+
+    wxString clause = wxString::Format( wxS( "(constraint %s (type %s)" ), code, styleToken );
+
+    if( styleToken != wxS( "90_degrees" ) )
+    {
+        clause += wxString::Format( wxS( " (setback (min %s) (max %s))" ),
+                                    formatDouble( m_constraintData->GetMinSetbackLength() ) + wxS( "mm" ),
+                                    formatDouble( m_constraintData->GetMaxSetbackLength() ) + wxS( "mm" ) );
+    }
+
+    clause += wxS( ")" );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Corner style clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

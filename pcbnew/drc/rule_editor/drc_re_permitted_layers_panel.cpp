@@ -23,6 +23,8 @@
 
 #include "drc_re_permitted_layers_panel.h"
 
+#include <wx/log.h>
+
 
 DRC_RE_PERMITTED_LAYERS_PANEL::DRC_RE_PERMITTED_LAYERS_PANEL( wxWindow* aParent, wxString* aConstraintTitle,
         std::shared_ptr<DRC_RE_PERMITTED_LAYERS_CONSTRAINT_DATA> aConstraintData ) :
@@ -65,4 +67,26 @@ bool DRC_RE_PERMITTED_LAYERS_PANEL::ValidateInputs( int* aErrorCount,
 
     return DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( checkboxes, "Permitted Layers",
                                                          aErrorCount, aValidationMessage );
+}
+
+
+wxString DRC_RE_PERMITTED_LAYERS_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "permitted_layers" );
+
+    const wxString topState = m_constraintData->GetTopLayerEnabled() ? wxS( "true" ) : wxS( "false" );
+    const wxString bottomState = m_constraintData->GetBottomLayerEnabled() ? wxS( "true" ) : wxS( "false" );
+
+    wxString clause = wxString::Format( wxS( "(constraint %s (top %s) (bottom %s))" ), code,
+                                        topState, bottomState );
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Permitted layers clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

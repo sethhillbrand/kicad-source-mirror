@@ -56,3 +56,17 @@ bool DRC_RE_CUSTOM_RULE_PANEL::ValidateInputs( int* aErrorCount, std::string* aV
     (void) aValidationMessage;
     return true;
 }
+
+
+wxString DRC_RE_CUSTOM_RULE_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    (void) aContext;
+
+    if( m_constraintData )
+        return m_constraintData->GetRuleText();
+
+    if( m_textCtrl )
+        return m_textCtrl->GetValue();
+
+    return wxEmptyString;
+}

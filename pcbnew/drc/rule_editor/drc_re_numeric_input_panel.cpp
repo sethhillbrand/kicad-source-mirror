@@ -23,6 +23,11 @@
 
 #include "drc_re_numeric_input_panel.h"
 
+#include <cmath>
+#include <map>
+
+#include <wx/log.h>
+
 
 const std::map<DRC_RULE_EDITOR_CONSTRAINT_NAME, BITMAPS> NumericConstraintBitMapPairs = {
         { BASIC_CLEARANCE, BITMAPS::constraint_basic_clearance },
@@ -122,4 +127,120 @@ bool DRC_RE_NUMERIC_INPUT_PANEL::ValidateInputs( int* aErrorCount, std::string* 
                 m_numericConstraintCtrl, m_numericConstraintLabel->GetLabelText().ToStdString(),
                 false, aErrorCount, aValidationMessage );
     }
+}
+
+
+wxString DRC_RE_NUMERIC_INPUT_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    enum class VALUE_KIND
+    {
+        MIN,
+        MAX,
+        OPT
+    };
+
+    enum class VALUE_UNIT
+    {
+        DISTANCE,
+        ANGLE,
+        COUNT,
+        UNITLESS
+    };
+
+    static const std::map<wxString, std::pair<VALUE_KIND, VALUE_UNIT>> sDescriptor = {
+        { wxS( "annular_width" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "clearance" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "connection_width" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "courtyard_clearance" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "creepage" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "daisy_chain_stub" ), { VALUE_KIND::MAX, VALUE_UNIT::DISTANCE } },
+        { wxS( "edge_clearance" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "hole" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "hole_clearance" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "hole_to_hole" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "length" ), { VALUE_KIND::MAX, VALUE_UNIT::DISTANCE } },
+        { wxS( "maximum_allowed_deviation" ), { VALUE_KIND::MAX, VALUE_UNIT::DISTANCE } },
+        { wxS( "min_resolved_spokes" ), { VALUE_KIND::MIN, VALUE_UNIT::COUNT } },
+        { wxS( "net_antenna" ), { VALUE_KIND::MAX, VALUE_UNIT::DISTANCE } },
+        { wxS( "physical_clearance" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "smd_corner" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "smd_to_plane_plus" ), { VALUE_KIND::MAX, VALUE_UNIT::DISTANCE } },
+        { wxS( "silk_clearance" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "solder_mask_expansion" ), { VALUE_KIND::OPT, VALUE_UNIT::DISTANCE } },
+        { wxS( "solder_mask_sliver" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "solder_paste_abs_margin" ), { VALUE_KIND::OPT, VALUE_UNIT::DISTANCE } },
+        { wxS( "thermal_spoke_width" ), { VALUE_KIND::OPT, VALUE_UNIT::DISTANCE } },
+        { wxS( "track_angle" ), { VALUE_KIND::MIN, VALUE_UNIT::ANGLE } },
+        { wxS( "track_width" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } },
+        { wxS( "via_count" ), { VALUE_KIND::MAX, VALUE_UNIT::COUNT } },
+        { wxS( "via_diameter" ), { VALUE_KIND::MIN, VALUE_UNIT::DISTANCE } }
+    };
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "numeric_value" );
+
+    // Adjust mismatched mappings for count-based inputs.
+    if( code == wxS( "thermal_spoke_width" ) && m_isCountInput )
+        code = wxS( "min_resolved_spokes" );
+
+    auto descriptorIt = sDescriptor.find( code );
+
+    VALUE_KIND valueKind = VALUE_KIND::MIN;
+    VALUE_UNIT valueUnit = VALUE_UNIT::DISTANCE;
+
+    if( descriptorIt != sDescriptor.end() )
+    {
+        valueKind = descriptorIt->second.first;
+        valueUnit = descriptorIt->second.second;
+    }
+    else
+    {
+        wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ),
+                    wxS( "No numeric descriptor for constraint '%s', defaulting to minimum distance." ),
+                    code );
+    }
+
+    auto formatValue = [&]( double aValue )
+    {
+        switch( valueUnit )
+        {
+        case VALUE_UNIT::ANGLE: return formatDouble( aValue ) + wxS( "deg" );
+        case VALUE_UNIT::COUNT:
+        {
+            long long count = static_cast<long long>( std::llround( aValue ) );
+            return wxString::Format( wxS( "%lld" ), count );
+        }
+        case VALUE_UNIT::UNITLESS: return formatDouble( aValue );
+        case VALUE_UNIT::DISTANCE:
+        default: return formatDouble( aValue ) + wxS( "mm" );
+        }
+    };
+
+    double rawValue = m_constraintData->GetNumericInputValue();
+    wxString formattedValue = formatValue( rawValue );
+
+    wxString clause;
+
+    switch( valueKind )
+    {
+    case VALUE_KIND::MAX:
+        clause = wxString::Format( wxS( "(constraint %s (max %s))" ), code, formattedValue );
+        break;
+    case VALUE_KIND::OPT:
+        clause = wxString::Format( wxS( "(constraint %s (opt %s))" ), code, formattedValue );
+        break;
+    case VALUE_KIND::MIN:
+    default:
+        clause = wxString::Format( wxS( "(constraint %s (min %s))" ), code, formattedValue );
+        break;
+    }
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Numeric constraint clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

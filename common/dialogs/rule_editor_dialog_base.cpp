@@ -184,6 +184,12 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
     mainSizer->Add( m_sizerButtons, 0, wxALL | wxEXPAND, 5 );
     SetSize(wxSize(980, 680));
     Layout();
+    {
+        wxSize endCtorSz = GetSize();
+        wxSize endCtorMin = GetMinSize();
+        wxLogDebug( "RULE_EDITOR: ctor END size=(%d,%d) min=(%d,%d)", endCtorSz.x, endCtorSz.y, endCtorMin.x,
+                    endCtorMin.y );
+    }
 
     // Bind the context menu event
     m_filterSearch->Bind( wxEVT_COMMAND_TEXT_UPDATED, &RULE_EDITOR_DIALOG_BASE::onFilterSearch,
@@ -218,7 +224,17 @@ RULE_EDITOR_DIALOG_BASE::RULE_EDITOR_DIALOG_BASE( wxWindow* aParent, const wxStr
 
 void RULE_EDITOR_DIALOG_BASE::finishInitialization()
 {
+    wxSize curSz = GetSize();
+    wxSize minSz = GetMinSize();
+    wxLogDebug( "RULE_EDITOR: finishInitialization() BEFORE finishDialogSettings size=(%d,%d) min=(%d,%d)",
+                curSz.x, curSz.y, minSz.x, minSz.y );
+
     finishDialogSettings();
+
+    curSz = GetSize();
+    minSz = GetMinSize();
+    wxLogDebug( "RULE_EDITOR: finishInitialization() AFTER finishDialogSettings size=(%d,%d) min=(%d,%d)",
+                curSz.x, curSz.y, minSz.x, minSz.y );
 }
 
 
@@ -340,6 +356,10 @@ void RULE_EDITOR_DIALOG_BASE::SetContentPanel( wxPanel* aContentPanel )
     m_splitter->SplitVertically( treeCtrlPanel, m_contentPanel, sash_position );
 
     Layout();
+    wxSize curSz = GetSize();
+    wxSize minSz = GetMinSize();
+    wxLogDebug( "RULE_EDITOR: SetContentPanel() after Layout size=(%d,%d) min=(%d,%d)", curSz.x, curSz.y,
+                minSz.x, minSz.y );
     Refresh();
 }
 
@@ -1066,6 +1086,9 @@ void RULE_EDITOR_DIALOG_BASE::updateRuleTreeActionButtonsState( RULE_TREE_ITEM_D
 void RULE_EDITOR_DIALOG_BASE::onResize( wxSizeEvent& event )
 {
     Layout();
+    wxSize curSz = GetSize();
+    wxSize minSz = GetMinSize();
+    wxLogDebug( "RULE_EDITOR: onResize() size=(%d,%d) min=(%d,%d)", curSz.x, curSz.y, minSz.x, minSz.y );
 
     event.Skip();
 }

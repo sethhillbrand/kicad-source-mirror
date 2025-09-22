@@ -23,6 +23,9 @@
 
 #include "drc_re_allowed_orientation_panel.h"
 
+#include <wx/arrstr.h>
+#include <wx/log.h>
+
 
 DRC_RE_ALLOWED_ORIENTATION_PANEL::DRC_RE_ALLOWED_ORIENTATION_PANEL( wxWindow* aParent,
         wxString* aConstraintTitle,
@@ -126,4 +129,46 @@ bool DRC_RE_ALLOWED_ORIENTATION_PANEL::ValidateInputs( int* aErrorCount,
 
     return DRC_RULE_EDITOR_UTILS::ValidateCheckBoxCtrls( checkboxes, "Allowed Orientations",
                                                          aErrorCount, aValidationMessage );
+}
+
+
+wxString DRC_RE_ALLOWED_ORIENTATION_PANEL::GenerateRule( const RULE_GENERATION_CONTEXT& aContext )
+{
+    if( !m_constraintData )
+        return wxEmptyString;
+
+    wxString code = m_constraintData->GetConstraintCode();
+
+    if( code.IsEmpty() )
+        code = wxS( "allowed_orientation" );
+
+    wxString clause;
+
+    if( m_constraintData->GetIsAllDegreesAllowed() )
+    {
+        clause = wxString::Format( wxS( "(constraint %s (any true))" ), code );
+    }
+    else
+    {
+        wxArrayString angles;
+
+        if( m_constraintData->GetIsZeroDegreesAllowed() )
+            angles.Add( wxS( "0" ) );
+        if( m_constraintData->GetIsNinetyDegreesAllowed() )
+            angles.Add( wxS( "90" ) );
+        if( m_constraintData->GetIsOneEightyDegreesAllowed() )
+            angles.Add( wxS( "180" ) );
+        if( m_constraintData->GetIsTwoSeventyDegreesAllowed() )
+            angles.Add( wxS( "270" ) );
+
+        if( angles.IsEmpty() )
+            clause = wxString::Format( wxS( "(constraint %s (angles none))" ), code );
+        else
+            clause = wxString::Format( wxS( "(constraint %s (angles %s))" ), code,
+                                        wxJoin( angles, ' ' ) );
+    }
+
+    wxLogTrace( wxS( "KI_TRACE_DRC_RULE_EDITOR" ), wxS( "Allowed orientation clause: %s" ), clause );
+
+    return buildRule( aContext, { clause } );
 }

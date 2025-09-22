@@ -39,21 +39,24 @@ public:
     }
 
     explicit DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA( int aId, int aParentId,
-                                                         double   aClearanceValue,
+                                                         double   aMinLength,
+                                                         double   aMaxLength,
                                                          wxString aRuleName ) :
             DRC_RE_BASE_CONSTRAINT_DATA( aId, aParentId, aRuleName ),
-            m_absoluteLengthTwo( aClearanceValue )
+            m_minLength( aMinLength ),
+            m_maxLength( aMaxLength )
     {
     }
 
     virtual ~DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA() = default;
 
-    double GetAbsoluteLengthTwo() { return m_absoluteLengthTwo; }
+    double GetMinimumLength() const { return m_minLength; }
 
-    void SetAbsoluteLengthTwo( double aAbsoluteLengthTwo )
-    {
-        m_absoluteLengthTwo = aAbsoluteLengthTwo;
-    }
+    void SetMinimumLength( double aLength ) { m_minLength = aLength; }
+
+    double GetMaximumLength() const { return m_maxLength; }
+
+    void SetMaximumLength( double aLength ) { m_maxLength = aLength; }
 
     void CopyFrom( const ICopyable& aSource ) override
     {
@@ -62,11 +65,13 @@ public:
 
         DRC_RE_BASE_CONSTRAINT_DATA::CopyFrom( source );
 
-        m_absoluteLengthTwo = source.m_absoluteLengthTwo;
+        m_minLength = source.m_minLength;
+        m_maxLength = source.m_maxLength;
     }
 
 private:
-    double m_absoluteLengthTwo{ 0 };
+    double m_minLength{ 0 };
+    double m_maxLength{ 0 };
 };
 
 #endif // DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA_H_

@@ -44,6 +44,8 @@ public:
     bool TransferDataFromWindow() override;
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
+    wxString GenerateRule( const RULE_GENERATION_CONTEXT& aContext ) override;
+
 private:
     std::shared_ptr<DRC_RE_CUSTOM_RULE_CONSTRAINT_DATA> m_constraintData;
     wxStyledTextCtrl*                                   m_textCtrl;

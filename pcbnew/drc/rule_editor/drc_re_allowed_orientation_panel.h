@@ -41,6 +41,8 @@ public:
 
     bool ValidateInputs( int* aErrorCount, std::string* aValidationMessage ) override;
 
+    wxString GenerateRule( const RULE_GENERATION_CONTEXT& aContext ) override;
+
 private:
     void onCheckboxClicked( wxCommandEvent& aEvent );
 

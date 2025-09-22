@@ -51,6 +51,10 @@ public:
 
     void SetConstraintCode( wxString aCode ) { m_constraintCode = aCode; }
 
+    wxString GetGeneratedRule() const { return m_generatedRule; }
+
+    void SetGeneratedRule( const wxString& aRule ) { m_generatedRule = aRule; }
+
     void CopyFrom( const ICopyable& aSource ) override
     {
         const auto& source = dynamic_cast<const DRC_RE_BASE_CONSTRAINT_DATA&>( aSource );
@@ -59,12 +63,14 @@ public:
 
         m_layers = source.m_layers;
         m_constraintCode = source.m_constraintCode;
+        m_generatedRule = source.m_generatedRule;
     }
 
 private:
     std::vector<PCB_LAYER_ID> m_layers;
     wxString m_ruleCondition;
     wxString m_constraintCode;
+    wxString m_generatedRule;
 };
 
 #endif // DRC_RE_BASE_CONSTRAINT_DATA_H_
