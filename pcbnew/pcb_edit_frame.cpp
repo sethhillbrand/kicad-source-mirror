@@ -74,6 +74,7 @@
 #include <tool/selection.h>
 #include <tool/zoom_tool.h>
 #include <tools/array_tool.h>
+#include <tools/bga_breakout_tool.h>
 #include <tools/pcb_grid_helper.h>
 #include <tools/pcb_selection_tool.h>
 #include <tools/pcb_picker_tool.h>
@@ -858,6 +859,7 @@ void PCB_EDIT_FRAME::setupTools()
     m_toolManager->RegisterTool( new MICROWAVE_TOOL );
     m_toolManager->RegisterTool( new POSITION_RELATIVE_TOOL );
     m_toolManager->RegisterTool( new ARRAY_TOOL );
+    m_toolManager->RegisterTool( new BGA_BREAKOUT_TOOL );
     m_toolManager->RegisterTool( new ZONE_FILLER_TOOL );
     m_toolManager->RegisterTool( new AUTOPLACE_TOOL );
     m_toolManager->RegisterTool( new DRC_TOOL );

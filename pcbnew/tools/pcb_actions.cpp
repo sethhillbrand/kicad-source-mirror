@@ -852,6 +852,14 @@ TOOL_ACTION PCB_ACTIONS::createArray( TOOL_ACTION_ARGS()
         .Icon( BITMAPS::array )
         .Flags( AF_ACTIVATE ) );
 
+TOOL_ACTION PCB_ACTIONS::bgaBreakout( TOOL_ACTION_ARGS()
+        .Name( "pcbnew.BGABreakout.start" )
+        .Scope( AS_GLOBAL )
+        .FriendlyName( _( "BGA Breakout..." ) )
+        .Tooltip( _( "Plan breakout routing channels for the selected BGA footprint" ) )
+        .Icon( BITMAPS::via )
+        .Flags( AF_ACTIVATE ) );
+
 // FOOTPRINT_EDITOR_CONTROL
 //
 TOOL_ACTION PCB_ACTIONS::newFootprint( TOOL_ACTION_ARGS()

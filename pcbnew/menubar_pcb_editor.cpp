@@ -403,6 +403,7 @@ void PCB_EDIT_FRAME::doReCreateMenuBar()
     //Zones management
     toolsMenu->AppendSeparator();
     toolsMenu->Add( PCB_ACTIONS::zonesManager );
+    toolsMenu->Add( PCB_ACTIONS::bgaBreakout );
 
     if( ADVANCED_CFG::GetCfg().m_EnableGenerators )
     {

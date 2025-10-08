@@ -524,6 +524,9 @@ public:
     /// Tool for creating an array of objects
     static TOOL_ACTION createArray;
 
+    /// Launch the BGA breakout planning tool
+    static TOOL_ACTION bgaBreakout;
+
     /// Display footprint graphics as outlines
     static TOOL_ACTION graphicsOutlines;
 

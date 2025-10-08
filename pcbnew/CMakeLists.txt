@@ -32,6 +32,7 @@ include_directories(
 
 set( PCBNEW_DIALOGS
     dialogs/dialog_filter_selection.cpp
+    dialogs/dialog_bga_breakout.cpp
     dialogs/dialog_filter_selection_base.cpp
     dialogs/dialog_barcode_properties.cpp
     dialogs/dialog_barcode_properties_base.cpp
@@ -400,6 +401,7 @@ set( PCBNEW_CLASS_SRCS
     tools/drc_tool.cpp
     tools/edit_tool.cpp
     tools/edit_tool_move_fct.cpp
+    tools/bga_breakout_tool.cpp
     tools/pcb_edit_table_tool.cpp
     tools/global_edit_tool.cpp
     tools/footprint_editor_control.cpp
