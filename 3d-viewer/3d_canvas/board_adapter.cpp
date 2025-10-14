@@ -295,6 +295,9 @@ bool BOARD_ADAPTER::IsFootprintShown( FOOTPRINT_ATTR_T aFPAttributes ) const
     if( aFPAttributes & FP_THROUGH_HOLE )
         return m_Cfg->m_Render.show_footprints_normal;
 
+    if( aFPAttributes & FP_DECAL )
+        return m_Cfg->m_Render.show_footprints_virtual;
+
     return m_Cfg->m_Render.show_footprints_virtual;
 }
 

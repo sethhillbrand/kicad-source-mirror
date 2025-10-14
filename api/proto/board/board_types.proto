@@ -884,6 +884,8 @@ enum FootprintMountingStyle
   FMS_THROUGH_HOLE = 1;
   FMS_SMD = 2;
   FMS_UNSPECIFIED = 3;
+  // Since 10.0
+  FMS_DECAL = 4;
 }
 
 message FootprintAttributes

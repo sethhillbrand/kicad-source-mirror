@@ -99,6 +99,7 @@ void InitializeBoardStatisticsData( BOARD_STATISTICS_DATA& aData )
 
     aData.footprintEntries.push_back( BOARD_STATISTICS_FP_ENTRY( FP_THROUGH_HOLE, FP_THROUGH_HOLE, _( "THT:" ) ) );
     aData.footprintEntries.push_back( BOARD_STATISTICS_FP_ENTRY( FP_SMD, FP_SMD, _( "SMD:" ) ) );
+    aData.footprintEntries.push_back( BOARD_STATISTICS_FP_ENTRY( FP_DECAL, FP_DECAL, _( "Decal:" ) ) );
     aData.footprintEntries.push_back( BOARD_STATISTICS_FP_ENTRY( FP_THROUGH_HOLE | FP_SMD, 0, _( "Unspecified:" ) ) );
 
     aData.padEntries.push_back( BOARD_STATISTICS_INFO_ENTRY<PAD_ATTRIB>( PAD_ATTRIB::PTH, _( "Through hole:" ) ) );

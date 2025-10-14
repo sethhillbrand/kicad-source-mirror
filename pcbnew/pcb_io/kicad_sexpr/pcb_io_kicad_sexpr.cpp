@@ -1306,6 +1306,9 @@ void PCB_IO_KICAD_SEXPR::format( const FOOTPRINT* aFootprint ) const
         if( aFootprint->GetAttributes() & FP_THROUGH_HOLE )
             m_out->Print( " through_hole" );
 
+        if( aFootprint->GetAttributes() & FP_DECAL )
+            m_out->Print( " decal" );
+
         if( aFootprint->GetAttributes() & FP_BOARD_ONLY )
             m_out->Print( " board_only" );
 

@@ -335,6 +335,8 @@ void FOOTPRINT::Serialize( google::protobuf::Any &aContainer ) const
         attrs->set_mounting_style( types::FootprintMountingStyle::FMS_THROUGH_HOLE );
     else if( m_attributes & FP_SMD )
         attrs->set_mounting_style( types::FootprintMountingStyle::FMS_SMD );
+    else if( m_attributes & FP_DECAL )
+        attrs->set_mounting_style( types::FootprintMountingStyle::FMS_DECAL );
     else
         attrs->set_mounting_style( types::FootprintMountingStyle::FMS_UNSPECIFIED );
 
@@ -482,6 +484,10 @@ bool FOOTPRINT::Deserialize( const google::protobuf::Any &aContainer )
 
     case types::FootprintMountingStyle::FMS_SMD:
         m_attributes |= FP_SMD;
+        break;
+
+    case types::FootprintMountingStyle::FMS_DECAL:
+        m_attributes |= FP_DECAL;
         break;
 
     default:
@@ -1387,6 +1393,9 @@ wxString FOOTPRINT::GetTypeName() const
 
     if( ( m_attributes & FP_THROUGH_HOLE ) == FP_THROUGH_HOLE )
         return _( "Through hole" );
+
+    if( ( m_attributes & FP_DECAL ) == FP_DECAL )
+        return _( "Decal" );
 
     return _( "Other" );
 }

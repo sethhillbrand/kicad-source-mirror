@@ -344,8 +344,10 @@ bool DIALOG_FOOTPRINT_PROPERTIES_FP_EDITOR::TransferDataToWindow()
         m_componentType->SetSelection( 0 );
     else if( m_footprint->GetAttributes() & FP_SMD )
         m_componentType->SetSelection( 1 );
-    else
+    else if( m_footprint->GetAttributes() & FP_DECAL )
         m_componentType->SetSelection( 2 );
+    else
+        m_componentType->SetSelection( 3 );
 
     // Private layers
     for( PCB_LAYER_ID privateLayer : m_footprint->GetPrivateLayers().UIOrder() )
@@ -804,6 +806,7 @@ bool DIALOG_FOOTPRINT_PROPERTIES_FP_EDITOR::TransferDataFromWindow()
     {
     case 0:  attributes |= FP_THROUGH_HOLE; break;
     case 1:  attributes |= FP_SMD;          break;
+    case 2:  attributes |= FP_DECAL;        break;
     default:                                break;
     }
 
@@ -1171,6 +1174,16 @@ void DIALOG_FOOTPRINT_PROPERTIES_FP_EDITOR::OnText( wxCommandEvent& event )
 
 void DIALOG_FOOTPRINT_PROPERTIES_FP_EDITOR::OnChoice( wxCommandEvent& event )
 {
+    if( event.GetEventObject() == m_componentType && m_initialized )
+    {
+        if( m_componentType->GetSelection() == 2 )
+        {
+            m_boardOnly->SetValue( true );
+            m_excludeFromPosFiles->SetValue( true );
+            m_excludeFromBOM->SetValue( true );
+        }
+    }
+
     if( m_initialized )
         OnModify();
 }

@@ -84,7 +84,8 @@ enum FOOTPRINT_ATTR_T
     FP_EXCLUDE_FROM_BOM         = 0x0008,
     FP_BOARD_ONLY               = 0x0010,   // Footprint has no corresponding symbol
     FP_JUST_ADDED               = 0x0020,   // Footprint just added by netlist update
-    FP_DNP                      = 0x0040
+    FP_DNP                      = 0x0040,
+    FP_DECAL                    = 0x0080
 };
 
 enum class FOOTPRINT_STACKUP

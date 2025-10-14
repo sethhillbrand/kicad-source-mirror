@@ -170,7 +170,7 @@ void BITMAPCONV_INFO::outputDataHeader( const wxString& aBrdLayerName )
                                m_CmpName.c_str(),
                                GetMajorMinorVersion().ToStdString() );
 
-        m_Data += fmt::format( "  (attr board_only exclude_from_pos_files exclude_from_bom)\n" );
+        m_Data += fmt::format( "  (attr board_only exclude_from_pos_files exclude_from_bom decal)\n" );
         m_Data += fmt::format( "  (fp_text reference \"G***\" (at 0 0) (layer \"{}\")\n"
                                "      (effects (font (size 1.5 1.5) (thickness 0.3)))\n"
                                "    (uuid {})\n  )\n",

@@ -680,20 +680,19 @@ void DIALOG_PAD_PROPERTIES::initValues()
 
         if( m_isFpEditor && m_board->GetFirstFootprint() )
         {
-            switch( m_board->GetFirstFootprint()->GetAttributes() )
+            int fpAttributes = m_board->GetFirstFootprint()->GetAttributes();
+
+            if( fpAttributes & FP_THROUGH_HOLE )
             {
-            case FOOTPRINT_ATTR_T::FP_THROUGH_HOLE:
                 m_previewPad->SetAttribute( PAD_ATTRIB::PTH );
 
                 if( m_previewPad->GetDrillSizeX() == 0 )
                     m_board->GetDesignSettings().SetDefaultMasterPad();
-
-                break;
-
-            case FOOTPRINT_ATTR_T::FP_SMD:
+            }
+            else if( fpAttributes & FP_SMD )
+            {
                 m_previewPad->SetLayerSet( PAD::SMDMask() );
                 m_previewPad->SetAttribute( PAD_ATTRIB::SMD );
-                break;
             }
         }
     }

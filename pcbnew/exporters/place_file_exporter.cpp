@@ -354,6 +354,9 @@ std::string PLACE_FILE_EXPORTER::GenReportData()
         if( footprint->GetAttributes() & FP_SMD )
             buffer += " smd";
 
+        if( footprint->GetAttributes() & FP_DECAL )
+            buffer += " decal";
+
         if( footprint->GetAttributes() & FP_THROUGH_HOLE )
             buffer += " none";
 

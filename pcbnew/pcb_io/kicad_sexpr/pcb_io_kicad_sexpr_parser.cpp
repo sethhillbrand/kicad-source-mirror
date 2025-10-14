@@ -5121,9 +5121,13 @@ FOOTPRINT* PCB_IO_KICAD_SEXPR_PARSER::parseFOOTPRINT_unchecked( wxArrayString* a
                     footprint->SetAllowSolderMaskBridges( true );
                     break;
 
+                case T_decal:
+                    attributes |= FP_DECAL;
+                    break;
+
                 default:
                     Expecting( "through_hole, smd, virtual, board_only, exclude_from_pos_files, "
-                               "exclude_from_bom or allow_solder_mask_bridges" );
+                               "exclude_from_bom, allow_missing_courtyard, dnp, allow_soldermask_bridges or decal" );
                 }
             }
 
