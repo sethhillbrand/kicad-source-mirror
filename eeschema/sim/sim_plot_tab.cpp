@@ -30,6 +30,8 @@
 #include "simulator_frame.h"
 #include "core/kicad_algo.h"
 
+#include <dialog_sim_axis_properties.h>
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -137,10 +139,19 @@ class LIN_SCALE : public T_PARENT
 public:
     LIN_SCALE( const wxString& name, const wxString& unit, int flags ) :
             T_PARENT( name, flags, false ),
-            m_unit( unit )
+            m_unit( unit ),
+            m_showUnits( true )
     {};
 
     wxString GetUnits() const { return m_unit; }
+
+    bool GetShowUnits() const { return m_showUnits; }
+
+    void SetShowUnits( bool aShowUnits ) { m_showUnits = aShowUnits; }
+
+    void SetBaseAxisLabel( const wxString& aLabel ) { m_base_axis_label = aLabel; }
+
+    const wxString& GetBaseAxisLabel() const { return m_base_axis_label; }
 
 private:
     void formatLabels() override
@@ -179,12 +190,16 @@ private:
         if( m_base_axis_label.IsEmpty() )
             m_base_axis_label = T_PARENT::GetName();
 
-        T_PARENT::SetName( wxString::Format( "%s (%s)", m_base_axis_label, suffix ) );
+        if( m_showUnits && !suffix.IsEmpty() )
+            T_PARENT::SetName( wxString::Format( "%s (%s)", m_base_axis_label, suffix ) );
+        else
+            T_PARENT::SetName( m_base_axis_label );
     }
 
 private:
     const wxString m_unit;
     wxString       m_base_axis_label;
+    bool           m_showUnits;
 };
 
 
@@ -235,10 +250,19 @@ class LOG_SCALE : public T_PARENT
 public:
     LOG_SCALE( const wxString& name, const wxString& unit, int flags ) :
             T_PARENT( name, flags, false ),
-            m_unit( unit )
+            m_unit( unit ),
+            m_showUnits( true )
     {};
 
     wxString GetUnits() const { return m_unit; }
+
+    bool GetShowUnits() const { return m_showUnits; }
+
+    void SetShowUnits( bool aShowUnits ) { m_showUnits = aShowUnits; }
+
+    void SetBaseAxisLabel( const wxString& aLabel ) { m_base_axis_label = aLabel; }
+
+    const wxString& GetBaseAxisLabel() const { return m_base_axis_label; }
 
 private:
     void formatLabels() override
@@ -247,19 +271,40 @@ private:
         int           power;
         int constexpr MAX_DIGITS = 3;
 
+        double maxVis = T_PARENT::AbsVisibleMaxValue();
+        getSISuffix( maxVis, m_unit, power, suffix );
+
         for( mpScaleBase::TICK_LABEL& l : T_PARENT::m_tickLabels )
         {
-            getSISuffix( l.pos, m_unit, power, suffix );
-            double sf = pow( 10.0, power );
+            int    tickPower;
+            wxString tickSuffix;
+
+            getSISuffix( l.pos, m_unit, tickPower, tickSuffix );
+            double sf = pow( 10.0, tickPower );
             int    k = countDecimalDigits( l.pos / sf, MAX_DIGITS );
 
-            l.label = formatFloat( l.pos / sf, k ) + suffix;
+            wxString label = formatFloat( l.pos / sf, k );
+
+            if( m_showUnits )
+                label += tickSuffix;
+
+            l.label = label;
             l.visible = true;
         }
+
+        if( m_base_axis_label.IsEmpty() )
+            m_base_axis_label = T_PARENT::GetName();
+
+        if( m_showUnits && !suffix.IsEmpty() )
+            T_PARENT::SetName( wxString::Format( "%s (%s)", m_base_axis_label, suffix ) );
+        else
+            T_PARENT::SetName( m_base_axis_label );
     }
 
 private:
     const wxString m_unit;
+    bool           m_showUnits;
+    wxString       m_base_axis_label;
 };
 
 
@@ -619,6 +664,9 @@ SIM_PLOT_TAB::SIM_PLOT_TAB( const wxString& aSimCommand, wxWindow* parent ) :
     m_sizer   = new wxBoxSizer( wxVERTICAL );
     m_plotWin = new mpWindow( this, wxID_ANY );
 
+    m_plotWin->SetAxisDoubleClickHandler(
+            [this]( mpScaleBase* aAxis, const wxPoint& ) { return OnAxisDoubleClick( aAxis ); } );
+
     m_plotWin->LimitView( true );
     m_plotWin->SetMargins( 30, 70, 45, 70 );
     UpdatePlotColors();
@@ -666,6 +714,179 @@ void SIM_PLOT_TAB::SetY3Scale( bool aLock, double aMin, double aMax )
 }
 
 
+SIM_PLOT_TAB::AXIS_ID SIM_PLOT_TAB::IdentifyAxis( const mpScaleBase* aAxis ) const
+{
+    if( aAxis == m_axis_x )
+        return AXIS_ID::X;
+
+    if( aAxis == m_axis_y1 )
+        return AXIS_ID::Y1;
+
+    if( aAxis == m_axis_y2 )
+        return AXIS_ID::Y2;
+
+    if( aAxis == m_axis_y3 )
+        return AXIS_ID::Y3;
+
+    return AXIS_ID::NONE;
+}
+
+
+void SIM_PLOT_TAB::ApplyAxisAlignment( mpScaleBase* aAxis, int aAlign )
+{
+    if( !aAxis )
+        return;
+
+    if( aAxis->IsHorizontal() )
+    {
+        int align = ( aAlign == mpALIGN_TOP ) ? mpALIGN_TOP : mpALIGN_BOTTOM;
+        aAxis->SetAlign( align );
+        aAxis->SetNameAlign( align );
+    }
+    else
+    {
+        int align = ( aAlign == mpALIGN_RIGHT ) ? mpALIGN_RIGHT : mpALIGN_LEFT;
+        aAxis->SetAlign( align );
+        aAxis->SetNameAlign( align );
+    }
+}
+
+
+void SIM_PLOT_TAB::UpdateAxisUnits( mpScaleBase* aAxis, bool aShowUnits )
+{
+    if( !aAxis )
+        return;
+
+    if( auto* linX = dynamic_cast<LIN_SCALE<mpScaleX>*>( aAxis ) )
+    {
+        linX->SetShowUnits( aShowUnits );
+    }
+    else if( auto* logX = dynamic_cast<LOG_SCALE<mpScaleXLog>*>( aAxis ) )
+    {
+        logX->SetShowUnits( aShowUnits );
+    }
+    else if( auto* linY = dynamic_cast<LIN_SCALE<mpScaleY>*>( aAxis ) )
+    {
+        linY->SetShowUnits( aShowUnits );
+    }
+}
+
+
+void SIM_PLOT_TAB::SetAxisBounds( mpScaleBase* aAxis, bool aLock, double aMin, double aMax )
+{
+    if( !aAxis )
+        return;
+
+    if( aLock )
+        aAxis->SetAxisMinMax( true, aMin, aMax );
+    else
+        aAxis->SetAxisMinMax( false, 0.0, 0.0 );
+}
+
+
+bool SIM_PLOT_TAB::ToggleAxisLogScale( AXIS_ID aAxisId, bool aEnableLog )
+{
+    if( aAxisId != AXIS_ID::X )
+        return true;
+
+    if( !m_axis_x )
+        return false;
+
+    if( dynamic_cast<TIME_SCALE*>( m_axis_x ) )
+        return false;
+
+    bool currentlyLog = dynamic_cast<LOG_SCALE<mpScaleXLog>*>( m_axis_x ) != nullptr;
+
+    if( currentlyLog == aEnableLog )
+        return true;
+
+    double lockedMin = 0.0;
+    double lockedMax = 0.0;
+    bool   axisLocked = m_axis_x->GetAxisMinMax( &lockedMin, &lockedMax );
+    bool   visible    = m_axis_x->IsVisible();
+    int    align      = m_axis_x->GetAlign();
+    int    nameAlign  = m_axis_x->GetNameAlign();
+    bool   ticks      = m_axis_x->GetTicks();
+    wxFont axisFont   = m_axis_x->GetFont();
+    wxPen  axisPen    = m_axis_x->GetPen();
+    wxString axisName = m_axis_x->GetName();
+
+    if( aEnableLog )
+    {
+        LIN_SCALE<mpScaleX>* linAxis = dynamic_cast<LIN_SCALE<mpScaleX>*>( m_axis_x );
+
+        if( !linAxis )
+            return false;
+
+        wxString units     = linAxis->GetUnits();
+        bool     showUnits = linAxis->GetShowUnits();
+        wxString baseLabel = linAxis->GetBaseAxisLabel();
+
+        auto* newAxis = new LOG_SCALE<mpScaleXLog>( wxEmptyString, units, align );
+
+        newAxis->SetShowUnits( showUnits );
+        newAxis->SetBaseAxisLabel( baseLabel );
+        newAxis->SetAlign( align );
+        newAxis->SetNameAlign( nameAlign );
+        newAxis->SetTicks( ticks );
+        newAxis->SetFont( axisFont );
+        newAxis->SetPen( axisPen );
+        newAxis->SetName( axisName );
+        newAxis->SetVisible( visible );
+
+        if( axisLocked )
+            newAxis->SetAxisMinMax( true, lockedMin, lockedMax );
+
+        if( !m_plotWin->ReplaceLayer( m_axis_x, newAxis, false, false ) )
+        {
+            delete newAxis;
+            return false;
+        }
+
+        delete m_axis_x;
+        m_axis_x = newAxis;
+    }
+    else
+    {
+        LOG_SCALE<mpScaleXLog>* logAxis = dynamic_cast<LOG_SCALE<mpScaleXLog>*>( m_axis_x );
+
+        if( !logAxis )
+            return false;
+
+        wxString units     = logAxis->GetUnits();
+        bool     showUnits = logAxis->GetShowUnits();
+        wxString baseLabel = logAxis->GetBaseAxisLabel();
+
+        auto* newAxis = new LIN_SCALE<mpScaleX>( wxEmptyString, units, align );
+
+        newAxis->SetShowUnits( showUnits );
+        newAxis->SetBaseAxisLabel( baseLabel );
+        newAxis->SetAlign( align );
+        newAxis->SetNameAlign( nameAlign );
+        newAxis->SetTicks( ticks );
+        newAxis->SetFont( axisFont );
+        newAxis->SetPen( axisPen );
+        newAxis->SetName( axisName );
+        newAxis->SetVisible( visible );
+
+        if( axisLocked )
+            newAxis->SetAxisMinMax( true, lockedMin, lockedMax );
+
+        if( !m_plotWin->ReplaceLayer( m_axis_x, newAxis, false, false ) )
+        {
+            delete newAxis;
+            return false;
+        }
+
+        delete m_axis_x;
+        m_axis_x = newAxis;
+    }
+
+    RefreshTraceScales();
+
+    return true;
+}
+
 wxString SIM_PLOT_TAB::GetUnitsX() const
 {
     LOG_SCALE<mpScaleXLog>* logScale = dynamic_cast<LOG_SCALE<mpScaleXLog>*>( m_axis_x );
@@ -679,6 +900,161 @@ wxString SIM_PLOT_TAB::GetUnitsX() const
         return wxEmptyString;
 }
 
+
+bool SIM_PLOT_TAB::OnAxisDoubleClick( mpScaleBase* aAxis )
+{
+    if( !aAxis )
+        return false;
+
+    AXIS_ID axisId = IdentifyAxis( aAxis );
+
+    if( axisId == AXIS_ID::NONE )
+        return false;
+
+    double minValue = 0.0;
+    double maxValue = 0.0;
+    bool   boundsLocked = aAxis->GetAxisMinMax( &minValue, &maxValue );
+
+    if( !boundsLocked )
+        aAxis->GetDataRange( minValue, maxValue );
+
+    auto mapAlign = []( int aAlign, bool aHorizontal )
+    {
+        if( aHorizontal )
+        {
+            if( aAlign == mpALIGN_TOP || aAlign == mpALIGN_BORDER_TOP )
+                return mpALIGN_TOP;
+
+            return mpALIGN_BOTTOM;
+        }
+
+        if( aAlign == mpALIGN_RIGHT || aAlign == mpALIGN_FAR_RIGHT || aAlign == mpALIGN_BORDER_RIGHT )
+            return mpALIGN_RIGHT;
+
+        return mpALIGN_LEFT;
+    };
+
+    SIM_AXIS_DIALOG_SETTINGS settings;
+
+    settings.axisName      = aAxis->GetName();
+    settings.isHorizontal  = aAxis->IsHorizontal();
+    settings.minValue      = minValue;
+    settings.maxValue      = maxValue;
+    settings.boundsLocked  = boundsLocked;
+    settings.logSupported  = false;
+    settings.isLogarithmic = false;
+    settings.showUnits     = true;
+
+    if( auto* linX = dynamic_cast<LIN_SCALE<mpScaleX>*>( aAxis ) )
+        settings.showUnits = linX->GetShowUnits();
+    else if( auto* logX = dynamic_cast<LOG_SCALE<mpScaleXLog>*>( aAxis ) )
+        settings.showUnits = logX->GetShowUnits();
+    else if( auto* linY = dynamic_cast<LIN_SCALE<mpScaleY>*>( aAxis ) )
+        settings.showUnits = linY->GetShowUnits();
+
+    settings.alignments.clear();
+
+    if( settings.isHorizontal )
+    {
+        settings.alignments.emplace_back( mpALIGN_BOTTOM, _( "Bottom" ) );
+        settings.alignments.emplace_back( mpALIGN_TOP, _( "Top" ) );
+    }
+    else
+    {
+        settings.alignments.emplace_back( mpALIGN_LEFT, _( "Left" ) );
+        settings.alignments.emplace_back( mpALIGN_RIGHT, _( "Right" ) );
+    }
+
+    settings.currentAlignment = mapAlign( aAxis->GetAlign(), settings.isHorizontal );
+
+    if( axisId == AXIS_ID::X )
+    {
+        if( !dynamic_cast<TIME_SCALE*>( m_axis_x ) )
+        {
+            settings.logSupported = dynamic_cast<LIN_SCALE<mpScaleX>*>( m_axis_x ) != nullptr
+                                     || dynamic_cast<LOG_SCALE<mpScaleXLog>*>( m_axis_x ) != nullptr;
+            settings.isLogarithmic = dynamic_cast<LOG_SCALE<mpScaleXLog>*>( m_axis_x ) != nullptr;
+        }
+    }
+
+    DIALOG_SIM_AXIS_PROPERTIES dlg( this, settings );
+
+    if( dlg.ShowModal() != wxID_OK )
+        return false;
+
+    SIM_AXIS_DIALOG_RESULTS results;
+    dlg.GetResults( results );
+
+    auto nearlyEqual = []( double a, double b )
+    {
+        const double maxAbs = std::max( { 1.0, std::fabs( a ), std::fabs( b ) } );
+        const double eps = 1e-9;
+        return std::fabs( a - b ) <= eps * maxAbs;
+    };
+
+    const bool logChanged = settings.logSupported
+                             && ( results.isLogarithmic != settings.isLogarithmic );
+    const bool boundsStateChanged = results.boundsLocked != settings.boundsLocked;
+    bool       boundsValueChanged = false;
+
+    if( results.boundsLocked && settings.boundsLocked )
+    {
+        boundsValueChanged = !nearlyEqual( results.minValue, settings.minValue )
+                             || !nearlyEqual( results.maxValue, settings.maxValue );
+    }
+    else if( results.boundsLocked && !settings.boundsLocked )
+    {
+        boundsValueChanged = true;
+    }
+
+    const bool showUnitsChanged = results.showUnits != settings.showUnits;
+    const bool alignmentChanged = results.alignment != settings.currentAlignment;
+
+    const bool settingsChanged = logChanged || boundsStateChanged || boundsValueChanged
+                                 || showUnitsChanged || alignmentChanged;
+
+    if( !settingsChanged )
+        return false;
+
+    if( logChanged )
+        ToggleAxisLogScale( axisId, results.isLogarithmic );
+
+    switch( axisId )
+    {
+    case AXIS_ID::X:
+        aAxis = m_axis_x;
+        break;
+
+    case AXIS_ID::Y1:
+        aAxis = m_axis_y1;
+        break;
+
+    case AXIS_ID::Y2:
+        aAxis = m_axis_y2;
+        break;
+
+    case AXIS_ID::Y3:
+        aAxis = m_axis_y3;
+        break;
+
+    default:
+        return false;
+    }
+
+    SetAxisBounds( aAxis, results.boundsLocked, results.minValue, results.maxValue );
+    ApplyAxisAlignment( aAxis, results.alignment );
+    UpdateAxisUnits( aAxis, results.showUnits );
+
+    RefreshTraceScales();
+
+    const bool requiresScaleReset = boundsStateChanged || boundsValueChanged
+                                    || ( axisId == AXIS_ID::X && logChanged );
+
+    if( requiresScaleReset )
+        ResetScales( axisId == AXIS_ID::X );
+
+    return true;
+}
 
 wxString SIM_PLOT_TAB::GetUnitsY1() const
 {
@@ -1145,6 +1521,62 @@ void SIM_PLOT_TAB::SetTraceData( TRACE* trace, std::vector<double>& aX, std::vec
     }
 
     UpdateAxisVisibility();
+}
+
+
+void SIM_PLOT_TAB::RefreshTraceScales()
+{
+    if( !m_axis_x )
+        return;
+
+    auto pickYAxis = [&]( TRACE* aTrace ) -> mpScaleBase*
+    {
+        if( !aTrace )
+            return nullptr;
+
+        mpScaleBase* axis = nullptr;
+
+        if( aTrace->GetType() & SPT_POWER )
+        {
+            axis = m_axis_y3;
+        }
+        else if( ( aTrace->GetType() & SPT_AC_PHASE )
+                 || ( ( GetSimType() != ST_AC ) && ( aTrace->GetType() & SPT_CURRENT ) ) )
+        {
+            axis = m_axis_y2;
+        }
+        else
+        {
+            axis = m_axis_y1;
+        }
+
+        if( axis )
+            return axis;
+
+        if( m_axis_y1 )
+            return m_axis_y1;
+
+        if( m_axis_y2 )
+            return m_axis_y2;
+
+        if( m_axis_y3 )
+            return m_axis_y3;
+
+        return nullptr;
+    };
+
+    for( auto& [ name, trace ] : m_traces )
+    {
+        if( !trace )
+            continue;
+
+        mpScaleBase* yAxis = pickYAxis( trace );
+
+        if( !yAxis )
+            continue;
+
+        trace->SetScale( m_axis_x, yAxis );
+    }
 }
 
 

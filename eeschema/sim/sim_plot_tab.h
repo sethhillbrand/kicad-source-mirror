@@ -376,6 +376,22 @@ public:
 
     void EnsureThirdYAxisExists();
 
+    enum class AXIS_ID
+    {
+        NONE,
+        X,
+        Y1,
+        Y2,
+        Y3
+    };
+
+    bool OnAxisDoubleClick( mpScaleBase* aAxis );
+    AXIS_ID IdentifyAxis( const mpScaleBase* aAxis ) const;
+    void ApplyAxisAlignment( mpScaleBase* aAxis, int aAlign );
+    void UpdateAxisUnits( mpScaleBase* aAxis, bool aShowUnits );
+    void SetAxisBounds( mpScaleBase* aAxis, bool aLock, double aMin, double aMax );
+    bool ToggleAxisLogScale( AXIS_ID aAxisId, bool aEnableLog );
+
 public:
     wxPoint m_LastLegendPosition;
 
@@ -410,6 +426,8 @@ private:
     void updateAxes( int aNewTraceType = SIM_TRACE_TYPE::SPT_UNKNOWN );
 
     void UpdateAxisVisibility();
+
+    void RefreshTraceScales();
 
 private:
     SIM_PLOT_COLORS              m_colors;

@@ -797,6 +797,91 @@ mpScaleBase::mpScaleBase()
 }
 
 
+bool mpScaleBase::HitTest( const wxPoint& point, mpWindow& w ) const
+{
+    if( !m_visible )
+        return false;
+
+    const int tolerance = 6;
+
+    if( IsHorizontal() )
+    {
+        int orgy = 0;
+
+        if( m_flags == mpALIGN_CENTER )
+            orgy = w.y2p( 0 );
+        else if( m_flags == mpALIGN_TOP )
+            orgy = w.GetMarginTop();
+        else if( m_flags == mpALIGN_BOTTOM )
+            orgy = w.GetScrY() - w.GetMarginBottom();
+        else if( m_flags == mpALIGN_BORDER_BOTTOM )
+            orgy = w.GetScrY() - 1;
+        else if( m_flags == mpALIGN_BORDER_TOP )
+            orgy = 1;
+
+        int startPx = w.GetMarginLeft();
+        int endPx   = w.GetScrX() - w.GetMarginRight();
+
+        if( point.x < startPx - tolerance || point.x > endPx + tolerance )
+            return false;
+
+        int aboveExtent = tolerance;
+        int belowExtent = tolerance;
+
+        if( m_flags == mpALIGN_BOTTOM || m_flags == mpALIGN_BORDER_BOTTOM )
+            belowExtent = std::max( belowExtent, m_maxLabelHeight + 6 );
+        else if( m_flags == mpALIGN_TOP || m_flags == mpALIGN_BORDER_TOP )
+            aboveExtent = std::max( aboveExtent, m_maxLabelHeight + 6 );
+        else if( m_flags == mpALIGN_CENTER )
+        {
+            int extent = m_maxLabelHeight + 6;
+            aboveExtent = std::max( aboveExtent, extent );
+            belowExtent = std::max( belowExtent, extent );
+        }
+
+        return point.y >= orgy - aboveExtent && point.y <= orgy + belowExtent;
+    }
+
+    int orgx = 0;
+
+    if( m_flags == mpALIGN_CENTER )
+        orgx = w.x2p( 0 );
+    else if( m_flags == mpALIGN_LEFT )
+        orgx = w.GetMarginLeft();
+    else if( m_flags == mpALIGN_RIGHT )
+        orgx = w.GetScrX() - w.GetMarginRight();
+    else if( m_flags == mpALIGN_FAR_RIGHT )
+        orgx = w.GetScrX() - ( w.GetMarginRight() / 2 );
+    else if( m_flags == mpALIGN_BORDER_RIGHT )
+        orgx = w.GetScrX() - 1;
+    else if( m_flags == mpALIGN_BORDER_LEFT )
+        orgx = 1;
+
+    int minY = w.GetMarginTop();
+    int maxY = w.GetScrY() - w.GetMarginBottom();
+
+    if( point.y < minY - tolerance || point.y > maxY + tolerance )
+        return false;
+
+    int leftExtent = tolerance;
+    int rightExtent = tolerance;
+
+    if( m_flags == mpALIGN_LEFT || m_flags == mpALIGN_BORDER_LEFT )
+        leftExtent = std::max( leftExtent, m_maxLabelWidth + 6 );
+    else if( m_flags == mpALIGN_RIGHT || m_flags == mpALIGN_FAR_RIGHT
+             || m_flags == mpALIGN_BORDER_RIGHT )
+        rightExtent = std::max( rightExtent, m_maxLabelWidth + 6 );
+    else if( m_flags == mpALIGN_CENTER )
+    {
+        int extent = m_maxLabelWidth + 6;
+        leftExtent = std::max( leftExtent, extent );
+        rightExtent = std::max( rightExtent, extent );
+    }
+
+    return point.x >= orgx - leftExtent && point.x <= orgx + rightExtent;
+}
+
+
 void mpScaleBase::computeLabelExtents( wxDC& dc, mpWindow& w )
 {
     m_maxLabelHeight    = 0;
@@ -1630,6 +1715,30 @@ void mpWindow::onMouseLeftDClick( wxMouseEvent& event )
         }
     }
 
+    for( mpLayer* layer : m_layers )
+    {
+        if( !layer->IsVisible() || layer->GetLayerType() != mpLAYER_AXIS )
+            continue;
+
+        if( mpScaleBase* axis = dynamic_cast<mpScaleBase*>( layer ) )
+        {
+            if( axis->HitTest( pointClicked, *this ) )
+            {
+                if( m_axisDoubleClickHandler && m_axisDoubleClickHandler( axis, pointClicked ) )
+                {
+                    UpdateAll();
+                    return;
+                }
+
+                if( axis->OnDoubleClick( pointClicked, *this ) )
+                {
+                    UpdateAll();
+                    return;
+                }
+            }
+        }
+    }
+
     event.Skip();
 }
 
@@ -2043,6 +2152,32 @@ bool mpWindow::DelLayer( mpLayer* layer, bool alsoDeleteObject, bool refreshDisp
                 delete *layIt;
 
             m_layers.erase( layIt );    // this deleted the reference only
+
+            if( refreshDisplay )
+                UpdateAll();
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+bool mpWindow::ReplaceLayer( mpLayer* oldLayer, mpLayer* newLayer,
+                             bool alsoDeleteObject, bool refreshDisplay )
+{
+    if( !oldLayer || !newLayer )
+        return false;
+
+    for( wxLayerList::iterator it = m_layers.begin(); it != m_layers.end(); ++it )
+    {
+        if( *it == oldLayer )
+        {
+            if( alsoDeleteObject )
+                delete *it;
+
+            *it = newLayer;
 
             if( refreshDisplay )
                 UpdateAll();

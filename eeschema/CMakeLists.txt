@@ -202,6 +202,7 @@ set( EESCHEMA_DLGS
 set( EESCHEMA_SIM_SRCS
     dialogs/dialog_sim_command.cpp
     dialogs/dialog_sim_command_base.cpp
+    dialogs/dialog_sim_axis_properties.cpp
     dialogs/dialog_sim_format_value.cpp
     dialogs/dialog_sim_format_value_base.cpp
     dialogs/dialog_sim_model.cpp

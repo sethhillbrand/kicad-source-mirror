@@ -78,6 +78,7 @@
 #include <vector>
 #include <deque>
 #include <stack>
+#include <functional>
 #include <array>
 #include <algorithm>
 
@@ -302,6 +303,8 @@ public:
      *  @param brush brush, will be copied to internal class member */
     void SetBrush( const wxBrush& brush ) { m_brush = brush; };
 
+    virtual bool OnDoubleClick( const wxPoint& point, mpWindow& w ) { return false; }
+
 protected:
 
     wxFont      m_font;               // !< Layer's font
@@ -360,7 +363,7 @@ public:
      *  @return \a true if the point is inside the bounding box */
     virtual bool Inside( const wxPoint& point ) const;
 
-    virtual bool OnDoubleClick( const wxPoint& point, mpWindow& w );
+    virtual bool OnDoubleClick( const wxPoint& point, mpWindow& w ) override;
 
     /** Moves the layer rectangle of given pixel deltas.
      *  @param delta The wxPoint container for delta coordinates along x and y. Units are in pixels. */
@@ -639,6 +642,12 @@ public:
      *  @return true if plot is drawing axis ticks, false if the grid is active.
      */
     bool GetTicks() const { return m_ticks; };
+
+    int GetAlign() const { return m_flags; }
+
+    int GetNameAlign() const { return m_nameFlags; }
+
+    bool HitTest( const wxPoint& point, mpWindow& w ) const;
 
     void GetDataRange( double& minV, double& maxV ) const
     {
@@ -972,6 +981,9 @@ public:
      */
     bool DelLayer( mpLayer* layer, bool alsoDeleteObject = false, bool refreshDisplay = true );
 
+    bool ReplaceLayer( mpLayer* oldLayer, mpLayer* newLayer,
+                       bool alsoDeleteObject = true, bool refreshDisplay = true );
+
     /** Remove all layers from the plot.
      *  @param alsoDeleteObject If set to true, the mpLayer objects will be also "deleted", not
      *                          just removed from the internal list.
@@ -1106,6 +1118,11 @@ public:
 
     /** Set the pan/zoom actions corresponding to mousewheel/trackpad events. */
     void SetMouseWheelActions( const MouseWheelActionSet& s ) { m_mouseWheelActions = s; }
+
+    void SetAxisDoubleClickHandler( std::function<bool( mpScaleBase*, const wxPoint& )> handler )
+    {
+        m_axisDoubleClickHandler = handler;
+    }
 
     /** Set view to fit global bounding box of all plot layers and refresh display.
      *  Scale and position will be set to show all attached mpLayers.
@@ -1365,6 +1382,7 @@ protected:
     bool    m_enableMouseNavigation;        // !< For pan/zoom with the mouse.
     bool    m_enableLimitedView;
     MouseWheelActionSet m_mouseWheelActions;
+    std::function<bool( mpScaleBase*, const wxPoint& )> m_axisDoubleClickHandler;
     wxPoint m_mouseMClick;                  // !< For the middle button "drag" feature
     wxPoint m_mouseLClick;                  // !< Starting coords for rectangular zoom selection
     mpInfoLayer* m_movingInfoLayer;         // !< For moving info layers over the window area
