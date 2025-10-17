@@ -193,6 +193,11 @@ public:
     DRC_TEST_PROVIDER* GetTestProvider( const wxString& name ) const;
 
     /**
+     * Expose the compiled rules for read-only inspection.
+     */
+    const std::vector<std::shared_ptr<DRC_RULE>>& GetRules() const { return m_rules; }
+
+    /**
      * Evaluate a DRC condition against all board items and return matches.
      *
      * @param aExpression Expression to evaluate

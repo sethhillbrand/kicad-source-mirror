@@ -21,10 +21,14 @@
 
 #include <array>
 #include <set>
+#include <string>
 
 #include <geometry/shape_simple.h>
 #include <trace_helpers.h>
 #include <board.h>
+#include <footprint.h>
+#include <zone.h>
+#include <kiid.h>
 #include <drc/drc_engine.h>
 
 #include "pns_node.h"
@@ -82,11 +86,323 @@ void TRACK_WIDTH_CONTROLLER::Build( BOARD* aBoard )
         return;
     }
 
-    // TODO: Iterate over DRC rules to extract geometry-based width constraints
-    // For now, this is a placeholder that logs the availability of the board
-    wxLogTrace( tracePnsTrackWidth,
-                wxT( "Build: Board has %d nets" ),
-                static_cast<int>( m_board->GetNetInfo().GetNetCount() ) );
+    std::shared_ptr<DRC_ENGINE> drcEngine = m_board->GetDesignSettings().m_DRCEngine;
+
+    if( drcEngine && drcEngine->HasRulesForConstraintType( TRACK_WIDTH_CONSTRAINT ) )
+    {
+        struct PROCESSED_KEY
+        {
+            NET_HANDLE   net;
+            int          layer;
+            const ZONE*  zone;
+
+            bool operator<( const PROCESSED_KEY& aOther ) const
+            {
+                if( net != aOther.net )
+                    return reinterpret_cast<uintptr_t>( net )
+                           < reinterpret_cast<uintptr_t>( aOther.net );
+
+                if( layer != aOther.layer )
+                    return layer < aOther.layer;
+
+                return zone < aOther.zone;
+            }
+        };
+
+        struct ZONE_GEOMETRY
+        {
+            std::shared_ptr<SHAPE_POLY_SET> interiorShape;
+            std::optional<VECTOR2I>         interiorPoint;
+            std::optional<VECTOR2I>         exteriorPoint;
+        };
+
+        const NETCODES_MAP& netsByCode = m_board->GetNetInfo().NetsByNetcode();
+        std::vector<NETINFO_ITEM*>       netItems;
+        netItems.reserve( netsByCode.size() );
+
+        for( const auto& entry : netsByCode )
+        {
+            if( entry.second )
+                netItems.push_back( entry.second );
+        }
+
+        std::vector<ZONE*> ruleAreas;
+        ruleAreas.reserve( m_board->Zones().size() );
+
+        for( ZONE* zone : m_board->Zones() )
+        {
+            if( zone && zone->GetIsRuleArea() )
+                ruleAreas.push_back( zone );
+        }
+
+        for( FOOTPRINT* footprint : m_board->Footprints() )
+        {
+            for( ZONE* zone : footprint->Zones() )
+            {
+                if( zone && zone->GetIsRuleArea() )
+                    ruleAreas.push_back( zone );
+            }
+        }
+
+        std::map<const ZONE*, ZONE_GEOMETRY> zoneGeometryCache;
+        auto ensureGeometry =
+                [&]( ZONE* aZone ) -> ZONE_GEOMETRY*
+                {
+                    auto geomIt = zoneGeometryCache.find( aZone );
+
+                    if( geomIt != zoneGeometryCache.end() )
+                        return &geomIt->second;
+
+                    ZONE_GEOMETRY geom;
+                    geom.interiorShape = std::make_shared<SHAPE_POLY_SET>( *aZone->Outline() );
+
+                    if( !geom.interiorShape || geom.interiorShape->OutlineCount() == 0 )
+                        return nullptr;
+
+                    geom.interiorPoint = findInteriorPoint( *geom.interiorShape );
+
+                    if( !geom.interiorPoint )
+                        return nullptr;
+
+                    geom.exteriorPoint = findExteriorPoint( *geom.interiorShape );
+                    auto [iter, inserted] = zoneGeometryCache.emplace( aZone, std::move( geom ) );
+                    (void) inserted;
+                    return &iter->second;
+                };
+
+        auto extractAreaIdentifiers =
+                []( const wxString& aExpression ) -> std::vector<wxString>
+                {
+                    std::vector<wxString> identifiers;
+
+                    wxString exprLower = aExpression.Lower();
+                    std::string exprLowerStd = exprLower.ToStdString();
+                    size_t searchPos = 0;
+
+                    while( true )
+                    {
+                        size_t intersectsPos = exprLowerStd.find( "intersectsarea", searchPos );
+                        size_t insidePos = exprLowerStd.find( "insidearea", searchPos );
+                        size_t callPos = std::string::npos;
+
+                        if( intersectsPos != std::string::npos
+                                && ( insidePos == std::string::npos || intersectsPos < insidePos ) )
+                        {
+                            callPos = intersectsPos;
+                        }
+                        else if( insidePos != std::string::npos )
+                        {
+                            callPos = insidePos;
+                        }
+
+                        if( callPos == std::string::npos )
+                            break;
+
+                        size_t openParen = exprLowerStd.find( '(', callPos );
+
+                        if( openParen == std::string::npos )
+                        {
+                            searchPos = callPos + 1;
+                            continue;
+                        }
+
+                        size_t firstQuote = exprLowerStd.find_first_of( "\"'", openParen + 1 );
+
+                        if( firstQuote == std::string::npos )
+                        {
+                            searchPos = openParen + 1;
+                            continue;
+                        }
+
+                        char quote = exprLowerStd[firstQuote];
+                        size_t closeQuote = exprLowerStd.find( quote, firstQuote + 1 );
+
+                        if( closeQuote == std::string::npos )
+                        {
+                            searchPos = firstQuote + 1;
+                            continue;
+                        }
+
+                        size_t start = firstQuote + 1;
+                        size_t length = closeQuote - start;
+                        identifiers.emplace_back( aExpression.Mid( start, length ) );
+                        searchPos = closeQuote + 1;
+                    }
+
+                    return identifiers;
+                };
+
+        auto zonesForIdentifier =
+                [&]( const wxString& aIdentifier ) -> std::vector<ZONE*>
+                {
+                    std::vector<ZONE*> matches;
+
+                    if( aIdentifier.IsEmpty() )
+                        return matches;
+
+                    bool looksUuid = KIID::SniffTest( aIdentifier );
+                    KIID uuid;
+
+                    if( looksUuid )
+                        uuid = KIID( aIdentifier );
+
+                    for( ZONE* zone : ruleAreas )
+                    {
+                        if( looksUuid )
+                        {
+                            if( zone->m_Uuid == uuid )
+                                matches.push_back( zone );
+                        }
+                        else if( zone->GetZoneName().CmpNoCase( aIdentifier ) == 0 )
+                        {
+                            matches.push_back( zone );
+                        }
+                    }
+
+                    return matches;
+                };
+
+        std::set<PROCESSED_KEY> processedRegions;
+        std::map<KEY, std::optional<int>> baselineCache;
+
+        auto baselineWidthFor =
+                [&]( NET_HANDLE aNet, PCB_LAYER_ID aLayer, int aPnsLayer,
+                     const std::optional<VECTOR2I>& aPoint ) -> std::optional<int>
+                {
+                    KEY key{ aNet, aPnsLayer };
+                    auto cacheIt = baselineCache.find( key );
+
+                    if( cacheIt != baselineCache.end() )
+                        return cacheIt->second;
+
+                    std::optional<int> width;
+
+                    if( aPoint )
+                        width = evaluateWidthAtPoint( aNet, aLayer, *aPoint );
+
+                    if( width && !m_defaultWidths.count( key ) )
+                        m_defaultWidths[key] = *width;
+
+                    baselineCache.emplace( key, width );
+                    return width;
+                };
+
+        size_t regionsBefore = m_regions.size();
+
+        for( const std::shared_ptr<DRC_RULE>& rule : drcEngine->GetRules() )
+        {
+            if( !rule || !rule->m_Condition )
+                continue;
+
+            std::vector<wxString> areaIds = extractAreaIdentifiers( rule->m_Condition->GetExpression() );
+
+            if( areaIds.empty() )
+                continue;
+
+            for( const DRC_CONSTRAINT& constraint : rule->m_Constraints )
+            {
+                if( constraint.m_Type != TRACK_WIDTH_CONSTRAINT )
+                    continue;
+
+                std::optional<int> constraintWidth;
+
+                if( constraint.m_Value.HasOpt() )
+                    constraintWidth = constraint.m_Value.Opt();
+                else if( constraint.m_Value.HasMin() )
+                    constraintWidth = constraint.m_Value.Min();
+
+                if( !constraintWidth || *constraintWidth <= 0 )
+                    continue;
+
+                std::set<ZONE*> matchedZones;
+
+                for( const wxString& areaId : areaIds )
+                {
+                    for( ZONE* zone : zonesForIdentifier( areaId ) )
+                    {
+                        if( zone )
+                            matchedZones.insert( zone );
+                    }
+                }
+
+                if( matchedZones.empty() )
+                {
+                    wxLogTrace( tracePnsTrackWidth,
+                                wxT( "Build: Rule '%s' referenced area(s) but matches no zones" ),
+                                rule->m_Name );
+                    continue;
+                }
+
+                for( ZONE* zone : matchedZones )
+                {
+                    ZONE_GEOMETRY* geom = ensureGeometry( zone );
+
+                    if( !geom || !geom->interiorPoint )
+                        continue;
+
+                    std::shared_ptr<SHAPE_POLY_SET> shape = geom->interiorShape;
+                    LSET candidateLayers = zone->GetLayerSet();
+
+                    if( rule->m_LayerCondition.any() )
+                        candidateLayers &= rule->m_LayerCondition;
+
+                    for( PCB_LAYER_ID boardLayer : candidateLayers.Seq() )
+                    {
+                        int pnsLayer = m_iface->GetPNSLayerFromBoardLayer( boardLayer );
+
+                        if( pnsLayer < 0
+                                || !m_iface->IsPNSCopperLayer(
+                                            static_cast<PCB_LAYER_ID>( pnsLayer ) ) )
+                        {
+                            continue;
+                        }
+
+                        for( NETINFO_ITEM* netItem : netItems )
+                        {
+                            if( !netItem )
+                                continue;
+
+                            NET_HANDLE netHandle = static_cast<NET_HANDLE>( netItem );
+
+                            PROCESSED_KEY regionKey{ netHandle, pnsLayer, zone };
+
+                            if( processedRegions.count( regionKey ) )
+                                continue;
+
+                            std::optional<int> insideWidth =
+                                    evaluateWidthAtPoint( netHandle, boardLayer, *geom->interiorPoint );
+
+                            if( !insideWidth || insideWidth.value() != constraintWidth.value() )
+                                continue;
+
+                            std::optional<int> baseline =
+                                    baselineWidthFor( netHandle, boardLayer, pnsLayer, geom->exteriorPoint );
+
+                            if( baseline && baseline.value() == insideWidth.value() )
+                                continue;
+
+                            addRegion( KEY{ netHandle, pnsLayer }, shape, insideWidth.value() );
+                            processedRegions.insert( regionKey );
+
+                            wxLogTrace( tracePnsTrackWidth,
+                                        wxT( "Build: Added width region=%d for net='%s' layer=%d" ),
+                                        insideWidth.value(), netItem->GetNetname().c_str(),
+                                        boardLayer );
+                        }
+                    }
+                }
+            }
+        }
+
+        wxLogTrace( tracePnsTrackWidth,
+                    wxT( "Build: Created %zu width regions from DRC rules" ),
+                    m_regions.size() - regionsBefore );
+    }
+    else
+    {
+        wxLogTrace( tracePnsTrackWidth,
+                    wxT( "Build: No DRC engine or width constraints available" ) );
+    }
 
     // Collect all copper layers
     std::set<int> copperLayers;
