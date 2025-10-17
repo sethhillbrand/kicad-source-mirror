@@ -49,6 +49,7 @@
 #include "pns_meander_placer.h"
 #include "pns_meander_skew_placer.h"
 #include "pns_dp_meander_placer.h"
+#include "pns_track_width_controller.h"
 #include "router_preview_item.h"
 
 namespace PNS {
@@ -99,6 +100,15 @@ void ROUTER::SyncWorld()
     m_world = std::make_unique<NODE>( );
     m_iface->SyncWorld( m_world.get() );
     m_world->FixupVirtualVias();
+
+    if( !m_widthController )
+        m_widthController = std::make_unique<TRACK_WIDTH_CONTROLLER>();
+
+    m_widthController->Initialize( m_iface, GetRuleResolver() );
+
+    // Build track width controller with board data after SyncWorld is complete
+    if( BOARD* board = m_iface->GetBoard() )
+        m_widthController->Build( board );
 }
 
 
@@ -412,6 +422,8 @@ bool ROUTER::StartRouting( const VECTOR2I& aP, ITEM* aStartItem, int aLayer )
     if( !isStartingPointRoutable( aP, aStartItem, aLayer ) )
         return false;
 
+    wxCHECK( m_widthController, false );
+
     switch( m_mode )
     {
     case PNS_MODE_ROUTE_SINGLE:
@@ -442,6 +454,7 @@ bool ROUTER::StartRouting( const VECTOR2I& aP, ITEM* aStartItem, int aLayer )
     m_placer->SetLayer( aLayer );
     m_placer->SetDebugDecorator( m_iface->GetDebugDecorator() );
     m_placer->SetLogger( m_logger );
+    m_placer->SetTrackWidthController( m_widthController.get() );
 
     if( m_placer->Start( aP, aStartItem ) )
     {

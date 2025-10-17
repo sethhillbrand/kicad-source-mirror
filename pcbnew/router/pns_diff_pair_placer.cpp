@@ -19,6 +19,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
+
 #include "pns_walkaround.h"
 #include "pns_shove.h"
 #include "pns_router.h"
@@ -28,6 +30,7 @@
 #include "pns_debug_decorator.h"
 #include "pns_arc.h"
 #include "pns_utils.h"
+#include "pns_track_width_controller.h"
 
 namespace PNS {
 
@@ -334,6 +337,8 @@ bool DIFF_PAIR_PLACER::rhWalkOnly( const VECTOR2I& aP )
 
 bool DIFF_PAIR_PLACER::route( const VECTOR2I& aP )
 {
+    applyDynamicWidth( aP );
+
     switch( Settings().Mode() )
     {
     case RM_MarkObstacles:
@@ -347,6 +352,37 @@ bool DIFF_PAIR_PLACER::route( const VECTOR2I& aP )
     }
 
     return false;
+}
+
+
+void DIFF_PAIR_PLACER::applyDynamicWidth( const VECTOR2I& aPoint )
+{
+    if( !WidthController() )
+        return;
+
+    int fallback = m_sizes.DiffPairWidth();
+
+    if( auto defP = WidthController()->DefaultWidth( m_netP, m_currentLayer, aPoint ) )
+        fallback = defP.value();
+
+    if( auto defN = WidthController()->DefaultWidth( m_netN, m_currentLayer, aPoint ) )
+        fallback = std::max( fallback, defN.value() );
+
+    int resolved = fallback;
+
+    if( auto widthP = WidthController()->WidthFor( m_netP, m_currentLayer, aPoint ) )
+        resolved = std::max( resolved, widthP.value() );
+
+    if( auto widthN = WidthController()->WidthFor( m_netN, m_currentLayer, aPoint ) )
+        resolved = std::max( resolved, widthN.value() );
+
+    if( resolved <= 0 )
+        resolved = m_sizes.DiffPairWidth();
+
+    if( resolved != m_sizes.DiffPairWidth() )
+        m_sizes.SetDiffPairWidth( resolved );
+
+    m_currentTrace.SetWidth( resolved );
 }
 
 

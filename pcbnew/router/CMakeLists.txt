@@ -34,6 +34,7 @@ set( PCBNEW_PNS_SRCS
     pns_node.cpp
     pns_optimizer.cpp
     pns_router.cpp
+    pns_track_width_controller.cpp
     pns_routing_settings.cpp
     pns_shove.cpp
     pns_sizes_settings.cpp

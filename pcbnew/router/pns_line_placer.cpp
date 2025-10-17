@@ -32,6 +32,7 @@
 #include "pns_topology.h"
 #include "pns_walkaround.h"
 #include "pns_mouse_trail_tracer.h"
+#include "pns_track_width_controller.h"
 
 #include <wx/log.h>
 
@@ -1143,6 +1144,8 @@ void LINE_PLACER::routeStep( const VECTOR2I& aP )
 
         updatePStart( m_tail );
 
+        applyDynamicWidth( aP );
+
         if( !routeHead( aP, newHead, newTail ) )
         {
             m_tail = std::move( prevTail );
@@ -1218,6 +1221,29 @@ void LINE_PLACER::routeStep( const VECTOR2I& aP )
     m_last_p_end = aP;
 
     PNS_DBGN( Dbg(), EndGroup );
+}
+
+
+void LINE_PLACER::applyDynamicWidth( const VECTOR2I& aTarget )
+{
+    if( !WidthController() || !m_currentNet )
+        return;
+
+    int fallback = m_sizes.TrackWidth();
+
+    if( auto def = WidthController()->DefaultWidth( m_currentNet, m_currentLayer, aTarget ) )
+        fallback = def.value();
+
+    int resolved = WidthController()->ResolveWidth( m_currentNet, m_currentLayer, aTarget, fallback );
+
+    if( resolved <= 0 )
+        resolved = m_sizes.TrackWidth();
+
+    if( resolved != m_sizes.TrackWidth() )
+        m_sizes.SetTrackWidth( resolved );
+
+    m_head.SetWidth( resolved );
+    m_currentTrace.SetWidth( resolved );
 }
 
 
@@ -1570,6 +1596,8 @@ bool LINE_PLACER::FixRoute( const VECTOR2I& aP, ITEM* aEndItem, bool aForceFinis
         }
     }
 
+    adjustLineForDynamicWidths( pl );
+
     // Collisions still prevent fixing unless "Allow DRC violations" is checked
     // Note that collisions can occur even in walk/shove modes if the beginning of the trace
     // collides (for example if the starting track width is too high).
@@ -1663,7 +1691,7 @@ bool LINE_PLACER::FixRoute( const VECTOR2I& aP, ITEM* aEndItem, bool aForceFinis
         if( arcIndex < 0 || ( lastArc >= 0 && i == lastV - 1 && !l.IsPtOnArc( lastV ) ) )
         {
             seg = SEGMENT( pl.CSegment( i ), m_currentNet );
-            seg.SetWidth( pl.Width() );
+            seg.SetWidth( resolveWidthForSegment( seg.Seg(), pl.Width() ) );
             seg.SetLayer( m_currentLayer );
 
             std::unique_ptr<SEGMENT> sp = std::make_unique<SEGMENT>( seg );
@@ -1678,7 +1706,7 @@ bool LINE_PLACER::FixRoute( const VECTOR2I& aP, ITEM* aEndItem, bool aForceFinis
                 continue;
 
             arc = ARC( l.Arc( arcIndex ), m_currentNet );
-            arc.SetWidth( pl.Width() );
+            arc.SetWidth( resolveWidthForArc( l.Arc( arcIndex ), pl.Width() ) );
             arc.SetLayer( m_currentLayer );
 
             std::unique_ptr<ARC> ap = std::make_unique<ARC>( arc );
@@ -1864,6 +1892,128 @@ void LINE_PLACER::removeLoops( NODE* aNode, LINE& aLatest )
         aNode->Remove( s );
 
     aNode->Remove( aLatest );
+}
+
+
+void LINE_PLACER::adjustLineForDynamicWidths( LINE& aLine )
+{
+    if( !WidthController() || !m_currentNet )
+        return;
+
+    SHAPE_LINE_CHAIN chain( aLine.CLine() );
+    bool modified = false;
+    int fallbackWidth = aLine.Width();
+
+    for( int i = 0; i < chain.SegmentCount(); ++i )
+    {
+        if( chain.IsArcSegment( i ) )
+            continue;
+
+        if( splitSegmentAtRegionBoundary( chain, i, fallbackWidth ) )
+        {
+            modified = true;
+            i--;
+        }
+    }
+
+    if( modified )
+        aLine.SetShape( chain );
+}
+
+
+bool LINE_PLACER::splitSegmentAtRegionBoundary( SHAPE_LINE_CHAIN& aChain, int aSegmentIndex,
+                                                int aFallbackWidth )
+{
+    SEG segment = aChain.CSegment( aSegmentIndex );
+
+    if( segment.A == segment.B )
+        return false;
+
+    int startWidth = resolveWidthAtPoint( segment.A, aFallbackWidth );
+    int endWidth = resolveWidthAtPoint( segment.B, aFallbackWidth );
+
+    if( startWidth == endWidth )
+        return false;
+
+    VECTOR2I splitPoint = findWidthTransitionPoint( segment, startWidth, aFallbackWidth );
+
+    if( splitPoint == segment.A || splitPoint == segment.B )
+        return false;
+
+    aChain.Insert( aSegmentIndex + 1, splitPoint );
+    return true;
+}
+
+
+VECTOR2I LINE_PLACER::findWidthTransitionPoint( const SEG& aSegment, int aStartWidth,
+                                                int aFallbackWidth ) const
+{
+    VECTOR2I low = aSegment.A;
+    VECTOR2I high = aSegment.B;
+    VECTOR2I result = high;
+
+    for( int iter = 0; iter < 32; ++iter )
+    {
+        if( low == high )
+            break;
+
+        VECTOR2I mid( ( low.x + high.x ) / 2, ( low.y + high.y ) / 2 );
+
+        if( mid == low || mid == high )
+            break;
+
+        int midWidth = resolveWidthAtPoint( mid, aFallbackWidth );
+
+        if( midWidth == aStartWidth )
+        {
+            low = mid;
+        }
+        else
+        {
+            result = mid;
+            high = mid;
+        }
+    }
+
+    return result;
+}
+
+
+int LINE_PLACER::resolveWidthAtPoint( const VECTOR2I& aPoint, int aFallbackWidth ) const
+{
+    int fallback = aFallbackWidth > 0 ? aFallbackWidth : m_sizes.TrackWidth();
+
+    if( WidthController() && m_currentNet )
+    {
+        if( auto def = WidthController()->DefaultWidth( m_currentNet, m_currentLayer, aPoint ) )
+            fallback = def.value();
+
+        int resolved = WidthController()->ResolveWidth( m_currentNet, m_currentLayer, aPoint, fallback );
+
+        if( resolved > 0 )
+            return resolved;
+    }
+
+    return fallback;
+}
+
+
+int LINE_PLACER::resolveWidthForSegment( const SEG& aSegment, int aFallbackWidth ) const
+{
+    VECTOR2I midpoint( ( aSegment.A.x + aSegment.B.x ) / 2, ( aSegment.A.y + aSegment.B.y ) / 2 );
+
+    if( midpoint == aSegment.A || midpoint == aSegment.B )
+        midpoint = aSegment.A;
+
+    return resolveWidthAtPoint( midpoint, aFallbackWidth );
+}
+
+
+int LINE_PLACER::resolveWidthForArc( const SHAPE_ARC& aArc, int aFallbackWidth ) const
+{
+    VECTOR2I sample = aArc.GetArcMid();
+
+    return resolveWidthAtPoint( sample, aFallbackWidth );
 }
 
 

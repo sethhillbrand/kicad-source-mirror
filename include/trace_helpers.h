@@ -331,6 +331,13 @@ extern KICOMMON_API const wxChar* const traceLibWatch;
  */
 extern KICOMMON_API const wxChar* const traceLibraries;
 
+/**
+ * Flag to enable PNS track width controller debug tracing.
+ *
+ * Use "KICAD_PNS_TRACK_WIDTH" to enable.
+ */
+extern KICOMMON_API const wxChar* const tracePnsTrackWidth;
+
 ///@}
 
 /**

@@ -109,7 +109,7 @@ public:
 
     virtual PNS::NODE* GetWorld() const override { return m_world; };
 
-    BOARD* GetBoard() const { return m_board; }
+    BOARD* GetBoard() const override { return m_board; }
 
     virtual EDA_UNITS GetUnits() const { return EDA_UNITS::MM; };
 

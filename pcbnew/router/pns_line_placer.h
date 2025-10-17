@@ -27,6 +27,7 @@
 
 #include <geometry/shape.h>
 #include <geometry/shape_line_chain.h>
+#include <geometry/shape_arc.h>
 
 #include "pns_line.h"
 #include "pns_mouse_trail_tracer.h"
@@ -285,6 +286,13 @@ private:
      */
     void removeLoops( NODE* aNode, LINE& aLatest );
 
+    void adjustLineForDynamicWidths( LINE& aLine );
+    bool splitSegmentAtRegionBoundary( SHAPE_LINE_CHAIN& aChain, int aSegmentIndex, int aFallbackWidth );
+    VECTOR2I findWidthTransitionPoint( const SEG& aSegment, int aStartWidth, int aFallbackWidth ) const;
+    int resolveWidthAtPoint( const VECTOR2I& aPoint, int aFallbackWidth ) const;
+    int resolveWidthForSegment( const SEG& aSegment, int aFallbackWidth ) const;
+    int resolveWidthForArc( const SHAPE_ARC& aArc, int aFallbackWidth ) const;
+
     /**
      * Assemble a line starting from segment or arc aLatest, removes collinear segments
      * and redundant vertices.  If a simplification has been found, replaces the old line
@@ -349,6 +357,8 @@ private:
      * @return true if the line has been changed.
      */
     void routeStep( const VECTOR2I& aP );
+
+    void applyDynamicWidth( const VECTOR2I& aTarget );
 
     ///< Route step walk around mode.
     bool rhWalkOnly( const VECTOR2I& aP, LINE& aNewHead, LINE& aNewTail );

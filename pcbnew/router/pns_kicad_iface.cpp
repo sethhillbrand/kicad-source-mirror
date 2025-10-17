@@ -1433,6 +1433,8 @@ bool PNS_KICAD_IFACE_BASE::syncZone( PNS::NODE* aWorld, ZONE* aZone, SHAPE_POLY_
                 solid->SetShape( triShape );
                 solid->SetIsCompoundShapePrimitive();
                 solid->SetRoutable( false );
+                solid->SetIsRuleAreaPrimitive();
+                solid->SetCompoundId( reinterpret_cast<uintptr_t>( aZone ) );
 
                 aWorld->Add( std::move( solid ) );
             }

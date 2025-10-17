@@ -117,6 +117,8 @@ public:
 
     ITEM_SET::iterator begin() { return m_allItems.begin(); }
     ITEM_SET::iterator end() { return m_allItems.end(); }
+    ITEM_SET::const_iterator begin() const { return m_allItems.begin(); }
+    ITEM_SET::const_iterator end() const { return m_allItems.end(); }
 
 private:
     template <class Visitor>

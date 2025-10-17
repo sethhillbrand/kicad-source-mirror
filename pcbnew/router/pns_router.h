@@ -58,6 +58,7 @@ class SHOVE;
 class DRAGGER;
 class DRAG_ALGO;
 class LOGGER;
+class TRACK_WIDTH_CONTROLLER;
 
 enum ROUTER_MODE {
     PNS_MODE_ROUTE_SINGLE = 1,
@@ -128,6 +129,7 @@ enum DRAG_MODE
                                                            const NETCLASS* aNetClass ) = 0;
     virtual PCB_LAYER_ID GetBoardLayerFromPNSLayer( int aLayer ) const = 0;
     virtual int GetPNSLayerFromBoardLayer( PCB_LAYER_ID aLayer ) const = 0;
+    virtual class BOARD* GetBoard() const = 0;
 };
 
 class ROUTER
@@ -260,6 +262,7 @@ private:
     std::unique_ptr<PLACEMENT_ALGO> m_placer;
     std::unique_ptr<DRAG_ALGO>      m_dragger;
     std::unique_ptr<SHOVE>          m_shove;
+    std::unique_ptr<TRACK_WIDTH_CONTROLLER> m_widthController;
     std::vector<PNS::ITEM*>         m_leaderSegments;
 
     ROUTER_IFACE*     m_iface;

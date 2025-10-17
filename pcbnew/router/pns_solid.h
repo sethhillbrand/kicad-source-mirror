@@ -23,6 +23,8 @@
 #define __PNS_SOLID_H
 
 #include <math/vector2d.h>
+#include <optional>
+#include <cstdint>
 
 #include <geometry/seg.h>
 #include <geometry/shape.h>
@@ -41,7 +43,9 @@ public:
             m_shape( nullptr ),
             m_padToDie(0),
             m_padToDieDelay(0),
-            m_hole( nullptr )
+            m_hole( nullptr ),
+            m_isRuleAreaPrimitive( false ),
+            m_compoundId( 0 )
     {
         m_movable = false;
     }
@@ -68,6 +72,8 @@ public:
         m_padToDieDelay = aSolid.m_padToDieDelay;
         m_orientation = aSolid.m_orientation;
         m_anchorPoints = aSolid.m_anchorPoints;
+        m_isRuleAreaPrimitive = aSolid.m_isRuleAreaPrimitive;
+        m_compoundId = aSolid.m_compoundId;
     }
 
     SOLID& operator=( const SOLID& aB )
@@ -91,6 +97,8 @@ public:
         m_marker = aB.m_marker;
         m_rank = aB.m_rank;
         m_routable = aB.m_routable;
+        m_isRuleAreaPrimitive = aB.m_isRuleAreaPrimitive;
+        m_compoundId = aB.m_compoundId;
 
         return *this;
     }
@@ -136,6 +144,18 @@ public:
     EDA_ANGLE GetOrientation() const { return m_orientation; }
     void SetOrientation( const EDA_ANGLE& aOrientation ) { m_orientation = aOrientation; }
 
+    void SetIsRuleAreaPrimitive( bool aEnable = true ) { m_isRuleAreaPrimitive = aEnable; }
+    bool IsRuleAreaPrimitive() const { return m_isRuleAreaPrimitive; }
+
+    void SetCompoundId( uintptr_t aId ) { m_compoundId = aId; }
+    std::optional<uintptr_t> CompoundId() const
+    {
+        if( m_compoundId == 0 )
+            return std::optional<uintptr_t>();
+
+        return m_compoundId;
+    }
+
     virtual void SetHole( HOLE* aHole ) override
     {
         if( m_hole && m_hole->BelongsTo( this ) )
@@ -160,6 +180,8 @@ private:
     EDA_ANGLE   m_orientation;
     HOLE*       m_hole;
     std::vector<VECTOR2I> m_anchorPoints;
+    bool        m_isRuleAreaPrimitive;
+    uintptr_t   m_compoundId;
 };
 
 }

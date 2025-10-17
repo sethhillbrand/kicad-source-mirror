@@ -488,6 +488,11 @@ public:
         return m_parent;
     }
 
+    const INDEX* GetIndex() const
+    {
+        return m_index;
+    }
+
     ///< Check if this branch contains an updated version of the m_item from the root branch.
     bool Overrides( ITEM* aItem ) const
     {

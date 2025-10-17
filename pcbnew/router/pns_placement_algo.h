@@ -33,6 +33,7 @@ namespace PNS {
 class ROUTER;
 class ITEM;
 class NODE;
+class TRACK_WIDTH_CONTROLLER;
 
 /**
  * PLACEMENT_ALGO
@@ -198,6 +199,17 @@ public:
     virtual void GetModifiedNets( std::vector<NET_HANDLE> &aNets ) const
     {
     }
+
+    void SetTrackWidthController( TRACK_WIDTH_CONTROLLER* aController )
+    {
+        m_widthController = aController;
+    }
+
+protected:
+    TRACK_WIDTH_CONTROLLER* WidthController() const { return m_widthController; }
+
+private:
+    TRACK_WIDTH_CONTROLLER* m_widthController = nullptr;
 };
 
 }

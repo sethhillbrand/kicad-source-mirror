@@ -172,6 +172,8 @@ private:
      */
     bool route( const VECTOR2I& aP );
 
+    void applyDynamicWidth( const VECTOR2I& aPoint );
+
     /**
      * Draw the "leading" ratsnest line, which connects the end of currently routed track and
      * the nearest yet unrouted item. If the routing for current net is complete, draws nothing.
