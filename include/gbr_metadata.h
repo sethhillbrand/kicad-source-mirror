@@ -142,6 +142,7 @@ public:
         GBR_APERTURE_ATTRIB_PRESSFITDRILL,
 
         GBR_APERTURE_ATTRIB_VIADRILL,  ///< Aperture used for via holes in drill files.
+        GBR_APERTURE_ATTRIB_BACKDRILL, ///< Aperture used for backdrill holes in drill files.
         GBR_APERTURE_ATTRIB_CMP_DRILL, ///< Aperture used for pad holes in drill files.
 
         /// Aperture used for pads oblong holes in drill files.

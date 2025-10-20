@@ -442,25 +442,185 @@ bool PAD::FlashLayer( int aLayer, bool aOnlyCheckIfPermitted ) const
 }
 
 
-void PAD::SetDrillSizeX( const int aX )
+void PAD::SetPrimaryDrillSize( const VECTOR2I& aSize )
+{
+    m_padStack.Drill().size = aSize;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillSizeX( const int aX )
 {
     m_padStack.Drill().size.x = aX;
 
-    if( GetDrillShape() == PAD_DRILL_SHAPE::CIRCLE )
-        SetDrillSizeY( aX );
+    if( GetPrimaryDrillShape() == PAD_DRILL_SHAPE::CIRCLE )
+        m_padStack.Drill().size.y = aX;
 
     SetDirty();
 }
 
 
-void PAD::SetDrillShape( PAD_DRILL_SHAPE aShape )
+void PAD::SetDrillSizeX( const int aX )
+{
+    SetPrimaryDrillSizeX( aX );
+}
+
+
+void PAD::SetPrimaryDrillSizeY( const int aY )
+{
+    m_padStack.Drill().size.y = aY;
+    SetDirty();
+}
+
+
+void PAD::SetDrillSizeY( const int aY )
+{
+    SetPrimaryDrillSizeY( aY );
+}
+
+
+void PAD::SetPrimaryDrillShape( PAD_DRILL_SHAPE aShape )
 {
     m_padStack.Drill().shape = aShape;
 
     if( aShape == PAD_DRILL_SHAPE::CIRCLE )
-        SetDrillSizeY( GetDrillSizeX() );
+        m_padStack.Drill().size.y = m_padStack.Drill().size.x;
 
     m_shapesDirty = true;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillStartLayer( PCB_LAYER_ID aLayer )
+{
+    m_padStack.Drill().start = aLayer;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillEndLayer( PCB_LAYER_ID aLayer )
+{
+    m_padStack.Drill().end = aLayer;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillPostMachining( const std::optional<bool>& aPostMachining )
+{
+    m_padStack.Drill().post_machining = aPostMachining;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillPostMachiningFlag( bool aPostMachining )
+{
+    m_padStack.Drill().post_machining = aPostMachining;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillFilled( const std::optional<bool>& aFilled )
+{
+    m_padStack.Drill().is_filled = aFilled;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillFilledFlag( bool aFilled )
+{
+    m_padStack.Drill().is_filled = aFilled;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillCapped( const std::optional<bool>& aCapped )
+{
+    m_padStack.Drill().is_capped = aCapped;
+    SetDirty();
+}
+
+
+void PAD::SetPrimaryDrillCappedFlag( bool aCapped )
+{
+    m_padStack.Drill().is_capped = aCapped;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillSizeVector( const VECTOR2I& aSize )
+{
+    m_padStack.SecondaryDrill().size = aSize;
+    SetDirty();
+}
+
+
+void PAD::ClearSecondaryDrillSize()
+{
+    m_padStack.SecondaryDrill().size = VECTOR2I( 0, 0 );
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillShape( PAD_DRILL_SHAPE aShape )
+{
+    m_padStack.SecondaryDrill().shape = aShape;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillStartLayer( PCB_LAYER_ID aLayer )
+{
+    m_padStack.SecondaryDrill().start = aLayer;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillEndLayer( PCB_LAYER_ID aLayer )
+{
+    m_padStack.SecondaryDrill().end = aLayer;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillPostMachining( const std::optional<bool>& aPostMachining )
+{
+    m_padStack.SecondaryDrill().post_machining = aPostMachining;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillPostMachiningFlag( bool aPostMachining )
+{
+    m_padStack.SecondaryDrill().post_machining = aPostMachining;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillFilled( const std::optional<bool>& aFilled )
+{
+    m_padStack.SecondaryDrill().is_filled = aFilled;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillFilledFlag( bool aFilled )
+{
+    m_padStack.SecondaryDrill().is_filled = aFilled;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillCapped( const std::optional<bool>& aCapped )
+{
+    m_padStack.SecondaryDrill().is_capped = aCapped;
+    SetDirty();
+}
+
+
+void PAD::SetSecondaryDrillCappedFlag( bool aCapped )
+{
+    m_padStack.SecondaryDrill().is_capped = aCapped;
+    SetDirty();
 }
 
 

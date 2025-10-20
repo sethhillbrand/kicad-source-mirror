@@ -26,6 +26,7 @@
 
 #include <mutex>
 #include <array>
+#include <optional>
 
 #include <board_connected_item.h>
 #include <core/arraydim.h>
@@ -301,12 +302,19 @@ public:
         return m_padStack.TrapezoidDeltaSize( aLayer );
     }
 
-    void SetDrillSize( const VECTOR2I& aSize )  { m_padStack.Drill().size = aSize; SetDirty(); }
-    const VECTOR2I& GetDrillSize() const        { return m_padStack.Drill().size; }
+    void SetPrimaryDrillSize( const VECTOR2I& aSize );
+    const VECTOR2I& GetPrimaryDrillSize() const { return m_padStack.Drill().size; }
+    void SetPrimaryDrillSizeX( int aX );
+    int GetPrimaryDrillSizeX() const            { return m_padStack.Drill().size.x; }
+    void SetPrimaryDrillSizeY( int aY );
+    int GetPrimaryDrillSizeY() const            { return m_padStack.Drill().size.y; }
+
+    void SetDrillSize( const VECTOR2I& aSize )  { SetPrimaryDrillSize( aSize ); }
+    const VECTOR2I& GetDrillSize() const        { return GetPrimaryDrillSize(); }
     void SetDrillSizeX( int aX );
-    int GetDrillSizeX() const                   { return m_padStack.Drill().size.x; }
-    void SetDrillSizeY( int aY )                { m_padStack.Drill().size.y = aY; SetDirty(); }
-    int GetDrillSizeY() const                   { return m_padStack.Drill().size.y; }
+    int GetDrillSizeX() const                   { return GetPrimaryDrillSizeX(); }
+    void SetDrillSizeY( int aY );
+    int GetDrillSizeY() const                   { return GetPrimaryDrillSizeY(); }
 
     void SetOffset( PCB_LAYER_ID aLayer, const VECTOR2I& aOffset )
     {
@@ -418,8 +426,58 @@ public:
         return m_padStack.GetOrientation().AsDegrees();
     }
 
-    void SetDrillShape( PAD_DRILL_SHAPE aShape );
-    PAD_DRILL_SHAPE GetDrillShape() const { return m_padStack.Drill().shape; }
+    void SetPrimaryDrillShape( PAD_DRILL_SHAPE aShape );
+    PAD_DRILL_SHAPE GetPrimaryDrillShape() const { return m_padStack.Drill().shape; }
+
+    void SetDrillShape( PAD_DRILL_SHAPE aShape ) { SetPrimaryDrillShape( aShape ); }
+    PAD_DRILL_SHAPE GetDrillShape() const { return GetPrimaryDrillShape(); }
+
+    void SetPrimaryDrillStartLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetPrimaryDrillStartLayer() const { return m_padStack.Drill().start; }
+    void SetPrimaryDrillEndLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetPrimaryDrillEndLayer() const { return m_padStack.Drill().end; }
+
+    void SetPrimaryDrillPostMachining( const std::optional<bool>& aPostMachining );
+    void SetPrimaryDrillPostMachiningFlag( bool aPostMachining );
+    std::optional<bool> GetPrimaryDrillPostMachining() const { return m_padStack.Drill().post_machining; }
+    bool GetPrimaryDrillPostMachiningFlag() const { return m_padStack.Drill().post_machining.value_or( false ); }
+
+    void SetPrimaryDrillFilled( const std::optional<bool>& aFilled );
+    void SetPrimaryDrillFilledFlag( bool aFilled );
+    std::optional<bool> GetPrimaryDrillFilled() const { return m_padStack.Drill().is_filled; }
+    bool GetPrimaryDrillFilledFlag() const { return m_padStack.Drill().is_filled.value_or( false ); }
+
+    void SetPrimaryDrillCapped( const std::optional<bool>& aCapped );
+    void SetPrimaryDrillCappedFlag( bool aCapped );
+    std::optional<bool> GetPrimaryDrillCapped() const { return m_padStack.Drill().is_capped; }
+    bool GetPrimaryDrillCappedFlag() const { return m_padStack.Drill().is_capped.value_or( false ); }
+
+    void SetSecondaryDrillSizeVector( const VECTOR2I& aSize );
+    const VECTOR2I& GetSecondaryDrillSizeVector() const { return m_padStack.SecondaryDrill().size; }
+    void ClearSecondaryDrillSize();
+
+    void SetSecondaryDrillShape( PAD_DRILL_SHAPE aShape );
+    PAD_DRILL_SHAPE GetSecondaryDrillShape() const { return m_padStack.SecondaryDrill().shape; }
+
+    void SetSecondaryDrillStartLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetSecondaryDrillStartLayer() const { return m_padStack.SecondaryDrill().start; }
+    void SetSecondaryDrillEndLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetSecondaryDrillEndLayer() const { return m_padStack.SecondaryDrill().end; }
+
+    void SetSecondaryDrillPostMachining( const std::optional<bool>& aPostMachining );
+    void SetSecondaryDrillPostMachiningFlag( bool aPostMachining );
+    std::optional<bool> GetSecondaryDrillPostMachining() const { return m_padStack.SecondaryDrill().post_machining; }
+    bool GetSecondaryDrillPostMachiningFlag() const { return m_padStack.SecondaryDrill().post_machining.value_or( false ); }
+
+    void SetSecondaryDrillFilled( const std::optional<bool>& aFilled );
+    void SetSecondaryDrillFilledFlag( bool aFilled );
+    std::optional<bool> GetSecondaryDrillFilled() const { return m_padStack.SecondaryDrill().is_filled; }
+    bool GetSecondaryDrillFilledFlag() const { return m_padStack.SecondaryDrill().is_filled.value_or( false ); }
+
+    void SetSecondaryDrillCapped( const std::optional<bool>& aCapped );
+    void SetSecondaryDrillCappedFlag( bool aCapped );
+    std::optional<bool> GetSecondaryDrillCapped() const { return m_padStack.SecondaryDrill().is_capped; }
+    bool GetSecondaryDrillCappedFlag() const { return m_padStack.SecondaryDrill().is_capped.value_or( false ); }
 
     bool IsDirty() const
     {

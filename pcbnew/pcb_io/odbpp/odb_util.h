@@ -344,11 +344,13 @@ public:
     ODB_DRILL_TOOLS( const wxString& aUnits, const wxString& aThickness = "0",
                      const wxString& aUserParams = wxEmptyString );
 
-    void AddDrillTools( const wxString& aType, const wxString& aFinishSize )
+    void AddDrillTools( const wxString& aType, const wxString& aFinishSize,
+                        const wxString& aType2 = wxT( "STANDARD" ) )
     {
         TOOLS tool;
         tool.m_num = m_tools.size() + 1;
         tool.m_type = aType;
+        tool.m_type2 = aType2;
         tool.m_finishSize = aFinishSize;
         tool.m_drillSize = aFinishSize;
 

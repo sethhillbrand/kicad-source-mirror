@@ -30,7 +30,7 @@
 #ifndef _GENDRILL_GERBER_WRITER_
 #define _GENDRILL_GERBER_WRITER_
 
-#include <gendrill_file_writer_base.h>
+#include "gendrill_file_writer_base.h"
 
 class BOARD;
 
@@ -91,7 +91,7 @@ private:
      *                   for blind buried vias, they are not always top and bottom layers/
      * @return hole count or -1 if the file cannot be created.
      */
-    int createDrillFile( wxString& aFullFilename, bool aIsNpth, DRILL_LAYER_PAIR aLayerPair );
+    int createDrillFile( wxString& aFullFilename, bool aIsNpth, const DRILL_SPAN& aSpan );
 
     /**
      * Create a Gerber X2 file for via protection features.
@@ -112,7 +112,7 @@ private:
      *         layer pair names added, and for separate (PTH and NPTH) files, "-NPH" or "-NPTH"
      *         added.
      */
-    virtual const wxString getDrillFileName( DRILL_LAYER_PAIR aPair, bool aNPTH,
+    virtual const wxString getDrillFileName( const DRILL_SPAN& aSpan, bool aNPTH,
                                              bool aMerge_PTH_NPTH ) const override;
 
     /**

@@ -238,6 +238,35 @@ bool PADSTACK::Deserialize( const google::protobuf::Any& aContainer )
     Drill().end = FromProtoEnum<PCB_LAYER_ID>( padstack.drill().end_layer() );
     unpackOptional( padstack.drill().capped(), Drill().is_capped, VDCM_CAPPED, VDCM_UNCAPPED );
     unpackOptional( padstack.drill().filled(), Drill().is_filled, VDFM_FILLED, VDFM_UNFILLED );
+    unpackOptional( padstack.drill().post_machining(), Drill().post_machining,
+                    VDPM_POST_MACHINED, VDPM_NOT_POST_MACHINED );
+
+    Drill().shape = FromProtoEnum<PAD_DRILL_SHAPE>( padstack.drill().shape() );
+
+    if( padstack.has_secondary_drill() )
+    {
+        const DrillProperties& secondary = padstack.secondary_drill();
+
+        SecondaryDrill().size = kiapi::common::UnpackVector2( secondary.diameter() );
+        SecondaryDrill().start = FromProtoEnum<PCB_LAYER_ID>( secondary.start_layer() );
+        SecondaryDrill().end = FromProtoEnum<PCB_LAYER_ID>( secondary.end_layer() );
+        SecondaryDrill().shape = FromProtoEnum<PAD_DRILL_SHAPE>( secondary.shape() );
+
+        unpackOptional( secondary.capped(), SecondaryDrill().is_capped, VDCM_CAPPED, VDCM_UNCAPPED );
+        unpackOptional( secondary.filled(), SecondaryDrill().is_filled, VDFM_FILLED, VDFM_UNFILLED );
+        unpackOptional( secondary.post_machining(), SecondaryDrill().post_machining,
+                        VDPM_POST_MACHINED, VDPM_NOT_POST_MACHINED );
+    }
+    else
+    {
+        SecondaryDrill().size = { 0, 0 };
+        SecondaryDrill().shape = PAD_DRILL_SHAPE::UNDEFINED;
+        SecondaryDrill().start = UNDEFINED_LAYER;
+        SecondaryDrill().end = UNDEFINED_LAYER;
+        SecondaryDrill().is_capped = std::nullopt;
+        SecondaryDrill().is_filled = std::nullopt;
+        SecondaryDrill().post_machining = std::nullopt;
+    }
 
     for( const PadStackLayer& layer : padstack.copper_layers() )
     {
@@ -439,7 +468,37 @@ void PADSTACK::Serialize( google::protobuf::Any& aContainer ) const
     drill->set_capped(
             packOptional( Drill().is_capped, VDCM_CAPPED, VDCM_UNCAPPED, VDCM_FROM_DESIGN_RULES ) );
 
+    drill->set_post_machining(
+            packOptional( Drill().post_machining, VDPM_POST_MACHINED, VDPM_NOT_POST_MACHINED,
+                          VDPM_FROM_DESIGN_RULES ) );
+
+    drill->set_shape( ToProtoEnum<PAD_DRILL_SHAPE, kiapi::board::types::DrillShape>( Drill().shape ) );
+
     kiapi::common::PackVector2( *drill->mutable_diameter(), Drill().size );
+
+    bool hasSecondaryDrill = SecondaryDrill().start != UNDEFINED_LAYER
+                             || SecondaryDrill().end != UNDEFINED_LAYER
+                             || SecondaryDrill().size.x > 0 || SecondaryDrill().size.y > 0
+                             || SecondaryDrill().shape != PAD_DRILL_SHAPE::UNDEFINED
+                             || SecondaryDrill().is_capped.has_value()
+                             || SecondaryDrill().is_filled.has_value()
+                             || SecondaryDrill().post_machining.has_value();
+
+    if( hasSecondaryDrill )
+    {
+        DrillProperties* secondary = padstack.mutable_secondary_drill();
+        secondary->set_start_layer( ToProtoEnum<PCB_LAYER_ID, BoardLayer>( SecondaryDrill().start ) );
+        secondary->set_end_layer( ToProtoEnum<PCB_LAYER_ID, BoardLayer>( SecondaryDrill().end ) );
+        secondary->set_shape( ToProtoEnum<PAD_DRILL_SHAPE, kiapi::board::types::DrillShape>( SecondaryDrill().shape ) );
+        secondary->set_filled( packOptional( SecondaryDrill().is_filled, VDFM_FILLED, VDFM_UNFILLED,
+                                             VDFM_FROM_DESIGN_RULES ) );
+        secondary->set_capped( packOptional( SecondaryDrill().is_capped, VDCM_CAPPED, VDCM_UNCAPPED,
+                                             VDCM_FROM_DESIGN_RULES ) );
+        secondary->set_post_machining(
+                packOptional( SecondaryDrill().post_machining, VDPM_POST_MACHINED,
+                              VDPM_NOT_POST_MACHINED, VDPM_FROM_DESIGN_RULES ) );
+        kiapi::common::PackVector2( *secondary->mutable_diameter(), SecondaryDrill().size );
+    }
 
     ForEachUniqueLayer( [&]( PCB_LAYER_ID aLayer )
                         {
@@ -826,7 +885,9 @@ bool PADSTACK::MASK_LAYER_PROPS::operator==( const MASK_LAYER_PROPS& aOther ) co
 bool PADSTACK::DRILL_PROPS::operator==( const DRILL_PROPS& aOther ) const
 {
     return size == aOther.size && shape == aOther.shape
-            && start == aOther.start && end == aOther.end;
+            && start == aOther.start && end == aOther.end
+            && is_filled == aOther.is_filled && is_capped == aOther.is_capped
+            && post_machining == aOther.post_machining;
 }
 
 

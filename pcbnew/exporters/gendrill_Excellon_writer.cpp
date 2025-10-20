@@ -82,29 +82,27 @@ bool EXCELLON_WRITER::CreateDrillandMapFilesSet( const wxString& aPlotDirectory,
     wxFileName  fn;
     wxString    msg;
 
-    std::vector<DRILL_LAYER_PAIR> hole_sets = getUniqueLayerPairs();
+    std::vector<DRILL_SPAN> hole_sets = getUniqueLayerPairs();
 
-    // append a pair representing the NPTH set of holes, for separate drill files.
     if( !m_merge_PTH_NPTH )
-        hole_sets.emplace_back( F_Cu, B_Cu );
+        hole_sets.emplace_back( F_Cu, B_Cu, false, true );
 
-    for( std::vector<DRILL_LAYER_PAIR>::const_iterator it = hole_sets.begin();
+    for( std::vector<DRILL_SPAN>::const_iterator it = hole_sets.begin();
          it != hole_sets.end();  ++it )
     {
-        DRILL_LAYER_PAIR  pair = *it;
-        // For separate drill files, the last layer pair is the NPTH drill file.
-        bool doing_npth = m_merge_PTH_NPTH ? false : ( it == hole_sets.end() - 1 );
+        const DRILL_SPAN& span = *it;
+        bool doing_npth = m_merge_PTH_NPTH ? false : span.m_IsNonPlatedFile;
 
-        buildHolesList( pair, doing_npth );
+        buildHolesList( span, doing_npth );
 
         // The file is created if it has holes, or if it is the non plated drill file to be
         // sure the NPTH file is up to date in separate files mode.
         // Also a PTH drill/map file is always created, to be sure at least one plated hole
         // drill file is created (do not create any PTH drill file can be seen as not working
         // drill generator).
-        if( getHolesCount() > 0 || doing_npth || pair == DRILL_LAYER_PAIR( F_Cu, B_Cu ) )
+        if( getHolesCount() > 0 || doing_npth || span.Pair() == DRILL_LAYER_PAIR( F_Cu, B_Cu ) )
         {
-            fn = getDrillFileName( pair, doing_npth, m_merge_PTH_NPTH );
+            fn = getDrillFileName( span, doing_npth, m_merge_PTH_NPTH );
             fn.SetPath( aPlotDirectory );
 
             if( aGenDrill )
@@ -135,19 +133,21 @@ bool EXCELLON_WRITER::CreateDrillandMapFilesSet( const wxString& aPlotDirectory,
 
                 TYPE_FILE file_type = TYPE_FILE::PTH_FILE;
 
-                // Only external layer pair can have non plated hole
-                // internal layers have only plated via holes
-                if( pair == DRILL_LAYER_PAIR( F_Cu, B_Cu ) )
+                if( span.Pair() == DRILL_LAYER_PAIR( F_Cu, B_Cu ) && !span.m_IsBackdrill )
                 {
                     if( m_merge_PTH_NPTH )
                         file_type = TYPE_FILE::MIXED_FILE;
                     else if( doing_npth )
                         file_type = TYPE_FILE::NPTH_FILE;
                 }
+                else if( span.m_IsBackdrill )
+                {
+                    file_type = TYPE_FILE::NPTH_FILE;
+                }
 
                 try
                 {
-                    createDrillFile( file, pair, file_type );
+                    createDrillFile( file, span, file_type );
                 }
                 catch( ... )     // Capture fmt::print exception on write issues
                 {
@@ -187,6 +187,10 @@ void EXCELLON_WRITER::writeHoleAttribute( HOLE_ATTRIBUTE aAttribute )
             fmt::print( m_file, "{}", "; #@! TA.AperFunction,Plated,Buried,ViaDrill\n" );
             break;
 
+        case HOLE_ATTRIBUTE::HOLE_VIA_BACKDRILL:
+            fmt::print( m_file, "{}", "; #@! TA.AperFunction,NonPlated,BackDrill\n" );
+            break;
+
         case HOLE_ATTRIBUTE::HOLE_PAD:
         //case HOLE_ATTRIBUTE::HOLE_PAD_CASTELLATED:
             fmt::print( m_file, "{}", "; #@! TA.AperFunction,Plated,PTH,ComponentDrill\n" );
@@ -212,7 +216,7 @@ void EXCELLON_WRITER::writeHoleAttribute( HOLE_ATTRIBUTE aAttribute )
 }
 
 
-int EXCELLON_WRITER::createDrillFile( FILE* aFile, DRILL_LAYER_PAIR aLayerPair,
+int EXCELLON_WRITER::createDrillFile( FILE* aFile, const DRILL_SPAN& aSpan,
                                       TYPE_FILE aHolesType )
 {
     // if units are mm, the resolution is 0.001 mm (3 digits in mantissa)
@@ -226,7 +230,7 @@ int EXCELLON_WRITER::createDrillFile( FILE* aFile, DRILL_LAYER_PAIR aLayerPair,
     double xt, yt;
     char   line[1024];
 
-    writeEXCELLONHeader( aLayerPair, aHolesType );
+    writeEXCELLONHeader( aSpan, aHolesType );
 
     holes_count = 0;
 
@@ -239,6 +243,44 @@ int EXCELLON_WRITER::createDrillFile( FILE* aFile, DRILL_LAYER_PAIR aLayerPair,
         writeHoleAttribute( tool_descr.m_HoleAttribute );
 #endif
         fmt::print( m_file, "T{}C{:.{}f}\n", ii + 1, tool_descr.m_Diameter * m_conversionUnits, m_mantissaLenght );
+
+        if( !m_minimalHeader )
+        {
+            if( tool_descr.m_IsBackdrill )
+            {
+                auto formatStub = [&]( int aStubLength )
+                {
+                    double stubMM = pcbIUScale.IUTomm( aStubLength );
+                    double stubInches = stubMM / 25.4;
+                    return wxString::Format( wxT( "%.3fmm (%.4f\")" ), stubMM, stubInches );
+                };
+
+                wxString comment = wxT( "; Backdrill" );
+
+                if( tool_descr.m_MinStubLength.has_value() )
+                {
+                    comment += wxT( " stub " );
+                    comment += formatStub( *tool_descr.m_MinStubLength );
+
+                    if( tool_descr.m_MaxStubLength.has_value()
+                            && tool_descr.m_MaxStubLength != tool_descr.m_MinStubLength )
+                    {
+                        comment += wxT( " to " );
+                        comment += formatStub( *tool_descr.m_MaxStubLength );
+                    }
+                }
+
+                if( tool_descr.m_HasPostMachining )
+                    comment += wxT( ", post-machining" );
+
+                comment += wxT( "\n" );
+                fmt::print( m_file, "{}", TO_UTF8( comment ) );
+            }
+            else if( tool_descr.m_HasPostMachining )
+            {
+                fmt::print( m_file, "{}", "; Post-machining\n" );
+            }
+        }
     }
 
     fmt::print( m_file, "{}", "%\n" );              // End of header info
@@ -498,7 +540,7 @@ void EXCELLON_WRITER::writeCoordinates( char* aLine, size_t aLineSize, double aC
 }
 
 
-void EXCELLON_WRITER::writeEXCELLONHeader( DRILL_LAYER_PAIR aLayerPair, TYPE_FILE aHolesType )
+void EXCELLON_WRITER::writeEXCELLONHeader( const DRILL_SPAN& aSpan, TYPE_FILE aHolesType )
 {
     fmt::print( m_file, "{}", "M48\n" );    // The beginning of a header
 
@@ -555,7 +597,7 @@ void EXCELLON_WRITER::writeEXCELLONHeader( DRILL_LAYER_PAIR aLayerPair, TYPE_FIL
 
         // Add the standard X2 FileFunction for drill files
         // TF.FileFunction,Plated[NonPlated],layer1num,layer2num,PTH[NPTH]
-        msg = BuildFileFunctionAttributeString( aLayerPair, aHolesType , true ) + wxT( "\n" );
+        msg = BuildFileFunctionAttributeString( aSpan, aHolesType , true ) + wxT( "\n" );
         fmt::print( m_file, "{}", TO_UTF8( msg ) );
 
         fmt::print( m_file, "{}",  "FMAT,2\n" );     // Use Format 2 commands (version used since 1979)

@@ -76,7 +76,7 @@ private:
     UNIT_BINDER          m_trackMaskMargin;
 
     UNIT_BINDER          m_viaX, m_viaY;
-    UNIT_BINDER          m_viaDiameter, m_viaDrill;
+    UNIT_BINDER          m_viaDiameter, m_viaDrill, m_viaSecondaryDrill;
 
     UNIT_BINDER          m_teardropHDPercent;
     UNIT_BINDER          m_teardropLenPercent;
@@ -93,4 +93,7 @@ private:
     /// The currently-shown copper layer of the edited via(s)
     PCB_LAYER_ID m_editLayer;
     std::map<int, PCB_LAYER_ID> m_editLayerCtrlMap;
+    bool                 m_backdrillStartIndeterminate;
+    bool                 m_backdrillEndIndeterminate;
+    bool                 m_padstackDirty;
 };

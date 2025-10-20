@@ -476,7 +476,10 @@ public:
             DIAMETER,
             DRILL,
             START_LAYER,
-            END_LAYER
+            END_LAYER,
+            SECONDARY_DRILL,
+            SECONDARY_START_LAYER,
+            SECONDARY_END_LAYER
         };
 
         wxString m_Message;
@@ -485,9 +488,13 @@ public:
 
     static std::optional<VIA_PARAMETER_ERROR>
             ValidateViaParameters( std::optional<int> aDiameter,
-                                    std::optional<int> aDrill,
-                                    std::optional<PCB_LAYER_ID> aStartLayer = std::nullopt,
-                                    std::optional<PCB_LAYER_ID> aEndLayer = std::nullopt );
+                                    std::optional<int> aPrimaryDrill,
+                                    std::optional<PCB_LAYER_ID> aPrimaryStartLayer = std::nullopt,
+                                    std::optional<PCB_LAYER_ID> aPrimaryEndLayer = std::nullopt,
+                                    std::optional<int> aSecondaryDrill = std::nullopt,
+                                    std::optional<PCB_LAYER_ID> aSecondaryStartLayer = std::nullopt,
+                                    std::optional<PCB_LAYER_ID> aSecondaryEndLayer = std::nullopt,
+                                    int aCopperLayerCount = 0 );
 
     const BOX2I GetBoundingBox() const override;
     const BOX2I GetBoundingBox( PCB_LAYER_ID aLayer ) const;
@@ -696,9 +703,36 @@ public:
      *
      * @param aDrill is the new drill diameter
      */
+    void SetPrimaryDrillSize( const VECTOR2I& aSize );
+    const VECTOR2I& GetPrimaryDrillSize() const { return m_padStack.Drill().size; }
+
+    void SetPrimaryDrillShape( PAD_DRILL_SHAPE aShape );
+    PAD_DRILL_SHAPE GetPrimaryDrillShape() const { return m_padStack.Drill().shape; }
+
+    void SetPrimaryDrillStartLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetPrimaryDrillStartLayer() const { return m_padStack.Drill().start; }
+
+    void SetPrimaryDrillEndLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetPrimaryDrillEndLayer() const { return m_padStack.Drill().end; }
+
+    void SetPrimaryDrillPostMachining( const std::optional<bool>& aPostMachining );
+    void SetPrimaryDrillPostMachiningFlag( bool aPostMachining );
+    std::optional<bool> GetPrimaryDrillPostMachining() const { return m_padStack.Drill().post_machining; }
+    bool GetPrimaryDrillPostMachiningFlag() const { return m_padStack.Drill().post_machining.value_or( false ); }
+
+    void SetPrimaryDrillFilled( const std::optional<bool>& aFilled );
+    void SetPrimaryDrillFilledFlag( bool aFilled );
+    std::optional<bool> GetPrimaryDrillFilled() const { return m_padStack.Drill().is_filled; }
+    bool GetPrimaryDrillFilledFlag() const { return m_padStack.Drill().is_filled.value_or( false ); }
+
+    void SetPrimaryDrillCapped( const std::optional<bool>& aCapped );
+    void SetPrimaryDrillCappedFlag( bool aCapped );
+    std::optional<bool> GetPrimaryDrillCapped() const { return m_padStack.Drill().is_capped; }
+    bool GetPrimaryDrillCappedFlag() const { return m_padStack.Drill().is_capped.value_or( false ); }
+
     void SetDrill( int aDrill )
     {
-        m_padStack.Drill().size = { aDrill, aDrill };
+        SetPrimaryDrillSize( { aDrill, aDrill } );
     }
 
     /**
@@ -706,7 +740,27 @@ public:
      *
      * @note Use GetDrillValue() to get the calculated value.
      */
-    int GetDrill() const                    { return m_padStack.Drill().size.x; }
+    int GetDrill() const                    { return GetPrimaryDrillSize().x; }
+
+    void SetDrillPostMachining( const std::optional<bool>& aPostMachining )
+    {
+        SetPrimaryDrillPostMachining( aPostMachining );
+    }
+
+    void SetDrillPostMachiningFlag( bool aPostMachining )
+    {
+        SetPrimaryDrillPostMachiningFlag( aPostMachining );
+    }
+
+    std::optional<bool> GetDrillPostMachining() const
+    {
+        return GetPrimaryDrillPostMachining();
+    }
+
+    bool GetDrillPostMachiningFlag() const
+    {
+        return GetPrimaryDrillPostMachiningFlag();
+    }
 
     /**
      * Calculate the drill value for vias (m_drill if > 0, or default drill value for the board).
@@ -722,6 +776,42 @@ public:
     {
         m_padStack.Drill().size = { UNDEFINED_DRILL_DIAMETER, UNDEFINED_DRILL_DIAMETER };
     }
+
+    void SetSecondaryDrillSizeVector( const VECTOR2I& aSize );
+    void ClearSecondaryDrillSize();
+    void SetSecondaryDrillSize( const std::optional<int>& aDrill );
+    std::optional<int> GetSecondaryDrillSize() const;
+
+    void SetSecondaryDrillStartLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetSecondaryDrillStartLayer() const { return m_padStack.SecondaryDrill().start; }
+
+    void SetSecondaryDrillEndLayer( PCB_LAYER_ID aLayer );
+    PCB_LAYER_ID GetSecondaryDrillEndLayer() const { return m_padStack.SecondaryDrill().end; }
+
+    void SetSecondaryDrillShape( PAD_DRILL_SHAPE aShape );
+    PAD_DRILL_SHAPE GetSecondaryDrillShape() const { return m_padStack.SecondaryDrill().shape; }
+
+    void SetSecondaryDrillPostMachining( const std::optional<bool>& aPostMachining );
+    void SetSecondaryDrillPostMachiningFlag( bool aPostMachining );
+    std::optional<bool> GetSecondaryDrillPostMachining() const
+    {
+        return m_padStack.SecondaryDrill().post_machining;
+    }
+
+    bool GetSecondaryDrillPostMachiningFlag() const
+    {
+        return m_padStack.SecondaryDrill().post_machining.value_or( false );
+    }
+
+    void SetSecondaryDrillFilled( const std::optional<bool>& aFilled );
+    void SetSecondaryDrillFilledFlag( bool aFilled );
+    std::optional<bool> GetSecondaryDrillFilled() const { return m_padStack.SecondaryDrill().is_filled; }
+    bool GetSecondaryDrillFilledFlag() const { return m_padStack.SecondaryDrill().is_filled.value_or( false ); }
+
+    void SetSecondaryDrillCapped( const std::optional<bool>& aCapped );
+    void SetSecondaryDrillCappedFlag( bool aCapped );
+    std::optional<bool> GetSecondaryDrillCapped() const { return m_padStack.SecondaryDrill().is_capped; }
+    bool GetSecondaryDrillCappedFlag() const { return m_padStack.SecondaryDrill().is_capped.value_or( false ); }
 
     /**
      * Check if the via is a free via (as opposed to one created on a track by the router).

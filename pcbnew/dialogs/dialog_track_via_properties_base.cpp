@@ -325,9 +325,24 @@ DIALOG_TRACK_VIA_PROPERTIES_BASE::DIALOG_TRACK_VIA_PROPERTIES_BASE( wxWindow* pa
 	m_ViaDrillCtrl = new wxTextCtrl( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	gbSizer3->Add( m_ViaDrillCtrl, wxGBPosition( 4, 1 ), wxGBSpan( 1, 1 ), wxALIGN_CENTER_VERTICAL|wxEXPAND, 5 );
 
-	m_ViaDrillUnit = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_ViaDrillUnit->Wrap( -1 );
-	gbSizer3->Add( m_ViaDrillUnit, wxGBPosition( 4, 2 ), wxGBSpan( 1, 1 ), wxALIGN_CENTER_VERTICAL, 5 );
+        m_ViaDrillUnit = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_ViaDrillUnit->Wrap( -1 );
+        gbSizer3->Add( m_ViaDrillUnit, wxGBPosition( 4, 2 ), wxGBSpan( 1, 1 ), wxALIGN_CENTER_VERTICAL, 5 );
+
+        m_ViaDrillPostMachining = new wxCheckBox( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Apply post-machining"), wxDefaultPosition, wxDefaultSize, wxCHK_3STATE|wxCHK_ALLOW_3RD_STATE_FOR_USER );
+        m_ViaDrillPostMachining->SetToolTip( _("Indicates that the primary drill hit is followed by a post-machining operation") );
+        gbSizer3->Add( m_ViaDrillPostMachining, wxGBPosition( 5, 0 ), wxGBSpan( 1, 3 ), wxLEFT|wxALIGN_CENTER_VERTICAL, 1 );
+
+        m_ViaBackdrillLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Backdrill size:"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_ViaBackdrillLabel->Wrap( -1 );
+        gbSizer3->Add( m_ViaBackdrillLabel, wxGBPosition( 6, 0 ), wxGBSpan( 1, 1 ), wxLEFT|wxALIGN_CENTER_VERTICAL, 1 );
+
+        m_ViaBackdrillCtrl = new wxTextCtrl( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+        gbSizer3->Add( m_ViaBackdrillCtrl, wxGBPosition( 6, 1 ), wxGBSpan( 1, 1 ), wxALIGN_CENTER_VERTICAL|wxEXPAND, 5 );
+
+        m_ViaBackdrillUnit = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("mm"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_ViaBackdrillUnit->Wrap( -1 );
+        gbSizer3->Add( m_ViaBackdrillUnit, wxGBPosition( 6, 2 ), wxGBSpan( 1, 1 ), wxALIGN_CENTER_VERTICAL, 5 );
 
 
 	gbSizer3->AddGrowableCol( 1 );
@@ -371,29 +386,47 @@ DIALOG_TRACK_VIA_PROPERTIES_BASE::DIALOG_TRACK_VIA_PROPERTIES_BASE( wxWindow* pa
 	m_ViaEndLayerLabel1->Wrap( -1 );
 	gbSizer4->Add( m_ViaEndLayerLabel1, wxGBPosition( 2, 0 ), wxGBSpan( 1, 1 ), wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 5 );
 
-	m_ViaEndLayer = new PCB_LAYER_BOX_SELECTOR( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, 0 );
-	gbSizer4->Add( m_ViaEndLayer, wxGBPosition( 2, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL, 5 );
+        m_ViaEndLayer = new PCB_LAYER_BOX_SELECTOR( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, 0 );
+        gbSizer4->Add( m_ViaEndLayer, wxGBPosition( 2, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL, 5 );
 
-	m_annularRingsLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Annular rings:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_annularRingsLabel->Wrap( -1 );
-	gbSizer4->Add( m_annularRingsLabel, wxGBPosition( 4, 0 ), wxGBSpan( 1, 1 ), wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 5 );
+        m_ViaBackdrillStartLayerLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Backdrill start layer:"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_ViaBackdrillStartLayerLabel->Wrap( -1 );
+        gbSizer4->Add( m_ViaBackdrillStartLayerLabel, wxGBPosition( 3, 0 ), wxGBSpan( 1, 1 ), wxRIGHT|wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
 
-	wxString m_annularRingsCtrlChoices[] = { _("All copper layers"), _("Start, end, and connected layers"), _("Connected layers only"), _("Start and end layers only") };
-	int m_annularRingsCtrlNChoices = sizeof( m_annularRingsCtrlChoices ) / sizeof( wxString );
-	m_annularRingsCtrl = new wxChoice( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, m_annularRingsCtrlNChoices, m_annularRingsCtrlChoices, 0 );
-	m_annularRingsCtrl->SetSelection( 0 );
-	gbSizer4->Add( m_annularRingsCtrl, wxGBPosition( 4, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 4 );
+        m_ViaBackdrillStartLayer = new PCB_LAYER_BOX_SELECTOR( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, 0 );
+        gbSizer4->Add( m_ViaBackdrillStartLayer, wxGBPosition( 3, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 4 );
 
-	m_protectionPresetsLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Protection features:"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_protectionPresetsLabel->Wrap( -1 );
-	gbSizer4->Add( m_protectionPresetsLabel, wxGBPosition( 5, 0 ), wxGBSpan( 1, 1 ), wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 5 );
+        m_ViaBackdrillEndLayerLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Backdrill end layer:"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_ViaBackdrillEndLayerLabel->Wrap( -1 );
+        gbSizer4->Add( m_ViaBackdrillEndLayerLabel, wxGBPosition( 4, 0 ), wxGBSpan( 1, 1 ), wxRIGHT|wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
 
-	wxArrayString m_protectionFeaturesChoices;
-	m_protectionFeatures = new wxChoice( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, m_protectionFeaturesChoices, 0 );
-	m_protectionFeatures->SetSelection( 0 );
-	m_protectionFeatures->SetToolTip( _("Select which protection feature according to IPC-4761 the via should have.") );
+        m_ViaBackdrillEndLayer = new PCB_LAYER_BOX_SELECTOR( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, NULL, 0 );
+        gbSizer4->Add( m_ViaBackdrillEndLayer, wxGBPosition( 4, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 4 );
 
-	gbSizer4->Add( m_protectionFeatures, wxGBPosition( 5, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 4 );
+        m_ViaBackdrillPostMachining = new wxCheckBox( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Backdrill post-machining"), wxDefaultPosition, wxDefaultSize, wxCHK_3STATE|wxCHK_ALLOW_3RD_STATE_FOR_USER );
+        m_ViaBackdrillPostMachining->SetToolTip( _("Indicates that the backdrill operation is followed by post-machining") );
+        gbSizer4->Add( m_ViaBackdrillPostMachining, wxGBPosition( 5, 0 ), wxGBSpan( 1, 2 ), wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
+
+        m_annularRingsLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Annular rings:"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_annularRingsLabel->Wrap( -1 );
+        gbSizer4->Add( m_annularRingsLabel, wxGBPosition( 6, 0 ), wxGBSpan( 1, 1 ), wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 5 );
+
+        wxString m_annularRingsCtrlChoices[] = { _("All copper layers"), _("Start, end, and connected layers"), _("Connected layers only"), _("Start and end layers only") };
+        int m_annularRingsCtrlNChoices = sizeof( m_annularRingsCtrlChoices ) / sizeof( wxString );
+        m_annularRingsCtrl = new wxChoice( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, m_annularRingsCtrlNChoices, m_annularRingsCtrlChoices, 0 );
+        m_annularRingsCtrl->SetSelection( 0 );
+        gbSizer4->Add( m_annularRingsCtrl, wxGBPosition( 6, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 4 );
+
+        m_protectionPresetsLabel = new wxStaticText( m_sbViaSizer->GetStaticBox(), wxID_ANY, _("Protection features:"), wxDefaultPosition, wxDefaultSize, 0 );
+        m_protectionPresetsLabel->Wrap( -1 );
+        gbSizer4->Add( m_protectionPresetsLabel, wxGBPosition( 7, 0 ), wxGBSpan( 1, 1 ), wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxLEFT, 5 );
+
+        wxArrayString m_protectionFeaturesChoices;
+        m_protectionFeatures = new wxChoice( m_sbViaSizer->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, m_protectionFeaturesChoices, 0 );
+        m_protectionFeatures->SetSelection( 0 );
+        m_protectionFeatures->SetToolTip( _("Select which protection feature according to IPC-4761 the via should have.") );
+
+        gbSizer4->Add( m_protectionFeatures, wxGBPosition( 7, 1 ), wxGBSpan( 1, 1 ), wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 4 );
 
 
 	gbSizer4->AddGrowableCol( 1 );
@@ -661,7 +694,8 @@ DIALOG_TRACK_VIA_PROPERTIES_BASE::DIALOG_TRACK_VIA_PROPERTIES_BASE( wxWindow* pa
 	m_cbPadstackMode->Connect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onPadstackModeChanged ), NULL, this );
 	m_cbEditLayer->Connect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onEditLayerChanged ), NULL, this );
 	m_ViaDiameterCtrl->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
-	m_ViaDrillCtrl->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
+    m_ViaDrillCtrl->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
+    m_ViaBackdrillCtrl->Connect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
 	m_ViaTypeChoice->Connect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
 	m_ViaStartLayer->Connect( wxEVT_COMMAND_COMBOBOX_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
 	m_ViaEndLayer->Connect( wxEVT_COMMAND_COMBOBOX_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
@@ -702,7 +736,8 @@ DIALOG_TRACK_VIA_PROPERTIES_BASE::~DIALOG_TRACK_VIA_PROPERTIES_BASE()
 	m_cbPadstackMode->Disconnect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onPadstackModeChanged ), NULL, this );
 	m_cbEditLayer->Disconnect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onEditLayerChanged ), NULL, this );
 	m_ViaDiameterCtrl->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
-	m_ViaDrillCtrl->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
+    m_ViaDrillCtrl->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
+    m_ViaBackdrillCtrl->Disconnect( wxEVT_COMMAND_TEXT_UPDATED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
 	m_ViaTypeChoice->Disconnect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
 	m_ViaStartLayer->Disconnect( wxEVT_COMMAND_COMBOBOX_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );
 	m_ViaEndLayer->Disconnect( wxEVT_COMMAND_COMBOBOX_SELECTED, wxCommandEventHandler( DIALOG_TRACK_VIA_PROPERTIES_BASE::onViaEdit ), NULL, this );

@@ -31,7 +31,7 @@
 #ifndef _GENDRILL_EXCELLON_WRITER_
 #define _GENDRILL_EXCELLON_WRITER_
 
-#include <gendrill_file_writer_base.h>
+#include "gendrill_file_writer_base.h"
 
 class BOARD;
 class PLOTTER;
@@ -117,7 +117,7 @@ private:
      * @param aHolesType is the holes type (PTH, NPTH, mixed).
      * @return the hole count.
      */
-    int createDrillFile( FILE* aFile, DRILL_LAYER_PAIR aLayerPair, TYPE_FILE aHolesType );
+    int createDrillFile( FILE* aFile, const DRILL_SPAN& aSpan, TYPE_FILE aHolesType );
 
 
     /**
@@ -133,10 +133,10 @@ private:
      * FMAT,2
      * INCH,TZ
      *
-     * @param aLayerPair is the layer pair for the current holes.
+     * @param aSpan is the drilling span for the current holes.
      * @param aHolesType is the holes type in file (PTH, NPTH, mixed).
      */
-    void writeEXCELLONHeader( DRILL_LAYER_PAIR aLayerPair, TYPE_FILE aHolesType );
+    void writeEXCELLONHeader( const DRILL_SPAN& aSpan, TYPE_FILE aHolesType );
 
     void writeEXCELLONEndOfFile();
 

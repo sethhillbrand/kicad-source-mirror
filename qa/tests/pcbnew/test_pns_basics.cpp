@@ -23,9 +23,11 @@
 
 #include <qa_utils/wx_utils/unit_test_utils.h>
 #include <settings/settings_manager.h>
+#include <optional>
 
 #include <pcbnew/pad.h>
 #include <pcbnew/pcb_track.h>
+#include <pcbnew/board.h>
 
 #include <router/pns_node.h>
 #include <router/pns_router.h>
@@ -411,5 +413,81 @@ BOOST_FIXTURE_TEST_CASE( PNSHoleCollisions, PNS_TEST_FIXTURE )
 
         BOOST_CHECK_EQUAL( first.m_clearance, m_ruleResolver.m_defaultHole2Copper );
     }
+}
+
+
+BOOST_FIXTURE_TEST_CASE( PNSViaBackdrillRetention, PNS_TEST_FIXTURE )
+{
+    PNS::VIA via( VECTOR2I( 1000, 2000 ), PNS_LAYER_RANGE( F_Cu, B_Cu ), 40000, 20000, nullptr,
+                  VIATYPE::THROUGH );
+    via.SetHoleLayers( PNS_LAYER_RANGE( F_Cu, In2_Cu ) );
+    via.SetHolePostMachining( std::optional<bool>( true ) );
+    via.SetSecondaryDrill( std::optional<int>( 12000 ) );
+    via.SetSecondaryHoleLayers( std::optional<PNS_LAYER_RANGE>( PNS_LAYER_RANGE( F_Cu, In1_Cu ) ) );
+    via.SetSecondaryHolePostMachining( std::optional<bool>( false ) );
+
+    PNS::VIA viaCopy( via );
+    std::unique_ptr<PNS::VIA> viaClone( via.Clone() );
+
+    auto checkVia = [&]( const PNS::VIA& candidate )
+    {
+        BOOST_CHECK_EQUAL( candidate.HoleLayers().Start(), via.HoleLayers().Start() );
+        BOOST_CHECK_EQUAL( candidate.HoleLayers().End(), via.HoleLayers().End() );
+        BOOST_CHECK( candidate.HolePostMachining().has_value() );
+        BOOST_CHECK( candidate.HolePostMachining().value() );
+        BOOST_CHECK( candidate.SecondaryDrill().has_value() );
+        BOOST_CHECK_EQUAL( candidate.SecondaryDrill().value(), via.SecondaryDrill().value() );
+        BOOST_CHECK( candidate.SecondaryHoleLayers().has_value() );
+        BOOST_CHECK_EQUAL( candidate.SecondaryHoleLayers()->Start(),
+                           via.SecondaryHoleLayers()->Start() );
+        BOOST_CHECK_EQUAL( candidate.SecondaryHoleLayers()->End(),
+                           via.SecondaryHoleLayers()->End() );
+        BOOST_CHECK( candidate.SecondaryHolePostMachining().has_value() );
+        BOOST_CHECK_EQUAL( candidate.SecondaryHolePostMachining().value(),
+                           via.SecondaryHolePostMachining().value() );
+    };
+
+    checkVia( viaCopy );
+    checkVia( *viaClone );
+}
+
+
+BOOST_AUTO_TEST_CASE( PCBViaBackdrillCloneRetainsData )
+{
+    BOARD board;
+    PCB_VIA via( &board );
+
+    via.SetPrimaryDrillStartLayer( F_Cu );
+    via.SetPrimaryDrillEndLayer( In3_Cu );
+    via.SetPrimaryDrillPostMachining( std::optional<bool>( true ) );
+    via.SetSecondaryDrillSize( std::optional<int>( 15000 ) );
+    via.SetSecondaryDrillStartLayer( In1_Cu );
+    via.SetSecondaryDrillEndLayer( In2_Cu );
+    via.SetSecondaryDrillPostMachining( std::optional<bool>( false ) );
+
+    PCB_VIA viaCopy( via );
+    std::unique_ptr<PCB_VIA> viaClone( static_cast<PCB_VIA*>( via.Clone() ) );
+
+    auto checkVia = [&]( const PCB_VIA& candidate )
+    {
+        BOOST_CHECK_EQUAL( candidate.GetPrimaryDrillStartLayer(), via.GetPrimaryDrillStartLayer() );
+        BOOST_CHECK_EQUAL( candidate.GetPrimaryDrillEndLayer(), via.GetPrimaryDrillEndLayer() );
+        BOOST_CHECK( candidate.GetPrimaryDrillPostMachining().has_value() );
+        BOOST_CHECK_EQUAL( candidate.GetPrimaryDrillPostMachining().value(),
+                           via.GetPrimaryDrillPostMachining().value() );
+        BOOST_CHECK( candidate.GetSecondaryDrillSize().has_value() );
+        BOOST_CHECK_EQUAL( candidate.GetSecondaryDrillSize().value(),
+                           via.GetSecondaryDrillSize().value() );
+        BOOST_CHECK_EQUAL( candidate.GetSecondaryDrillStartLayer(),
+                           via.GetSecondaryDrillStartLayer() );
+        BOOST_CHECK_EQUAL( candidate.GetSecondaryDrillEndLayer(),
+                           via.GetSecondaryDrillEndLayer() );
+        BOOST_CHECK( candidate.GetSecondaryDrillPostMachining().has_value() );
+        BOOST_CHECK_EQUAL( candidate.GetSecondaryDrillPostMachining().value(),
+                           via.GetSecondaryDrillPostMachining().value() );
+    };
+
+    checkVia( viaCopy );
+    checkVia( *viaClone );
 }
 

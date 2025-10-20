@@ -249,6 +249,7 @@ public:
 
         std::optional<bool> is_filled; ///< True if the drill hole should be filled completely
         std::optional<bool> is_capped; ///< True if the drill hole should be capped
+        std::optional<bool> post_machining; ///< True if the drill requires post-machining
 
         bool operator==( const DRILL_PROPS& aOther ) const;
     };
